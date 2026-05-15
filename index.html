@@ -187,46 +187,41 @@
 
     // ==================== CARGA DE DATOS Y CRUD ====================
     async function loadUserData() {
-        if (!currentUser) return;
-        const { data: s } = await supabaseClient.from('canciones').select('*').eq('user_id', currentUser.id);
-        songs = s || [];
-        const { data: l } = await supabaseClient.from('listas').select('*').eq('user_id', currentUser.id);
-        lists = l || [];
-        for (let list of lists) {
-            const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
-            list.items = items || [];
-        }
-        const { data: t } = await supabaseClient.from('equipo').select('*').eq('user_id', currentUser.id);
-        team = t || [];
-        const { data: a } = await supabaseClient.from('asistencia').select('*').eq('user_id', currentUser.id);
-        attendance = a || [];
-        const { data: sh } = await supabaseClient.from('turnos').select('*').eq('user_id', currentUser.id);
-        shifts = sh || [];
-        const { data: m } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
-        modules = m || [];
-        if (modules.length === 0) {
-    const defaultModules = [
-        { id: 'mod1', title: 'Teología de la Adoración', content: '<p>La adoración es respuesta a la revelación de Dios...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
-        { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>El líder sirve como Jesús...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
-    ];
-    for (let mod of defaultModules) {
-        // Usamos upsert para evitar conflictos
-        await supabaseClient.from('modulos').upsert({ 
-            id: mod.id, 
-            user_id: currentUser.id, 
-            title: mod.title, 
-            content: mod.content, 
-            questions: mod.questions 
-        }, { onConflict: 'id' });
+    if (!currentUser) return;
+    const { data: s } = await supabaseClient.from('canciones').select('*').eq('user_id', currentUser.id);
+    songs = s || [];
+    const { data: l } = await supabaseClient.from('listas').select('*').eq('user_id', currentUser.id);
+    lists = l || [];
+    for (let list of lists) {
+        const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
+        list.items = items || [];
     }
-    // Recargar módulos después del upsert
-    const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
-    modules = newM || [];
-}
-            const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
-            modules = newM || [];
+    const { data: t } = await supabaseClient.from('equipo').select('*').eq('user_id', currentUser.id);
+    team = t || [];
+    const { data: a } = await supabaseClient.from('asistencia').select('*').eq('user_id', currentUser.id);
+    attendance = a || [];
+    const { data: sh } = await supabaseClient.from('turnos').select('*').eq('user_id', currentUser.id);
+    shifts = sh || [];
+    const { data: m } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
+    modules = m || [];
+    if (modules.length === 0) {
+        const defaultModules = [
+            { id: 'mod1', title: 'Teología de la Adoración', content: '<p>La adoración es respuesta a la revelación de Dios...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
+            { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>El líder sirve como Jesús...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
+        ];
+        for (let mod of defaultModules) {
+            await supabaseClient.from('modulos').upsert({ 
+                id: mod.id, 
+                user_id: currentUser.id, 
+                title: mod.title, 
+                content: mod.content, 
+                questions: mod.questions 
+            }, { onConflict: 'id' });
         }
+        const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
+        modules = newM || [];
     }
+}  // <-- ÚNICA llave de cierre de función (sin llaves extra)
 
     async function saveSong(song) {
         if (song.id) await supabaseClient.from('canciones').update(song).eq('id', song.id);
