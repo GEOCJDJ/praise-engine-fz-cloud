@@ -66,7 +66,7 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
         .modal-content { background: var(--surface); width: 100%; max-width: 800px; max-height: 85vh; border-radius: 2rem; padding: 1.5rem; overflow-y: auto; }
         .form-group { margin-bottom: 1rem; }
-        .form-control { width: 100%; padding: 0.8rem; border-radius: var(--radius-lg); border: 2px solid var(--border); background: var(--bg-app); color: var(--text-main); font-family: monospace; }
+        .form-control { width: 100%; padding: 0.8rem; border-radius: var(--radius-lg); border: 2px solid var(--border); background: var(--bg-app); color: var(--text-main); }
         .login-container { max-width: 450px; margin: 2rem auto; background: var(--surface); border-radius: 2rem; padding: 2rem; text-align: center; box-shadow: var(--shadow); }
         .text-accent { color: var(--primary); text-decoration: none; }
         .text-accent:hover { text-decoration: underline; }
@@ -85,7 +85,7 @@
 <body><div id="appRoot"></div>
 <script>
     // ==================== CONFIGURACIÓN SUPABASE ====================
-    // REEMPLAZA CON TUS DATOS REALES
+    // TUS CLAVES (ya las tienes)
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -96,35 +96,25 @@
     let sortableInstance = null, metronomeInterval = null, adminVisible = false;
     const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
 
-    // Mapeo de notas para transposición (simplificado)
-    const noteMap = {
-        'C':0, 'C#':1, 'Db':1, 'D':2, 'D#':3, 'Eb':3, 'E':4, 'F':5, 'F#':6, 'Gb':6, 'G':7, 'G#':8, 'Ab':8, 'A':9, 'A#':10, 'Bb':10, 'B':11
-    };
+    // Mapeo de notas para transposición
+    const noteMap = { 'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11 };
     const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-
     function transposeChord(chord, semitones) {
         const match = chord.match(/^([A-G][#b]?)(.*)$/);
         if (!match) return chord;
-        let base = match[1];
-        let suffix = match[2];
+        let base = match[1], suffix = match[2];
         let idx = noteMap[base];
         if (idx === undefined) return chord;
         let newIdx = (idx + semitones + 12) % 12;
-        let newBase = noteNames[newIdx];
-        return newBase + suffix;
+        return noteNames[newIdx] + suffix;
     }
-
     function transposeLyrics(text, fromKey, toKey) {
         if (!text || !fromKey || !toKey || fromKey === toKey) return text;
-        const fromBase = fromKey.replace(/m$/, '');
-        const toBase = toKey.replace(/m$/, '');
+        const fromBase = fromKey.replace(/m$/, ''), toBase = toKey.replace(/m$/, '');
         let semitones = (noteMap[toBase] - noteMap[fromBase] + 12) % 12;
         if (fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
         if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
-        return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => {
-            const newChord = transposeChord(chord, semitones);
-            return `[${newChord}]`;
-        });
+        return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`);
     }
 
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
@@ -138,17 +128,13 @@
             if (error) throw error;
             await loadUserData();
             renderApp();
-        } catch (err) {
-            alert("Error al iniciar sesión: " + err.message);
-        }
+        } catch (err) { alert("Error al iniciar sesión: " + err.message); }
     }
-
     async function resetPassword(email) {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
         if (error) alert("Error: " + error.message);
         else alert("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
     }
-
     async function logout() { await supabaseClient.auth.signOut(); currentUser = null; renderLogin(); }
 
     function renderRegister() {
@@ -162,42 +148,26 @@
                 <div class="form-group"><input type="password" id="regConfirmPass" class="form-control" placeholder="Confirmar contraseña"></div>
                 <button class="btn btn-primary w-100 mb-2" onclick="registerUser()">Registrarme</button>
                 <button class="btn btn-ghost w-100" onclick="renderLogin()">Volver al inicio de sesión</button>
-            </div>
-        `;
+            </div>`;
     }
-
     async function registerUser() {
         const name = document.getElementById('regName').value.trim();
         const email = document.getElementById('regEmail').value.trim();
         const password = document.getElementById('regPass').value;
         const confirm = document.getElementById('regConfirmPass').value;
-
-        if (!name || !email || !password) {
-            alert("Por favor completa todos los campos");
-            return;
-        }
-        if (password !== confirm) {
-            alert("Las contraseñas no coinciden");
-            return;
-        }
-
+        if (!name || !email || !password) { alert("Completa todos los campos"); return; }
+        if (password !== confirm) { alert("Las contraseñas no coinciden"); return; }
         try {
             const { data, error } = await supabaseClient.auth.signUp({ email, password });
             if (error) throw error;
-
             if (data.user) {
-                await supabaseClient
-                    .from('perfiles')
-                    .upsert([{ id: data.user.id, email: email, nombre: name }]);
-                alert("Registro exitoso. Revisa tu correo para confirmar (si activaste la verificación). Ahora puedes iniciar sesión.");
+                await supabaseClient.from('perfiles').upsert([{ id: data.user.id, email: email, nombre: name }]);
+                alert("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión.");
                 renderLogin();
             }
         } catch (err) {
-            if (err.message.includes("User already registered")) {
-                alert("Este correo electrónico ya está registrado. Inicia sesión o usa otro correo.");
-            } else {
-                alert("Error en el registro: " + err.message);
-            }
+            if (err.message.includes("User already registered")) alert("Este correo ya está registrado.");
+            else alert("Error en el registro: " + err.message);
         }
     }
 
@@ -210,15 +180,9 @@
                 <div class="form-group"><input type="password" id="loginPass" class="form-control" placeholder="Contraseña"></div>
                 <button class="btn btn-primary w-100 mb-2" onclick="login(loginEmail.value, loginPass.value)">Iniciar Sesión</button>
                 <button class="btn btn-ghost w-100 mb-2" onclick="renderRegister()">Registrarse</button>
-                <div style="text-align: center; margin-top: 10px;">
-                    <a href="#" onclick="showResetPassword()" class="text-accent small">¿Olvidaste tu contraseña?</a>
-                </div>
-            </div>
-        `;
-        window.showResetPassword = () => {
-            const email = prompt("Introduce tu email para restablecer la contraseña:");
-            if (email) resetPassword(email);
-        };
+                <div style="text-align: center; margin-top: 10px;"><a href="#" onclick="showResetPassword()" class="text-accent small">¿Olvidaste tu contraseña?</a></div>
+            </div>`;
+        window.showResetPassword = () => { const email = prompt("Introduce tu email:"); if(email) resetPassword(email); };
     }
 
     // ==================== CARGA DE DATOS Y CRUD ====================
@@ -242,8 +206,8 @@
         modules = m || [];
         if (modules.length === 0) {
             const defaultModules = [
-                { id: 'mod1', title: 'Teología de la Adoración', content: '<p>La adoración es respuesta a la revelación de Dios...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
-                { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>El líder sirve como Jesús...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
+                { id: 'mod1', title: 'Teología de la Adoración', content: '<p>...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
+                { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
             ];
             for (let mod of defaultModules) {
                 await supabaseClient.from('modulos').insert({ id: mod.id, user_id: currentUser.id, title: mod.title, content: mod.content, questions: mod.questions });
@@ -279,7 +243,7 @@
 
     // ==================== RENDER PRINCIPAL ====================
     function renderApp() {
-        if (!currentUser) return;
+        if (!currentUser) { renderLogin(); return; }
         document.getElementById('appRoot').innerHTML = `
             <header class="app-header">
                 <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> Praise Engine FZ® Cloud <small>| I.E.C. Fortaleza</small></div>
@@ -297,8 +261,7 @@
                 <div id="viewControls" class="view-controls"></div>
                 <div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div>
                 <div id="mainContent"></div>
-            </div>
-        `;
+            </div>`;
         document.querySelectorAll('.nav-item[data-tab]').forEach(el => el.addEventListener('click', () => {
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active'); currentTab = el.dataset.tab; selectedListId = null; renderCurrentView();
@@ -326,15 +289,13 @@
         else if (currentTab === 'admin' && adminVisible) renderAdmin();
     }
 
-    // ==================== CANCIONERO CON EDITOR LETRA/ACORDES ====================
+    // ==================== CANCIONERO ====================
     function renderSongs() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
         filtered.sort((a,b)=>a.title.localeCompare(b.title));
         document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button>`;
-        document.getElementById('viewControls').innerHTML = `<button class="btn-view ${viewMode==='table'?'active':''}" id="songsTableView"><i class="fas fa-list"></i> Lista</button><button class="btn-view ${viewMode==='grid'?'active':''}" id="songsGridView"><i class="fas fa-th-large"></i> Cuadrícula</button>`;
-        document.getElementById('songsTableView')?.addEventListener('click',()=>{viewMode='table';renderSongs();});
-        document.getElementById('songsGridView')?.addEventListener('click',()=>{viewMode='grid';renderSongs();});
+        document.getElementById('viewControls').innerHTML = `<button class="btn-view ${viewMode==='table'?'active':''}" onclick="viewMode='table';renderSongs()"><i class="fas fa-list"></i> Lista</button><button class="btn-view ${viewMode==='grid'?'active':''}" onclick="viewMode='grid';renderSongs()"><i class="fas fa-th-large"></i> Cuadrícula</button>`;
         const container = document.getElementById('mainContent');
         if (viewMode === 'table') {
             container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Título</th><th>Categoría</th><th>Tono</th><th>BPM</th><th>Acordes</th><th>Letra</th><th></th></tr></thead><tbody>${filtered.map(s => `<tr>
@@ -343,49 +304,22 @@
                         <td>${s.key}</td>
                         <td><button class="btn-icon" onclick="openMetronome('${s.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i> ${s.bpm||'--'}</button></td>
                         <td><button class="btn-icon" onclick="viewChords('${s.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button></td>
-                        <td><button class="btn-icon" onclick="openLyricsEditor('${s.id}'); event.stopPropagation();"><i class="fas fa-music"></i> Letra</button></td>
+                        <td><button class="btn-icon" onclick="openLyricsEditor('${s.id}'); event.stopPropagation();"><i class="fas fa-music"></i> Editar</button></td>
                         <td><button class="btn-icon" onclick="openSongModal('${s.id}'); event.stopPropagation();"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteSong('${s.id}'); event.stopPropagation();"><i class="fas fa-trash"></i></button></td>
                     </tr>`).join('')}</tbody>}</div>`;
         } else {
-            container.innerHTML = `<div class="grid">${filtered.map(s => `<div class="card"><span class="card-category">${s.category}</span><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> ${s.key} | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;"><button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button><button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button></div></div>`).join('')}</div>`;
+            container.innerHTML = `<div class="grid">${filtered.map(s => `<div class="card">
+                        <span class="card-category">${s.category}</span>
+                        <div class="card-title">${escapeHtml(s.title)}</div>
+                        <div><i class="fas fa-music"></i> ${s.key} | 🥁 ${s.bpm||'--'} BPM</div>
+                        <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                            <button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>
+                            <button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button>
+                            <button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button>
+                            <button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>
+                        </div>
+                    </div>`).join('')}</div>`;
         }
-    }
-
-    // Editor de letra con acordes inline y transposición
-    async function openLyricsEditor(songId) {
-        const song = songs.find(s => s.id === songId);
-        if (!song) return;
-        let lyrics = song.lyrics || '';
-        let currentKey = song.key;
-        showModal(`
-            <h3>Editar Letra y Acordes: ${escapeHtml(song.title)}</h3>
-            <div style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center;">
-                <label>Tonalidad actual:</label>
-                <select id="transposeFromKey" class="form-control" style="width:100px;">${keys.map(k => `<option ${currentKey===k?'selected':''}>${k}</option>`).join('')}</select>
-                <label>Transponer a:</label>
-                <select id="transposeToKey" class="form-control" style="width:100px;">${keys.map(k => `<option>${k}</option>`).join('')}</select>
-                <button class="btn btn-primary" onclick="applyTranspose()">Transponer</button>
-            </div>
-            <div class="form-group"><label>Letra (usa [Acorde] antes de la sílaba o palabra)</label><textarea id="lyricsEditor" rows="15" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea></div>
-            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLyrics('${song.id}')">Guardar Letra</button></div>
-        `);
-        window.applyTranspose = () => {
-            const fromKey = document.getElementById('transposeFromKey').value;
-            const toKey = document.getElementById('transposeToKey').value;
-            const textarea = document.getElementById('lyricsEditor');
-            const newLyrics = transposeLyrics(textarea.value, fromKey, toKey);
-            textarea.value = newLyrics;
-            document.getElementById('transposeFromKey').value = toKey;
-        };
-        window.saveLyrics = async (id) => {
-            const newLyrics = document.getElementById('lyricsEditor').value;
-            const songToUpdate = songs.find(s => s.id === id);
-            if (songToUpdate) {
-                songToUpdate.lyrics = newLyrics;
-                await saveSong(songToUpdate);
-            }
-            closeModal();
-        };
     }
 
     function openSongModal(id=null) {
@@ -420,21 +354,58 @@
         await saveSong(song);
         closeModal();
     }
-    async function deleteSong(id) { if (confirm("¿Eliminar canción?")) await deleteSong(id); }
 
-    // ==================== LISTAS ====================
+    async function openLyricsEditor(songId) {
+        const song = songs.find(s => s.id === songId);
+        if (!song) return;
+        let lyrics = song.lyrics || '';
+        showModal(`
+            <h3>Editar Letra y Acordes: ${escapeHtml(song.title)}</h3>
+            <div style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center;">
+                <label>Tonalidad actual:</label>
+                <select id="transposeFromKey" class="form-control" style="width:100px;">${keys.map(k => `<option ${song.key===k?'selected':''}>${k}</option>`).join('')}</select>
+                <label>Transponer a:</label>
+                <select id="transposeToKey" class="form-control" style="width:100px;">${keys.map(k => `<option>${k}</option>`).join('')}</select>
+                <button class="btn btn-primary" onclick="applyTranspose()">Transponer</button>
+            </div>
+            <div class="form-group"><label>Letra (usa [Acorde] antes de la sílaba)</label><textarea id="lyricsEditor" rows="15" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLyrics('${song.id}')">Guardar Letra</button></div>
+        `);
+        window.applyTranspose = () => {
+            const fromKey = document.getElementById('transposeFromKey').value;
+            const toKey = document.getElementById('transposeToKey').value;
+            const textarea = document.getElementById('lyricsEditor');
+            textarea.value = transposeLyrics(textarea.value, fromKey, toKey);
+            document.getElementById('transposeFromKey').value = toKey;
+        };
+        window.saveLyrics = async (id) => {
+            const newLyrics = document.getElementById('lyricsEditor').value;
+            const songToUpdate = songs.find(s => s.id === id);
+            if (songToUpdate) {
+                songToUpdate.lyrics = newLyrics;
+                await saveSong(songToUpdate);
+            }
+            closeModal();
+        };
+    }
+
+    // ==================== LISTAS (simplificadas pero funcionales) ====================
     function renderLists() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
         document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button><button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>`;
-        document.getElementById('viewControls').innerHTML = `<button class="btn-view ${listsViewMode==='grid'?'active':''}" id="listsGridBtn"><i class="fas fa-th-large"></i> Cuadrícula</button><button class="btn-view ${listsViewMode==='table'?'active':''}" id="listsTableBtn"><i class="fas fa-list"></i> Tabla</button>`;
-        document.getElementById('listsGridBtn')?.addEventListener('click',()=>{listsViewMode='grid';renderLists();});
-        document.getElementById('listsTableBtn')?.addEventListener('click',()=>{listsViewMode='table';renderLists();});
+        document.getElementById('viewControls').innerHTML = `<button class="btn-view ${listsViewMode==='grid'?'active':''}" onclick="listsViewMode='grid';renderLists()"><i class="fas fa-th-large"></i> Cuadrícula</button><button class="btn-view ${listsViewMode==='table'?'active':''}" onclick="listsViewMode='table';renderLists()"><i class="fas fa-list"></i> Tabla</button>`;
         const container = document.getElementById('mainContent');
         if (listsViewMode === 'grid') {
-            container.innerHTML = `<div class="grid">${filtered.map(l => `<div class="card" onclick="selectedListId='${l.id}'; renderCurrentView()"><span class="card-category">Lista</span><div class="card-title">${escapeHtml(l.name)}</div><div>📅 ${l.date || 'Sin fecha'}</div><div>🎵 ${l.items.length} canciones</div><div onclick="event.stopPropagation()"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`;
+            container.innerHTML = `<div class="grid">${filtered.map(l => `<div class="card" onclick="selectedListId='${l.id}'; renderCurrentView()">
+                        <span class="card-category">Lista</span>
+                        <div class="card-title">${escapeHtml(l.name)}</div>
+                        <div>📅 ${l.date || 'Sin fecha'}</div>
+                        <div>🎵 ${l.items.length} canciones</div>
+                        <div onclick="event.stopPropagation()"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></div>
+                    </div>`).join('')}</div>`;
         } else {
-            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th><th></th></tr></thead><tbody>${filtered.map(l => `<tr onclick="selectedListId='${l.id}'; renderCurrentView()"><td>${escapeHtml(l.name)}</td><td>${l.date || '—'}</td><td>${l.items.length}</td><td><button class="btn-icon" onclick="editListName('${l.id}'); event.stopPropagation()"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}'); event.stopPropagation()"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></div>`;
+            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th><th></th></tr></thead><tbody>${filtered.map(l => `<tr onclick="selectedListId='${l.id}'; renderCurrentView()"><td>${escapeHtml(l.name)}</td><td>${l.date || '—'}</td><td>${l.items.length}</td><td><button class="btn-icon" onclick="editListName('${l.id}'); event.stopPropagation()"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}'); event.stopPropagation()"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody>}</div>`;
         }
     }
 
@@ -466,7 +437,7 @@
         dragArea.innerHTML = list.items.map((item, idx) => {
             const song = songs.find(s => s.id === item.songId);
             if (!song) return '';
-            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;"><i class="fas fa-grip-vertical drag-handle"></i><div style="flex:1"><b>${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: ${item.keyOverride || song.key} | 🥁 ${song.bpm||'--'} BPM</div></div><button class="btn-icon" onclick="openMetronome('${song.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}'); event.stopPropagation();"><i class="fas fa-music"></i> Letra</button><button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button></div>`;
+            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;"><i class="fas fa-grip-vertical drag-handle"></i><div style="flex:1"><b>${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: ${item.keyOverride || song.key} | 🥁 ${song.bpm||'--'} BPM</div></div><button class="btn-icon" onclick="openMetronome('${song.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}'); event.stopPropagation();"><i class="fas fa-music"></i></button><button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button></div>`;
         }).join('');
         if (sortableInstance) sortableInstance.destroy();
         sortableInstance = new Sortable(dragArea, { handle: '.drag-handle', animation: 200, onEnd: () => { const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); list.items = newOrder; saveList(list); } });
@@ -517,7 +488,7 @@
         XLSX.writeFile(wb, "todas_listas_iec.xlsx");
     }
 
-    // ==================== RECURSOS (resumen para no repetir) ====================
+    // ==================== RECURSOS (resumidos pero funcionales) ====================
     function renderResources() {
         document.getElementById('actionHeader').innerHTML = '';
         document.getElementById('viewControls').innerHTML = '';
@@ -533,7 +504,6 @@
             </div>`;
     }
 
-    // Teleprompter
     function openTeleprompter() {
         const selectSongs = songs.map(s => `<option value="${s.id}">${escapeHtml(s.title)}</option>`).join('');
         showModal(`<h3>Teleprompter</h3><select id="teleSongSelect" class="form-control">${selectSongs}</select><div id="teleLyricsDisplay" class="teleprompter-screen" style="margin-top:1rem;" onclick="advanceLyrics()">Selecciona una canción</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
@@ -548,7 +518,6 @@
         });
     }
 
-    // Respaldo JSON
     function openBackupModal() {
         showModal(`<h3>Respaldo y Restauración</h3><button class="btn btn-primary" onclick="exportBackup()"><i class="fas fa-download"></i> Exportar respaldo</button><div style="margin:1rem 0"><input type="file" id="restoreFile" accept=".json" class="form-control"></div><button class="btn btn-ghost" onclick="importBackup()">Restaurar desde archivo</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
     }
@@ -577,7 +546,6 @@
         reader.readAsText(file);
     }
 
-    // Mi Equipo
     function openTeamModal() {
         const renderTeam = () => {
             showModal(`<h3>Mi Equipo de Alabanza</h3><div id="teamList">${team.map((m, i) => `<div style="display:flex; justify-content:space-between; margin-bottom:0.5rem"><span>${escapeHtml(m.name)} - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMember(${i})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin miembros</p>'}</div><div class="form-group"><input id="memberName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="memberRole" class="form-control" placeholder="Rol"></div><button class="btn btn-primary" onclick="addTeamMember()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
@@ -591,7 +559,6 @@
         renderTeam();
     }
 
-    // Afinador
     function openTuner() {
         showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota en tu guitarra/bajo</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
         const noteElem = document.getElementById('tunerNote');
@@ -641,7 +608,6 @@
         }).catch(() => { noteElem.innerText = "Permiso denegado"; });
     }
 
-    // Centro de Capacitación
     function openModulesLibrary() {
         let html = `<h3>Centro de Capacitación</h3><div class="grid">`;
         modules.forEach(mod => { html += `<div class="card" onclick="startModule('${mod.id}')"><div class="card-category">Módulo</div><h4>${escapeHtml(mod.title)}</h4><p>Evaluación al final</p></div>`; });
@@ -669,7 +635,6 @@
         };
     }
 
-    // Reporte de Asistencia
     function viewAttendanceReport() {
         let html = `<h3>Reporte de Asistencia (Solo lectura)</h3><table style="width:100%; border-collapse:collapse;"><thead><tr><th>Fecha</th><th>Miembro</th><th>Estado</th></tr></thead><tbody>`;
         attendance.forEach(reg => {
@@ -690,9 +655,8 @@
         XLSX.writeFile(wb, `asistencia_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
-    // Calendario de Turnos
     function viewShiftsCalendar() {
-        let html = `<h3>Calendario de Turnos (Próximos servicios)</h3><table style="width:100%"><thead><tr><th>Fecha</th><th>Miembro</th></tr></thead><tbody>`;
+        let html = `<h3>Calendario de Turnos (Próximos servicios)</h3><table style="width:100%"><thead><tr><th>Fecha</th><th>Miembro</th></table></thead><tbody>`;
         shifts.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(s => {
             const member = team.find(m => m.id === s.memberId);
             html += `<tr><td>${s.date}</td><td>${member ? escapeHtml(member.name) : 'Desconocido'}</td></tr>`;
@@ -808,9 +772,7 @@
         if (!list || list.items.length === 0) return alert("La lista está vacía");
         const copias = 12;
         const win = window.open();
-        win.document.write(`
-            <html><head><title>${escapeHtml(list.name)}</title><style>body{font-family:sans-serif;margin:0.2cm}.print-area{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.print-card{border:1px solid #000;border-radius:8px;padding:6px;break-inside:avoid}.print-title{font-weight:bold;text-align:center;border-bottom:1px solid #aaa;margin-bottom:4px}.print-song{font-size:8pt;margin:2px 0}.print-footer{font-size:6pt;text-align:center;margin-top:4px}</style></head><body><div class="print-area">
-        `);
+        win.document.write(`<html><head><title>${escapeHtml(list.name)}</title><style>body{font-family:sans-serif;margin:0.2cm}.print-area{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.print-card{border:1px solid #000;border-radius:8px;padding:6px;break-inside:avoid}.print-title{font-weight:bold;text-align:center;border-bottom:1px solid #aaa;margin-bottom:4px}.print-song{font-size:8pt;margin:2px 0}.print-footer{font-size:6pt;text-align:center;margin-top:4px}</style></head><body><div class="print-area">`);
         for (let i = 0; i < copias; i++) {
             win.document.write(`<div class="print-card"><div class="print-title">${escapeHtml(list.name)}</div>`);
             list.items.forEach(item => {
