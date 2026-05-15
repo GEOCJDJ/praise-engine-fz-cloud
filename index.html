@@ -13,7 +13,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ========== ESTILOS COMPLETOS (sin cambios en diseño) ========== */
+        /* ... (el mismo CSS que ya tenías, no lo cambio para no alargar) ... */
         :root {
             --primary: #1E3A8A;
             --primary-light: #3B82F6;
@@ -181,6 +181,13 @@
     function showModal(content) { const div = document.createElement('div'); div.id = 'modal'; div.className = 'modal'; div.style.display = 'flex'; div.innerHTML = `<div class="modal-content">${content}</div>`; document.body.appendChild(div); }
     function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime}); }
     
+    function generateUniqueId() {
+        if (window.crypto && window.crypto.randomUUID) {
+            return window.crypto.randomUUID();
+        }
+        return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    }
+
     function transposeChord(chord, semitones) {
         const match = chord.match(/^([A-G][#b]?)(.*)$/);
         if (!match) return chord;
@@ -199,7 +206,44 @@
         return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`);
     }
 
-    // ==================== AUTENTICACIÓN ====================
+    // CONVERSOR de formato espaciado a [Acorde]
+    function convertSpacedChordsToBrackets(text) {
+        // Detecta si hay líneas que parecen acordes (solo letras, números, #, b, /, espacios)
+        let lines = text.split('\n');
+        let result = [];
+        let i = 0;
+        while (i < lines.length) {
+            let line = lines[i];
+            // Si la línea parece una línea de acordes (contiene solo acordes válidos)
+            if (line.match(/^[\sA-Ga-g0-9#b\/]+$/) && !line.match(/[aeiouáéíóú]/i)) {
+                // Próxima línea debería ser la letra
+                let nextLine = lines[i+1] || '';
+                let chordLine = line.trim();
+                let lyricLine = nextLine;
+                // Procesar palabra por palabra
+                let chords = chordLine.split(/\s+/).filter(c => c.length > 0);
+                let words = lyricLine.split(/(\s+)/);
+                let newLyric = '';
+                let chordIndex = 0;
+                for (let w of words) {
+                    if (w.trim().length > 0 && chordIndex < chords.length) {
+                        newLyric += `[${chords[chordIndex]}] ${w}`;
+                        chordIndex++;
+                    } else {
+                        newLyric += w;
+                    }
+                }
+                result.push(newLyric);
+                i += 2;
+            } else {
+                result.push(line);
+                i++;
+            }
+        }
+        return result.join('\n');
+    }
+
+    // ==================== AUTENTICACIÓN (sin cambios) ====================
     async function login(email, password) {
         try {
             const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -299,17 +343,27 @@
     }
     async function saveSong(song) {
         try {
+            if (!song.id) song.id = generateUniqueId();
+            if (!song.user_id) song.user_id = currentUser.id;
+            // Asegurar campos vacíos como string vacío
+            song.chords_url = song.chords_url || '';
+            song.chords_data = song.chords_data || '';
+            song.youtube = song.youtube || '';
             if (song.id && songs.some(s => s.id === song.id)) {
-                await supabaseClient.from('canciones').update(song).eq('id', song.id);
+                const { error } = await supabaseClient.from('canciones').update(song).eq('id', song.id);
+                if (error) throw error;
             } else {
-                if(!song.id) song.id = Date.now().toString();
-                song.user_id = currentUser.id;
-                await supabaseClient.from('canciones').insert(song);
+                const { error } = await supabaseClient.from('canciones').insert(song);
+                if (error) throw error;
             }
             await loadUserData();
             renderCurrentView();
             return true;
-        } catch (err) { console.error("Error guardando canción:", err); alert("Error al guardar: " + err.message); return false; }
+        } catch (err) {
+            console.error("Error guardando canción:", err);
+            alert("Error al guardar: " + err.message);
+            return false;
+        }
     }
     async function deleteSong(id) { await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
     async function saveList(list) {
@@ -322,7 +376,7 @@
                     await supabaseClient.from('lista_items').insert({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || item.key_override || null, orden: i });
                 }
             } else {
-                const newId = Date.now().toString();
+                const newId = generateUniqueId();
                 await supabaseClient.from('listas').insert({ id: newId, user_id: currentUser.id, name: list.name, date: list.date });
                 for (let i = 0; i < list.items.length; i++) {
                     const item = list.items[i];
@@ -338,8 +392,8 @@
     async function saveShifts(sh) { shifts = sh; await supabaseClient.from('turnos').delete().eq('user_id', currentUser.id); for (let s of shifts) await supabaseClient.from('turnos').insert(s); }
     async function saveModules(mods) { modules = mods; for (let m of modules) { m.user_id = currentUser.id; await supabaseClient.from('modulos').upsert(m, { onConflict: 'id' }); } await loadUserData(); }
 
-    // ==================== RENDER PRINCIPAL ====================
-    function renderApp() {
+    // ==================== RENDER PRINCIPAL (sin cambios importantes) ====================
+    function renderApp() { /* igual que antes, pero llamando a las funciones actualizadas */ 
         if (!currentUser) { renderLogin(); return; }
         document.getElementById('appRoot').innerHTML = `
             <header class="app-header">
@@ -378,15 +432,15 @@
         titleEl.addEventListener('touchstart', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 5000));
         titleEl.addEventListener('touchend', () => clearTimeout(timer));
     }
-    function renderCurrentView() {
+    function renderCurrentView() { /* igual */ 
         if (currentTab === 'songs') renderSongs();
         else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
         else if (currentTab === 'resources') renderResources();
         else if (currentTab === 'admin' && adminVisible) renderAdmin();
     }
 
-    // ==================== CANCIONERO ====================
-    function renderSongs() {
+    // ==================== CANCIONERO (con conversor de acordes) ====================
+    function renderSongs() { /* igual que antes pero sin cambios */ 
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
         filtered.sort((a,b)=>a.title.localeCompare(b.title));
@@ -394,7 +448,15 @@
         document.getElementById('viewControls').innerHTML = `<button class="btn-view ${viewMode==='table'?'active':''}" onclick="viewMode='table';renderSongs()"><i class="fas fa-list"></i> Lista</button><button class="btn-view ${viewMode==='grid'?'active':''}" onclick="viewMode='grid';renderSongs()"><i class="fas fa-th-large"></i> Cuadrícula</button>`;
         const container = document.getElementById('mainContent');
         if (viewMode === 'table') {
-            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Título</th><th>Categoría</th><th>Tono</th><th>BPM</th><th>Acordes</th><th>Letra</th><th>Acciones</th></tr></thead><tbody>${filtered.map(s => `<tr><td><span class="song-title" onclick="openCifraViewer('${s.id}')" style="cursor:pointer; font-weight:bold; color:var(--primary-light);">${escapeHtml(s.title)}</span></td><td><span class="card-category">${s.category}</span></td><td><b>${s.key}</b></td><td><button class="btn-icon" onclick="openMetronome('${s.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i> ${s.bpm||'--'}</button></td><td><button class="btn-icon" onclick="viewChords('${s.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button></td><td><button class="btn-icon" onclick="openLyricsEditor('${s.id}'); event.stopPropagation();"><i class="fas fa-music"></i> Editar</button></td><td><button class="btn-icon" onclick="openSongModal('${s.id}'); event.stopPropagation();"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteSong('${s.id}'); event.stopPropagation();"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>`;
+            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Título</th><th>Categoría</th><th>Tono</th><th>BPM</th><th>Acordes</th><th>Letra</th><th>Acciones</th></tr></thead><tbody>${filtered.map(s => `<tr>
+                        <td><span class="song-title" onclick="openCifraViewer('${s.id}')" style="cursor:pointer; font-weight:bold; color:var(--primary-light);">${escapeHtml(s.title)}</span></td>
+                        <td><span class="card-category">${s.category}</span></td>
+                        <td><b>${s.key}</b></td>
+                        <td><button class="btn-icon" onclick="openMetronome('${s.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i> ${s.bpm||'--'}</button></td>
+                        <td><button class="btn-icon" onclick="viewChords('${s.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button></td>
+                        <td><button class="btn-icon" onclick="openLyricsEditor('${s.id}'); event.stopPropagation();"><i class="fas fa-music"></i> Editar</button></td>
+                        <td><button class="btn-icon" onclick="openSongModal('${s.id}'); event.stopPropagation();"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteSong('${s.id}'); event.stopPropagation();"><i class="fas fa-trash"></i></button></td>
+                    </tr>`).join('')}</tbody></table></div>`;
         } else {
             container.innerHTML = `<div class="grid">${filtered.map(s => `<div class="card" onclick="openCifraViewer('${s.id}')"><span class="card-category">${s.category}</span><div class="card-title" style="color:var(--primary-light); font-weight:bold;">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()"><button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button><button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button></div></div>`).join('')}</div>`;
         }
@@ -408,8 +470,15 @@
             <div class="form-group"><label>BPM</label><input id="mBpm" type="number" class="form-control" value="${s.bpm||80}"></div>
             <div class="form-group"><label>Enlace acordes (PDF/imagen)</label><input id="mChordsUrl" class="form-control" value="${escapeHtml(s.chordsUrl)}"></div>
             <div class="form-group"><label>Subir archivo</label><input type="file" id="mChordsFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control"></div>
-            <div class="form-group"><label>Letra (usando [Acorde] antes de la sílaba)</label><textarea id="mLyrics" rows="6" class="form-control">${escapeHtml(s.lyrics)}</textarea></div>
+            <div class="form-group"><label>Letra (puedes pegar con formato espaciado y usar el botón convertir)</label>
+                <textarea id="mLyrics" rows="6" class="form-control">${escapeHtml(s.lyrics)}</textarea>
+                <button id="convertChordsBtn" class="btn btn-ghost" style="margin-top:0.5rem;" onclick="convertLyricsInModal()">Convertir formato de acordes (espaciado -> [Acorde])</button>
+            </div>
             <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveSongFromModal('${id}')">Guardar</button></div>`);
+        window.convertLyricsInModal = () => {
+            const textarea = document.getElementById('mLyrics');
+            textarea.value = convertSpacedChordsToBrackets(textarea.value);
+        };
     }
     async function saveSongFromModal(id) {
         const title = document.getElementById('mTitle').value.trim();
@@ -418,15 +487,15 @@
         let chordsData = '';
         if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); }
         const song = {
-            id: id || Date.now().toString(),
+            id: id || generateUniqueId(),
             title, category: document.getElementById('mCat').value, key: document.getElementById('mKey').value,
             bpm: parseInt(document.getElementById('mBpm').value) || 80,
             chordsUrl: document.getElementById('mChordsUrl').value.trim(),
             chordsData: chordsData || (id ? songs.find(s=>s.id===id)?.chordsData : ''),
             lyrics: document.getElementById('mLyrics').value, youtube: ''
         };
-        await saveSong(song);
-        closeModal();
+        const success = await saveSong(song);
+        if (success) closeModal();
     }
     async function openLyricsEditor(songId) {
         const song = songs.find(s => s.id === songId);
@@ -440,8 +509,9 @@
                 <label>Transponer a:</label>
                 <select id="transposeToKey" class="form-control" style="width:100px;">${keys.map(k => `<option>${k}</option>`).join('')}</select>
                 <button class="btn btn-primary" onclick="applyTranspose()">Transponer</button>
+                <button id="convertChordsEditorBtn" class="btn btn-ghost" onclick="convertEditorLyrics()">Convertir formato espaciado</button>
             </div>
-            <div class="form-group"><label>Letra (usa [Acorde] antes de la sílaba)</label><textarea id="lyricsEditor" rows="12" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea></div>
+            <div class="form-group"><label>Letra (usa [Acorde] antes de la sílaba, o pega con acordes espaciados y usa el botón)</label><textarea id="lyricsEditor" rows="12" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea></div>
             <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLyrics('${song.id}')">Guardar Letra</button></div>
         `);
         window.applyTranspose = () => {
@@ -450,6 +520,10 @@
             const textarea = document.getElementById('lyricsEditor');
             textarea.value = transposeLyrics(textarea.value, fromKey, toKey);
             document.getElementById('transposeFromKey').value = toKey;
+        };
+        window.convertEditorLyrics = () => {
+            const textarea = document.getElementById('lyricsEditor');
+            textarea.value = convertSpacedChordsToBrackets(textarea.value);
         };
         window.saveLyrics = async (id) => {
             const newLyrics = document.getElementById('lyricsEditor').value;
@@ -822,7 +896,7 @@
         if (success) { alert("¡Tono y BPM predeterminados guardados con éxito en la nube!"); cifraSemitonesShift = 0; }
     }
 
-    // ==================== INICIALIZACIÓN ====================
+  
     (async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { currentUser = session.user; await loadUserData(); renderApp(); }
