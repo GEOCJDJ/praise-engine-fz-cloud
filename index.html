@@ -85,7 +85,6 @@
 <body><div id="appRoot"></div>
 <script>
     // ==================== CONFIGURACIÓN SUPABASE ====================
-    // TUS CLAVES (ya las tienes)
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -187,46 +186,54 @@
 
     // ==================== CARGA DE DATOS Y CRUD ====================
     async function loadUserData() {
-    if (!currentUser) return;
-    const { data: s } = await supabaseClient.from('canciones').select('*').eq('user_id', currentUser.id);
-    songs = s || [];
-    const { data: l } = await supabaseClient.from('listas').select('*').eq('user_id', currentUser.id);
-    lists = l || [];
-    for (let list of lists) {
-        const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
-        list.items = items || [];
-    }
-    const { data: t } = await supabaseClient.from('equipo').select('*').eq('user_id', currentUser.id);
-    team = t || [];
-    const { data: a } = await supabaseClient.from('asistencia').select('*').eq('user_id', currentUser.id);
-    attendance = a || [];
-    const { data: sh } = await supabaseClient.from('turnos').select('*').eq('user_id', currentUser.id);
-    shifts = sh || [];
-    const { data: m } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
-    modules = m || [];
-    if (modules.length === 0) {
-        const defaultModules = [
-            { id: 'mod1', title: 'Teología de la Adoración', content: '<p>La adoración es respuesta a la revelación de Dios...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
-            { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>El líder sirve como Jesús...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
-        ];
-        for (let mod of defaultModules) {
-            await supabaseClient.from('modulos').upsert({ 
-                id: mod.id, 
-                user_id: currentUser.id, 
-                title: mod.title, 
-                content: mod.content, 
-                questions: mod.questions 
-            }, { onConflict: 'id' });
+        if (!currentUser) return;
+        const { data: s } = await supabaseClient.from('canciones').select('*').eq('user_id', currentUser.id);
+        songs = s || [];
+        const { data: l } = await supabaseClient.from('listas').select('*').eq('user_id', currentUser.id);
+        lists = l || [];
+        for (let list of lists) {
+            const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
+            list.items = items || [];
         }
-        const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
-        modules = newM || [];
+        const { data: t } = await supabaseClient.from('equipo').select('*').eq('user_id', currentUser.id);
+        team = t || [];
+        const { data: a } = await supabaseClient.from('asistencia').select('*').eq('user_id', currentUser.id);
+        attendance = a || [];
+        const { data: sh } = await supabaseClient.from('turnos').select('*').eq('user_id', currentUser.id);
+        shifts = sh || [];
+        const { data: m } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
+        modules = m || [];
+        if (modules.length === 0) {
+            const defaultModules = [
+                { id: 'mod1', title: 'Teología de la Adoración', content: '<p>La adoración es respuesta a la revelación de Dios...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
+                { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>El líder sirve como Jesús...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
+            ];
+            for (let mod of defaultModules) {
+                await supabaseClient.from('modulos').upsert({ 
+                    id: mod.id, 
+                    user_id: currentUser.id, 
+                    title: mod.title, 
+                    content: mod.content, 
+                    questions: mod.questions 
+                }, { onConflict: 'id' });
+            }
+            const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
+            modules = newM || [];
+        }
     }
-}  // <-- ÚNICA llave de cierre de función (sin llaves extra)
 
     async function saveSong(song) {
-        if (song.id) await supabaseClient.from('canciones').update(song).eq('id', song.id);
-        else { song.id = Date.now().toString(); song.user_id = currentUser.id; await supabaseClient.from('canciones').insert(song); }
-        await loadUserData(); renderCurrentView();
+        try {
+            if (song.id) await supabaseClient.from('canciones').update(song).eq('id', song.id);
+            else { song.id = Date.now().toString(); song.user_id = currentUser.id; await supabaseClient.from('canciones').insert(song); }
+            await loadUserData();
+            renderCurrentView();
+            return true;
+        } catch (err) {
+            console.error("Error guardando canción:", err);
+            alert("Error al guardar: " + err.message);
+            return false;
+        }
     }
     async function deleteSong(id) { await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
     async function saveList(list) {
@@ -300,7 +307,8 @@
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
         filtered.sort((a,b)=>a.title.localeCompare(b.title));
-        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button>`;
+        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button>
+                                                             <button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar JSON</button>`;
         document.getElementById('viewControls').innerHTML = `<button class="btn-view ${viewMode==='table'?'active':''}" onclick="viewMode='table';renderSongs()"><i class="fas fa-list"></i> Lista</button><button class="btn-view ${viewMode==='grid'?'active':''}" onclick="viewMode='grid';renderSongs()"><i class="fas fa-th-large"></i> Cuadrícula</button>`;
         const container = document.getElementById('mainContent');
         if (viewMode === 'table') {
@@ -395,7 +403,7 @@
         };
     }
 
-    // ==================== LISTAS (simplificadas pero funcionales) ====================
+    // ==================== LISTAS ====================
     function renderLists() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
@@ -494,7 +502,7 @@
         XLSX.writeFile(wb, "todas_listas_iec.xlsx");
     }
 
-    // ==================== RECURSOS (resumidos pero funcionales) ====================
+    // ==================== RECURSOS ====================
     function renderResources() {
         document.getElementById('actionHeader').innerHTML = '';
         document.getElementById('viewControls').innerHTML = '';
@@ -534,20 +542,36 @@
     }
     async function importBackup() {
         const file = document.getElementById('restoreFile').files[0];
-        if (!file) return alert("Selecciona un archivo");
+        if (!file) return alert("Selecciona un archivo JSON");
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                if (data.songs) for (let s of data.songs) await saveSong(s);
-                if (data.lists) for (let l of data.lists) await saveList(l);
-                if (data.team) await saveTeam(data.team);
-                if (data.attendance) await saveAttendance(data.attendance);
-                if (data.shifts) await saveShifts(data.shifts);
-                if (data.modules) await saveModules(data.modules);
-                alert("Restaurado con éxito");
+                if (!data.songs || !Array.isArray(data.songs)) throw new Error("El JSON debe contener una propiedad 'songs' con un array");
+                let imported = 0;
+                for (let song of data.songs) {
+                    // Asegurar que tenga los campos mínimos
+                    if (!song.title || !song.category || !song.key) continue;
+                    const newSong = {
+                        id: song.id || Date.now().toString() + Math.random(),
+                        title: song.title,
+                        category: song.category,
+                        key: song.key,
+                        bpm: song.bpm || 80,
+                        chordsUrl: song.chordsUrl || '',
+                        chordsData: song.chordsData || '',
+                        lyrics: song.lyrics || '',
+                        youtube: song.youtube || ''
+                    };
+                    const success = await saveSong(newSong);
+                    if (success) imported++;
+                }
+                alert(`Importación completada: ${imported} canciones añadidas.`);
                 closeModal();
-            } catch(err) { alert("Archivo inválido"); }
+                renderCurrentView();
+            } catch(err) {
+                alert("Error al procesar el archivo: " + err.message);
+            }
         };
         reader.readAsText(file);
     }
@@ -645,7 +669,7 @@
         let html = `<h3>Reporte de Asistencia (Solo lectura)</h3><table style="width:100%; border-collapse:collapse;"><thead><tr><th>Fecha</th><th>Miembro</th><th>Estado</th></tr></thead><tbody>`;
         attendance.forEach(reg => {
             const member = team.find(m => m.id === reg.memberId);
-            html += `<tr><td>${reg.date}</td><td>${member ? escapeHtml(member.name) : 'Desconocido'}</td><td>${reg.status === 'puntual' ? '✅ Puntual' : '⚠️ Tarde'}</td></tr>`;
+            html += `<tr><td>${reg.date}</td><td>${member ? escapeHtml(member.name) : 'Desconocido'}</td><td>${reg.status === 'puntual' ? '✅ Puntual' : '⚠️ Tarde'}</td><tr>`;
         });
         html += `</tbody></table><button class="btn btn-primary" onclick="exportAttendanceExcel()">Exportar a Excel</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(html);
@@ -662,7 +686,7 @@
     }
 
     function viewShiftsCalendar() {
-        let html = `<h3>Calendario de Turnos (Próximos servicios)</h3><table style="width:100%"><thead><tr><th>Fecha</th><th>Miembro</th></table></thead><tbody>`;
+        let html = `<h3>Calendario de Turnos (Próximos servicios)</h3><table style="width:100%"><thead><tr><th>Fecha</th><th>Miembro</th></tr></thead><tbody>`;
         shifts.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(s => {
             const member = team.find(m => m.id === s.memberId);
             html += `<tr><td>${s.date}</td><td>${member ? escapeHtml(member.name) : 'Desconocido'}</td></tr>`;
