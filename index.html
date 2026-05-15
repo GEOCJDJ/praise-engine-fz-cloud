@@ -166,10 +166,189 @@
     background: #4B5563;
 }
         
-    
+ /* --- INTERFAZ PROFESIONAL CIFRA CLUB --- */
+.cifra-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #0f172a; /* Fondo oscuro pro para escenario */
+    color: #f1f5f9;
+    z-index: 9999;
+    font-family: 'Courier New', Courier, monospace; /* Tipografía idéntica para alineación */
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.cifra-header {
+    background-color: #1e293b;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #334155;
+    font-family: 'Inter', sans-serif;
+}
+
+.cifra-title-area h2 { margin: 0; font-size: 20px; color: #f8fafc; }
+.cifra-title-area p { margin: 2px 0 0 0; font-size: 13px; color: #94a3b8; }
+
+.cifra-toolbar {
+    background-color: #1e293b;
+    padding: 10px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #334155;
+    font-family: 'Inter', sans-serif;
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #334155;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.tool-group span { font-size: 12px; font-weight: bold; color: #cbd5e1; }
+
+.cifra-btn {
+    background: #475569;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+.cifra-btn:hover { background: #64748b; }
+.cifra-btn.active { background: #eab308; color: #0f172a; }
+.cifra-btn-close { background: #ef4444; }
+.cifra-btn-close:hover { background: #f87171; }
+
+/* Metrónomo Visual */
+.metronome-dot {
+    width: 14px;
+    height: 14px;
+    background-color: #475569;
+    border-radius: 50%;
+    display: inline-block;
+    transition: transform 0.05s ease;
+}
+.metronome-dot.pulse {
+    background-color: #ef4444 !important;
+    box-shadow: 0 0 12px #ef4444;
+    transform: scale(1.2);
+}
+
+/* Cuerpo de la Letra y Acordes */
+.cifra-body {
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding: 30px 20px;
+    scroll-behavior: smooth;
+}
+
+.cifra-content-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    white-space: pre-wrap;
+    font-size: 18px; /* Variable dinámicamente */
+    line-height: 2.2;
+}
+
+/* Renderizado de Acordes */
+.cifra-line {
+    position: relative;
+    margin-bottom: 4px;
+}
+.chord-highlight {
+    color: #f59e0b; /* Color Ámbar clásico de Cifra Club */
+    font-weight: bold;
+    cursor: pointer;
+}
+.chord-highlight:hover {
+    text-decoration: underline;
+}
+
+/* Modo Impresión desde el Visor */
+@media print {
+    .cifra-modal { position: absolute; background: white; color: black; }
+    .cifra-header, .cifra-toolbar { display: none !important; }
+    .cifra-body { overflow: visible; height: auto; }
+    .chord-highlight { color: #000 !important; }
+}   
+
+        
     </style>
 </head>
 <body><div id="appRoot"></div>
+    <div id="cifraClubModal" class="cifra-modal">
+    <div class="cifra-header">
+        <div class="cifra-title-area">
+            <h2 id="cifraModalTitle">Título de la Canción</h2>
+            <p id="cifraModalArtist">Artista / Ministerio</p>
+        </div>
+        <button class="cifra-btn cifra-btn-close" onclick="closeCifraViewer()">
+            <i class="fa-solid fa-xmark"></i> Salir del Visor
+        </button>
+    </div>
+
+    <div class="cifra-toolbar">
+        <div class="tool-group">
+            <span>TONO:</span>
+            <button class="cifra-btn" onclick="changeTone(-1)"><i class="fa-solid fa-minus"></i></button>
+            <span id="currentToneDisplay" style="min-width:30px; text-align:center; color:#f59e0b;">Original</span>
+            <button class="cifra-btn" onclick="changeTone(1)"><i class="fa-solid fa-plus"></i></button>
+        </div>
+
+        <div class="tool-group">
+            <span>BPM:</span>
+            <input type="number" id="cifraBpmInput" style="width:60px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()">
+            <button id="btnMetronomeToggle" class="cifra-btn" onclick="toggleCifraMetronome()">
+                <i class="fa-solid fa-drum"></i> Iniciar
+            </button>
+            <div id="metronomeVisualDot" class="metronome-dot"></div>
+        </div>
+
+        <div class="tool-group">
+            <span>SCROLL:</span>
+            <button id="btnAutoScrollToggle" class="cifra-btn" onclick="toggleCifraAutoScroll()">
+                <i class="fa-solid fa-play"></i> Play
+            </button>
+            <button class="cifra-btn" onclick="adjustScrollSpeed(2)" title="Más lento"><i class="fa-solid fa-angle-down"></i></button>
+            <button class="cifra-btn" onclick="adjustScrollSpeed(-2)" title="Más rápido"><i class="fa-solid fa-angle-up"></i></button>
+        </div>
+
+        <div class="tool-group">
+            <span>ZOOM:</span>
+            <button class="cifra-btn" onclick="adjustCifraFontSize(-2)"><i class="fa-solid fa-text-height"></i>-</button>
+            <button class="cifra-btn" onclick="adjustCifraFontSize(2)"><i class="fa-solid fa-text-height"></i>+</button>
+        </div>
+
+        <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar Tono/BPM
+        </button>
+
+        <button class="cifra-btn" style="background:#0284c7;" onclick="window.print()">
+            <i class="fa-solid fa-file-pdf"></i> Imprimir / PDF
+        </button>
+    </div>
+
+    <div id="cifraBodyContainer" class="cifra-body">
+        <div id="cifraContentWrapper" class="cifra-content-wrapper">
+            </div>
+    </div>
+</div>
 <script>
     // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
@@ -496,6 +675,214 @@
         } catch (e) { console.error(e); }
     }
 
+    // --- MOTOR DE PROCESAMIENTO CIFRA CLUB ---
+let currentSongData = null;
+let currentTransposeSteps = 0;
+let currentFontSize = 18;
+let isCifraScrolling = false;
+let cifraScrollInterval = null;
+let cifraScrollSpeed = 30; // Milisegundos por pixel
+let isCifraMetronomePlaying = false;
+let cifraMetronomeInterval = null;
+
+const musicalScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+// 1. Abrir el Visor cargando la información de la canción
+function openCifraViewer(songId) {
+    // Buscamos la canción en tu array global existente de canciones
+    const song = songs.find(s => s.id === songId);
+    if (!song) return alert("No se encontró la canción");
+
+    currentSongData = { ...song };
+    currentTransposeSteps = 0;
+    currentFontSize = 18;
+    
+    // Asignar textos a la UI
+    document.getElementById('cifraModalTitle').innerText = currentSongData.title;
+    document.getElementById('cifraModalArtist').innerText = currentSongData.artist || 'Ministerio de Alabanza';
+    document.getElementById('cifraBpmInput').value = currentSongData.bpm || 90;
+    document.getElementById('currentToneDisplay').innerText = currentSongData.key || 'C';
+
+    // Renderizar letra
+    renderCifraLyrics();
+
+    // Mostrar el Modal de pantalla completa
+    document.getElementById('cifraClubModal').style.display = 'block';
+}
+
+function closeCifraViewer() {
+    // Detener automatismos al salir por seguridad de rendimiento
+    if (isCifraScrolling) toggleCifraAutoScroll();
+    if (isCifraMetronomePlaying) toggleCifraMetronome();
+    
+    document.getElementById('cifraClubModal').style.display = 'none';
+}
+
+// 2. Transpositor Inteligente de Acordes
+function transposeChordString(chord, steps) {
+    return chord.replace(/[A-G][#b]?/g, (match) => {
+        // Corrección de bemoles comunes
+        let note = match;
+        if (note === 'Db') note = 'C#';
+        if (note === 'Eb') note = 'D#';
+        if (note === 'Gb') note = 'F#';
+        if (note === 'Ab') note = 'G#';
+        if (note === 'Bb') note = 'A#';
+
+        let index = musicalScale.indexOf(note);
+        if (index === -1) return match;
+
+        let newIndex = (index + steps) % 12;
+        if (newIndex < 0) newIndex += 12;
+        return musicalScale[newIndex];
+    });
+}
+
+// 3. Renderizador de Texto: Reconoce corchetes [C] dinámicamente estilo Cifra Club
+function renderCifraLyrics() {
+    const rawLyrics = currentSongData.lyrics || '';
+    const wrapper = document.getElementById('cifraContentWrapper');
+    wrapper.style.fontSize = currentFontSize + 'px';
+
+    const lines = rawLyrics.split('\n');
+    let finalHtml = '';
+
+    lines.forEach(line => {
+        if (!line.trim()) {
+            finalHtml += '<br>';
+            return;
+        }
+
+        // Si la línea contiene el formato estándar de acordes entre corchetes [Am]
+        if (line.includes('[') && line.includes(']')) {
+            let processedLine = line.replace(/\[([^\]]+)\]/g, (match, chord) => {
+                let shiftedChord = transposeChordString(chord, currentTransposeSteps);
+                return `<span class="chord-highlight">${shiftedChord}</span>`;
+            });
+            finalHtml += `<div class="cifra-line">${processedLine}</div>`;
+        } else {
+            // Texto normal (letra de la canción)
+            finalHtml += `<div class="cifra-line">${line}</div>`;
+        }
+    });
+
+    wrapper.innerHTML = finalHtml;
+}
+
+// 4. Cambiar de Tono en tiempo real (+1 / -1)
+function changeTone(direction) {
+    currentTransposeSteps += direction;
+    
+    // Calcular la nota base visualizada
+    const originalKey = currentSongData.key || 'C';
+    const newKey = transposeChordString(originalKey, currentTransposeSteps);
+    document.getElementById('currentToneDisplay').innerText = newKey;
+
+    renderCifraLyrics();
+}
+
+// 5. Metrónomo Pro Visual Integrado
+function toggleCifraMetronome() {
+    const btn = document.getElementById('btnMetronomeToggle');
+    const dot = document.getElementById('metronomeVisualDot');
+    const bpm = parseInt(document.getElementById('cifraBpmInput').value) || 90;
+
+    if (isCifraMetronomePlaying) {
+        clearInterval(cifraMetronomeInterval);
+        isCifraMetronomePlaying = false;
+        btn.innerHTML = '<i class="fa-solid fa-drum"></i> Iniciar';
+        btn.classList.remove('active');
+        dot.classList.remove('pulse');
+    } else {
+        isCifraMetronomePlaying = true;
+        btn.innerHTML = '<i class="fa-solid fa-stop"></i> Parar';
+        btn.classList.add('active');
+
+        const msPerBeat = 60000 / bpm;
+        cifraMetronomeInterval = setInterval(() => {
+            dot.classList.add('pulse');
+            setTimeout(() => dot.classList.remove('pulse'), 100);
+        }, msPerBeat);
+    }
+}
+
+function updateSongBpm() {
+    if (isCifraMetronomePlaying) {
+        // Si cambia el número mientras suena, reiniciamos el tempo de golpe
+        toggleCifraMetronome();
+        toggleCifraMetronome();
+    }
+}
+
+// 6. Auto-Scroll Manos Libres
+function toggleCifraAutoScroll() {
+    const btn = document.getElementById('btnAutoScrollToggle');
+    const container = document.getElementById('cifraBodyContainer');
+
+    if (isCifraScrolling) {
+        clearInterval(cifraScrollInterval);
+        isCifraScrolling = false;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Play';
+        btn.classList.remove('active');
+    } else {
+        isCifraScrolling = true;
+        btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pausa';
+        btn.classList.add('active');
+
+        cifraScrollInterval = setInterval(() => {
+            container.scrollTop += 1;
+            // Detener automáticamente al llegar al final
+            if (container.scrollTop >= (container.scrollHeight - container.clientHeight)) {
+                toggleCifraAutoScroll();
+            }
+        }, cifraScrollSpeed);
+    }
+}
+
+function adjustScrollSpeed(delta) {
+    cifraScrollSpeed += delta;
+    if (cifraScrollSpeed < 5) cifraScrollSpeed = 5; // Límite de velocidad máxima
+    if (isCifraScrolling) {
+        toggleCifraAutoScroll();
+        toggleCifraAutoScroll();
+    }
+}
+
+// 7. Cambiar el Tamaño de Fuente en vivo
+function adjustCifraFontSize(delta) {
+    currentFontSize += delta;
+    if (currentFontSize < 12) currentFontSize = 12;
+    if (currentFontSize > 36) currentFontSize = 36;
+    document.getElementById('cifraContentWrapper').style.fontSize = currentFontSize + 'px';
+}
+
+// 8. Guardar el nuevo estado (Tono transpueto y BPM) directamente a Supabase
+async function saveCifraStateToServer() {
+    if (!currentSongData) return;
+    
+    const originalKey = currentSongData.key || 'C';
+    const finalKey = transposeChordString(originalKey, currentTransposeSteps);
+    const finalBpm = parseInt(document.getElementById('cifraBpmInput').value) || 90;
+
+    try {
+        const { error } = await supabase
+            .from('songs')
+            .update({ key: finalKey, bpm: finalBpm })
+            .eq('id', currentSongData.id);
+
+        if (error) throw error;
+        
+        alert("¡Configuración guardada de forma profesional en Supabase!");
+        // Actualizamos los datos locales del array global para que persistan en la sesión
+        currentSongData.key = finalKey;
+        currentSongData.bpm = finalBpm;
+        if (typeof loadSongs === 'function') loadSongs(); // Recarga la lista principal si existe tu función
+    } catch (err) {
+        console.error("Error al guardar cambios de la canción:", err.message);
+        alert("Error al guardar: " + err.message);
+    }
+}
+    
     // ==================== RENDER PRINCIPAL ====================
     function renderApp() {
         if (!currentUser) { renderLogin(); return; }
@@ -545,6 +932,8 @@
     }
 
     // ==================== CANCIONERO CON FILTROS AVANZADOS ====================
+
+    
     function renderSongs() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = songs.filter(s => {
@@ -577,7 +966,11 @@
         const container = document.getElementById('mainContent');
         if (viewMode === 'table') {
             container.innerHTML = `<div class="list-view-container"><table style="width:100%; border-collapse: collapse;"><thead><tr style="text-align:left; border-bottom:1px solid var(--border)"><th>Título</th><th>Categoría</th><th>Tono</th><th>BPM</th><th>Acordes</th><th>Letra</th><th>Acciones</th></tr></thead><tbody>${filtered.map(s => `<tr style="border-bottom:1px solid var(--border)">
-                        <td><b>${escapeHtml(s.title)}</b></td>
+                        <td>
+    <span class="song-title" onclick="openCifraViewer('${s.id}')" style="cursor:pointer; font-weight:bold;">
+        ${escapeHtml(s.title)}
+    </span>
+</td>
                         <td><span class="card-category">${s.category}</span></td>
                         <td><b>${s.key}</b></td>
                         <td><button class="btn-icon" style="width:auto; border-radius:5px;" onclick="openMetronome('${s.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i> ${s.bpm||'--'}</button></td>
@@ -588,7 +981,11 @@
         } else {
             container.innerHTML = `<div class="grid">${filtered.map(s => `<div class="card">
                         <span class="card-category">${s.category}</span>
-                        <div class="card-title">${escapeHtml(s.title)}</div>
+                        <div class="card-title">
+    <span class="song-title" onclick="openCifraViewer('${s.id}')" style="cursor:pointer; font-weight:bold;">
+        ${escapeHtml(s.title)}
+    </span>
+</div>
                         <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div>
                         <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
                             <button class="btn btn-ghost" style="padding:0.4rem 0.8rem" onclick="openSongModal('${s.id}')">Editar</button>
@@ -718,7 +1115,12 @@
             const song = songs.find(s => s.id === currentSongId);
             if (!song) return '';
             const keyDisplay = item.keyOverride || item.key_override || song.key;
-            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;"><i class="fas fa-grip-vertical drag-handle"></i><div style="flex:1"><b>${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: <b>${keyDisplay}</b> | 🥁 ${song.bpm||'--'} BPM</div></div><button class="btn-icon" onclick="openMetronome('${song.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}'); event.stopPropagation();"><i class="fas fa-music"></i></button><button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button></div>`;
+            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;"><i class="fas fa-grip-vertical drag-handle"></i><div style="flex:1">
+    <span class="song-title" onclick="openCifraViewer('${song.id}')" style="cursor:pointer; font-weight:bold;">
+        ${escapeHtml(song.title)}
+    </span> 
+    <span class="card-category">${song.category}</span>
+    ...<span class="card-category">${song.category}</span><div>Tono: <b>${keyDisplay}</b> | 🥁 ${song.bpm||'--'} BPM</div></div><button class="btn-icon" onclick="openMetronome('${song.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}'); event.stopPropagation();"><i class="fas fa-music"></i></button><button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button></div>`;
         }).join('');
         if (sortableInstance) sortableInstance.destroy();
         sortableInstance = new Sortable(dragArea, { handle: '.drag-handle', animation: 200, onEnd: () => { const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); list.items = newOrder; saveList(list); } });
