@@ -108,10 +108,29 @@
         renderApp();
     }
     async function signUp(email, password) {
-        const { error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) throw error;
-        alert("Te hemos enviado un correo de confirmación. Revisa tu bandeja.");
+    // Validación básica antes de enviar
+    if (!email || !password) {
+        alert("Por favor, completa todos los campos.");
+        return;
     }
+    if (password.length < 6) {
+        alert("La contraseña debe tener al menos 6 caracteres.");
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signUp({ 
+        email, 
+        password 
+    });
+
+    if (error) {
+        alert("Error al registrar: " + error.message);
+        console.error(error);
+    } else {
+        // Supabase suele enviar un correo de confirmación por defecto
+        alert("¡Registro iniciado! Revisa tu correo electrónico para confirmar tu cuenta. Sin ese paso, no podrás iniciar sesión.");
+    }
+}
     async function resetPassword(email) {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
         if (error) throw error;
