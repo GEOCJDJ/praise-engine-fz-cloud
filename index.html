@@ -82,6 +82,91 @@
         .metronome-led.active { background: #3b82f6 !important; box-shadow: 0 0 15px #3b82f6; }
         @media (max-width: 640px) { .app-title { font-size: 0.9rem; } .nav-item { min-width: 55px; } }
         @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info { display: none; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } }
+      /* Estilos para cuando se activa la impresión o guardado en PDF */
+@media print {
+    /* Oculta absolutamente todo el diseño de la app */
+    body > * {
+        display: none !important;
+    }
+    /* Muestra únicamente un contenedor limpio de impresión si existe */
+    #print-area-container {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        color: #000 !important;
+        background: #fff !important;
+        font-family: Arial, sans-serif;
+    }
+    .print-track-row {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #ddd;
+        padding: 8px 0;
+        font-size: 14px;
+    }
+    .print-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+}
+/* Ocultar el contenedor de impresión en la pantalla normal */
+#print-area-container {
+    display: none;
+} 
+        .cifra-viewer-container {
+    background: #111827; /* Fondo oscuro muy usado por músicos en escenario */
+    color: #E5E7EB;
+    padding: 20px;
+    border-radius: 12px;
+    font-family: 'Courier New', Courier, monospace; /* Monospaciado para alineación exacta */
+    line-height: 2.2;
+    overflow-x: auto;
+}
+
+.cifra-line {
+    position: relative;
+    white-space: pre-wrap;
+    font-size: 16px;
+}
+
+/* Resaltar los acordes flotantes en color naranja/dorado vibrante estilo Cifra Club */
+.chord-badge {
+    color: #F59E0B; 
+    font-weight: bold;
+    display: inline-block;
+    position: relative;
+    margin-right: 4px;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Barra de herramientas flotante para el músico */
+.musician-tools-bar {
+    display: flex;
+    gap: 10px;
+    background: #1F2937;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+.tool-btn {
+    background: #374151;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.tool-btn:hover {
+    background: #4B5563;
+}
+        
+    
     </style>
 </head>
 <body><div id="appRoot"></div>
@@ -212,8 +297,25 @@
         if (error) alert("Error: " + error.message);
         else alert("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
     }
-    async function logout() { await supabaseClient.signOut(); currentUser = null; renderLogin(); }
 
+    async function logout() {
+    try {
+        // Esperamos a que Supabase cierre la sesión completamente en el servidor y localmente
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        
+        // Limpiamos por completo el almacenamiento local por seguridad
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Forzamos la recarga limpia de la página
+        window.location.href = window.location.origin + window.location.pathname;
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error.message);
+        alert('No se pudo cerrar la sesión: ' + error.message);
+    }
+}
+    
     function renderRegister() {
         document.getElementById('appRoot').innerHTML = `
             <div class="login-container">
@@ -1004,7 +1106,7 @@
         win.document.write('</div></body></html>'); win.document.close(); win.print();
     }
 
-    function exportListToExcel(listId) {
+       function exportListToExcel(listId) {
         const list = lists.find(l => l.id === listId);
         const data = [["Canción", "Tonalidad Asignada"]];
         (list.items || []).forEach(item => {
@@ -1028,12 +1130,71 @@
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     }
 
+    // Escala cromática para el transporte de tonos
+const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+function transposeChord(chord, steps) {
+    return chord.replace(/[A-G][#b]?/g, (match) => {
+        // Normalizar bemoles a sostenidos si es necesario
+        if (match === 'Db') match = 'C#';
+        if (match === 'Eb') match = 'D#';
+        if (match === 'Gb') match = 'F#';
+        if (match === 'Ab') match = 'G#';
+        if (match === 'Bb') match = 'A#';
+        
+        let index = chromaticScale.indexOf(match);
+        if (index === -1) return match;
+        
+        let newIndex = (index + steps) % 12;
+        if (newIndex < 0) newIndex += 12;
+        
+        return chromaticScale[newIndex];
+    });
+}
+
+// Renderizador estilo Cifra Club: Toma texto con formato [C] [G] y lo separa en capas visuales
+function renderCifraClubLayout(lyricsWithChords, steps = 0) {
+    const lines = lyricsWithChords.split('\n');
+    let finalHtml = '';
+
+    lines.forEach(line => {
+        // Si la línea contiene acordes estructurados en formato [Acorde]
+        if (line.includes('[') && line.includes(']')) {
+            let chordLine = '';
+            let lyricLine = '';
+            let currentIndex = 0;
+            
+            // Expresión regular para encontrar los acordes y sus posiciones
+            const regex = /\[([^\]]+)\]/g;
+            let match;
+            
+            let lastPlain室extIndex = 0;
+            let segmentChordLine = '';
+            
+            // Analizar la línea caracter por caracter o mediante bloques
+            // Para simplificar y mantener el rendimiento:
+            let parsedLine = line.replace(/\[([^\]]+)\]/g, (m, chord) => {
+                let transChord = transposeChord(chord, steps);
+                return `<span class="chord-badge">${transChord}</span>`;
+            });
+            
+            finalHtml += `<div class="cifra-line mixed">${parsedLine}</div>`;
+        } else {
+            // Línea de texto plano (sin acordes)
+            finalHtml += `<div class="cifra-line text-only">${line || '&nbsp;'}</div>`;
+        }
+    });
+
+    return finalHtml;
+}
+    
     // ==================== INICIALIZACIÓN DE LA APP ====================
     (async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { currentUser = session.user; await loadUserData(); renderApp(); }
         else renderLogin();
     })();
+    
 </script>
 </body>
 </html>
