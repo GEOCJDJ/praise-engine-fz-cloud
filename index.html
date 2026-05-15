@@ -175,6 +175,7 @@
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = supabaseClient;
 
     let currentUser = null;
     let songs = [], lists = [], team = [], attendance = [], shifts = [], modules = [];
@@ -300,19 +301,21 @@
 
     async function logout() {
     try {
-        // Esperamos a que Supabase cierre la sesión completamente en el servidor y localmente
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
+        console.log("Intentando cerrar sesión...");
+        // Intentar usar la instancia global o recuperarla directamente de window si falla
+        const client = supabase || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // Limpiamos por completo el almacenamiento local por seguridad
+        await client.auth.signOut();
         localStorage.clear();
         sessionStorage.clear();
         
-        // Forzamos la recarga limpia de la página
+        // Redirección limpia borrando rastros de rutas anteriores
         window.location.href = window.location.origin + window.location.pathname;
     } catch (error) {
-        console.error('Error al cerrar sesión:', error.message);
-        alert('No se pudo cerrar la sesión: ' + error.message);
+        console.error('Error crítico al cerrar sesión:', error.message);
+        // Fallback: Si Supabase falla por red, forzamos la limpieza local de todos modos
+        localStorage.clear();
+        window.location.reload();
     }
 }
     
