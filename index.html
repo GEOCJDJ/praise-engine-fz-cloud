@@ -51,7 +51,7 @@
         .search-container { position: relative; margin-bottom: 1rem; }
         .search-box { width: 100%; background: var(--surface); border: 2px solid var(--border); padding: 0.9rem 1rem 0.9rem 3rem; border-radius: var(--radius-lg); font-size: 1rem; color: var(--text-main); }
         .search-icon { position: absolute; left: 1.2rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-        .view-controls { display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .view-controls { display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 1.5rem; }
         .btn-view { border: 2px solid var(--border); background: var(--surface); padding: 0.6rem 1.2rem; border-radius: 2rem; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
         .btn-view.active { background: var(--primary); color: white; border-color: var(--primary); }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
@@ -77,282 +77,99 @@
         .tuner-needle { height: 100%; width: 0%; background: var(--primary); transition: width 0.05s linear; }
         .question-timer { font-size: 1.2rem; font-weight: bold; color: var(--primary); text-align: center; margin: 0.5rem 0; }
         .admin-tab { display: none; }
-        .chord { color: var(--primary); font-weight: bold; background: rgba(var(--primary-rgb),0.1); padding: 0 2px; border-radius: 4px; }
-        .metronome-led { width: 40px; height: 40px; border-radius: 50%; background: #cbd5e1; margin: 1rem auto; transition: all 0.08s ease; }
-        .metronome-led.active { background: #3b82f6 !important; box-shadow: 0 0 15px #3b82f6; }
-        @media (max-width: 640px) { .app-title { font-size: 0.9rem; } .nav-item { min-width: 55px; } }
-        @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info { display: none; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } }
-      /* Estilos para cuando se activa la impresión o guardado en PDF */
-@media print {
-    /* Oculta absolutamente todo el diseño de la app */
-    body > * {
-        display: none !important;
-    }
-    /* Muestra únicamente un contenedor limpio de impresión si existe */
-    #print-area-container {
-        display: block !important;
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100% !important;
-        color: #000 !important;
-        background: #fff !important;
-        font-family: Arial, sans-serif;
-    }
-    .print-track-row {
-        display: flex;
-        justify-content: space-between;
-        border-bottom: 1px solid #ddd;
-        padding: 8px 0;
-        font-size: 14px;
-    }
-    .print-header {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-}
-/* Ocultar el contenedor de impresión en la pantalla normal */
-#print-area-container {
-    display: none;
-} 
-        .cifra-viewer-container {
-    background: #111827; /* Fondo oscuro muy usado por músicos en escenario */
-    color: #E5E7EB;
-    padding: 20px;
-    border-radius: 12px;
-    font-family: 'Courier New', Courier, monospace; /* Monospaciado para alineación exacta */
-    line-height: 2.2;
-    overflow-x: auto;
-}
-
-.cifra-line {
-    position: relative;
-    white-space: pre-wrap;
-    font-size: 16px;
-}
-
-/* Resaltar los acordes flotantes en color naranja/dorado vibrante estilo Cifra Club */
-.chord-badge {
-    color: #F59E0B; 
-    font-weight: bold;
-    display: inline-block;
-    position: relative;
-    margin-right: 4px;
-    background: rgba(245, 158, 11, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-/* Barra de herramientas flotante para el músico */
-.musician-tools-bar {
-    display: flex;
-    gap: 10px;
-    background: #1F2937;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-}
-.tool-btn {
-    background: #374151;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-}
-.tool-btn:hover {
-    background: #4B5563;
-}
         
- /* --- INTERFAZ PROFESIONAL CIFRA CLUB --- */
-.cifra-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: #0f172a; /* Fondo oscuro pro para escenario */
-    color: #f1f5f9;
-    z-index: 9999;
-    font-family: 'Courier New', Courier, monospace; /* Tipografía idéntica para alineación */
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
-.cifra-header {
-    background-color: #1e293b;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #334155;
-    font-family: 'Inter', sans-serif;
-}
-
-.cifra-title-area h2 { margin: 0; font-size: 20px; color: #f8fafc; }
-.cifra-title-area p { margin: 2px 0 0 0; font-size: 13px; color: #94a3b8; }
-
-.cifra-toolbar {
-    background-color: #1e293b;
-    padding: 10px 20px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-    border-bottom: 1px solid #334155;
-    font-family: 'Inter', sans-serif;
-}
-
-.tool-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: #334155;
-    padding: 4px 8px;
-    border-radius: 6px;
-}
-
-.tool-group span { font-size: 12px; font-weight: bold; color: #cbd5e1; }
-
-.cifra-btn {
-    background: #475569;
-    border: none;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: background 0.2s;
-}
-.cifra-btn:hover { background: #64748b; }
-.cifra-btn.active { background: #eab308; color: #0f172a; }
-.cifra-btn-close { background: #ef4444; }
-.cifra-btn-close:hover { background: #f87171; }
-
-/* Metrónomo Visual */
-.metronome-dot {
-    width: 14px;
-    height: 14px;
-    background-color: #475569;
-    border-radius: 50%;
-    display: inline-block;
-    transition: transform 0.05s ease;
-}
-.metronome-dot.pulse {
-    background-color: #ef4444 !important;
-    box-shadow: 0 0 12px #ef4444;
-    transform: scale(1.2);
-}
-
-/* Cuerpo de la Letra y Acordes */
-.cifra-body {
-    height: calc(100vh - 120px);
-    overflow-y: auto;
-    padding: 30px 20px;
-    scroll-behavior: smooth;
-}
-
-.cifra-content-wrapper {
-    max-width: 800px;
-    margin: 0 auto;
-    white-space: pre-wrap;
-    font-size: 18px; /* Variable dinámicamente */
-    line-height: 2.2;
-}
-
-/* Renderizado de Acordes */
-.cifra-line {
-    position: relative;
-    margin-bottom: 4px;
-}
-.chord-highlight {
-    color: #f59e0b; /* Color Ámbar clásico de Cifra Club */
-    font-weight: bold;
-    cursor: pointer;
-}
-.chord-highlight:hover {
-    text-decoration: underline;
-}
-
-/* Modo Impresión desde el Visor */
-@media print {
-    .cifra-modal { position: absolute; background: white; color: black; }
-    .cifra-header, .cifra-toolbar { display: none !important; }
-    .cifra-body { overflow: visible; height: auto; }
-    .chord-highlight { color: #000 !important; }
-}   
-
+        /* DISEÑO EXCLUSIVO VISOR CIFRA CLUB INTERACTIVO */
+        .cifra-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0F172A; color: #F1F5F9; z-index: 2000; flex-direction: column; }
+        .cifra-header { background: #1E293B; padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        .cifra-title-area h2 { font-size: 1.4rem; font-weight: 800; color: #FFFFFF; }
+        .cifra-title-area p { font-size: 0.85rem; color: #94A3B8; }
+        .cifra-toolbar { background: #1E293B; padding: 0.75rem 1rem; display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #334155; }
+        .tool-group { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 700; color: #94A3B8; }
+        .cifra-btn { background: #334155; color: white; border: none; padding: 0.5rem 0.9rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; transition: 0.2s; }
+        .cifra-btn:hover { background: #475569; }
+        .cifra-btn-close { background: #EF4444; }
+        .cifra-btn-close:hover { background: #DC2626; }
+        .cifra-body { flex: 1; overflow-y: auto; padding: 1.5rem 1rem; background: #0F172A; scroll-behavior: smooth; }
+        .cifra-content-wrapper { max-width: 750px; margin: 0 auto; font-family: 'Courier New', Courier, monospace; font-size: 1.2rem; white-space: pre-wrap; line-height: 1.8; }
+        .metronome-dot { width: 12px; height: 12px; background: #475569; border-radius: 50%; transition: 0.1s ease; }
+        .metronome-dot.pulse { background: #10B981; box-shadow: 0 0 10px #10B981; }
+        .chord { color: #F59E0B; font-weight: bold; background: rgba(245, 158, 11, 0.1); padding: 0 3px; border-radius: 4px; display: inline-block; }
         
+        .list-view-container { overflow-x: auto; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 1rem; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        th { color: var(--text-muted); font-weight: 600; }
+        
+        @media (max-width: 640px) { .app-title { font-size: 0.9rem; } .nav-item { min-width: 55px; } .cifra-toolbar { gap: 0.6rem; padding: 0.5rem; } }
+        @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info, .cifra-toolbar, .cifra-btn-close { display: none !important; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } .cifra-modal { display: block !important; position: relative !important; height: auto !important; background: white !important; color: black !important; } .cifra-body { background: white !important; } .cifra-content-wrapper { color: black !important; } .chord { color: black !important; background: none !important; border-bottom: 1px dashed #000; } }
     </style>
 </head>
-<body><div id="appRoot"></div>
+<body>
+    <div id="appRoot"></div>
+
     <div id="cifraClubModal" class="cifra-modal">
-    <div class="cifra-header">
-        <div class="cifra-title-area">
-            <h2 id="cifraModalTitle">Título de la Canción</h2>
-            <p id="cifraModalArtist">Artista / Ministerio</p>
-        </div>
-        <button class="cifra-btn cifra-btn-close" onclick="closeCifraViewer()">
-            <i class="fa-solid fa-xmark"></i> Salir del Visor
-        </button>
-    </div>
-
-    <div class="cifra-toolbar">
-        <div class="tool-group">
-            <span>TONO:</span>
-            <button class="cifra-btn" onclick="changeTone(-1)"><i class="fa-solid fa-minus"></i></button>
-            <span id="currentToneDisplay" style="min-width:30px; text-align:center; color:#f59e0b;">Original</span>
-            <button class="cifra-btn" onclick="changeTone(1)"><i class="fa-solid fa-plus"></i></button>
-        </div>
-
-        <div class="tool-group">
-            <span>BPM:</span>
-            <input type="number" id="cifraBpmInput" style="width:60px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()">
-            <button id="btnMetronomeToggle" class="cifra-btn" onclick="toggleCifraMetronome()">
-                <i class="fa-solid fa-drum"></i> Iniciar
-            </button>
-            <div id="metronomeVisualDot" class="metronome-dot"></div>
-        </div>
-
-        <div class="tool-group">
-            <span>SCROLL:</span>
-            <button id="btnAutoScrollToggle" class="cifra-btn" onclick="toggleCifraAutoScroll()">
-                <i class="fa-solid fa-play"></i> Play
-            </button>
-            <button class="cifra-btn" onclick="adjustScrollSpeed(2)" title="Más lento"><i class="fa-solid fa-angle-down"></i></button>
-            <button class="cifra-btn" onclick="adjustScrollSpeed(-2)" title="Más rápido"><i class="fa-solid fa-angle-up"></i></button>
-        </div>
-
-        <div class="tool-group">
-            <span>ZOOM:</span>
-            <button class="cifra-btn" onclick="adjustCifraFontSize(-2)"><i class="fa-solid fa-text-height"></i>-</button>
-            <button class="cifra-btn" onclick="adjustCifraFontSize(2)"><i class="fa-solid fa-text-height"></i>+</button>
-        </div>
-
-        <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()">
-            <i class="fa-solid fa-floppy-disk"></i> Guardar Tono/BPM
-        </button>
-
-        <button class="cifra-btn" style="background:#0284c7;" onclick="window.print()">
-            <i class="fa-solid fa-file-pdf"></i> Imprimir / PDF
-        </button>
-    </div>
-
-    <div id="cifraBodyContainer" class="cifra-body">
-        <div id="cifraContentWrapper" class="cifra-content-wrapper">
+        <div class="cifra-header">
+            <div class="cifra-title-area">
+                <h2 id="cifraModalTitle">Título de la Canción</h2>
+                <p id="cifraModalArtist">Artista / Ministerio</p>
             </div>
+            <button class="cifra-btn cifra-btn-close" onclick="closeCifraViewer()">
+                <i class="fa-solid fa-xmark"></i> Salir del Visor
+            </button>
+        </div>
+
+        <div class="cifra-toolbar">
+            <div class="tool-group">
+                <span>TONO:</span>
+                <button class="cifra-btn" onclick="changeTone(-1)"><i class="fa-solid fa-minus"></i></button>
+                <span id="currentToneDisplay" style="min-width:35px; text-align:center; color:#f59e0b;">Orig</span>
+                <button class="cifra-btn" onclick="changeTone(1)"><i class="fa-solid fa-plus"></i></button>
+            </div>
+
+            <div class="tool-group">
+                <span>BPM:</span>
+                <input type="number" id="cifraBpmInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()">
+                <button id="btnMetronomeToggle" class="cifra-btn" onclick="toggleCifraMetronome()">
+                    <i class="fa-solid fa-drum"></i> Iniciar
+                </button>
+                <div id="metronomeVisualDot" class="metronome-dot"></div>
+            </div>
+
+            <div class="tool-group">
+                <span>SCROLL:</span>
+                <button id="btnAutoScrollToggle" class="cifra-btn" onclick="toggleCifraAutoScroll()">
+                    <i class="fa-solid fa-play"></i> Play
+                </button>
+                <button class="cifra-btn" onclick="adjustScrollSpeed(2)" title="Más lento"><i class="fa-solid fa-angle-down"></i></button>
+                <button class="cifra-btn" onclick="adjustScrollSpeed(-2)" title="Más rápido"><i class="fa-solid fa-angle-up"></i></button>
+            </div>
+
+            <div class="tool-group">
+                <span>ZOOM:</span>
+                <button class="cifra-btn" onclick="adjustCifraFontSize(-1)"><i class="fa-solid fa-text-height"></i>-</button>
+                <button class="cifra-btn" onclick="adjustCifraFontSize(1)"><i class="fa-solid fa-text-height"></i>+</button>
+            </div>
+
+            <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar Tono/BPM
+            </button>
+
+            <button class="cifra-btn" style="background:#0284c7;" onclick="window.print()">
+                <i class="fa-solid fa-file-pdf"></i> Imprimir / PDF
+            </button>
+        </div>
+
+        <div id="cifraBodyContainer" class="cifra-body">
+            <div id="cifraContentWrapper" class="cifra-content-wrapper"></div>
+        </div>
     </div>
-</div>
+
 <script>
     // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
+    
+    // Doble enlace global seguro para evitar conflictos entre funciones viejas y nuevas
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const supabase = supabaseClient;
 
@@ -360,14 +177,21 @@
     let songs = [], lists = [], team = [], attendance = [], shifts = [], modules = [];
     let currentTab = 'songs', selectedListId = null, viewMode = 'table', listsViewMode = 'grid';
     let sortableInstance = null, metronomeInterval = null, adminVisible = false;
-    let currentCatFilter = 'Todos', currentKeyFilter = 'Todos';
+    
     const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
-    let tableColumns = { canciones: [], listas: [], lista_items: [], equipo: [], asistencia: [], turnos: [], modulos: [] };
-
-    // Mapeo de notas para transposición
     const noteMap = { 'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11 };
     const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    
+
+    // variables de estado del visor interactivo
+    let cifraCurrentSong = null;
+    let cifraOriginalLyrics = "";
+    let cifraSemitonesShift = 0;
+    let cifraScrollInterval = null;
+    let cifraScrollSpeed = 35; 
+    let cifraFontSize = 18;
+    let cifraMetroInterval = null;
+    let cifraMetroRunning = false;
+
     function transposeChord(chord, semitones) {
         const match = chord.match(/^([A-G][#b]?)(.*)$/);
         if (!match) return chord;
@@ -377,97 +201,24 @@
         let newIdx = (idx + semitones + 12) % 12;
         return noteNames[newIdx] + suffix;
     }
-    
+
     function transposeLyrics(text, fromKey, toKey) {
         if (!text || !fromKey || !toKey || fromKey === toKey) return text;
         const fromBase = fromKey.replace(/m$/, ''), toBase = toKey.replace(/m$/, '');
         let semitones = (noteMap[toBase] - noteMap[fromBase] + 12) % 12;
-        if (fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
-        if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
         return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`);
     }
 
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
-    function closeModal() { document.getElementById('modal')?.remove(); if(metronomeInterval) { clearInterval(metronomeInterval); metronomeInterval = null; } }
-    function showModal(content) { closeModal(); const div = document.createElement('div'); div.id = 'modal'; div.className = 'modal'; div.style.display = 'flex'; div.innerHTML = `<div class="modal-content">${content}</div>`; document.body.appendChild(div); }
-
-    // Detección automática inteligente del esquema SQL cargado
-    async function discoverSchemas() {
-        for (let table of Object.keys(tableColumns)) {
-            try {
-                const { data } = await supabaseClient.from(table).select('*').limit(1);
-                if (data && data.length > 0) {
-                    tableColumns[table] = Object.keys(data[0]);
-                } else {
-                    const defaults = {
-                        canciones: ['id', 'user_id', 'title', 'category', 'key', 'bpm', 'chordsUrl', 'chordsData', 'lyrics', 'youtube', 'titulo', 'categoria', 'tono', 'letra'],
-                        listas: ['id', 'user_id', 'name', 'date', 'nombre', 'fecha'],
-                        lista_items: ['lista_id', 'song_id', 'key_override', 'orden', 'cancion_id', 'tonalidad_recambio'],
-                        equipo: ['id', 'user_id', 'name', 'role', 'nombre', 'rol'],
-                        asistencia: ['id', 'user_id', 'date', 'member_id', 'status', 'fecha', 'miembro_id', 'estado'],
-                        turnos: ['id', 'user_id', 'date', 'member_id', 'fecha', 'miembro_id'],
-                        modulos: ['id', 'user_id', 'title', 'content', 'questions']
-                    };
-                    tableColumns[table] = defaults[table];
-                }
-            } catch (e) { console.error("Error al mapear tabla " + table, e); }
-        }
-    }
-
-    function buildPayload(table, uiObj) {
-        const columns = tableColumns[table];
-        if (!columns || columns.length === 0) return uiObj;
-        const payload = {};
-        const mappings = {
-            id: ['id'], user_id: ['user_id', 'userId'], title: ['title', 'titulo', 'título'],
-            category: ['category', 'categoria', 'categoría'], key: ['key', 'tono', 'tonalidad'], bpm: ['bpm'],
-            chordsUrl: ['chords_url', 'chordsUrl'], chordsData: ['chords_data', 'chordsData'], lyrics: ['lyrics', 'letra'],
-            youtube: ['youtube'], name: ['name', 'nombre'], date: ['date', 'fecha'],
-            songId: ['song_id', 'songId', 'cancion_id', 'cancionId'],
-            keyOverride: ['key_override', 'keyOverride', 'tonalidad_recambio', 'tono_personalizado'],
-            orden: ['orden', 'order'], role: ['role', 'rol'],
-            memberId: ['member_id', 'memberId', 'miembro_id', 'miembroId'], status: ['status', 'estado']
-        };
-        columns.forEach(col => {
-            for (let uiKey in uiObj) {
-                const possibleCols = mappings[uiKey];
-                if ((possibleCols && possibleCols.includes(col)) || uiKey.toLowerCase() === col.toLowerCase() || uiKey.replace(/_/g, '').toLowerCase() === col.replace(/_/g, '').toLowerCase()) {
-                    payload[col] = uiObj[uiKey];
-                    return;
-                }
-            }
-        });
-        if (columns.includes('user_id') && uiObj.user_id) payload['user_id'] = uiObj.user_id;
-        if (columns.includes('id') && uiObj.id) payload['id'] = uiObj.id;
-        return payload;
-    }
-
-    function normalizeRow(table, dbObj) {
-        if (!dbObj) return dbObj;
-        const uiObj = { ...dbObj };
-        const propertyMappings = {
-            title: ['title', 'titulo', 'título'], category: ['category', 'categoria', 'categoría'],
-            key: ['key', 'tono', 'tonalidad'], chordsUrl: ['chords_url', 'chordsUrl'],
-            chordsData: ['chords_data', 'chordsData'], lyrics: ['lyrics', 'letra'],
-            name: ['name', 'nombre'], date: ['date', 'fecha'],
-            songId: ['song_id', 'songId', 'cancion_id', 'cancionId'],
-            keyOverride: ['key_override', 'keyOverride', 'tonalidad_recambio', 'tono_personalizado'],
-            orden: ['orden', 'order'], role: ['role', 'rol'],
-            memberId: ['member_id', 'memberId', 'miembro_id', 'miembroId'], status: ['status', 'estado']
-        };
-        for (let uiKey in propertyMappings) {
-            for (let dbKey of propertyMappings[uiKey]) {
-                if (dbObj[dbKey] !== undefined) { uiObj[uiKey] = dbObj[dbKey]; break; }
-            }
-        }
-        return uiObj;
-    }
+    function closeModal() { document.getElementById('modal')?.remove(); }
+    function showModal(content) { const div = document.createElement('div'); div.id = 'modal'; div.className = 'modal'; div.style.display = 'flex'; div.innerHTML = `<div class="modal-content">${content}</div>`; document.body.appendChild(div); }
 
     // ==================== AUTENTICACIÓN ====================
     async function login(email, password) {
         try {
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) throw error;
+            currentUser = data.user;
             await loadUserData();
             renderApp();
         } catch (err) { alert("Error al iniciar sesión: " + err.message); }
@@ -477,27 +228,8 @@
         if (error) alert("Error: " + error.message);
         else alert("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
     }
+    async function logout() { await supabaseClient.auth.signOut(); currentUser = null; renderLogin(); }
 
-    async function logout() {
-    try {
-        console.log("Intentando cerrar sesión...");
-        // Intentar usar la instancia global o recuperarla directamente de window si falla
-        const client = supabase || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        await client.auth.signOut();
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Redirección limpia borrando rastros de rutas anteriores
-        window.location.href = window.location.origin + window.location.pathname;
-    } catch (error) {
-        console.error('Error crítico al cerrar sesión:', error.message);
-        // Fallback: Si Supabase falla por red, forzamos la limpieza local de todos modos
-        localStorage.clear();
-        window.location.reload();
-    }
-}
-    
     function renderRegister() {
         document.getElementById('appRoot').innerHTML = `
             <div class="login-container">
@@ -546,42 +278,38 @@
         window.showResetPassword = () => { const email = prompt("Introduce tu email:"); if(email) resetPassword(email); };
     }
 
-    // ==================== CARGA DE DATOS Y CRUD CORREGIDOS ====================
+    // ==================== CARGA DE DATOS Y CRUD ====================
     async function loadUserData() {
         if (!currentUser) return;
-        await discoverSchemas();
-
         const { data: s } = await supabaseClient.from('canciones').select('*').eq('user_id', currentUser.id);
-        songs = (s || []).map(x => normalizeRow('canciones', x));
-        
+        songs = s || [];
         const { data: l } = await supabaseClient.from('listas').select('*').eq('user_id', currentUser.id);
-        lists = (l || []).map(x => normalizeRow('listas', x));
-        
+        lists = l || [];
         for (let list of lists) {
             const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
-            list.items = (items || []).map(x => normalizeRow('lista_items', x));
+            list.items = items || [];
         }
-        
         const { data: t } = await supabaseClient.from('equipo').select('*').eq('user_id', currentUser.id);
-        team = (t || []).map(x => normalizeRow('equipo', x));
-        
+        team = t || [];
         const { data: a } = await supabaseClient.from('asistencia').select('*').eq('user_id', currentUser.id);
-        attendance = (a || []).map(x => normalizeRow('asistencia', x));
-        
+        attendance = a || [];
         const { data: sh } = await supabaseClient.from('turnos').select('*').eq('user_id', currentUser.id);
-        shifts = (sh || []).map(x => normalizeRow('turnos', x));
-        
+        shifts = sh || [];
         const { data: m } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
         modules = m || [];
-        
         if (modules.length === 0) {
             const defaultModules = [
                 { id: 'mod1', title: 'Teología de la Adoración', content: '<p>La adoración es respuesta a la revelación de Dios...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
                 { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>El líder sirve como Jesús...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
             ];
             for (let mod of defaultModules) {
-                const modPayload = buildPayload('modulos', { id: mod.id, user_id: currentUser.id, title: mod.title, content: mod.content, questions: mod.questions });
-                await supabaseClient.from('modulos').upsert(modPayload, { onConflict: 'id' });
+                await supabaseClient.from('modulos').upsert({ 
+                    id: mod.id, 
+                    user_id: currentUser.id, 
+                    title: mod.title, 
+                    content: mod.content, 
+                    questions: mod.questions 
+                }, { onConflict: 'id' });
             }
             const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
             modules = newM || [];
@@ -590,12 +318,12 @@
 
     async function saveSong(song) {
         try {
-            const exists = songs.some(s => s.id === song.id);
-            const payload = buildPayload('canciones', song);
-            if (exists) {
-                await supabaseClient.from('canciones').update(payload).eq('id', song.id);
+            if (song.id && songs.some(s => s.id === song.id)) {
+                await supabaseClient.from('canciones').update(song).eq('id', song.id);
             } else {
-                await supabaseClient.from('canciones').insert(payload);
+                if(!song.id) song.id = Date.now().toString();
+                song.user_id = currentUser.id;
+                await supabaseClient.from('canciones').insert(song);
             }
             await loadUserData();
             renderCurrentView();
@@ -606,283 +334,35 @@
             return false;
         }
     }
-    
     async function deleteSong(id) { await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
     
     async function saveList(list) {
-        try {
-            const exists = lists.some(l => l.id === list.id);
-            const listId = list.id || Date.now().toString();
-            const listPayload = buildPayload('listas', { id: listId, user_id: currentUser.id, name: list.name, date: list.date });
-            
-            if (exists) {
-                await supabaseClient.from('listas').update(listPayload).eq('id', listId);
-                await supabaseClient.from('lista_items').delete().eq('lista_id', listId);
-            } else {
-                await supabaseClient.from('listas').insert(listPayload);
-            }
-            
-            for (let i = 0; i < list.items.length; i++) {
-                const item = list.items[i];
-                const itemPayload = buildPayload('lista_items', {
-                    lista_id: listId,
-                    songId: item.songId || item.song_id,
-                    keyOverride: item.keyOverride || item.key_override || null,
-                    orden: i
-                });
-                if (tableColumns['lista_items'].includes('user_id')) itemPayload['user_id'] = currentUser.id;
-                await supabaseClient.from('lista_items').insert(itemPayload);
-            }
-            await loadUserData(); 
-            renderCurrentView();
-        } catch (e) { alert("Error al guardar lista: " + e.message); }
-    }
-    
-    async function deleteList(id) { await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
-    
-    async function saveTeam(members) {
-        try {
-            team = members;
-            await supabaseClient.from('equipo').delete().eq('user_id', currentUser.id);
-            for (let m of team) {
-                const memberPayload = buildPayload('equipo', { id: m.id || Date.now().toString(), user_id: currentUser.id, name: m.name, role: m.role });
-                await supabaseClient.from('equipo').insert(memberPayload);
-            }
-            await loadUserData(); 
-            renderCurrentView();
-        } catch (e) { alert("Error al guardar equipo: " + e.message); }
-    }
-    
-    async function saveAttendance(reg) {
-        try {
-            attendance = reg;
-            await supabaseClient.from('asistencia').delete().eq('user_id', currentUser.id);
-            for (let a of attendance) {
-                const payload = buildPayload('asistencia', { id: a.id || Date.now(), user_id: currentUser.id, date: a.date, memberId: a.memberId || a.member_id, status: a.status });
-                await supabaseClient.from('asistencia').insert(payload);
-            }
-        } catch (e) { console.error(e); }
-    }
-    
-    async function saveShifts(sh) {
-        try {
-            shifts = sh;
-            await supabaseClient.from('turnos').delete().eq('user_id', currentUser.id);
-            for (let s of shifts) {
-                const payload = buildPayload('turnos', { id: s.id || Date.now(), user_id: currentUser.id, date: s.date, memberId: s.memberId || s.member_id });
-                await supabaseClient.from('turnos').insert(payload);
-            }
-        } catch (e) { console.error(e); }
-    }
-
-    // --- MOTOR DE PROCESAMIENTO CIFRA CLUB ---
-let currentSongData = null;
-let currentTransposeSteps = 0;
-let currentFontSize = 18;
-let isCifraScrolling = false;
-let cifraScrollInterval = null;
-let cifraScrollSpeed = 30; // Milisegundos por pixel
-let isCifraMetronomePlaying = false;
-let cifraMetronomeInterval = null;
-
-const musicalScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
-// 1. Abrir el Visor cargando la información de la canción
-function openCifraViewer(songId) {
-    // Buscamos la canción en tu array global existente de canciones
-    const song = songs.find(s => s.id === songId);
-    if (!song) return alert("No se encontró la canción");
-
-    currentSongData = { ...song };
-    currentTransposeSteps = 0;
-    currentFontSize = 18;
-    
-    // Asignar textos a la UI
-    document.getElementById('cifraModalTitle').innerText = currentSongData.title;
-    document.getElementById('cifraModalArtist').innerText = currentSongData.artist || 'Ministerio de Alabanza';
-    document.getElementById('cifraBpmInput').value = currentSongData.bpm || 90;
-    document.getElementById('currentToneDisplay').innerText = currentSongData.key || 'C';
-
-    // Renderizar letra
-    renderCifraLyrics();
-
-    // Mostrar el Modal de pantalla completa
-    document.getElementById('cifraClubModal').style.display = 'block';
-}
-
-function closeCifraViewer() {
-    // Detener automatismos al salir por seguridad de rendimiento
-    if (isCifraScrolling) toggleCifraAutoScroll();
-    if (isCifraMetronomePlaying) toggleCifraMetronome();
-    
-    document.getElementById('cifraClubModal').style.display = 'none';
-}
-
-// 2. Transpositor Inteligente de Acordes
-function transposeChordString(chord, steps) {
-    return chord.replace(/[A-G][#b]?/g, (match) => {
-        // Corrección de bemoles comunes
-        let note = match;
-        if (note === 'Db') note = 'C#';
-        if (note === 'Eb') note = 'D#';
-        if (note === 'Gb') note = 'F#';
-        if (note === 'Ab') note = 'G#';
-        if (note === 'Bb') note = 'A#';
-
-        let index = musicalScale.indexOf(note);
-        if (index === -1) return match;
-
-        let newIndex = (index + steps) % 12;
-        if (newIndex < 0) newIndex += 12;
-        return musicalScale[newIndex];
-    });
-}
-
-// 3. Renderizador de Texto: Reconoce corchetes [C] dinámicamente estilo Cifra Club
-function renderCifraLyrics() {
-    const rawLyrics = currentSongData.lyrics || '';
-    const wrapper = document.getElementById('cifraContentWrapper');
-    wrapper.style.fontSize = currentFontSize + 'px';
-
-    const lines = rawLyrics.split('\n');
-    let finalHtml = '';
-
-    lines.forEach(line => {
-        if (!line.trim()) {
-            finalHtml += '<br>';
-            return;
-        }
-
-        // Si la línea contiene el formato estándar de acordes entre corchetes [Am]
-        if (line.includes('[') && line.includes(']')) {
-            let processedLine = line.replace(/\[([^\]]+)\]/g, (match, chord) => {
-                let shiftedChord = transposeChordString(chord, currentTransposeSteps);
-                return `<span class="chord-highlight">${shiftedChord}</span>`;
-            });
-            finalHtml += `<div class="cifra-line">${processedLine}</div>`;
+        if (list.id) {
+            await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id);
+            await supabaseClient.from('lista_items').delete().eq('lista_id', list.id);
+            for (let i = 0; i < list.items.length; i++) await supabaseClient.from('lista_items').insert({ lista_id: list.id, song_id: list.items[i].songId || list.items[i].song_id, key_override: list.items[i].keyOverride || list.items[i].key_override || null, orden: i });
         } else {
-            // Texto normal (letra de la canción)
-            finalHtml += `<div class="cifra-line">${line}</div>`;
+            const newId = Date.now().toString();
+            await supabaseClient.from('listas').insert({ id: newId, user_id: currentUser.id, name: list.name, date: list.date });
+            for (let i = 0; i < list.items.length; i++) await supabaseClient.from('lista_items').insert({ lista_id: newId, song_id: list.items[i].songId || list.items[i].song_id, key_override: list.items[i].keyOverride || list.items[i].key_override || null, orden: i });
         }
-    });
-
-    wrapper.innerHTML = finalHtml;
-}
-
-// 4. Cambiar de Tono en tiempo real (+1 / -1)
-function changeTone(direction) {
-    currentTransposeSteps += direction;
-    
-    // Calcular la nota base visualizada
-    const originalKey = currentSongData.key || 'C';
-    const newKey = transposeChordString(originalKey, currentTransposeSteps);
-    document.getElementById('currentToneDisplay').innerText = newKey;
-
-    renderCifraLyrics();
-}
-
-// 5. Metrónomo Pro Visual Integrado
-function toggleCifraMetronome() {
-    const btn = document.getElementById('btnMetronomeToggle');
-    const dot = document.getElementById('metronomeVisualDot');
-    const bpm = parseInt(document.getElementById('cifraBpmInput').value) || 90;
-
-    if (isCifraMetronomePlaying) {
-        clearInterval(cifraMetronomeInterval);
-        isCifraMetronomePlaying = false;
-        btn.innerHTML = '<i class="fa-solid fa-drum"></i> Iniciar';
-        btn.classList.remove('active');
-        dot.classList.remove('pulse');
-    } else {
-        isCifraMetronomePlaying = true;
-        btn.innerHTML = '<i class="fa-solid fa-stop"></i> Parar';
-        btn.classList.add('active');
-
-        const msPerBeat = 60000 / bpm;
-        cifraMetronomeInterval = setInterval(() => {
-            dot.classList.add('pulse');
-            setTimeout(() => dot.classList.remove('pulse'), 100);
-        }, msPerBeat);
+        await loadUserData(); renderCurrentView();
     }
-}
-
-function updateSongBpm() {
-    if (isCifraMetronomePlaying) {
-        // Si cambia el número mientras suena, reiniciamos el tempo de golpe
-        toggleCifraMetronome();
-        toggleCifraMetronome();
-    }
-}
-
-// 6. Auto-Scroll Manos Libres
-function toggleCifraAutoScroll() {
-    const btn = document.getElementById('btnAutoScrollToggle');
-    const container = document.getElementById('cifraBodyContainer');
-
-    if (isCifraScrolling) {
-        clearInterval(cifraScrollInterval);
-        isCifraScrolling = false;
-        btn.innerHTML = '<i class="fa-solid fa-play"></i> Play';
-        btn.classList.remove('active');
-    } else {
-        isCifraScrolling = true;
-        btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pausa';
-        btn.classList.add('active');
-
-        cifraScrollInterval = setInterval(() => {
-            container.scrollTop += 1;
-            // Detener automáticamente al llegar al final
-            if (container.scrollTop >= (container.scrollHeight - container.clientHeight)) {
-                toggleCifraAutoScroll();
+    async function deleteList(id) { await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
+    async function saveTeam(members) { team = members; await supabaseClient.from('equipo').delete().eq('user_id', currentUser.id); for (let m of team) await supabaseClient.from('equipo').insert(m); await loadUserData(); renderCurrentView(); }
+    async function saveAttendance(reg) { attendance = reg; await supabaseClient.from('asistencia').delete().eq('user_id', currentUser.id); for (let a of attendance) await supabaseClient.from('asistencia').insert(a); }
+    async function saveShifts(sh) { shifts = sh; await supabaseClient.from('turnos').delete().eq('user_id', currentUser.id); for (let s of shifts) await supabaseClient.from('turnos').insert(s); }
+    async function saveModules(mods) { 
+        try {
+            modules = mods; 
+            for (let m of modules) {
+                if(!m.user_id) m.user_id = currentUser.id;
+                await supabaseClient.from('modulos').upsert(m); 
             }
-        }, cifraScrollSpeed);
+            await loadUserData();
+        } catch(e) { console.error("Error al guardar módulos:", e); }
     }
-}
 
-function adjustScrollSpeed(delta) {
-    cifraScrollSpeed += delta;
-    if (cifraScrollSpeed < 5) cifraScrollSpeed = 5; // Límite de velocidad máxima
-    if (isCifraScrolling) {
-        toggleCifraAutoScroll();
-        toggleCifraAutoScroll();
-    }
-}
-
-// 7. Cambiar el Tamaño de Fuente en vivo
-function adjustCifraFontSize(delta) {
-    currentFontSize += delta;
-    if (currentFontSize < 12) currentFontSize = 12;
-    if (currentFontSize > 36) currentFontSize = 36;
-    document.getElementById('cifraContentWrapper').style.fontSize = currentFontSize + 'px';
-}
-
-// 8. Guardar el nuevo estado (Tono transpueto y BPM) directamente a Supabase
-async function saveCifraStateToServer() {
-    if (!currentSongData) return;
-    
-    const originalKey = currentSongData.key || 'C';
-    const finalKey = transposeChordString(originalKey, currentTransposeSteps);
-    const finalBpm = parseInt(document.getElementById('cifraBpmInput').value) || 90;
-
-    try {
-        const { error } = await supabase
-            .from('songs')
-            .update({ key: finalKey, bpm: finalBpm })
-            .eq('id', currentSongData.id);
-
-        if (error) throw error;
-        
-        alert("¡Configuración guardada de forma profesional en Supabase!");
-        // Actualizamos los datos locales del array global para que persistan en la sesión
-        currentSongData.key = finalKey;
-        currentSongData.bpm = finalBpm;
-        if (typeof loadSongs === 'function') loadSongs(); // Recarga la lista principal si existe tu función
-    } catch (err) {
-        console.error("Error al guardar cambios de la canción:", err.message);
-        alert("Error al guardar: " + err.message);
-    }
-}
-    
     // ==================== RENDER PRINCIPAL ====================
     function renderApp() {
         if (!currentUser) { renderLogin(); return; }
@@ -899,11 +379,12 @@ async function saveCifraStateToServer() {
                 </div>
             </header>
             <div class="container">
-                <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar por título o fragmento de letra..." oninput="renderCurrentView()"></div>
+                <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div>
                 <div id="viewControls" class="view-controls"></div>
                 <div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div>
                 <div id="mainContent"></div>
             </div>`;
+            
         document.querySelectorAll('.nav-item[data-tab]').forEach(el => el.addEventListener('click', () => {
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active'); currentTab = el.dataset.tab; selectedListId = null; renderCurrentView();
@@ -916,11 +397,12 @@ async function saveCifraStateToServer() {
         });
         if (localStorage.getItem('iec_darkmode') === 'true') { document.body.classList.add('dark'); darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro'; }
         renderCurrentView();
+        
         const titleEl = document.getElementById('easterEggTitle');
         let timer = null;
-        titleEl.addEventListener('mousedown', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 3000));
+        titleEl.addEventListener('mousedown', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 5000));
         titleEl.addEventListener('mouseup', () => clearTimeout(timer));
-        titleEl.addEventListener('touchstart', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 3000));
+        titleEl.addEventListener('touchstart', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 5000));
         titleEl.addEventListener('touchend', () => clearTimeout(timer));
     }
 
@@ -931,75 +413,74 @@ async function saveCifraStateToServer() {
         else if (currentTab === 'admin' && adminVisible) renderAdmin();
     }
 
-    // ==================== CANCIONERO CON FILTROS AVANZADOS ====================
-
-    
+    // ==================== CANCIONERO ====================
     function renderSongs() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
-        let filtered = songs.filter(s => {
-            const matchesQuery = s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query) || (s.lyrics && s.lyrics.toLowerCase().includes(query));
-            const matchesCat = currentCatFilter === 'Todos' || s.category === currentCatFilter;
-            const matchesKey = currentKeyFilter === 'Todos' || s.key === currentKeyFilter;
-            return matchesQuery && matchesCat && matchesKey;
-        });
+        let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
         filtered.sort((a,b)=>a.title.localeCompare(b.title));
         
-        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button>
-                                                             <button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar JSON</button>`;
-        
+        document.getElementById('actionHeader').innerHTML = `
+            <button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button>
+            <button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar JSON</button>`;
         document.getElementById('viewControls').innerHTML = `
-            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; justify-content:center; width:100%;">
-                <button class="btn-view ${viewMode==='table'?'active':''}" onclick="viewMode='table';renderSongs()"><i class="fas fa-list"></i> Lista</button>
-                <button class="btn-view ${viewMode==='grid'?'active':''}" onclick="viewMode='grid';renderSongs()"><i class="fas fa-th-large"></i> Cuadrícula</button>
-                <select id="filterCategory" class="form-control" style="width:160px; padding:0.4rem 0.8rem; border-radius:2rem;" onchange="currentCatFilter=this.value; renderSongs()">
-                    <option value="Todos" ${currentCatFilter==='Todos'?'selected':''}>Todas Categorías</option>
-                    <option value="Adoración" ${currentCatFilter==='Adoración'?'selected':''}>Adoración</option>
-                    <option value="Exaltación" ${currentCatFilter==='Exaltación'?'selected':''}>Exaltación</option>
-                    <option value="Júbilo" ${currentCatFilter==='Júbilo'?'selected':''}>Júbilo</option>
-                </select>
-                <select id="filterKey" class="form-control" style="width:140px; padding:0.4rem 0.8rem; border-radius:2rem;" onchange="currentKeyFilter=this.value; renderSongs()">
-                    <option value="Todos" ${currentKeyFilter==='Todos'?'selected':''}>Todos Tonos</option>
-                    ${keys.map(k => `<option value="${k}" ${currentKeyFilter===k?'selected':''}>Tono: ${k}</option>`).join('')}
-                </select>
-            </div>`;
-            
+            <button class="btn-view ${viewMode==='table'?'active':''}" onclick="viewMode='table';renderSongs()"><i class="fas fa-list"></i> Lista</button>
+            <button class="btn-view ${viewMode==='grid'?'active':''}" onclick="viewMode='grid';renderSongs()"><i class="fas fa-th-large"></i> Cuadrícula</button>`;
+        
         const container = document.getElementById('mainContent');
         if (viewMode === 'table') {
-            container.innerHTML = `<div class="list-view-container"><table style="width:100%; border-collapse: collapse;"><thead><tr style="text-align:left; border-bottom:1px solid var(--border)"><th>Título</th><th>Categoría</th><th>Tono</th><th>BPM</th><th>Acordes</th><th>Letra</th><th>Acciones</th></tr></thead><tbody>${filtered.map(s => `<tr style="border-bottom:1px solid var(--border)">
-                        <td>
-    <span class="song-title" onclick="openCifraViewer('${s.id}')" style="cursor:pointer; font-weight:bold;">
-        ${escapeHtml(s.title)}
-    </span>
-</td>
-                        <td><span class="card-category">${s.category}</span></td>
-                        <td><b>${s.key}</b></td>
-                        <td><button class="btn-icon" style="width:auto; border-radius:5px;" onclick="openMetronome('${s.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i> ${s.bpm||'--'}</button></td>
-                        <td><button class="btn-icon" onclick="viewChords('${s.id}'); event.stopPropagation();"><i class="fas fa-file-pdf" style="color:red"></i></button></td>
-                        <td><button class="btn-icon" onclick="openLyricsEditor('${s.id}'); event.stopPropagation();"><i class="fas fa-music"></i></button></td>
-                        <td><button class="btn-icon" onclick="openSongModal('${s.id}'); event.stopPropagation();"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="if(confirm('¿Eliminar canción?')) deleteSong('${s.id}'); event.stopPropagation();"><i class="fas fa-trash"></i></button></td>
-                    </tr>`).join('')}</tbody></table></div>`;
+            container.innerHTML = `
+            <div class="list-view-container">
+                <table style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Título</th>
+                            <th>Categoría</th>
+                            <th>Tono</th>
+                            <th>BPM</th>
+                            <th>Acordes</th>
+                            <th>Letra</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    ${filtered.map(s => `
+                        <tr>
+                            <td>
+                                <span class="song-title" onclick="openCifraViewer('${s.id}')" style="cursor:pointer; font-weight:bold; color:var(--primary-light);">
+                                    ${escapeHtml(s.title)}
+                                </span>
+                            </td>
+                            <td><span class="card-category">${s.category}</span></td>
+                            <td><b>${s.key}</b></td>
+                            <td><button class="btn-icon" onclick="openMetronome('${s.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i> ${s.bpm||'--'}</button></td>
+                            <td><button class="btn-icon" onclick="viewChords('${s.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button></td>
+                            <td><button class="btn-icon" onclick="openLyricsEditor('${s.id}'); event.stopPropagation();"><i class="fas fa-music"></i> Editar</button></td>
+                            <td>
+                                <button class="btn-icon" onclick="openSongModal('${s.id}'); event.stopPropagation();"><i class="fas fa-edit"></i></button>
+                                <button class="btn-icon" onclick="deleteSong('${s.id}'); event.stopPropagation();"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>`;
         } else {
-            container.innerHTML = `<div class="grid">${filtered.map(s => `<div class="card">
-                        <span class="card-category">${s.category}</span>
-                        <div class="card-title">
-    <span class="song-title" onclick="openCifraViewer('${s.id}')" style="cursor:pointer; font-weight:bold;">
-        ${escapeHtml(s.title)}
-    </span>
-</div>
-                        <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div>
-                        <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-                            <button class="btn btn-ghost" style="padding:0.4rem 0.8rem" onclick="openSongModal('${s.id}')">Editar</button>
-                            <button class="btn btn-ghost" style="padding:0.4rem 0.8rem" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button>
-                            <button class="btn btn-ghost" style="padding:0.4rem 0.8rem" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> PDF</button>
-                            <button class="btn btn-ghost" style="padding:0.4rem 0.8rem" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra</button>
-                        </div>
-                    </div>`).join('')}</div>`;
+            container.innerHTML = `<div class="grid">${filtered.map(s => `
+                <div class="card" onclick="openCifraViewer('${s.id}')">
+                    <span class="card-category">${s.category}</span>
+                    <div class="card-title" style="color:var(--primary-light); font-weight:bold;">${escapeHtml(s.title)}</div>
+                    <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div>
+                    <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">
+                        <button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>
+                        <button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button>
+                        <button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button>
+                        <button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>
+                    </div>
+                </div>`).join('')}</div>`;
         }
     }
 
-    function openSongModal(id = null) {
-        const s = songs.find(x => x.id === id) || { title: '', category: 'Adoración', key: 'C', bpm: 80, chordsUrl: '', chordsData: '', lyrics: '' };
-        const idArg = id ? `'${id}'` : 'null';
+    function openSongModal(id=null) {
+        const s = songs.find(s => s.id === id) || { title: '', category: 'Adoración', key: 'C', bpm: 80, chordsUrl: '', chordsData: '', lyrics: '' };
         showModal(`<h3>${id ? 'Editar' : 'Nueva'} Canción</h3>
             <div class="form-group"><label>Título</label><input id="mTitle" class="form-control" value="${escapeHtml(s.title)}"></div>
             <div class="form-group"><label>Categoría</label><select id="mCat" class="form-control"><option ${s.category==='Adoración'?'selected':''}>Adoración</option><option ${s.category==='Exaltación'?'selected':''}>Exaltación</option><option ${s.category==='Júbilo'?'selected':''}>Júbilo</option></select></div>
@@ -1007,12 +488,11 @@ async function saveCifraStateToServer() {
             <div class="form-group"><label>BPM</label><input id="mBpm" type="number" class="form-control" value="${s.bpm||80}"></div>
             <div class="form-group"><label>Enlace acordes (PDF/imagen)</label><input id="mChordsUrl" class="form-control" value="${escapeHtml(s.chordsUrl)}"></div>
             <div class="form-group"><label>Subir archivo</label><input type="file" id="mChordsFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control"></div>
-            <div class="form-group"><label>Letra (Teleprompter y editor)</label><textarea id="mLyrics" rows="5" class="form-control">${escapeHtml(s.lyrics)}</textarea></div>
-            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveSongFromModal(${idArg})">Guardar</button></div>`);
+            <div class="form-group"><label>Letra (Letra tradicional y cifrada)</label><textarea id="mLyrics" rows="6" class="form-control" placeholder="Escribe la letra aquí. Ejemplo: [C]Grande es el [G]Señor...">${escapeHtml(s.lyrics)}</textarea></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveSongFromModal('${id}')">Guardar</button></div>`);
     }
     
     async function saveSongFromModal(id) {
-        const cleanId = (id && id !== 'null' && id !== 'undefined') ? id : null;
         const title = document.getElementById('mTitle').value.trim();
         if (!title) return alert("Título requerido");
         const file = document.getElementById('mChordsFile').files[0];
@@ -1022,12 +502,11 @@ async function saveCifraStateToServer() {
             await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); });
         }
         const song = {
-            id: cleanId || Date.now().toString(),
-            user_id: currentUser.id,
+            id: id || Date.now().toString(),
             title, category: document.getElementById('mCat').value, key: document.getElementById('mKey').value,
             bpm: parseInt(document.getElementById('mBpm').value) || 80,
             chordsUrl: document.getElementById('mChordsUrl').value.trim(),
-            chordsData: chordsData || (cleanId ? songs.find(s=>s.id===cleanId)?.chordsData : ''),
+            chordsData: chordsData || (id ? songs.find(s=>s.id===id)?.chordsData : ''),
             lyrics: document.getElementById('mLyrics').value, youtube: ''
         };
         await saveSong(song);
@@ -1037,16 +516,17 @@ async function saveCifraStateToServer() {
     async function openLyricsEditor(songId) {
         const song = songs.find(s => s.id === songId);
         if (!song) return;
+        let lyrics = song.lyrics || '';
         showModal(`
             <h3>Editar Letra y Acordes: ${escapeHtml(song.title)}</h3>
-            <div style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center;">
                 <label>Tonalidad actual:</label>
                 <select id="transposeFromKey" class="form-control" style="width:100px;">${keys.map(k => `<option ${song.key===k?'selected':''}>${k}</option>`).join('')}</select>
                 <label>Transponer a:</label>
                 <select id="transposeToKey" class="form-control" style="width:100px;">${keys.map(k => `<option>${k}</option>`).join('')}</select>
                 <button class="btn btn-primary" onclick="applyTranspose()">Transponer</button>
             </div>
-            <div class="form-group"><label>Letra (usa [Acorde] antes de la sílaba)</label><textarea id="lyricsEditor" rows="12" class="form-control" style="font-family: monospace;">${escapeHtml(song.lyrics || '')}</textarea></div>
+            <div class="form-group"><label>Letra (Usa corchetes antes de la sílaba: [Do] o [C])</label><textarea id="lyricsEditor" rows="12" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea></div>
             <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLyrics('${song.id}')">Guardar Letra</button></div>
         `);
         window.applyTranspose = () => {
@@ -1057,9 +537,10 @@ async function saveCifraStateToServer() {
             document.getElementById('transposeFromKey').value = toKey;
         };
         window.saveLyrics = async (id) => {
+            const newLyrics = document.getElementById('lyricsEditor').value;
             const songToUpdate = songs.find(s => s.id === id);
             if (songToUpdate) {
-                songToUpdate.lyrics = document.getElementById('lyricsEditor').value;
+                songToUpdate.lyrics = newLyrics;
                 await saveSong(songToUpdate);
             }
             closeModal();
@@ -1070,24 +551,26 @@ async function saveCifraStateToServer() {
     function renderLists() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
+        
         document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button><button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>`;
         document.getElementById('viewControls').innerHTML = `<button class="btn-view ${listsViewMode==='grid'?'active':''}" onclick="listsViewMode='grid';renderLists()"><i class="fas fa-th-large"></i> Cuadrícula</button><button class="btn-view ${listsViewMode==='table'?'active':''}" onclick="listsViewMode='table';renderLists()"><i class="fas fa-list"></i> Tabla</button>`;
+        
         const container = document.getElementById('mainContent');
         if (listsViewMode === 'grid') {
             container.innerHTML = `<div class="grid">${filtered.map(l => `<div class="card" onclick="selectedListId='${l.id}'; renderCurrentView()">
                         <span class="card-category">Lista</span>
                         <div class="card-title">${escapeHtml(l.name)}</div>
                         <div>📅 ${l.date || 'Sin fecha'}</div>
-                        <div>🎵 ${(l.items || []).length} canciones</div>
+                        <div>🎵 ${l.items ? l.items.length : 0} canciones</div>
                         <div onclick="event.stopPropagation()" style="margin-top:0.5rem;"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></div>
                     </div>`).join('')}</div>`;
         } else {
-            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th><th></th></tr></thead><tbody>${filtered.map(l => `<tr onclick="selectedListId='${l.id}'; renderCurrentView()"><td>${escapeHtml(l.name)}</td><td>${l.date || '—'}</td><td> ${(l.items||[]).length}</td><td><button class="btn-icon" onclick="editListName('${l.id}'); event.stopPropagation()"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}'); event.stopPropagation()"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>`;
+            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th><th>Acciones</th></tr></thead><tbody>${filtered.map(l => `<tr onclick="selectedListId='${l.id}'; renderCurrentView()"><td><b>${escapeHtml(l.name)}</b></td><td>${l.date || '—'}</td><td>${l.items ? l.items.length : 0}</td><td onclick="event.stopPropagation()"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>`;
         }
     }
 
     function openCreateListModal() {
-        showModal(`<h3>Nueva Lista</h3><div class="form-group"><input id="lName" class="form-control" placeholder="Nombre de la reunión / servicio"></div><div class="form-group"><input id="lDate" class="form-control" placeholder="Fecha del Servicio"></div><button class="btn btn-primary" onclick="saveNewList()">Crear</button>`);
+        showModal(`<h3>Nueva Lista</h3><div class="form-group"><input id="lName" class="form-control" placeholder="Nombre de la reunión"></div><div class="form-group"><input id="lDate" class="form-control" placeholder="Fecha"></div><button class="btn btn-primary" onclick="saveNewList()">Crear</button>`);
         flatpickr("#lDate", { locale: "es", dateFormat: "d/m/Y" });
     }
     async function saveNewList() {
@@ -1098,32 +581,63 @@ async function saveCifraStateToServer() {
     }
     async function editListName(id) {
         const list = lists.find(l => l.id === id);
-        const newName = prompt("Nuevo nombre de la lista:", list.name);
+        const newName = prompt("Nuevo nombre:", list.name);
         if (newName) { list.name = newName; await saveList(list); }
     }
 
     function renderListDetail() {
         const list = lists.find(l => l.id === selectedListId);
         if (!list) { selectedListId = null; renderLists(); return; }
-        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()"><i class="fas fa-arrow-left"></i> Volver</button><button class="btn btn-primary" onclick="openAddSongToListModal()"><i class="fas fa-plus"></i> Añadir Canción</button><button class="btn btn-ghost" onclick="printList('${list.id}')"><i class="fas fa-print"></i> Imprimir (12 copias)</button><button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')"><i class="fab fa-whatsapp"></i> WhatsApp</button><button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')"><i class="fas fa-file-excel"></i> Excel</button>`;
+        
+        document.getElementById('actionHeader').innerHTML = `
+            <button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()"><i class="fas fa-arrow-left"></i> Volver</button>
+            <button class="btn btn-primary" onclick="openAddSongToListModal()"><i class="fas fa-plus"></i> Añadir Canción</button>
+            <button class="btn btn-ghost" onclick="printList('${list.id}')"><i class="fas fa-print"></i> Imprimir (12 copias)</button>
+            <button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+            <button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')"><i class="fas fa-file-excel"></i> Excel</button>`;
         document.getElementById('viewControls').innerHTML = '';
+        
         const container = document.getElementById('mainContent');
-        container.innerHTML = `<div class="card" style="margin-bottom:1rem"><h2>${escapeHtml(list.name)}</h2><p>${list.date || ''} • ${(list.items || []).length} canciones</p></div><div id="dragArea"></div>`;
+        container.innerHTML = `<div class="card" style="margin-bottom:1rem"><h2>${escapeHtml(list.name)}</h2><p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p></div><div id="dragArea"></div>`;
+        
         const dragArea = document.getElementById('dragArea');
-        dragArea.innerHTML = (list.items || []).map((item, idx) => {
-            const currentSongId = item.songId || item.song_id;
-            const song = songs.find(s => s.id === currentSongId);
+        if (!list.items || list.items.length === 0) {
+            dragArea.innerHTML = `<p style="padding:1rem; text-align:center; color:var(--text-muted);">No hay canciones agregadas a esta lista todavía.</p>`;
+            return;
+        }
+        
+        dragArea.innerHTML = list.items.map((item, idx) => {
+            const song = songs.find(s => s.id === (item.songId || item.song_id));
             if (!song) return '';
-            const keyDisplay = item.keyOverride || item.key_override || song.key;
-            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;"><i class="fas fa-grip-vertical drag-handle"></i><div style="flex:1">
-    <span class="song-title" onclick="openCifraViewer('${song.id}')" style="cursor:pointer; font-weight:bold;">
-        ${escapeHtml(song.title)}
-    </span> 
-    <span class="card-category">${song.category}</span>
-    ...<span class="card-category">${song.category}</span><div>Tono: <b>${keyDisplay}</b> | 🥁 ${song.bpm||'--'} BPM</div></div><button class="btn-icon" onclick="openMetronome('${song.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}'); event.stopPropagation();"><i class="fas fa-music"></i></button><button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button></div>`;
+            let currentTone = item.keyOverride || item.key_override || song.key;
+            return `
+            <div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;" onclick="openCifraViewer('${song.id}')">
+                <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
+                <div style="flex:1">
+                    <b style="color:var(--primary-light); font-size:1.1rem;">${escapeHtml(song.title)}</b> 
+                    <span class="card-category">${song.category}</span>
+                    <div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm||'--'} BPM</div>
+                </div>
+                <div onclick="event.stopPropagation()" style="display:flex; gap:0.3rem;">
+                    <button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button>
+                    <button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button>
+                    <button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
+                    <button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button>
+                    <button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>
+                </div>
+            </div>`;
         }).join('');
+        
         if (sortableInstance) sortableInstance.destroy();
-        sortableInstance = new Sortable(dragArea, { handle: '.drag-handle', animation: 200, onEnd: () => { const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); list.items = newOrder; saveList(list); } });
+        sortableInstance = new Sortable(dragArea, { 
+            handle: '.drag-handle', 
+            animation: 200, 
+            onEnd: () => { 
+                const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); 
+                list.items = newOrder; 
+                saveList(list); 
+            } 
+        });
     }
 
     function openAddSongToListModal() {
@@ -1141,35 +655,42 @@ async function saveCifraStateToServer() {
     async function addSongToList(listId, songId) {
         const list = lists.find(l => l.id === listId);
         if (!list.items) list.items = [];
-        if (list.items.some(item => (item.songId || item.song_id) === songId)) return alert("Ya está en la lista");
-        list.items.push({ songId: songId });
+        if (list.items.some(item => (item.songId || item.song_id) === songId)) return alert("Esta canción ya está en la lista.");
+        list.items.push({ songId: songId, keyOverride: null });
         await saveList(list);
         renderListDetail();
     }
     async function removeSongFromList(listId, idx) {
-        const list = lists.find(l => l.id === listId);
-        list.items.splice(idx, 1);
-        await saveList(list);
-        renderListDetail();
+        if(confirm("¿Quitar canción de la lista?")) {
+            const list = lists.find(l => l.id === listId);
+            list.items.splice(idx, 1);
+            await saveList(list);
+            renderListDetail();
+        }
     }
     async function changeItemKey(listId, idx) {
         const list = lists.find(l => l.id === listId);
         const item = list.items[idx];
-        const currentSongId = item.songId || item.song_id;
-        const song = songs.find(s => s.id === currentSongId);
-        const newKey = prompt(`Cambiar tonalidad de "${song.title}"`, item.keyOverride || item.key_override || song.key);
-        if (newKey && keys.includes(newKey)) { item.keyOverride = newKey; item.key_override = newKey; await saveList(list); renderListDetail(); }
-        else if (newKey) alert("Tonalidad no válida");
+        const song = songs.find(s => s.id === (item.songId || item.song_id));
+        const newKey = prompt(`Cambiar tonalidad de "${song.title}" para esta lista:`, item.keyOverride || item.key_override || song.key);
+        if (newKey && keys.includes(newKey)) { 
+            item.keyOverride = newKey; 
+            item.key_override = newKey;
+            await saveList(list); 
+            renderListDetail();
+        } else if (newKey) {
+            alert("Tonalidad no válida.");
+        }
     }
-    
     function exportAllListsToExcel() {
         const data = [["Lista", "Canción", "Categoría", "Tonalidad"]];
         lists.forEach(list => {
-            (list.items || []).forEach(item => {
-                const sId = item.songId || item.song_id;
-                const song = songs.find(s => s.id === sId);
-                if (song) data.push([list.name, song.title, song.category, item.keyOverride || item.key_override || song.key]);
-            });
+            if(list.items) {
+                list.items.forEach(item => {
+                    const song = songs.find(s => s.id === (item.songId || item.song_id));
+                    if (song) data.push([list.name, song.title, song.category, item.keyOverride || item.key_override || song.key]);
+                });
+            }
         });
         const ws = XLSX.utils.aoa_to_sheet(data);
         const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Todas_Listas");
@@ -1182,29 +703,28 @@ async function saveCifraStateToServer() {
         document.getElementById('viewControls').innerHTML = '';
         document.getElementById('mainContent').innerHTML = `
             <div class="grid">
-                <div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll" style="font-size:2rem"></i><h3>Teleprompter</h3><p>Letra gigante interactiva</p></div>
+                <div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll" style="font-size:2rem"></i><h3>Teleprompter</h3><p>Letra gigante con toque</p></div>
                 <div class="card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Respaldo JSON</h3><p>Exportar / Importar datos</p></div>
-                <div class="card" onclick="openTeamModal()"><i class="fas fa-users"></i><h3>Mi Equipo</h3><p>Gestionar integrantes</p></div>
-                <div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3><p>Guitarra / Bajo por micrófono</p></div>
-                <div class="card" onclick="openModulesLibrary()"><i class="fas fa-book-open"></i><h3>Centro de Capacitación</h3><p>Módulos nivel 3 con evaluación</p></div>
-                <div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Reporte de Asistencia</h3><p>Visualización del registro</p></div>
+                <div class="card" onclick="openTeamModal()"><i class="fas fa-users"></i><h3>Mi Equipo</h3><p>Gestionar miembros</p></div>
+                <div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3><p>Guitarra / Bajo</p></div>
+                <div class="card" onclick="openModulesLibrary()"><i class="fas fa-book-open"></i><h3>Centro de Capacitación</h3><p>Módulos con evaluación</p></div>
+                <div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Reporte de Asistencia</h3><p>Solo lectura</p></div>
                 <div class="card" onclick="viewShiftsCalendar()"><i class="fas fa-calendar-alt"></i><h3>Calendario de Turnos</h3><p>Próximos servicios</p></div>
             </div>`;
     }
 
     function openTeleprompter() {
         const selectSongs = songs.map(s => `<option value="${s.id}">${escapeHtml(s.title)}</option>`).join('');
-        showModal(`<h3>Teleprompter</h3><select id="teleSongSelect" class="form-control"><option value="">Selecciona una canción...</option>${selectSongs}</select><div id="teleLyricsDisplay" class="teleprompter-screen" style="margin-top:1rem;" onclick="advanceLyrics()">Selecciona una canción arriba</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
+        showModal(`<h3>Teleprompter</h3><select id="teleSongSelect" class="form-control"><option value="">Selecciona canción...</option>${selectSongs}</select><div id="teleLyricsDisplay" class="teleprompter-screen" style="margin-top:1rem;" onclick="advanceLyrics()">Selecciona una canción de la lista superior</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
         let currentLines = [], lineIndex = 0;
         window.advanceLyrics = () => { if (currentLines.length) { lineIndex = (lineIndex + 1) % currentLines.length; document.getElementById('teleLyricsDisplay').innerHTML = currentLines[lineIndex].replace(/\n/g,'<br>'); } };
         document.getElementById('teleSongSelect').addEventListener('change', (e) => {
             const song = songs.find(s => s.id === e.target.value);
             if(!song) return;
             let lyrics = song.lyrics || "Letra no disponible.";
-            currentLines = lyrics.split('\n\n').filter(l => l.trim());
-            if(currentLines.length === 0) currentLines = lyrics.split('\n').filter(l => l.trim());
+            currentLines = lyrics.split('\n').filter(l => l.trim());
             lineIndex = 0;
-            document.getElementById('teleLyricsDisplay').innerHTML = currentLines[0] || "Sin letra";
+            document.getElementById('teleLyricsDisplay').innerHTML = currentLines[0] || "Sin letra asignada";
         });
     }
 
@@ -1223,42 +743,56 @@ async function saveCifraStateToServer() {
         reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                if (!data.songs || !Array.isArray(data.songs)) throw new Error("Formato inválido.");
+                if (!data.songs || !Array.isArray(data.songs)) throw new Error("Formato no válido.");
                 let imported = 0;
                 for (let song of data.songs) {
-                    if (!song.title) continue;
-                    const newSong = { id: song.id || Date.now().toString() + Math.random(), user_id: currentUser.id, title: song.title, category: song.category || 'Adoración', key: song.key || 'C', bpm: song.bpm || 80, chordsUrl: song.chordsUrl || '', chordsData: song.chordsData || '', lyrics: song.lyrics || '', youtube: song.youtube || '' };
-                    await saveSong(newSong); imported++;
+                    if (!song.title || !song.category || !song.key) continue;
+                    const newSong = {
+                        id: song.id || Date.now().toString() + Math.random(),
+                        title: song.title,
+                        category: song.category,
+                        key: song.key,
+                        bpm: song.bpm || 80,
+                        chordsUrl: song.chordsUrl || '',
+                        chordsData: song.chordsData || '',
+                        lyrics: song.lyrics || '',
+                        youtube: song.youtube || ''
+                    };
+                    const success = await saveSong(newSong);
+                    if (success) imported++;
                 }
-                alert(`Importación completada: ${imported} canciones gestionadas.`); closeModal(); renderCurrentView();
-            } catch(err) { alert("Error al procesar: " + err.message); }
+                alert(`Importación completada: ${imported} canciones procesadas.`);
+                closeModal();
+                renderCurrentView();
+            } catch(err) { alert("Error al procesar el archivo: " + err.message); }
         };
         reader.readAsText(file);
     }
 
     function openTeamModal() {
         const renderTeam = () => {
-            showModal(`<h3>Mi Equipo de Alabanza</h3><div id="teamList" style="max-height:200px; overflow-y:auto; margin-bottom:1rem;">${team.map((m, i) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; padding:4px; border-bottom:1px solid var(--border)"><span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMember(${i})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin integrantes</p>'}</div><div class="form-group"><input id="memberName" class="form-control" placeholder="Nombre completo"></div><div class="form-group"><input id="memberRole" class="form-control" placeholder="Instrumento / Rol"></div><button class="btn btn-primary" onclick="addTeamMember()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
+            showModal(`<h3>Mi Equipo de Alabanza</h3><div id="teamList" style="margin-bottom:1rem; max-height:200px; overflow-y:auto;">${team.map((m, i) => `<div style="display:flex; justify-content:space-between; margin-bottom:0.5rem"><span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMember(${i})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin miembros</p>'}</div><div class="form-group"><input id="memberName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="memberRole" class="form-control" placeholder="Instrumento / Rol"></div><button class="btn btn-primary" onclick="addTeamMember()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
             window.addTeamMember = async () => {
                 const name = document.getElementById('memberName').value.trim();
                 const role = document.getElementById('memberRole').value.trim();
-                if (name) { team.push({ id: Date.now().toString(), name, role }); await saveTeam(team); renderTeam(); }
+                if (name) { team.push({ id: Date.now().toString(), name, role, user_id: currentUser.id }); await saveTeam(team); renderTeam(); }
             };
-            window.removeTeamMember = async (idx) => { team.splice(idx,1); await saveTeam(team); renderTeam(); };
+            window.removeTeamMember = async (idx) => { if(confirm("¿Eliminar miembro?")) { team.splice(idx,1); await saveTeam(team); renderTeam(); } };
         };
         renderTeam();
     }
 
     function openTuner() {
-        showModal(`<div class="tuner-container"><h3>Afinador Instrumental</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Toca una cuerda cerca del micrófono</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
+        showModal(`<div class="tuner-container"><h3>Afinador Instrumental</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Toca una cuerda al aire cerca del micrófono</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
         const noteElem = document.getElementById('tunerNote');
         const needleElem = document.getElementById('tunerNeedle');
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { noteElem.innerText = "Sin soporte de micrófono"; return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { noteElem.innerText = "Sin acceso a micro"; return; }
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const source = audioCtx.createMediaStreamSource(stream);
             const analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 2048; source.connect(analyser);
+            analyser.fftSize = 2048;
+            source.connect(analyser);
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Float32Array(bufferLength);
             const detectPitch = () => {
@@ -1280,13 +814,12 @@ async function saveCifraStateToServer() {
                 let roundedNote = Math.round(noteNum);
                 let cents = Math.round((noteNum - roundedNote) * 100);
                 let note = noteNames[roundedNote % 12];
-                let octave = Math.floor(roundedNote / 12) - 1;
                 if (freq > 50 && freq < 600) {
-                    noteElem.innerText = `${note}${octave} (${cents>0?'+':''}${cents}¢)`;
+                    noteElem.innerText = `${note} (${cents>0?'+':''}${cents}¢)`;
                     let percent = Math.min(100, Math.max(0, 50 + (cents/50)*50));
                     needleElem.style.width = `${percent}%`;
                     needleElem.style.background = Math.abs(cents) < 5 ? "#10B981" : "#F59E0B";
-                }
+                } else { noteElem.innerText = "--"; needleElem.style.width = "0%"; }
                 requestAnimationFrame(detectPitch);
             };
             detectPitch();
@@ -1294,8 +827,8 @@ async function saveCifraStateToServer() {
     }
 
     function openModulesLibrary() {
-        let html = `<h3>Centro de Capacitación del Ministerio</h3><div class="grid">`;
-        modules.forEach(mod => { html += `<div class="card" onclick="startModule('${mod.id}')"><div class="card-category">Módulo</div><h4>${escapeHtml(mod.title)}</h4><p>Click para iniciar evaluación final</p></div>`; });
+        let html = `<h3>Centro de Capacitación Ministerial</h3><div class="grid" style="margin-bottom:1rem;">`;
+        modules.forEach(mod => { html += `<div class="card" onclick="startModule('${mod.id}')"><div class="card-category">Curso</div><h4>${escapeHtml(mod.title)}</h4><p>Evaluación interactiva al final</p></div>`; });
         html += `</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(html);
         window.startModule = (moduleId) => {
@@ -1305,15 +838,15 @@ async function saveCifraStateToServer() {
             const showQuestion = () => {
                 if (currentQ >= mod.questions.length) {
                     if (timer) clearInterval(timer);
-                    alert(`✅ Evaluación completada. Puntuación obtenida: ${score}/${mod.questions.length}`);
-                    openModulesLibrary(); return;
+                    alert(`✅ Evaluación terminada. Puntaje final: ${score}/${mod.questions.length}`);
+                    closeModal();
+                    return;
                 }
                 const q = mod.questions[currentQ];
                 let timeLeft = q.time || 20;
-                showModal(`<h3>${escapeHtml(mod.title)} - Evaluación</h3><p style="margin-bottom:1rem; font-weight:600;">${currentQ+1}. ${escapeHtml(q.text)}</p>${q.options.map((opt, idx) => `<button class="btn btn-ghost" style="display:block; width:100%; margin:0.5rem 0; text-align:left;" onclick="answerQuestion(${idx})">${escapeHtml(opt)}</button>`).join('')}<div class="question-timer" id="timerDisplay">⏱️ ${timeLeft} segundos</div><button class="btn btn-ghost" onclick="openModulesLibrary()">Volver</button>`);
-                const timerDisplay = document.getElementById('timerDisplay');
-                if(timer) clearInterval(timer);
-                timer = setInterval(() => { timeLeft--; if (timerDisplay) timerDisplay.innerText = `⏱️ ${timeLeft} segundos`; if (timeLeft <= 0) { clearInterval(timer); alert("Tiempo agotado"); currentQ++; showQuestion(); } }, 1000);
+                showModal(`<h3>Pregunta ${currentQ+1}/${mod.questions.length}</h3><p style="font-weight:600; margin-bottom:1rem;">${escapeHtml(q.text)}</p>${q.options.map((opt, idx) => `<button class="btn btn-ghost" style="display:block; text-align:left; width:100%; margin:0.5rem 0;" onclick="answerQuestion(${idx})">${escapeHtml(opt)}</button>`).join('')}<div class="question-timer" id="timerDisplay">⏱️ ${timeLeft} seg</div><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`);
+                
+                timer = setInterval(() => { timeLeft--; if (document.getElementById('timerDisplay')) document.getElementById('timerDisplay').innerText = `⏱️ ${timeLeft} seg`; if (timeLeft <= 0) { clearInterval(timer); alert("Tiempo agotado en esta pregunta."); currentQ++; showQuestion(); } }, 1000);
                 window.answerQuestion = (selectedIdx) => { clearInterval(timer); if (selectedIdx === q.correct) score++; currentQ++; showQuestion(); };
             };
             showQuestion();
@@ -1321,18 +854,19 @@ async function saveCifraStateToServer() {
     }
 
     function viewAttendanceReport() {
-        let html = `<h3>Reporte Histórico de Asistencia</h3><div style="max-height:300px; overflow-y:auto; margin-bottom:1rem;"><table style="width:100%; border-collapse:collapse;"><thead><tr style="border-bottom:2px solid var(--border)"><th>Fecha</th><th>Miembro</th><th>Estado</th></tr></thead><tbody>`;
+        let html = `<h3>Reporte de Asistencia</h3><table style="width:100%; border-collapse:collapse; margin-bottom:1rem;"><thead><tr><th>Fecha</th><th>Miembro</th><th>Estado</th></tr></thead><tbody>`;
         attendance.forEach(reg => {
-            const member = team.find(m => m.id === (reg.memberId || reg.member_id));
-            html += `<tr style="border-bottom:1px solid var(--border); padding:6px 0;"><td>${reg.date}</td><td>${member ? escapeHtml(member.name) : 'Desconocido'}</td><td>${reg.status === 'puntual' ? '✅ Puntual' : '⚠️ Tarde'}</td></tr>`;
+            const member = team.find(m => m.id === reg.memberId);
+            html += `<tr><td>${reg.date}</td><td>${member ? escapeHtml(member.name) : 'Asistente'}</td><td>${reg.status === 'puntual' ? '✅ Puntual' : '⚠️ Tarde'}</td></tr>`;
         });
-        html += `</tbody></table></div><button class="btn btn-primary" onclick="exportAttendanceExcel()"><i class="fas fa-file-excel"></i> Exportar a Excel</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        html += `</tbody></table><button class="btn btn-primary" onclick="exportAttendanceExcel()">Exportar a Excel</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(html);
     }
+    
     function exportAttendanceExcel() {
         const data = [["Fecha", "Miembro", "Estado"]];
         attendance.forEach(reg => {
-            const member = team.find(m => m.id === (reg.memberId || reg.member_id));
+            const member = team.find(m => m.id === reg.memberId);
             data.push([reg.date, member ? member.name : 'Desconocido', reg.status]);
         });
         const ws = XLSX.utils.aoa_to_sheet(data);
@@ -1341,137 +875,100 @@ async function saveCifraStateToServer() {
     }
 
     function viewShiftsCalendar() {
-        let html = `<h3>Calendario de Turnos (Próximos Servicios)</h3><div style="max-height:300px; overflow-y:auto;"><table style="width:100%"><thead><tr><th>Fecha</th><th>Asignado</th></tr></thead><tbody>`;
+        let html = `<h3>Calendario de Turnos Serviciales</h3><table style="width:100%; margin-bottom:1rem;"><thead><tr><th>Fecha</th><th>Miembro Asignado</th></tr></thead><tbody>`;
         shifts.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(s => {
-            const member = team.find(m => m.id === (s.memberId || s.member_id));
-            html += `<tr><td>${s.date}</td><td><b>${member ? escapeHtml(member.name) : 'Desconocido'}</b></td></tr>`;
+            const member = team.find(m => m.id === s.memberId);
+            html += `<tr><td><b>${s.date}</b></td><td>${member ? escapeHtml(member.name) : 'No asignado'}</td></tr>`;
         });
-        html += `</tbody></table></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        html += `</tbody></table><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(html);
     }
 
     // ==================== ADMINISTRACIÓN ====================
     function renderAdmin() {
-        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="renderCurrentView()">Refrescar</button>`;
+        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar Servidor</button>`;
         document.getElementById('viewControls').innerHTML = '';
         document.getElementById('mainContent').innerHTML = `
             <div class="grid">
-                <div class="card" onclick="adminAttendance()"><i class="fas fa-user-check"></i><h3>Control de Asistencia</h3><p>Registrar llegadas</p></div>
-                <div class="card" onclick="adminShifts()"><i class="fas fa-calendar-week"></i><h3>Gestión de Turnos</h3><p>Planificar roles semanales</p></div>
-                <div class="card" onclick="adminTeam()"><i class="fas fa-users"></i><h3>Integrantes Base</h3><p>Modificar base de datos de servidores</p></div>
+                <div class="card" onclick="adminAttendance()"><i class="fas fa-user-check"></i><h3>Control de Asistencia</h3><p>Registrar puntualidad / atrasos</p></div>
+                <div class="card" onclick="adminShifts()"><i class="fas fa-calendar-week"></i><h3>Gestión de Turnos</h3><p>Asignar fechas de servicio</p></div>
+                <div class="card" onclick="adminTeam()"><i class="fas fa-users"></i><h3>Miembros del Equipo</h3><p>Gestionar base de datos técnica</p></div>
             </div>`;
     }
-    function adminTeam() { openTeamModal(); }
+    function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
+    
+    function adminTeam() {
+        const render = () => {
+            showModal(`<h3>Gestionar Miembros (Admin)</h3><div id="teamListAdmin" style="margin-bottom:1rem; max-height:200px; overflow-y:auto;">${team.map((m, idx) => `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMemberAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin miembros</p>'}</div><div class="form-group"><input id="newMemberName" class="form-control" placeholder="Nombre completo"></div><div class="form-group"><input id="newMemberRole" class="form-control" placeholder="Instrumento"></div><button class="btn btn-primary" onclick="addTeamMemberAdmin()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
+            window.addTeamMemberAdmin = async () => {
+                const name = document.getElementById('newMemberName').value.trim();
+                const role = document.getElementById('newMemberRole').value.trim();
+                if (name) { team.push({ id: Date.now().toString(), name, role, user_id: currentUser.id }); await saveTeam(team); render(); }
+            };
+            window.removeTeamMemberAdmin = async (idx) => { if(confirm("¿Eliminar miembro?")) { team.splice(idx,1); await saveTeam(team); render(); } };
+        };
+        render();
+    }
     
     function adminAttendance() {
-        let html = `<h3>Registro de Asistencia (Administrador)</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro del Equipo</label><select id="attMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar Entrada</button><hr><h4>Registros del día</h4><div id="attList" style="max-height:150px; overflow-y:auto;"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        let html = `<h3>Registro de Asistencia Oficial</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro del Equipo</label><select id="attMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><div class="form-group"><label>Estado de llegada</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4 style="margin:1rem 0 0.5rem 0;">Historial Reciente</h4><div id="attList" style="max-height:180px; overflow-y:auto; font-size:0.85rem;"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(html);
         flatpickr("#attDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
         const renderAttList = () => {
             const container = document.getElementById('attList');
-            if (container) container.innerHTML = attendance.map((a, idx) => { const m = team.find(t=>t.id===(a.memberId || a.member_id)); return `<div style="display:flex; justify-content:space-between; margin:4px 0;"><span>${a.date} - ${m?.name || 'Desconocido'} (${a.status})</span><button class="btn-icon" onclick="deleteAttendanceAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join('');
+            if (container) container.innerHTML = attendance.map((a, idx) => { const m = team.find(t=>t.id===a.memberId); return `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0;"><span>${a.date} - ${m?.name || 'Inactivo'} (${a.status})</span><button class="btn-icon" onclick="deleteAttendanceAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join('');
         };
         window.saveAttendanceAdmin = async () => {
             const date = document.getElementById('attDate').value;
             const memberId = document.getElementById('attMember').value;
             const status = document.getElementById('attStatus').value;
-            if (!date || !memberId) return alert("Completa todos los campos");
-            attendance.push({ id: Date.now(), date, memberId, status });
-            await saveAttendance(attendance); renderAttList();
+            if (!date || !memberId) return alert("Completa los campos");
+            attendance.push({ id: Date.now(), date, memberId, status, user_id: currentUser.id });
+            await saveAttendance(attendance);
+            renderAttList();
         };
         window.deleteAttendanceAdmin = async (idx) => { attendance.splice(idx,1); await saveAttendance(attendance); renderAttList(); };
         renderAttList();
     }
     
     function adminShifts() {
-        let html = `<h3>Planificar Cronograma de Turnos</h3><div class="form-group"><label>Fecha del servicio</label><input id="shiftDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Servidor asignado</label><select id="shiftMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><button class="btn btn-primary" onclick="saveShiftAdmin()">Asignar Turno</button><hr><h4>Fechas agendadas</h4><div id="shiftList" style="max-height:150px; overflow-y:auto;"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        let html = `<h3>Asignar Calendario de Turnos</h3><div class="form-group"><label>Fecha de Servicio</label><input id="shiftDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Líder / Músico Asignado</label><select id="shiftMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><button class="btn btn-primary" onclick="saveShiftAdmin()">Asignar Turno</button><hr><h4 style="margin:1rem 0 0.5rem 0;">Cronograma</h4><div id="shiftList" style="max-height:180px; overflow-y:auto; font-size:0.85rem;"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(html);
         flatpickr("#shiftDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
         const renderShiftList = () => {
             const container = document.getElementById('shiftList');
-            if (container) container.innerHTML = shifts.map((s, idx) => { const m = team.find(t=>t.id===(s.memberId || s.member_id)); return `<div style="display:flex; justify-content:space-between; margin:4px 0;"><span><b>${s.date}</b>: ${m?.name || 'Desconocido'}</span><button class="btn-icon" onclick="deleteShiftAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join('');
+            if (container) container.innerHTML = shifts.map((s, idx) => { const m = team.find(t=>t.id===s.memberId); return `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0;"><span>📅 <b>${s.date}</b> - ${m?.name || 'Desconocido'}</span><button class="btn-icon" onclick="deleteShiftAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join('');
         };
         window.saveShiftAdmin = async () => {
             const date = document.getElementById('shiftDate').value;
             const memberId = document.getElementById('shiftMember').value;
             if (!date || !memberId) return;
-            shifts.push({ id: Date.now(), date, memberId });
-            await saveShifts(shifts); renderShiftList();
+            shifts.push({ id: Date.now(), date, memberId, user_id: currentUser.id });
+            await saveShifts(shifts);
+            renderShiftList();
         };
         window.deleteShiftAdmin = async (idx) => { shifts.splice(idx,1); await saveShifts(shifts); renderShiftList(); };
         renderShiftList();
     }
 
-    // ==================== METRÓNOMO CON TAP TEMPO AVANZADO ====================
+    // ==================== METRÓNOMO TRADICIONAL Y ACORDES ====================
     function openMetronome(songId) {
         const song = songs.find(s => s.id === songId);
         if (!song) return;
-        let bpm = song.bpm || 80;
+        const bpm = song.bpm || 80;
+        const intervalMs = 60000 / bpm;
         if (metronomeInterval) clearInterval(metronomeInterval);
         
-        showModal(`<div class="metronome-container" style="text-align:center">
-            <h3>Metrónomo Digital</h3>
-            <h4>${escapeHtml(song.title)}</h4>
-            <div class="metronome-led" id="metroLed"></div>
-            <p style="font-size:2rem; font-weight:800; margin:0.5rem 0;"><span id="metroBpmDisplay">${bpm}</span> BPM</p>
-            <div style="display:flex; gap:0.5rem; justify-content:center; margin-bottom:1rem;">
-                <button class="btn btn-primary" id="startMetroBtn"><i class="fas fa-play"></i> Iniciar</button>
-                <button class="btn btn-ghost" id="stopMetroBtn"><i class="fas fa-stop"></i> Parar</button>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                <button class="btn btn-ghost" id="tapTempoBtn" style="background:#f1f5f9; color:#1e293b; justify-content:center;"><i class="fas fa-hand-pointer"></i> Pulsar Ritmo (Tap Tempo)</button>
-                <button class="btn btn-primary" id="saveBpmBtn" style="display:none; justify-content:center; background:#10B981;"><i class="fas fa-save"></i> Guardar nuevo BPM permanentemente</button>
-            </div>
-            <hr style="margin:1rem 0; border:0; border-top:1px solid var(--border)">
-            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
-        </div>`);
+        showModal(`<div class="metronome-container" style="text-align:center"><h3>Metrónomo Rítmico: ${escapeHtml(song.title)}</h3><div class="metronome-led" id="metroLed" style="width:30px; height:30px; background:#475569; margin:1rem auto; border-radius:50%; transition:0.1s;"></div><p style="font-size:1.5rem; font-weight:bold;">${bpm} BPM</p><br><button class="btn btn-primary" id="startMetroBtn">Iniciar</button><button class="btn btn-ghost" id="stopMetroBtn">Detener</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
         
         const led = document.getElementById('metroLed');
-        const display = document.getElementById('metroBpmDisplay');
         const startBtn = document.getElementById('startMetroBtn');
         const stopBtn = document.getElementById('stopMetroBtn');
-        const tapBtn = document.getElementById('tapTempoBtn');
-        const saveBpmBtn = document.getElementById('saveBpmBtn');
-        
         let isRunning = false;
-        let tapTimes = [];
         
-        const tick = () => { if(led) { led.classList.add('active'); setTimeout(() => led?.classList.remove('active'), 80); } };
-        
-        startBtn.onclick = () => {
-            if (!isRunning) {
-                isRunning = true; tick();
-                metronomeInterval = setInterval(tick, 60000 / bpm);
-            }
-        };
+        const tick = () => { led.style.background = "#3B82F6"; if (navigator.vibrate) navigator.vibrate(40); setTimeout(() => led.style.background = "#475569", 100); };
+        startBtn.onclick = () => { if (!isRunning) { isRunning = true; tick(); metronomeInterval = setInterval(() => { if (isRunning) tick(); }, intervalMs); } };
         stopBtn.onclick = () => { if (metronomeInterval) clearInterval(metronomeInterval); isRunning = false; };
-        
-        tapBtn.onclick = () => {
-            const now = Date.now();
-            tapTimes.push(now);
-            if (tapTimes.length > 4) tapTimes.shift();
-            if (tapTimes.length > 1) {
-                let intervals = [];
-                for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i-1]);
-                let avg = intervals.reduce((a,b)=>a+b, 0) / intervals.length;
-                let newBpm = Math.round(60000 / avg);
-                if (newBpm >= 40 && newBpm <= 240) {
-                    bpm = newBpm;
-                    display.innerText = bpm;
-                    if (song.bpm !== bpm) saveBpmBtn.style.display = "inline-flex";
-                    if (isRunning) { clearInterval(metronomeInterval); metronomeInterval = setInterval(tick, 60000 / bpm); }
-                }
-            }
-        };
-        
-        saveBpmBtn.onclick = async () => {
-            song.bpm = bpm;
-            const payload = buildPayload('canciones', song);
-            await supabaseClient.from('canciones').update(payload).eq('id', song.id);
-            saveBpmBtn.style.display = "none";
-            alert("BPM actualizado en el servidor.");
-            await loadUserData(); renderCurrentView();
-        };
     }
 
     function viewChords(songId) {
@@ -1479,31 +976,27 @@ async function saveCifraStateToServer() {
         if (!song) return;
         let content = '';
         if (song.chordsData) {
-            const blob = dataURLtoBlob(song.chordsData); const url = URL.createObjectURL(blob);
-            content = `<iframe src="${url}" style="width:100%; height:400px; border:none"></iframe><br><a href="${url}" download="acordes_${song.id}.pdf" class="btn btn-primary">Descargar Archivo</a>`;
+            const blob = dataURLtoBlob(song.chordsData);
+            const url = URL.createObjectURL(blob);
+            content = `<iframe src="${url}" style="width:100%; height:420px; border:none"></iframe><br><a href="${url}" download="acordes_${song.id}.pdf" class="btn btn-primary" style="margin-top:0.5rem;">Descargar Archivo</a>`;
         } else if (song.chordsUrl) {
-            content = `<iframe src="${song.chordsUrl}" style="width:100%; height:400px; border:none"></iframe><br><a href="${song.chordsUrl}" target="_blank" class="btn btn-primary">Abrir en pestaña nueva</a>`;
-        } else {
-            content = `<p>No hay un archivo PDF/Imagen cargado aún. Presiona Editar para anexar uno.</p>`;
-        }
-        showModal(`<h3>Visualizador de Partituras / Cifrados</h3><h4>${escapeHtml(song.title)}</h4>${content}<div style="margin-top:1rem"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
+            content = `<iframe src="${song.chordsUrl}" style="width:100%; height:420px; border:none"></iframe><br><a href="${song.chordsUrl}" target="_blank" class="btn btn-primary" style="margin-top:0.5rem;">Abrir en Pestaña Nueva</a>`;
+        } else { content = `<p style="padding:1rem; text-align:center; color:var(--text-muted);">No hay archivos adjuntos cargados. Edita la canción para subir un PDF o imagen.</p>`; }
+        showModal(`<h3>Acordes / Partitura: ${escapeHtml(song.title)}</h3>${content}<div style="margin-top:1rem; text-align:right;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
     }
     function dataURLtoBlob(dataURL) {
         const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime});
     }
 
-    // ==================== EXPORTACIONES E IMPRESIÓN MANTENIDAS AL 100% ====================
     function printList(listId) {
         const list = lists.find(l => l.id === listId);
         if (!list || !list.items || list.items.length === 0) return alert("La lista está vacía");
-        const copias = 12;
         const win = window.open();
         win.document.write(`<html><head><title>${escapeHtml(list.name)}</title><style>body{font-family:sans-serif;margin:0.2cm}.print-area{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.print-card{border:1px solid #000;border-radius:8px;padding:6px;break-inside:avoid}.print-title{font-weight:bold;text-align:center;border-bottom:1px solid #aaa;margin-bottom:4px}.print-song{font-size:8pt;margin:2px 0}.print-footer{font-size:6pt;text-align:center;margin-top:4px}</style></head><body><div class="print-area">`);
-        for (let i = 0; i < copias; i++) {
+        for (let i = 0; i < 12; i++) {
             win.document.write(`<div class="print-card"><div class="print-title">${escapeHtml(list.name)}</div>`);
             list.items.forEach(item => {
-                const sId = item.songId || item.song_id;
-                const s = songs.find(x => x.id === sId);
+                const s = songs.find(s => s.id === (item.songId || item.song_id));
                 if (s) win.document.write(`<div class="print-song">🎵 ${escapeHtml(s.title)} (${item.keyOverride || item.key_override || s.key})</div>`);
             });
             win.document.write(`<div class="print-footer">Praise Engine FZ® Cloud | I.E.C. Fortaleza</div></div>`);
@@ -1511,14 +1004,15 @@ async function saveCifraStateToServer() {
         win.document.write('</div></body></html>'); win.document.close(); win.print();
     }
 
-       function exportListToExcel(listId) {
+    function exportListToExcel(listId) {
         const list = lists.find(l => l.id === listId);
         const data = [["Canción", "Tonalidad Asignada"]];
-        (list.items || []).forEach(item => {
-            const sId = item.songId || item.song_id;
-            const s = songs.find(x => x.id === sId);
-            if (s) data.push([s.title, item.keyOverride || item.key_override || s.key]);
-        });
+        if(list.items) {
+            list.items.forEach(item => {
+                const s = songs.find(s => s.id === (item.songId || item.song_id));
+                if (s) data.push([s.title, item.keyOverride || item.key_override || s.key]);
+            });
+        }
         const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, list.name.slice(0,31)); XLSX.writeFile(wb, `${list.name.replace(/[^a-z0-9]/gi,'_')}.xlsx`);
     }
@@ -1526,80 +1020,152 @@ async function saveCifraStateToServer() {
     function shareListWhatsApp(listId) {
         const list = lists.find(l => l.id === listId);
         if (!list || !list.items || list.items.length===0) return alert("Lista vacía");
-        let message = `🎵 *${list.name}* 🎵\n`;
+        let message = `🎵 *${list.name}* 🎵\n📅 Fecha: ${list.date || 'Pendiente'}\n\n`;
         list.items.forEach((item, i) => {
-            const sId = item.songId || item.song_id;
-            const song = songs.find(s => s.id === sId);
-            if (song) message += `${i+1}. ${song.title} (${item.keyOverride || item.key_override || song.key})\n`;
+            const song = songs.find(s => s.id === (item.songId || item.song_id));
+            if (song) message += `${i+1}. *${song.title}* — Tono: ${item.keyOverride || item.key_override || song.key} (${song.bpm} BPM)\n`;
         });
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     }
 
-    // Escala cromática para el transporte de tonos
-const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
-function transposeChord(chord, steps) {
-    return chord.replace(/[A-G][#b]?/g, (match) => {
-        // Normalizar bemoles a sostenidos si es necesario
-        if (match === 'Db') match = 'C#';
-        if (match === 'Eb') match = 'D#';
-        if (match === 'Gb') match = 'F#';
-        if (match === 'Ab') match = 'G#';
-        if (match === 'Bb') match = 'A#';
+    // ==================== LÓGICA EXCLUSIVA DEL VISOR INTERACTIVO CIFRA CLUB ====================
+    function openCifraViewer(songId) {
+        const song = songs.find(s => s.id === songId);
+        if (!song) return;
+        cifraCurrentSong = song;
+        cifraOriginalLyrics = song.lyrics || "";
+        cifraSemitonesShift = 0;
         
-        let index = chromaticScale.indexOf(match);
-        if (index === -1) return match;
+        document.getElementById('cifraModalTitle').innerText = song.title;
+        document.getElementById('cifraModalArtist').innerText = song.category || "Ministerio de Alabanza";
+        document.getElementById('currentToneDisplay').innerText = song.key;
+        document.getElementById('cifraBpmInput').value = song.bpm || 80;
         
-        let newIndex = (index + steps) % 12;
-        if (newIndex < 0) newIndex += 12;
+        if (cifraScrollInterval) clearInterval(cifraScrollInterval);
+        cifraScrollInterval = null;
+        document.getElementById('btnAutoScrollToggle').innerHTML = `<i class="fa-solid fa-play"></i> Play`;
+        document.getElementById('cifraBodyContainer').scrollTop = 0;
         
-        return chromaticScale[newIndex];
-    });
-}
+        if (cifraMetroInterval) clearInterval(cifraMetroInterval);
+        cifraMetroRunning = false;
+        document.getElementById('btnMetronomeToggle').innerHTML = `<i class="fa-solid fa-drum"></i> Iniciar`;
+        document.getElementById('metronomeVisualDot').classList.remove('pulse');
 
-// Renderizador estilo Cifra Club: Toma texto con formato [C] [G] y lo separa en capas visuales
-function renderCifraClubLayout(lyricsWithChords, steps = 0) {
-    const lines = lyricsWithChords.split('\n');
-    let finalHtml = '';
+        cifraFontSize = 18;
+        document.getElementById('cifraContentWrapper').style.fontSize = cifraFontSize + 'px';
 
-    lines.forEach(line => {
-        // Si la línea contiene acordes estructurados en formato [Acorde]
-        if (line.includes('[') && line.includes(']')) {
-            let chordLine = '';
-            let lyricLine = '';
-            let currentIndex = 0;
-            
-            // Expresión regular para encontrar los acordes y sus posiciones
-            const regex = /\[([^\]]+)\]/g;
-            let match;
-            
-            let lastPlain室extIndex = 0;
-            let segmentChordLine = '';
-            
-            // Analizar la línea caracter por caracter o mediante bloques
-            // Para simplificar y mantener el rendimiento:
-            let parsedLine = line.replace(/\[([^\]]+)\]/g, (m, chord) => {
-                let transChord = transposeChord(chord, steps);
-                return `<span class="chord-badge">${transChord}</span>`;
-            });
-            
-            finalHtml += `<div class="cifra-line mixed">${parsedLine}</div>`;
-        } else {
-            // Línea de texto plano (sin acordes)
-            finalHtml += `<div class="cifra-line text-only">${line || '&nbsp;'}</div>`;
+        renderCifraContent();
+        document.getElementById('cifraClubModal').style.display = 'flex';
+    }
+
+    function closeCifraViewer() {
+        if (cifraScrollInterval) clearInterval(cifraScrollInterval);
+        if (cifraMetroInterval) clearInterval(cifraMetroInterval);
+        cifraScrollInterval = null;
+        cifraMetroInterval = null;
+        cifraMetroRunning = false;
+        document.getElementById('cifraClubModal').style.display = 'none';
+    }
+
+    function getShiftedKey(origKey, shift) {
+        if (!origKey) return 'C';
+        const isMinor = origKey.endsWith('m');
+        const base = origKey.replace(/m$/, '');
+        let idx = noteMap[base];
+        if (idx === undefined) return origKey;
+        let newIdx = (idx + shift + 12) % 12;
+        return noteNames[newIdx] + (isMinor ? 'm' : '');
+    }
+
+    function renderCifraContent() {
+        let lyrics = cifraOriginalLyrics;
+        if (cifraSemitonesShift !== 0) {
+            let targetKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+            lyrics = transposeLyrics(cifraOriginalLyrics, cifraCurrentSong.key, targetKey);
         }
-    });
+        let cleanHtml = escapeHtml(lyrics).replace(/\[([^\]]+)\]/g, '<span class="chord">$1</span>');
+        document.getElementById('cifraContentWrapper').innerHTML = cleanHtml || `<p style="color:#64748b; font-family:'Inter'; font-size:1rem; text-align:center;">No hay letra cargada para esta canción.</p>`;
+    }
 
-    return finalHtml;
-}
-    
-    // ==================== INICIALIZACIÓN DE LA APP ====================
+    function changeTone(direction) {
+        cifraSemitonesShift += direction;
+        document.getElementById('currentToneDisplay').innerText = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+        renderCifraContent();
+    }
+
+    function updateSongBpm() {
+        if (!cifraCurrentSong) return;
+        let bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+        cifraCurrentSong.bpm = bpm;
+        if (cifraMetroRunning) { toggleCifraMetronome(); toggleCifraMetronome(); }
+    }
+
+    function toggleCifraMetronome() {
+        const dot = document.getElementById('metronomeVisualDot');
+        const btn = document.getElementById('btnMetronomeToggle');
+        if (cifraMetroRunning) {
+            clearInterval(cifraMetroInterval); cifraMetroRunning = false;
+            btn.innerHTML = `<i class="fa-solid fa-drum"></i> Iniciar`; dot.classList.remove('pulse');
+        } else {
+            cifraMetroRunning = true; btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pausa`;
+            let bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+            cifraMetroInterval = setInterval(() => {
+                dot.classList.add('pulse'); if (navigator.vibrate) navigator.vibrate(30);
+                setTimeout(() => dot.classList.remove('pulse'), 90);
+            }, 60000 / bpm);
+        }
+    }
+
+    function toggleCifraAutoScroll() {
+        const btn = document.getElementById('btnAutoScrollToggle');
+        const container = document.getElementById('cifraBodyContainer');
+        if (cifraScrollInterval) {
+            clearInterval(cifraScrollInterval); cifraScrollInterval = null;
+            btn.innerHTML = `<i class="fa-solid fa-play"></i> Play`;
+        } else {
+            btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pausa`;
+            cifraScrollInterval = setInterval(() => {
+                container.scrollTop += 1;
+                if (container.scrollTop >= (container.scrollHeight - container.clientHeight)) {
+                    clearInterval(cifraScrollInterval); cifraScrollInterval = null;
+                    btn.innerHTML = `<i class="fa-solid fa-play"></i> Play`;
+                }
+            }, cifraScrollSpeed);
+        }
+    }
+
+    function adjustScrollSpeed(delta) {
+        cifraScrollSpeed += delta;
+        if (cifraScrollSpeed < 10) cifraScrollSpeed = 10;
+        if (cifraScrollSpeed > 150) cifraScrollSpeed = 150;
+        if (cifraScrollInterval) { toggleCifraAutoScroll(); toggleCifraAutoScroll(); }
+    }
+
+    function adjustCifraFontSize(delta) {
+        cifraFontSize += delta;
+        if (cifraFontSize < 12) cifraFontSize = 12;
+        if (cifraFontSize > 36) cifraFontSize = 36;
+        document.getElementById('cifraContentWrapper').style.fontSize = cifraFontSize + 'px';
+    }
+
+    async function saveCifraStateToServer() {
+        if (!cifraCurrentSong) return;
+        let finalKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+        let finalBpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+        
+        cifraCurrentSong.key = finalKey;
+        cifraCurrentSong.bpm = finalBpm;
+        
+        let success = await saveSong(cifraCurrentSong);
+        if (success) { alert("¡Tono y BPM predeterminados guardados con éxito en la nube!"); cifraSemitonesShift = 0; }
+    }
+
+    // ==================== INICIALIZACIÓN AUTOMÁTICA ====================
     (async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { currentUser = session.user; await loadUserData(); renderApp(); }
-        else renderLogin();
+        else { renderLogin(); }
     })();
-    
 </script>
 </body>
 </html>
