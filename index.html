@@ -1,3 +1,4 @@
+html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,7 +14,6 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ... todo el CSS permanece igual ... */
         :root {
             --primary: #1E3A8A;
             --primary-light: #3B82F6;
@@ -69,6 +69,8 @@
         .form-group { margin-bottom: 1rem; }
         .form-control { width: 100%; padding: 0.8rem; border-radius: var(--radius-lg); border: 2px solid var(--border); background: var(--bg-app); color: var(--text-main); }
         .login-container { max-width: 450px; margin: 2rem auto; background: var(--surface); border-radius: 2rem; padding: 2rem; text-align: center; box-shadow: var(--shadow); }
+        .text-accent { color: var(--primary); text-decoration: none; }
+        .text-accent:hover { text-decoration: underline; }
         .teleprompter-screen { font-size: 2rem; text-align: center; padding: 2rem; background: #000; color: white; border-radius: 2rem; min-height: 300px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; }
         .tuner-container { text-align: center; }
         .tuner-note { font-size: 4rem; font-weight: 800; font-family: monospace; }
@@ -83,12 +85,9 @@
 <body><div id="appRoot"></div>
 <script>
     // ==================== CONFIGURACIÓN SUPABASE ====================
-    // REEMPLAZA CON TUS DATOS REALES
-    const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
-    // Usamos window.supabase que ya está definido por la librería, no redeclaramos
+    const SUPABASE_URL = 'https://tusubdominio.supabase.co';   // REEMPLAZA
+    const SUPABASE_ANON_KEY = 'tu-clave-anon-publica';        // REEMPLAZA
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    // Si aún así da error, asegúrate de que la librería se cargó antes
 
     let currentUser = null;
     let songs = [], lists = [], team = [], attendance = [], shifts = [], modules = [];
@@ -107,97 +106,89 @@
         await loadUserData();
         renderApp();
     }
-    async function signUp(email, password) {
-    // Validación básica antes de enviar
-    if (!email || !password) {
-        alert("Por favor, completa todos los campos.");
-        return;
-    }
-    if (password.length < 6) {
-        alert("La contraseña debe tener al menos 6 caracteres.");
-        return;
-    }
 
-    const { data, error } = await supabaseClient.auth.signUp({ 
-        email, 
-        password 
-    });
-
-    if (error) {
-        alert("Error al registrar: " + error.message);
-        console.error(error);
-    } else {
-        // Supabase suele enviar un correo de confirmación por defecto
-        alert("¡Registro iniciado! Revisa tu correo electrónico para confirmar tu cuenta. Sin ese paso, no podrás iniciar sesión.");
-    }
-}
     async function resetPassword(email) {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
         if (error) throw error;
         alert("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
     }
+
     async function logout() { await supabaseClient.auth.signOut(); currentUser = null; renderLogin(); }
 
-    async function loadUserData() {
-        if (!currentUser) return;
-        const { data: s } = await supabaseClient.from('canciones').select('*').eq('user_id', currentUser.id); songs = s || [];
-        const { data: l } = await supabaseClient.from('listas').select('*').eq('user_id', currentUser.id); lists = l || [];
-        for (let list of lists) {
-            const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
-            list.items = items || [];
+    // NUEVA PANTALLA DE REGISTRO
+    function renderRegister() {
+        document.getElementById('appRoot').innerHTML = `
+            <div class="login-container">
+                <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
+                <h2>Crear Cuenta</h2>
+                <div class="form-group">
+                    <input type="text" id="regName" class="form-control" placeholder="Tu nombre completo">
+                </div>
+                <div class="form-group">
+                    <input type="email" id="regEmail" class="form-control" placeholder="Correo electrónico">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="regPass" class="form-control" placeholder="Contraseña">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="regConfirmPass" class="form-control" placeholder="Confirmar contraseña">
+                </div>
+                <button class="btn btn-primary w-100 mb-2" onclick="registerUser()">Registrarme</button>
+                <button class="btn btn-ghost w-100" onclick="renderLogin()">Volver al inicio de sesión</button>
+            </div>
+        `;
+    }
+
+    async function registerUser() {
+        const name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const password = document.getElementById('regPass').value;
+        const confirm = document.getElementById('regConfirmPass').value;
+
+        if (!name || !email || !password) {
+            alert("Por favor completa todos los campos");
+            return;
         }
-        const { data: t } = await supabaseClient.from('equipo').select('*').eq('user_id', currentUser.id); team = t || [];
-        const { data: a } = await supabaseClient.from('asistencia').select('*').eq('user_id', currentUser.id); attendance = a || [];
-        const { data: sh } = await supabaseClient.from('turnos').select('*').eq('user_id', currentUser.id); shifts = sh || [];
-        const { data: m } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id); modules = m || [];
-        if (modules.length === 0) {
-            const defaultModules = [
-                { id: 'mod1', title: 'Teología de la Adoración', content: '<p>La adoración es respuesta a la revelación de Dios...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
-                { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>El líder sirve como Jesús...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
-            ];
-            for (let mod of defaultModules) {
-                await supabaseClient.from('modulos').insert({ id: mod.id, user_id: currentUser.id, title: mod.title, content: mod.content, questions: mod.questions });
+        if (password !== confirm) {
+            alert("Las contraseñas no coinciden");
+            return;
+        }
+
+        try {
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) throw error;
+
+            if (data.user) {
+                // Intentar crear perfil en la tabla 'perfiles' (opcional)
+                const { error: profileError } = await supabaseClient
+                    .from('perfiles')
+                    .upsert([{ id: data.user.id, email: email, nombre: name }]);
+                if (profileError) console.warn("Error al crear perfil:", profileError);
             }
-            const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id); modules = newM || [];
+
+            alert("Registro exitoso. Revisa tu correo para confirmar (si activaste la verificación). Ahora puedes iniciar sesión.");
+            renderLogin();
+        } catch (err) {
+            alert("Error en el registro: " + err.message);
         }
     }
 
-    // Funciones CRUD en la nube (usando supabaseClient)
-    async function saveSong(song) {
-        if (song.id) await supabaseClient.from('canciones').update(song).eq('id', song.id);
-        else { song.id = Date.now().toString(); song.user_id = currentUser.id; await supabaseClient.from('canciones').insert(song); }
-        await loadUserData(); renderCurrentView();
-    }
-    async function deleteSong(id) { await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
-    async function saveList(list) {
-        if (list.id) {
-            await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id);
-            await supabaseClient.from('lista_items').delete().eq('lista_id', list.id);
-            for (let i = 0; i < list.items.length; i++) await supabaseClient.from('lista_items').insert({ lista_id: list.id, song_id: list.items[i].songId, key_override: list.items[i].keyOverride || null, orden: i });
-        } else {
-            const newId = Date.now().toString();
-            await supabaseClient.from('listas').insert({ id: newId, user_id: currentUser.id, name: list.name, date: list.date });
-            for (let i = 0; i < list.items.length; i++) await supabaseClient.from('lista_items').insert({ lista_id: newId, song_id: list.items[i].songId, key_override: list.items[i].keyOverride || null, orden: i });
-        }
-        await loadUserData(); renderCurrentView();
-    }
-    async function deleteList(id) { await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
-    async function saveTeam(members) { team = members; await supabaseClient.from('equipo').delete().eq('user_id', currentUser.id); for (let m of team) await supabaseClient.from('equipo').insert(m); await loadUserData(); renderCurrentView(); }
-    async function saveAttendance(reg) { attendance = reg; await supabaseClient.from('asistencia').delete().eq('user_id', currentUser.id); for (let a of attendance) await supabaseClient.from('asistencia').insert(a); }
-    async function saveShifts(sh) { shifts = sh; await supabaseClient.from('turnos').delete().eq('user_id', currentUser.id); for (let s of shifts) await supabaseClient.from('turnos').insert(s); }
-    async function saveModules(mods) { modules = mods; await supabaseClient.from('modulos').delete().eq('user_id', currentUser.id); for (let m of modules) await supabaseClient.from('modulos').insert(m); }
-
-    // ==================== RENDER DE VISTAS ====================
     function renderLogin() {
         document.getElementById('appRoot').innerHTML = `
             <div class="login-container">
                 <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
                 <h2>Praise Engine FZ® Cloud</h2>
-                <div class="form-group"><input type="email" id="loginEmail" class="form-control" placeholder="Email"></div>
-                <div class="form-group"><input type="password" id="loginPass" class="form-control" placeholder="Contraseña"></div>
+                <div class="form-group">
+                    <input type="email" id="loginEmail" class="form-control" placeholder="Email">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPass" class="form-control" placeholder="Contraseña">
+                </div>
                 <button class="btn btn-primary w-100 mb-2" onclick="login(loginEmail.value, loginPass.value)">Iniciar Sesión</button>
-                <button class="btn btn-ghost w-100 mb-2" onclick="signUp(loginEmail.value, loginPass.value)">Registrarse</button>
-                <a href="#" onclick="showResetPassword()" class="text-accent small">¿Olvidaste tu contraseña?</a>
+                <button class="btn btn-ghost w-100 mb-2" onclick="renderRegister()">Registrarse</button>
+                <div style="text-align: center; margin-top: 10px;">
+                    <a href="#" onclick="showResetPassword()" class="text-accent small">¿Olvidaste tu contraseña?</a>
+                </div>
             </div>
         `;
         window.showResetPassword = () => {
