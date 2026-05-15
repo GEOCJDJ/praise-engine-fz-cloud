@@ -64,9 +64,9 @@
         .btn-ghost { background: transparent; border: 2px solid var(--border); color: var(--text-muted); }
         .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.5rem; border-radius: 50%; width: 36px; height: 36px; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
-        .modal-content { background: var(--surface); width: 100%; max-width: 600px; max-height: 85vh; border-radius: 2rem; padding: 1.5rem; overflow-y: auto; }
+        .modal-content { background: var(--surface); width: 100%; max-width: 800px; max-height: 85vh; border-radius: 2rem; padding: 1.5rem; overflow-y: auto; }
         .form-group { margin-bottom: 1rem; }
-        .form-control { width: 100%; padding: 0.8rem; border-radius: var(--radius-lg); border: 2px solid var(--border); background: var(--bg-app); color: var(--text-main); }
+        .form-control { width: 100%; padding: 0.8rem; border-radius: var(--radius-lg); border: 2px solid var(--border); background: var(--bg-app); color: var(--text-main); font-family: monospace; }
         .login-container { max-width: 450px; margin: 2rem auto; background: var(--surface); border-radius: 2rem; padding: 2rem; text-align: center; box-shadow: var(--shadow); }
         .text-accent { color: var(--primary); text-decoration: none; }
         .text-accent:hover { text-decoration: underline; }
@@ -77,6 +77,7 @@
         .tuner-needle { height: 100%; width: 0%; background: var(--primary); transition: width 0.05s linear; }
         .question-timer { font-size: 1.2rem; font-weight: bold; color: var(--primary); text-align: center; margin: 0.5rem 0; }
         .admin-tab { display: none; }
+        .chord { color: var(--primary); font-weight: bold; background: rgba(var(--primary-rgb),0.1); padding: 0 2px; border-radius: 4px; }
         @media (max-width: 640px) { .app-title { font-size: 0.9rem; } .nav-item { min-width: 55px; } }
         @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info { display: none; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } }
     </style>
@@ -86,7 +87,7 @@
     // ==================== CONFIGURACIÓN SUPABASE ====================
     // REEMPLAZA CON TUS DATOS REALES
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
+    const SUPABASE_ANON_KEY = 'tu-clave-anon-publicaeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
@@ -94,6 +95,37 @@
     let currentTab = 'songs', selectedListId = null, viewMode = 'table', listsViewMode = 'grid';
     let sortableInstance = null, metronomeInterval = null, adminVisible = false;
     const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
+
+    // Mapeo de notas para transposición (simplificado)
+    const noteMap = {
+        'C':0, 'C#':1, 'Db':1, 'D':2, 'D#':3, 'Eb':3, 'E':4, 'F':5, 'F#':6, 'Gb':6, 'G':7, 'G#':8, 'Ab':8, 'A':9, 'A#':10, 'Bb':10, 'B':11
+    };
+    const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+    function transposeChord(chord, semitones) {
+        const match = chord.match(/^([A-G][#b]?)(.*)$/);
+        if (!match) return chord;
+        let base = match[1];
+        let suffix = match[2];
+        let idx = noteMap[base];
+        if (idx === undefined) return chord;
+        let newIdx = (idx + semitones + 12) % 12;
+        let newBase = noteNames[newIdx];
+        return newBase + suffix;
+    }
+
+    function transposeLyrics(text, fromKey, toKey) {
+        if (!text || !fromKey || !toKey || fromKey === toKey) return text;
+        const fromBase = fromKey.replace(/m$/, '');
+        const toBase = toKey.replace(/m$/, '');
+        let semitones = (noteMap[toBase] - noteMap[fromBase] + 12) % 12;
+        if (fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
+        if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
+        return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => {
+            const newChord = transposeChord(chord, semitones);
+            return `[${newChord}]`;
+        });
+    }
 
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function closeModal() { document.getElementById('modal')?.remove(); }
@@ -247,6 +279,7 @@
 
     // ==================== RENDER PRINCIPAL ====================
     function renderApp() {
+        if (!currentUser) return;
         document.getElementById('appRoot').innerHTML = `
             <header class="app-header">
                 <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> Praise Engine FZ® Cloud <small>| I.E.C. Fortaleza</small></div>
@@ -293,7 +326,7 @@
         else if (currentTab === 'admin' && adminVisible) renderAdmin();
     }
 
-    // ==================== CANCIONERO ====================
+    // ==================== CANCIONERO CON EDITOR LETRA/ACORDES ====================
     function renderSongs() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
@@ -304,17 +337,55 @@
         document.getElementById('songsGridView')?.addEventListener('click',()=>{viewMode='grid';renderSongs();});
         const container = document.getElementById('mainContent');
         if (viewMode === 'table') {
-            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Título</th><th>Categoría</th><th>Tono</th><th>BPM</th><th>Acordes</th><th></th></tr></thead><tbody>${filtered.map(s => `<tr>
+            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Título</th><th>Categoría</th><th>Tono</th><th>BPM</th><th>Acordes</th><th>Letra</th><th></th></tr></thead><tbody>${filtered.map(s => `<tr>
                         <td><b>${escapeHtml(s.title)}</b></td>
                         <td><span class="card-category">${s.category}</span></td>
                         <td>${s.key}</td>
                         <td><button class="btn-icon" onclick="openMetronome('${s.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i> ${s.bpm||'--'}</button></td>
                         <td><button class="btn-icon" onclick="viewChords('${s.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button></td>
+                        <td><button class="btn-icon" onclick="openLyricsEditor('${s.id}'); event.stopPropagation();"><i class="fas fa-music"></i> Letra</button></td>
                         <td><button class="btn-icon" onclick="openSongModal('${s.id}'); event.stopPropagation();"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteSong('${s.id}'); event.stopPropagation();"><i class="fas fa-trash"></i></button></td>
                     </tr>`).join('')}</tbody>}</div>`;
         } else {
-            container.innerHTML = `<div class="grid">${filtered.map(s => `<div class="card"><span class="card-category">${s.category}</span><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> ${s.key} | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;"><button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button><button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button></div></div>`).join('')}</div>`;
+            container.innerHTML = `<div class="grid">${filtered.map(s => `<div class="card"><span class="card-category">${s.category}</span><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> ${s.key} | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;"><button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button><button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button></div></div>`).join('')}</div>`;
         }
+    }
+
+    // Editor de letra con acordes inline y transposición
+    async function openLyricsEditor(songId) {
+        const song = songs.find(s => s.id === songId);
+        if (!song) return;
+        let lyrics = song.lyrics || '';
+        let currentKey = song.key;
+        showModal(`
+            <h3>Editar Letra y Acordes: ${escapeHtml(song.title)}</h3>
+            <div style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center;">
+                <label>Tonalidad actual:</label>
+                <select id="transposeFromKey" class="form-control" style="width:100px;">${keys.map(k => `<option ${currentKey===k?'selected':''}>${k}</option>`).join('')}</select>
+                <label>Transponer a:</label>
+                <select id="transposeToKey" class="form-control" style="width:100px;">${keys.map(k => `<option>${k}</option>`).join('')}</select>
+                <button class="btn btn-primary" onclick="applyTranspose()">Transponer</button>
+            </div>
+            <div class="form-group"><label>Letra (usa [Acorde] antes de la sílaba o palabra)</label><textarea id="lyricsEditor" rows="15" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLyrics('${song.id}')">Guardar Letra</button></div>
+        `);
+        window.applyTranspose = () => {
+            const fromKey = document.getElementById('transposeFromKey').value;
+            const toKey = document.getElementById('transposeToKey').value;
+            const textarea = document.getElementById('lyricsEditor');
+            const newLyrics = transposeLyrics(textarea.value, fromKey, toKey);
+            textarea.value = newLyrics;
+            document.getElementById('transposeFromKey').value = toKey;
+        };
+        window.saveLyrics = async (id) => {
+            const newLyrics = document.getElementById('lyricsEditor').value;
+            const songToUpdate = songs.find(s => s.id === id);
+            if (songToUpdate) {
+                songToUpdate.lyrics = newLyrics;
+                await saveSong(songToUpdate);
+            }
+            closeModal();
+        };
     }
 
     function openSongModal(id=null) {
@@ -326,7 +397,7 @@
             <div class="form-group"><label>BPM</label><input id="mBpm" type="number" class="form-control" value="${s.bpm||80}"></div>
             <div class="form-group"><label>Enlace acordes (PDF/imagen)</label><input id="mChordsUrl" class="form-control" value="${escapeHtml(s.chordsUrl)}"></div>
             <div class="form-group"><label>Subir archivo</label><input type="file" id="mChordsFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control"></div>
-            <div class="form-group"><label>Letra (Teleprompter)</label><textarea id="mLyrics" rows="3" class="form-control">${escapeHtml(s.lyrics)}</textarea></div>
+            <div class="form-group"><label>Letra (Teleprompter y editor)</label><textarea id="mLyrics" rows="3" class="form-control">${escapeHtml(s.lyrics)}</textarea></div>
             <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveSongFromModal('${id}')">Guardar</button></div>`);
     }
     async function saveSongFromModal(id) {
@@ -363,7 +434,7 @@
         if (listsViewMode === 'grid') {
             container.innerHTML = `<div class="grid">${filtered.map(l => `<div class="card" onclick="selectedListId='${l.id}'; renderCurrentView()"><span class="card-category">Lista</span><div class="card-title">${escapeHtml(l.name)}</div><div>📅 ${l.date || 'Sin fecha'}</div><div>🎵 ${l.items.length} canciones</div><div onclick="event.stopPropagation()"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`;
         } else {
-            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th><th></th></tr></thead><tbody>${filtered.map(l => `<tr onclick="selectedListId='${l.id}'; renderCurrentView()"><td>${escapeHtml(l.name)}</td><td>${l.date || '—'}</td><td>${l.items.length}</td><td><button class="btn-icon" onclick="editListName('${l.id}'); event.stopPropagation()"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}'); event.stopPropagation()"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody>}</div>`;
+            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th><th></th></tr></thead><tbody>${filtered.map(l => `<tr onclick="selectedListId='${l.id}'; renderCurrentView()"><td>${escapeHtml(l.name)}</td><td>${l.date || '—'}</td><td>${l.items.length}</td><td><button class="btn-icon" onclick="editListName('${l.id}'); event.stopPropagation()"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}'); event.stopPropagation()"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></div>`;
         }
     }
 
@@ -395,7 +466,7 @@
         dragArea.innerHTML = list.items.map((item, idx) => {
             const song = songs.find(s => s.id === item.songId);
             if (!song) return '';
-            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;"><i class="fas fa-grip-vertical drag-handle"></i><div style="flex:1"><b>${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: ${item.keyOverride || song.key} | 🥁 ${song.bpm||'--'} BPM</div></div><button class="btn-icon" onclick="openMetronome('${song.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button></div>`;
+            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;"><i class="fas fa-grip-vertical drag-handle"></i><div style="flex:1"><b>${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: ${item.keyOverride || song.key} | 🥁 ${song.bpm||'--'} BPM</div></div><button class="btn-icon" onclick="openMetronome('${song.id}'); event.stopPropagation();"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}'); event.stopPropagation();"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}'); event.stopPropagation();"><i class="fas fa-music"></i> Letra</button><button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button></div>`;
         }).join('');
         if (sortableInstance) sortableInstance.destroy();
         sortableInstance = new Sortable(dragArea, { handle: '.drag-handle', animation: 200, onEnd: () => { const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); list.items = newOrder; saveList(list); } });
@@ -446,7 +517,7 @@
         XLSX.writeFile(wb, "todas_listas_iec.xlsx");
     }
 
-    // ==================== RECURSOS ====================
+    // ==================== RECURSOS (resumen para no repetir) ====================
     function renderResources() {
         document.getElementById('actionHeader').innerHTML = '';
         document.getElementById('viewControls').innerHTML = '';
