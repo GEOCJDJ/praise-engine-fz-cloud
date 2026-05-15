@@ -205,13 +205,24 @@
         const { data: m } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
         modules = m || [];
         if (modules.length === 0) {
-            const defaultModules = [
-                { id: 'mod1', title: 'Teología de la Adoración', content: '<p>...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
-                { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
-            ];
-            for (let mod of defaultModules) {
-                await supabaseClient.from('modulos').insert({ id: mod.id, user_id: currentUser.id, title: mod.title, content: mod.content, questions: mod.questions });
-            }
+    const defaultModules = [
+        { id: 'mod1', title: 'Teología de la Adoración', content: '<p>La adoración es respuesta a la revelación de Dios...</p>', questions: [{ text: '¿Qué es la adoración?', options: ['Un estilo musical', 'Respuesta a Dios', 'Un ritual'], correct: 1, time: 20 }] },
+        { id: 'mod2', title: 'Liderazgo Servicial', content: '<p>El líder sirve como Jesús...</p>', questions: [{ text: '¿Cuál es la base del liderazgo cristiano?', options: ['Autoridad', 'Servicio', 'Carisma'], correct: 1, time: 20 }] }
+    ];
+    for (let mod of defaultModules) {
+        // Usamos upsert para evitar conflictos
+        await supabaseClient.from('modulos').upsert({ 
+            id: mod.id, 
+            user_id: currentUser.id, 
+            title: mod.title, 
+            content: mod.content, 
+            questions: mod.questions 
+        }, { onConflict: 'id' });
+    }
+    // Recargar módulos después del upsert
+    const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
+    modules = newM || [];
+}
             const { data: newM } = await supabaseClient.from('modulos').select('*').eq('user_id', currentUser.id);
             modules = newM || [];
         }
