@@ -126,6 +126,13 @@
     let cifraFontSize = 18;
     let cifraMetroInterval = null;
     let cifraMetroRunning = false;
+function generateUniqueId() {
+    // Usa crypto.randomUUID() si está disponible, si no, genera un ID numérico + aleatorio
+    if (window.crypto && window.crypto.randomUUID) {
+        return window.crypto.randomUUID();
+    }
+    return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
 
     // ==================== FUNCIONES AUXILIARES (sin cambios) ====================
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
@@ -720,44 +727,183 @@ function openModulesLibrary() {
         showModal(html);
     }
 
-    // ==================== ADMIN (solo visible para admin) ====================
-    function renderAdmin() {
-        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar Servidor</button>`;
-        document.getElementById('viewControls').innerHTML = '';
-        document.getElementById('mainContent').innerHTML = `<div class="grid">
+   // ==================== ADMINISTRACIÓN (solo visible para admin) ====================
+function renderAdmin() {
+    document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar Servidor</button>`;
+    document.getElementById('viewControls').innerHTML = '';
+    document.getElementById('mainContent').innerHTML = `
+        <div class="grid">
             <div class="card" onclick="adminAttendance()"><i class="fas fa-user-check"></i><h3>Control de Asistencia</h3><p>Registrar puntualidad / atrasos</p></div>
             <div class="card" onclick="adminShifts()"><i class="fas fa-calendar-week"></i><h3>Gestión de Turnos</h3><p>Asignar fechas de servicio</p></div>
             <div class="card" onclick="adminTeam()"><i class="fas fa-users"></i><h3>Miembros del Equipo</h3><p>Gestionar base de datos técnica</p></div>
-        </div>`;
-    }
-    function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
-    function adminTeam() { openTeamModal();  const render = () => {
-            showModal(`<h3>Gestionar Miembros (Admin)</h3><div id="teamListAdmin" style="margin-bottom:1rem; max-height:200px; overflow-y:auto;">${team.map((m, idx) => `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMemberAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin miembros</p>'}</div><div class="form-group"><input id="newMemberName" class="form-control" placeholder="Nombre completo"></div><div class="form-group"><input id="newMemberRole" class="form-control" placeholder="Instrumento"></div><button class="btn btn-primary" onclick="addTeamMemberAdmin()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
-            window.addTeamMemberAdmin = async () => { const name = document.getElementById('newMemberName').value.trim(); const role = document.getElementById('newMemberRole').value.trim(); if (name) { team.push({ id: Date.now().toString(), name, role, user_id: currentUser.id }); await saveTeam(team); render(); } };
-            window.removeTeamMemberAdmin = async (idx) => { if(confirm("¿Eliminar miembro?")) { team.splice(idx,1); await saveTeam(team); render(); } };
+        </div>
+    `;
+}
+
+function refreshAdmin() {
+    loadUserData().then(() => renderAdmin());
+}
+
+// ==================== ADMIN: GESTIÓN DE EQUIPO ====================
+function adminTeam() {
+    const render = () => {
+        showModal(`
+            <h3>Gestionar Miembros del Equipo (Admin)</h3>
+            <div id="teamListAdmin" style="margin-bottom:1rem; max-height:200px; overflow-y:auto;">
+                ${team.map((m, idx) => `
+                    <div style="display:flex; justify-content:space-between; padding:4px 0;">
+                        <span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span>
+                        <button class="btn-icon" onclick="removeTeamMemberAdmin(${idx})"><i class="fas fa-trash"></i></button>
+                    </div>
+                `).join('') || '<p>Sin miembros</p>'}
+            </div>
+            <div class="form-group"><input id="newMemberName" class="form-control" placeholder="Nombre completo"></div>
+            <div class="form-group"><input id="newMemberRole" class="form-control" placeholder="Instrumento / Rol"></div>
+            <button class="btn btn-primary" onclick="addTeamMemberAdmin()">Agregar</button>
+            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+        `);
+
+        window.addTeamMemberAdmin = async () => {
+            const name = document.getElementById('newMemberName').value.trim();
+            const role = document.getElementById('newMemberRole').value.trim();
+            if (!name) return alert("Escribe un nombre");
+            team.push({
+                id: generateUniqueId(),
+                name: name,
+                role: role
+            });
+            await saveTeam(team);
+            render();
         };
-        render();
-    }
-    
-      function adminAttendance() {
-        let html = `<h3>Registro de Asistencia Oficial</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro del Equipo</label><select id="attMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><div class="form-group"><label>Estado de llegada</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4 style="margin:1rem 0 0.5rem 0;">Historial Reciente</h4><div id="attList" style="max-height:180px; overflow-y:auto; font-size:0.85rem;"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-        showModal(html);
-        flatpickr("#attDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
-        const renderAttList = () => { const container = document.getElementById('attList'); if (container) container.innerHTML = attendance.map((a, idx) => { const m = team.find(t=>t.id===a.memberId); return `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0;"><span>${a.date} - ${m?.name || 'Inactivo'} (${a.status})</span><button class="btn-icon" onclick="deleteAttendanceAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join(''); };
-        window.saveAttendanceAdmin = async () => { const date = document.getElementById('attDate').value; const memberId = document.getElementById('attMember').value; const status = document.getElementById('attStatus').value; if (!date || !memberId) return alert("Completa los campos"); attendance.push({ id: Date.now(), date, memberId, status, user_id: currentUser.id }); await saveAttendance(attendance); renderAttList(); };
-        window.deleteAttendanceAdmin = async (idx) => { attendance.splice(idx,1); await saveAttendance(attendance); renderAttList(); };
+
+        window.removeTeamMemberAdmin = async (idx) => {
+            if (confirm("¿Eliminar miembro del equipo?")) {
+                team.splice(idx, 1);
+                await saveTeam(team);
+                render();
+            }
+        };
+    };
+    render();
+}
+
+// ==================== ADMIN: CONTROL DE ASISTENCIA ====================
+function adminAttendance() {
+    let html = `
+        <h3>Registro de Asistencia Oficial</h3>
+        <div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div>
+        <div class="form-group"><label>Miembro del Equipo</label><select id="attMember" class="form-control">
+            ${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}
+        </select></div>
+        <div class="form-group"><label>Estado de llegada</label><select id="attStatus" class="form-control">
+            <option value="puntual">Puntual</option>
+            <option value="tarde">Tarde</option>
+        </select></div>
+        <button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button>
+        <hr>
+        <h4 style="margin:1rem 0 0.5rem 0;">Historial Reciente</h4>
+        <div id="attList" style="max-height:180px; overflow-y:auto; font-size:0.85rem;"></div>
+        <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+    `;
+    showModal(html);
+    flatpickr("#attDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
+
+    const renderAttList = () => {
+        const container = document.getElementById('attList');
+        if (!container) return;
+        container.innerHTML = attendance.map((a, idx) => {
+            const m = team.find(t => t.id === a.memberId);
+            return `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0;">
+                    <span>${a.date} - ${m?.name || 'Desconocido'} (${a.status})</span>
+                    <button class="btn-icon" onclick="deleteAttendanceAdmin(${idx})"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+        }).join('');
+    };
+
+    window.saveAttendanceAdmin = async () => {
+        const date = document.getElementById('attDate').value;
+        const memberId = document.getElementById('attMember').value;
+        const status = document.getElementById('attStatus').value;
+        if (!date || !memberId) return alert("Completa todos los campos");
+        attendance.push({
+            id: generateUniqueId(),
+            date: date,
+            memberId: memberId,
+            status: status
+        });
+        await saveAttendance(attendance);
         renderAttList();
-    }
-    
-       function adminShifts() {
-        let html = `<h3>Asignar Calendario de Turnos</h3><div class="form-group"><label>Fecha de Servicio</label><input id="shiftDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Líder / Músico Asignado</label><select id="shiftMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><button class="btn btn-primary" onclick="saveShiftAdmin()">Asignar Turno</button><hr><h4 style="margin:1rem 0 0.5rem 0;">Cronograma</h4><div id="shiftList" style="max-height:180px; overflow-y:auto; font-size:0.85rem;"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-        showModal(html);
-        flatpickr("#shiftDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
-        const renderShiftList = () => { const container = document.getElementById('shiftList'); if (container) container.innerHTML = shifts.map((s, idx) => { const m = team.find(t=>t.id===s.memberId); return `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0;"><span>📅 <b>${s.date}</b> - ${m?.name || 'Desconocido'}</span><button class="btn-icon" onclick="deleteShiftAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join(''); };
-        window.saveShiftAdmin = async () => { const date = document.getElementById('shiftDate').value; const memberId = document.getElementById('shiftMember').value; if (!date || !memberId) return; shifts.push({ id: Date.now(), date, memberId, user_id: currentUser.id }); await saveShifts(shifts); renderShiftList(); };
-        window.deleteShiftAdmin = async (idx) => { shifts.splice(idx,1); await saveShifts(shifts); renderShiftList(); };
+        document.getElementById('attDate').value = '';
+    };
+
+    window.deleteAttendanceAdmin = async (idx) => {
+        if (confirm("¿Eliminar este registro?")) {
+            attendance.splice(idx, 1);
+            await saveAttendance(attendance);
+            renderAttList();
+        }
+    };
+
+    renderAttList();
+}
+
+// ==================== ADMIN: GESTIÓN DE TURNOS ====================
+function adminShifts() {
+    let html = `
+        <h3>Asignar Turnos de Servicio</h3>
+        <div class="form-group"><label>Fecha</label><input id="shiftDate" class="form-control" placeholder="dd/mm/aaaa"></div>
+        <div class="form-group"><label>Miembro del Equipo</label><select id="shiftMember" class="form-control">
+            ${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}
+        </select></div>
+        <button class="btn btn-primary" onclick="saveShiftAdmin()">Asignar Turno</button>
+        <hr>
+        <h4 style="margin:1rem 0 0.5rem 0;">Turnos Programados</h4>
+        <div id="shiftList" style="max-height:180px; overflow-y:auto; font-size:0.85rem;"></div>
+        <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+    `;
+    showModal(html);
+    flatpickr("#shiftDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
+
+    const renderShiftList = () => {
+        const container = document.getElementById('shiftList');
+        if (!container) return;
+        container.innerHTML = shifts.map((s, idx) => {
+            const m = team.find(t => t.id === s.memberId);
+            return `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0;">
+                    <span>📅 ${s.date} - ${m?.name || 'Desconocido'}</span>
+                    <button class="btn-icon" onclick="deleteShiftAdmin(${idx})"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+        }).join('');
+    };
+
+    window.saveShiftAdmin = async () => {
+        const date = document.getElementById('shiftDate').value;
+        const memberId = document.getElementById('shiftMember').value;
+        if (!date || !memberId) return alert("Completa los campos");
+        shifts.push({
+            id: generateUniqueId(),
+            date: date,
+            memberId: memberId
+        });
+        await saveShifts(shifts);
         renderShiftList();
-    }
+        document.getElementById('shiftDate').value = '';
+    };
+
+    window.deleteShiftAdmin = async (idx) => {
+        if (confirm("¿Eliminar este turno?")) {
+            shifts.splice(idx, 1);
+            await saveShifts(shifts);
+            renderShiftList();
+        }
+    };
+
+    renderShiftList();
+}
 
     // ==================== HERRAMIENTAS ====================
     function openMetronome(songId) {
