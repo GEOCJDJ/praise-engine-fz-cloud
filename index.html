@@ -102,9 +102,58 @@
     </style>
 </head>
 <body>
-    <div id="appRoot"></div>
-    <div id="cifraClubModal" class="cifra-modal">...</div> <!-- mismo contenido que antes, no cambia -->
+     <div id="appRoot"></div>
 
+    <!-- VISOR CIFRA CLUB (MODAL) -->
+    <div id="cifraClubModal" class="cifra-modal">
+        <div class="cifra-header">
+            <div class="cifra-title-area">
+                <h2 id="cifraModalTitle">Título de la Canción</h2>
+                <p id="cifraModalArtist">Artista / Ministerio</p>
+            </div>
+            <button class="cifra-btn cifra-btn-close" onclick="closeCifraViewer()">
+                <i class="fa-solid fa-xmark"></i> Salir del Visor
+            </button>
+        </div>
+        <div class="cifra-toolbar">
+            <div class="tool-group">
+                <span>TONO:</span>
+                <button class="cifra-btn" onclick="changeTone(-1)"><i class="fa-solid fa-minus"></i></button>
+                <span id="currentToneDisplay" style="min-width:35px; text-align:center; color:#f59e0b;">Orig</span>
+                <button class="cifra-btn" onclick="changeTone(1)"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="tool-group">
+                <span>BPM:</span>
+                <input type="number" id="cifraBpmInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()">
+                <button id="btnMetronomeToggle" class="cifra-btn" onclick="toggleCifraMetronome()">
+                    <i class="fa-solid fa-drum"></i> Iniciar
+                </button>
+                <div id="metronomeVisualDot" class="metronome-dot"></div>
+            </div>
+            <div class="tool-group">
+                <span>SCROLL:</span>
+                <button id="btnAutoScrollToggle" class="cifra-btn" onclick="toggleCifraAutoScroll()">
+                    <i class="fa-solid fa-play"></i> Play
+                </button>
+                <button class="cifra-btn" onclick="adjustScrollSpeed(2)" title="Más lento"><i class="fa-solid fa-angle-down"></i></button>
+                <button class="cifra-btn" onclick="adjustScrollSpeed(-2)" title="Más rápido"><i class="fa-solid fa-angle-up"></i></button>
+            </div>
+            <div class="tool-group">
+                <span>ZOOM:</span>
+                <button class="cifra-btn" onclick="adjustCifraFontSize(-1)"><i class="fa-solid fa-text-height"></i>-</button>
+                <button class="cifra-btn" onclick="adjustCifraFontSize(1)"><i class="fa-solid fa-text-height"></i>+</button>
+            </div>
+            <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar Tono/BPM
+            </button>
+            <button class="cifra-btn" style="background:#0284c7;" onclick="window.print()">
+                <i class="fa-solid fa-file-pdf"></i> Imprimir / PDF
+            </button>
+        </div>
+        <div id="cifraBodyContainer" class="cifra-body">
+            <div id="cifraContentWrapper" class="cifra-content-wrapper"></div>
+        </div>
+    </div>
 <script>
     // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
