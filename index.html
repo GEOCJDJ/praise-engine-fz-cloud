@@ -77,17 +77,19 @@
         .cifra-title-area h2 { font-size: 1.4rem; font-weight: 800; color: #FFFFFF; }
         .cifra-title-area p { font-size: 0.85rem; color: #94A3B8; }
         .cifra-toolbar { background: #1E293B; padding: 0.75rem 1rem; display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #334155; }
+        .cifra-btn { background: #334155; color: white; border: none; padding: 0.5rem 0.9rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; transition: 0.2s; }
+        .cifra-btn:hover { background: #475569; }
+        .cifra-btn-close { background: #EF4444; }
         .cifra-body { flex: 1; overflow-y: auto; padding: 1.5rem 1rem; background: #0F172A; scroll-behavior: smooth; }
         .cifra-content-wrapper { max-width: 750px; margin: 0 auto; font-family: 'Courier New', Courier, monospace; }
-        /* Renderizado profesional de acordes sobre letra */
-        .song-line { margin-bottom: 1rem; }
-        .chord-line { display: flex; flex-wrap: wrap; margin-bottom: 0.25rem; font-size: 0.85rem; font-weight: bold; color: #F59E0B; }
-        .lyric-line { display: flex; flex-wrap: wrap; font-size: 1.1rem; line-height: 1.4; }
-        .chord-word { white-space: pre; margin-right: 0.5rem; }
-        .lyric-word { white-space: pre; margin-right: 0.5rem; }
+        /* Tabla para alinear acordes sobre letra */
+        .chord-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        .chord-table td { padding: 0; vertical-align: top; }
+        .chord-row td { font-size: 0.8rem; font-weight: bold; color: #F59E0B; text-align: left; }
+        .lyric-row td { font-size: 1rem; line-height: 1.4; text-align: left; }
         .list-view-container { overflow-x: auto; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 1rem; }
         @media (max-width: 640px) { .app-title { font-size: 0.9rem; } .nav-item { min-width: 55px; } }
-        @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info, .cifra-toolbar, .cifra-btn-close { display: none !important; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } .cifra-modal { display: block !important; position: relative !important; height: auto !important; background: white !important; color: black !important; } .cifra-body { background: white !important; } .cifra-content-wrapper { color: black !important; } .chord-line { color: black !important; } }
+        @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info, .cifra-toolbar, .cifra-btn-close { display: none !important; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } .cifra-modal { display: block !important; position: relative !important; height: auto !important; background: white !important; color: black !important; } .cifra-body { background: white !important; } .cifra-content-wrapper { color: black !important; } .chord-row td { color: black !important; } }
     </style>
 </head>
 <body>
@@ -145,16 +147,15 @@
         </div>
     </div>
 
-<script>
+<script>    
     
-    
-    // ==================== CONFIGURACIÓN SUPABASE ====================
+       // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null;
     let songs = [], lists = [], team = [], attendance = [], shifts = [], modules = [];
-    let currentTab = 'songs', selectedListId = null, viewMode = 'table', listsViewMode = 'grid';
+    let currentTab = 'songs', selectedListId = null, listsViewMode = 'grid';
     let sortableInstance = null, metronomeInterval = null, adminVisible = false;
     let isAdminUser = false;
     const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
@@ -168,20 +169,14 @@
     let cifraFontSize = 18;
     let cifraMetroInterval = null;
     let cifraMetroRunning = false;
-function generateUniqueId() {
-    // Usa crypto.randomUUID() si está disponible, si no, genera un ID numérico + aleatorio
-    if (window.crypto && window.crypto.randomUUID) {
-        return window.crypto.randomUUID();
-    }
-    return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-}
+    let currentSongIndex = -1;
 
-     // ==================== FUNCIONES AUXILIARES ====================
+    // ==================== FUNCIONES AUXILIARES ====================
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
     function closeModal() { document.getElementById('modal')?.remove(); }
     function showModal(content) { const div = document.createElement('div'); div.id = 'modal'; div.className = 'modal'; div.style.display = 'flex'; div.innerHTML = `<div class="modal-content">${content}</div>`; document.body.appendChild(div); }
     function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime}); }
-    function generateUniqueId() { return window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
+    function generateUniqueId() { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
 
     function transposeChord(chord, semitones) {
         const match = chord.match(/^([A-G][#b]?)(.*)$/);
@@ -230,14 +225,16 @@ function generateUniqueId() {
         }
         return result.join('\n');
     }
-    // Renderizado profesional de acordes sobre letra
+
+    // Renderizado profesional de acordes sobre letra (tabla con columnas por palabra)
     function renderChordsOverLyrics(text) {
         if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
         let lines = text.split('\n');
         let html = '';
         for (let line of lines) {
-            if (line.trim() === '') continue;
-            // Dividir en trozos: texto normal y acordes [acorde]
+            line = line.trim();
+            if (line === '') continue;
+            // Dividir en partes: texto y acordes
             let parts = [];
             let chordRegex = /\[([^\]]+)\]/g;
             let lastIdx = 0;
@@ -249,35 +246,45 @@ function generateUniqueId() {
                 lastIdx = match.index + match[0].length;
             }
             if (lastIdx < line.length) parts.push({ type: 'text', content: line.substring(lastIdx) });
-
             if (parts.length === 0) {
-                html += `<div class="song-line"><div class="chord-line"></div><div class="lyric-line"><span class="lyric-word">${escapeHtml(line)}</span></div></div>`;
+                html += `<div class="song-line"><div class="chord-line"></div><div class="lyric-line">${escapeHtml(line)}</div></div>`;
                 continue;
             }
-
-            let chordHtml = '';
-            let lyricHtml = '';
+            // Construir tabla
+            html += `<table class="chord-table">`;
+            // Fila de acordes
+            html += `<tr class="chord-row">`;
             for (let part of parts) {
                 if (part.type === 'chord') {
-                    chordHtml += `<span class="chord-word" style="display:inline-block; margin-right:0.8rem;">${escapeHtml(part.content)}</span>`;
-                    lyricHtml += `<span class="lyric-word" style="display:inline-block; margin-right:0.8rem;">&nbsp;</span>`;
+                    html += `<td><span class="chord-word">${escapeHtml(part.content)}</span></td>`;
                 } else {
                     let words = part.content.split(/(\s+)/);
                     for (let w of words) {
-                        if (w.trim() === '') {
-                            chordHtml += `<span class="chord-word" style="display:inline-block;">&nbsp;</span>`;
-                            lyricHtml += `<span class="lyric-word" style="display:inline-block;">&nbsp;</span>`;
-                        } else {
-                            chordHtml += `<span class="chord-word" style="display:inline-block; margin-right:0.8rem;">&nbsp;</span>`;
-                            lyricHtml += `<span class="lyric-word" style="display:inline-block; margin-right:0.8rem;">${escapeHtml(w)}</span>`;
-                        }
+                        if (w.trim() === '') html += `<td>&nbsp;</td>`;
+                        else html += `<td>&nbsp;</td>`;
                     }
                 }
             }
-            html += `<div class="song-line"><div class="chord-line">${chordHtml}</div><div class="lyric-line">${lyricHtml}</div></div>`;
+            html += `</tr>`;
+            // Fila de letra
+            html += `<tr class="lyric-row">`;
+            for (let part of parts) {
+                if (part.type === 'chord') {
+                    html += `<td>&nbsp;</td>`;
+                } else {
+                    let words = part.content.split(/(\s+)/);
+                    for (let w of words) {
+                        if (w.trim() === '') html += `<td>&nbsp;</td>`;
+                        else html += `<td>${escapeHtml(w)}</td>`;
+                    }
+                }
+            }
+            html += `</tr>`;
+            html += `</table>`;
         }
         return html;
     }
+
     
     // ==================== AUTENTICACIÓN ====================
     async function login(email, password) {
@@ -346,7 +353,7 @@ function generateUniqueId() {
         window.showResetPassword = () => { const email = prompt("Introduce tu email:"); if(email) resetPassword(email); };
     }
 
-     // ==================== CARGA DE DATOS GLOBALES ====================
+      // ==================== CARGA DE DATOS GLOBALES ====================
     async function loadUserData() {
         if (!currentUser) return;
         try {
@@ -367,32 +374,31 @@ function generateUniqueId() {
             const { data: m } = await supabaseClient.from('modulos').select('*');
             modules = m || [];
             if (modules.length === 0 && isAdminUser) {
-                // Crear módulo por defecto con el curso del PDF
                 const defaultModule = {
                     id: 'mod_worship_intro',
                     title: 'Introducción a la Adoración Cristiana',
-                    content: `<h3>Lecciones del Curso</h3><p>Basado en el currículo de Shepherds Global Classroom</p><ul><li>Lección 1: Definiendo la Adoración</li><li>Lección 2: Dios y el Adorador</li><li>Lección 3: La Adoración en el AT</li><li>Lección 4: La Adoración en el NT</li><li>Lección 5: Historia de la Adoración</li><li>Lección 6: Teología de la Música</li><li>Lección 7: Escrituras y Oración</li><li>Lección 8: Planificación del Culto</li><li>Lección 9: Tensiones y Contextualización</li><li>Lección 10: Evaluación Final</li></ul>`,
+                    content: `<h3>Lecciones del Curso</h3><p>Basado en Shepherds Global Classroom</p><ul><li>Lección 1: Definiendo la Adoración</li><li>Lección 2: Dios y el Adorador</li><li>Lección 3: AT</li><li>Lección 4: NT</li><li>Lección 5: Historia</li><li>Lección 6: Teología de la Música</li><li>Lección 7: Escrituras y Oración</li><li>Lección 8: Planificación</li><li>Lección 9: Tensiones y Contextualización</li><li>Lección 10: Evaluación Final</li></ul>`,
                     questions: [
-                        { text: "La palabra griega 'Proskuneo' sugiere originalmente el acto físico de inclinarse o postrarse en sumisión reverente ante un superior.", options: ["Verdadero", "Falso"], correct: 0, time: 15 },
-                        { text: "Dios acepta nuestra adoración pública principalmente gracias al nivel de excelencia técnica musical del equipo.", options: ["Verdadero", "Falso"], correct: 1, time: 15 },
-                        { text: "La alabanza descriptiva se enfoca en exaltar los atributos de Dios, mientras la declarativa testifica de sus obras específicas.", options: ["Verdadero", "Falso"], correct: 0, time: 15 },
-                        { text: "El profeta Amós enseñó que Dios se agrada de las ceremonias solemnes aun si el pueblo descuida la justicia social.", options: ["Verdadero", "Falso"], correct: 1, time: 15 },
-                        { text: "Durante los primeros tres siglos, los cristianos adoraban en hogares particulares debido a las persecuciones.", options: ["Verdadero", "Falso"], correct: 0, time: 15 },
-                        { text: "¿Quién es el mediador que santifica nuestra adoración imperfecta?", options: ["El pastor", "El Espíritu Santo", "Jesucristo", "El líder de alabanza"], correct: 2, time: 15 },
-                        { text: "Según Juan 4, el cambio fundamental en la adoración bajo el Nuevo Pacto es:", options: ["Adorar solo en Jerusalén", "Adorar en espíritu y en verdad", "Cantar solo salmos", "Eliminar la música"], correct: 1, time: 15 },
-                        { text: "Martín Lutero restauró el sacerdocio de los creyentes al:", options: ["Imponer el latín", "Traducir la liturgia al idioma del pueblo", "Prohibir el canto congregacional", "Centralizar el culto"], correct: 1, time: 15 },
-                        { text: "Según Colosenses 3:16, la música tiene como función principal:", options: ["Entretener", "Enseñar y exhortar", "Atraer multitudes", "Mostrar talento"], correct: 1, time: 15 },
-                        { text: "¿Qué es la 'Oración de Confesión'?", options: ["Confesar pecados al pastor", "Momento comunitario para admitir faltas y recibir perdón", "Pedir bendiciones materiales", "Dar gracias por la comida"], correct: 1, time: 15 },
-                        { text: "La estructura clásica del culto se compone de:", options: ["Entrada, concierto, ofrenda, salida", "Reunión, Palabra, Respuesta, Envío", "Alabanza, predicación, ofrenda, despedida", "Oración, canto, sermón, bendición"], correct: 1, time: 15 },
-                        { text: "El filtro principal para seleccionar canciones debe ser:", options: ["Popularidad", "Solidez teológica y enfoque Cristocéntrico", "Ritmo pegajoso", "Modernidad"], correct: 1, time: 15 },
-                        { text: "El peligro de priorizar la 'Forma' sobre la 'Libertad' es:", options: ["Caos", "Formalismo frío", "Crecimiento numérico", "Pérdida de autoridad bíblica"], correct: 1, time: 15 },
-                        { text: "¿Cómo se llama la asimilación de prácticas paganas en el culto?", options: ["Imperialismo cultural", "Etnomusicología", "Sincretismo", "Contextualización"], correct: 2, time: 15 },
-                        { text: "Romanos 12:1 define el culto racional como:", options: ["Rituales religiosos", "Presentar nuestros cuerpos como sacrificio vivo", "Ofrendas monetarias", "Ayuno prolongado"], correct: 1, time: 15 },
-                        { text: "La adoración que edifica a los hermanos es la dimensión:", options: ["Vertical", "Horizontal", "Intelectual", "Emocional"], correct: 1, time: 15 },
-                        { text: "En el AT, poner las manos sobre el animal sacrificado simbolizaba:", options: ["Bendición", "Identificación con la muerte sustitutiva", "Propiedad del animal", "Purificación del adorador"], correct: 1, time: 15 },
-                        { text: "Juan Calvino, por su principio regulador, promovió:", options: ["Música instrumental compleja", "Canto exclusivo de salmos a capela", "Danzas litúrgicas", "Teatro sagrado"], correct: 1, time: 15 },
-                        { text: "Según John Piper, las misiones existen porque no existe:", options: ["Evangelización", "Adoración", "Educación", "Liturgia"], correct: 1, time: 15 },
-                        { text: "El rol del equipo de alabanza es ser:", options: ["Artistas escénicos", "Facilitadores invisibles", "Intérpretes profesionales", "Animadores"], correct: 1, time: 15 }
+                        { text: "La palabra griega 'Proskuneo' sugiere postrarse o inclinarse.", options: ["Verdadero", "Falso"], correct: 0, time: 15 },
+                        { text: "Dios acepta nuestra adoración por la excelencia musical.", options: ["Verdadero", "Falso"], correct: 1, time: 15 },
+                        { text: "La alabanza descriptiva exalta atributos de Dios; la declarativa, obras específicas.", options: ["Verdadero", "Falso"], correct: 0, time: 15 },
+                        { text: "Amós enseñó que Dios se agrada de ceremonias aun sin justicia social.", options: ["Verdadero", "Falso"], correct: 1, time: 15 },
+                        { text: "Los primeros cristianos adoraban en hogares por persecuciones.", options: ["Verdadero", "Falso"], correct: 0, time: 15 },
+                        { text: "¿Quién santifica nuestra adoración imperfecta?", options: ["El pastor", "El Espíritu Santo", "Jesucristo", "El líder"], correct: 2, time: 15 },
+                        { text: "Según Juan 4, el cambio en la adoración es:", options: ["Jerusalén", "Espíritu y verdad", "Salmos", "Silencio"], correct: 1, time: 15 },
+                        { text: "Lutero restauró el sacerdocio al:", options: ["Latín", "Traducir la liturgia", "Prohibir cantos", "Centralizar"], correct: 1, time: 15 },
+                        { text: "Función de la música según Colosenses 3:16:", options: ["Entretener", "Enseñar y exhortar", "Atraer multitudes", "Mostrar talento"], correct: 1, time: 15 },
+                        { text: "¿Qué es la Oración de Confesión?", options: ["Confesar al pastor", "Admitir faltas en comunidad y recibir perdón", "Pedir bienes", "Dar gracias"], correct: 1, time: 15 },
+                        { text: "Estructura clásica del culto:", options: ["Entrada, concierto, ofrenda, salida", "Reunión, Palabra, Respuesta, Envío", "Alabanza, predicación, ofrenda, despedida", "Oración, canto, sermón, bendición"], correct: 1, time: 15 },
+                        { text: "Filtro principal para seleccionar canciones:", options: ["Popularidad", "Solidez teológica y enfoque Cristocéntrico", "Ritmo", "Modernidad"], correct: 1, time: 15 },
+                        { text: "Peligro de priorizar la 'Forma' sobre la 'Libertad':", options: ["Caos", "Formalismo frío", "Crecimiento", "Pérdida de autoridad"], correct: 1, time: 15 },
+                        { text: "Asimilación de prácticas paganas en el culto:", options: ["Imperialismo", "Etnomusicología", "Sincretismo", "Contextualización"], correct: 2, time: 15 },
+                        { text: "Romanos 12:1 define culto racional como:", options: ["Rituales", "Cuerpo como sacrificio vivo", "Ofrendas", "Ayuno"], correct: 1, time: 15 },
+                        { text: "Dimensión de la adoración que edifica a los hermanos:", options: ["Vertical", "Horizontal", "Intelectual", "Emocional"], correct: 1, time: 15 },
+                        { text: "Imposición de manos en AT simbolizaba:", options: ["Bendición", "Identificación con muerte sustitutiva", "Propiedad", "Purificación"], correct: 1, time: 15 },
+                        { text: "Calvino promovió:", options: ["Música instrumental", "Canto exclusivo de salmos a capela", "Danzas", "Teatro"], correct: 1, time: 15 },
+                        { text: "John Piper: las misiones existen porque no existe:", options: ["Evangelización", "Adoración", "Educación", "Liturgia"], correct: 1, time: 15 },
+                        { text: "Rol del equipo de alabanza:", options: ["Artistas", "Facilitadores invisibles", "Intérpretes profesionales", "Animadores"], correct: 1, time: 15 }
                     ]
                 };
                 await supabaseClient.from('modulos').upsert(defaultModule, { onConflict: 'id' });
@@ -485,6 +491,7 @@ function generateUniqueId() {
     }
 
     
+   
     // ==================== RENDER PRINCIPAL ====================
     function renderApp() {
         if (!currentUser) { renderLogin(); return; }
@@ -529,7 +536,7 @@ function generateUniqueId() {
         else if (currentTab === 'admin' && isAdminUser) renderAdmin();
     }
 
-    // ==================== CANCIONERO (SOLO CUADRÍCULA) ====================
+    // ==================== CANCIONERO (solo cuadrícula) ====================
     function renderSongsGrid() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
@@ -614,16 +621,11 @@ function generateUniqueId() {
         };
     }
 
-   // ==================== LISTAS (globales, solo admin crea/edita/elimina) ====================
+   // ==================== LISTAS (corregido) ====================
     function renderLists() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
-        if (isAdminUser) {
-            document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button><button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>`;
-        } else {
-            document.getElementById('actionHeader').innerHTML = `<span class="text-muted">Listas de alabanza (solo lectura)</span>`;
-        }
-        document.getElementById('viewControls').innerHTML = `<button class="btn-view ${listsViewMode==='grid'?'active':''}" onclick="listsViewMode='grid';renderLists()"><i class="fas fa-th-large"></i> Cuadrícula</button><button class="btn-view ${listsViewMode==='table'?'active':''}" onclick="listsViewMode='table';renderLists()"><i class="fas fa-list"></i> Tabla</button>`;
+        document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button><button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>` : `<span class="text-muted">Listas de alabanza (solo lectura)</span>`;
         const container = document.getElementById('mainContent');
         if (listsViewMode === 'grid') {
             container.innerHTML = `<div class="grid">${filtered.map(l => `<div class="card" onclick="selectedListId='${l.id}'; renderCurrentView()"><span class="card-category">Lista</span><div class="card-title">${escapeHtml(l.name)}</div><div>📅 ${l.date || 'Sin fecha'}</div><div>🎵 ${l.items ? l.items.length : 0} canciones</div>${isAdminUser ? `<div onclick="event.stopPropagation()" style="margin-top:0.5rem;"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></div>` : ''}</div>`).join('')}</div>`;
@@ -719,21 +721,21 @@ function generateUniqueId() {
         const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Todas_Listas"); XLSX.writeFile(wb, "todas_listas_iec.xlsx");
     }
 
-     // ==================== RECURSOS ====================
+   // ==================== RECURSOS (con perfiles de equipo) ====================
     function renderResources() {
         document.getElementById('actionHeader').innerHTML = '';
         document.getElementById('mainContent').innerHTML = `<div class="grid">
-            <div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll" style="font-size:2rem"></i><h3>Teleprompter</h3><p>Letra gigante con toque</p></div>
-            <div class="card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Respaldo JSON</h3><p>Exportar / Importar datos</p></div>
-            <div class="card" onclick="openTeamModal()"><i class="fas fa-users"></i><h3>Equipo</h3><p>Ver y gestionar miembros</p></div>
-            <div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3><p>Guitarra / Bajo</p></div>
-            <div class="card" onclick="openModulesLibrary()"><i class="fas fa-book-open"></i><h3>Capacitación</h3><p>Cursos con evaluación</p></div>
-            <div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3><p>Reporte</p></div>
-            <div class="card" onclick="viewShiftsCalendar()"><i class="fas fa-calendar-alt"></i><h3>Turnos</h3><p>Próximos servicios</p></div>
+            <div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll"></i><h3>Teleprompter</h3></div>
+            <div class="card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Respaldo JSON</h3></div>
+            <div class="card" onclick="openTeamModal()"><i class="fas fa-users"></i><h3>Equipo</h3></div>
+            <div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3></div>
+            <div class="card" onclick="openModulesLibrary()"><i class="fas fa-book-open"></i><h3>Capacitación</h3></div>
+            <div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3></div>
+            <div class="card" onclick="viewShiftsCalendar()"><i class="fas fa-calendar-alt"></i><h3>Turnos</h3></div>
         </div>`;
     }
 
-    // EQUIPO EN CUADRÍCULA Y PERFILES
+    // EQUIPO: mostrar miembros en cuadrícula y perfil editable
     function openTeamModal() {
         let content = `<h3>Miembros del Equipo</h3><div class="grid">`;
         team.forEach(m => {
@@ -753,17 +755,72 @@ function generateUniqueId() {
     async function showMemberProfile(memberId) {
         const member = team.find(m => m.id === memberId);
         if (!member) return;
-        // Obtener asistencia del miembro
-        const memberAttendance = attendance.filter(a => a.memberId === memberId);
-        // Obtener resultados de exámenes guardados en localStorage (por usuario, filtramos por miembro? los resultados son por usuario, no por miembro. Para simplicidad, mostramos los cursos completados por el miembro (asumiendo que el miembro tiene un usuario asociado? No tenemos esa relación. Mostraremos los módulos disponibles y si el miembro ha tomado el examen guardado en localStorage, pero como los miembros no son usuarios, mejor mostramos solo la asistencia y turnos.)
-        // Mostrar perfil con asistencia y turnos
-        let html = `<h3>Perfil: ${escapeHtml(member.name)}</h3><p><strong>Rol:</strong> ${escapeHtml(member.role)}</p><h4>Asistencia</h4><ul>`;
-        memberAttendance.forEach(a => html += `<li>${a.date} - ${a.status === 'puntual' ? '✅ Puntual' : '⚠️ Tarde'}</li>`);
-        html += `</ul><h4>Turnos Asignados</h4><ul>`;
-        const memberShifts = shifts.filter(s => s.memberId === memberId);
+        const canEdit = (isAdminUser || (currentUser && currentUser.id === member.user_id));
+        let memberAttendance = attendance.filter(a => a.memberId === memberId);
+        let memberShifts = shifts.filter(s => s.memberId === memberId);
+        let html = `<h3>Perfil: ${escapeHtml(member.name)}</h3>
+                    <p><strong>Rol:</strong> ${escapeHtml(member.role)}</p>
+                    <p><strong>Fecha Nacimiento:</strong> ${member.fecha_nacimiento || 'No especificada'}</p>
+                    <p><strong>Celular:</strong> ${member.celular ? `<a href="https://wa.me/${member.celular.replace(/[^0-9]/g,'')}" target="_blank">${escapeHtml(member.celular)} <i class="fab fa-whatsapp"></i></a>` : 'No especificado'}</p>
+                    <p><strong>Instagram:</strong> ${member.instagram ? `<a href="https://instagram.com/${member.instagram.replace('@','')}" target="_blank">@${escapeHtml(member.instagram)}</a>` : 'No especificado'}</p>
+                    <p><strong>Facebook:</strong> ${member.facebook ? `<a href="https://facebook.com/${member.facebook}" target="_blank">${escapeHtml(member.facebook)}</a>` : 'No especificado'}</p>
+                    <p><strong>Película favorita:</strong> ${member.pelicula_favorita || 'No especificada'}</p>
+                    <p><strong>Música favorita:</strong> ${member.musica_favorita || 'No especificada'}</p>
+                    <p><strong>Cantante favorito:</strong> ${member.cantante_favorito || 'No especificado'}</p>
+                    <p><strong>Grupo favorito:</strong> ${member.grupo_favorito || 'No especificado'}</p>
+                    <p><strong>Expectativas:</strong> ${member.expectativas || 'No especificadas'}</p>
+                    <p><strong>Mejoras necesarias:</strong> ${member.mejoras || 'No especificadas'}</p>
+                    <h4>Asistencia</h4><ul>`;
+        memberAttendance.forEach(a => html += `<li>${a.date} - ${a.status}</li>`);
+        html += `</ul><h4>Turnos</h4><ul>`;
         memberShifts.forEach(s => html += `<li>📅 ${s.date}</li>`);
-        html += `</ul><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        html += `</ul>`;
+        if (canEdit) {
+            html += `<hr><button class="btn btn-primary" onclick="editMemberProfile('${member.id}')">Editar mi perfil</button>`;
+        }
+        html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(html);
+    }
+    function editMemberProfile(memberId) {
+        const member = team.find(m => m.id === memberId);
+        if (!member) return;
+        showModal(`
+            <h3>Editar Perfil: ${escapeHtml(member.name)}</h3>
+            <div class="form-group"><label>Nombre</label><input id="editName" class="form-control" value="${escapeHtml(member.name)}"></div>
+            <div class="form-group"><label>Rol</label><input id="editRole" class="form-control" value="${escapeHtml(member.role)}"></div>
+            <div class="form-group"><label>Fecha de nacimiento</label><input id="editFecha" class="form-control" placeholder="DD/MM/AAAA" value="${member.fecha_nacimiento || ''}"></div>
+            <div class="form-group"><label>Celular (con código país)</label><input id="editCelular" class="form-control" placeholder="+593987654321" value="${member.celular || ''}"></div>
+            <div class="form-group"><label>Instagram (sin @)</label><input id="editInstagram" class="form-control" value="${member.instagram || ''}"></div>
+            <div class="form-group"><label>Facebook (usuario)</label><input id="editFacebook" class="form-control" value="${member.facebook || ''}"></div>
+            <div class="form-group"><label>Película favorita</label><input id="editPelicula" class="form-control" value="${member.pelicula_favorita || ''}"></div>
+            <div class="form-group"><label>Música favorita</label><input id="editMusica" class="form-control" value="${member.musica_favorita || ''}"></div>
+            <div class="form-group"><label>Cantante favorito</label><input id="editCantante" class="form-control" value="${member.cantante_favorito || ''}"></div>
+            <div class="form-group"><label>Grupo favorito</label><input id="editGrupo" class="form-control" value="${member.grupo_favorito || ''}"></div>
+            <div class="form-group"><label>Expectativas del equipo</label><textarea id="editExpectativas" rows="3" class="form-control">${member.expectativas || ''}</textarea></div>
+            <div class="form-group"><label>Mejoras necesarias</label><textarea id="editMejoras" rows="3" class="form-control">${member.mejoras || ''}</textarea></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveMemberProfile('${member.id}')">Guardar</button></div>
+        `);
+        flatpickr("#editFecha", { dateFormat: "d/m/Y" });
+    }
+      async function saveMemberProfile(memberId) {
+        const updates = {
+            name: document.getElementById('editName').value.trim(),
+            role: document.getElementById('editRole').value.trim(),
+            fecha_nacimiento: document.getElementById('editFecha').value,
+            celular: document.getElementById('editCelular').value,
+            instagram: document.getElementById('editInstagram').value,
+            facebook: document.getElementById('editFacebook').value,
+            pelicula_favorita: document.getElementById('editPelicula').value,
+            musica_favorita: document.getElementById('editMusica').value,
+            cantante_favorito: document.getElementById('editCantante').value,
+            grupo_favorito: document.getElementById('editGrupo').value,
+            expectativas: document.getElementById('editExpectativas').value,
+            mejoras: document.getElementById('editMejoras').value
+        };
+        await supabaseClient.from('equipo').update(updates).eq('id', memberId);
+        await loadUserData();
+        closeModal();
+        showMemberProfile(memberId);
     }
     
 function openTeleprompter() {
@@ -903,7 +960,26 @@ function openModulesLibrary() {
             alert(`Ya completaste este curso. Calificación: ${existingResult.score}/${existingResult.total} el ${new Date(existingResult.date).toLocaleString()}`);
             return;
         }
+        // Verificar que el usuario sea miembro del equipo (existe en la tabla equipo)
+        const isMember = team.some(m => m.user_id === currentUser.id);
+        if (!isMember) {
+            alert("Solo los miembros registrados del equipo pueden tomar cursos. Contacta al administrador.");
+            return;
+        }
         let currentQ = 0, score = 0, timer = null;
+        const showContent = () => {
+            // Primero mostrar el contenido del curso (puede ser HTML con las lecciones)
+            showModal(`
+                <h3>${escapeHtml(mod.title)}</h3>
+                <div style="margin-bottom:1rem; max-height:60vh; overflow:auto;">${mod.content || 'Contenido no disponible'}</div>
+                <div style="text-align:right"><button class="btn btn-primary" onclick="startExam()">Comenzar Examen Final</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>
+            `);
+            window.startExam = () => {
+                closeModal();
+                currentQ = 0; score = 0;
+                showQuestion();
+            };
+        };
         const showQuestion = () => {
             if (currentQ >= mod.questions.length) {
                 if (timer) clearInterval(timer);
@@ -942,7 +1018,7 @@ function openModulesLibrary() {
                 showQuestion();
             };
         };
-        showQuestion();
+        showContent();
     }
 
    // ==================== ADMINISTRACIÓN ====================
@@ -1134,7 +1210,7 @@ function adminShifts() {
         list.items.forEach((item, i) => { const song = songs.find(s => s.id === (item.songId || item.song_id)); if (song) message += `${i+1}. *${song.title}* — Tono: ${item.keyOverride || item.key_override || song.key} (${song.bpm} BPM)\n`; });
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     }
- // ==================== VISOR CIFRA CLUB CON NAVEGACIÓN ====================
+  // ==================== VISOR CIFRA CLUB ====================
     function openCifraViewer(songId, index) {
         currentSongIndex = index;
         const song = songs.find(s => s.id === songId);
@@ -1194,10 +1270,31 @@ function adminShifts() {
         document.getElementById('currentToneDisplay').innerText = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
         renderCifraContent();
     }
-    function updateSongBpm() { /* ... */ }
-    function toggleCifraMetronome() { /* ... */ }
-    function toggleCifraAutoScroll() { /* ... */ }
-    function adjustScrollSpeed(delta) { /* ... */ }
+    function updateSongBpm() {
+        if (!cifraCurrentSong) return;
+        let bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+        cifraCurrentSong.bpm = bpm;
+        if (cifraMetroRunning) { toggleCifraMetronome(); toggleCifraMetronome(); }
+    }
+    function toggleCifraMetronome() {
+        const dot = document.getElementById('metronomeVisualDot');
+        const btn = document.getElementById('btnMetronomeToggle');
+        if (cifraMetroRunning) {
+            clearInterval(cifraMetroInterval); cifraMetroRunning = false;
+            btn.innerHTML = `<i class="fa-solid fa-drum"></i> Iniciar`; dot.classList.remove('pulse');
+        } else {
+            cifraMetroRunning = true; btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pausa`;
+            let bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+            cifraMetroInterval = setInterval(() => { dot.classList.add('pulse'); if (navigator.vibrate) navigator.vibrate(30); setTimeout(() => dot.classList.remove('pulse'), 90); }, 60000 / bpm);
+        }
+    }
+    function toggleCifraAutoScroll() {
+        const btn = document.getElementById('btnAutoScrollToggle');
+        const container = document.getElementById('cifraBodyContainer');
+        if (cifraScrollInterval) { clearInterval(cifraScrollInterval); cifraScrollInterval = null; btn.innerHTML = `<i class="fa-solid fa-play"></i> Play`; }
+        else { btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pausa`; cifraScrollInterval = setInterval(() => { container.scrollTop += 1; if (container.scrollTop >= (container.scrollHeight - container.clientHeight)) { clearInterval(cifraScrollInterval); cifraScrollInterval = null; btn.innerHTML = `<i class="fa-solid fa-play"></i> Play`; } }, cifraScrollSpeed); }
+    }
+    function adjustScrollSpeed(delta) { cifraScrollSpeed += delta; if (cifraScrollSpeed < 10) cifraScrollSpeed = 10; if (cifraScrollSpeed > 150) cifraScrollSpeed = 150; if (cifraScrollInterval) { toggleCifraAutoScroll(); toggleCifraAutoScroll(); } }
     function adjustCifraFontSize(delta) {
         cifraFontSize += delta;
         if (cifraFontSize < 12) cifraFontSize = 12;
@@ -1214,8 +1311,6 @@ function adminShifts() {
         alert("Guardado en la nube");
         cifraSemitonesShift = 0;
     }
-
-
   // ==================== INICIALIZACIÓN ====================
     (async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
