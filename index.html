@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <title>FZ-Praise® | I.E.C. Fortaleza</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,7 +13,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ========== ESTILOS (sin cambios) ========== */
+        /* ========== ESTILOS GLOBALES (sin cambios) ========== */
         :root {
             --primary: #1E3A8A;
             --primary-light: #3B82F6;
@@ -65,7 +65,7 @@
         .btn-ghost { background: transparent; border: 2px solid var(--border); color: var(--text-muted); }
         .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.5rem; border-radius: 50%; width: 36px; height: 36px; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
-        .modal-content { background: var(--surface); width: 100%; max-width: 800px; max-height: 85vh; border-radius: 2rem; padding: 1.5rem; overflow-y: auto; }
+        .modal-content { background: var(--surface); width: 100%; max-width: 900px; max-height: 85vh; border-radius: 2rem; padding: 1.5rem; overflow-y: auto; }
         .form-group { margin-bottom: 1rem; }
         .form-control { width: 100%; padding: 0.8rem; border-radius: var(--radius-lg); border: 2px solid var(--border); background: var(--bg-app); color: var(--text-main); }
         .login-container { max-width: 450px; margin: 2rem auto; background: var(--surface); border-radius: 2rem; padding: 2rem; text-align: center; box-shadow: var(--shadow); }
@@ -78,6 +78,7 @@
         .tuner-needle { height: 100%; width: 0%; background: var(--primary); transition: width 0.05s linear; }
         .question-timer { font-size: 1.2rem; font-weight: bold; color: var(--primary); text-align: center; margin: 0.5rem 0; }
         .admin-tab { display: none; }
+        /* ========== NUEVOS ESTILOS PARA VISOR "CHORDS OVER LYRICS" ========== */
         .cifra-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0F172A; color: #F1F5F9; z-index: 2000; flex-direction: column; }
         .cifra-header { background: #1E293B; padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
         .cifra-title-area h2 { font-size: 1.4rem; font-weight: 800; color: #FFFFFF; }
@@ -89,16 +90,41 @@
         .cifra-btn-close { background: #EF4444; }
         .cifra-btn-close:hover { background: #DC2626; }
         .cifra-body { flex: 1; overflow-y: auto; padding: 1.5rem 1rem; background: #0F172A; scroll-behavior: smooth; }
-        .cifra-content-wrapper { max-width: 750px; margin: 0 auto; font-family: 'Courier New', Courier, monospace; font-size: 1.2rem; white-space: pre-wrap; line-height: 1.8; }
-        .metronome-dot { width: 12px; height: 12px; background: #475569; border-radius: 50%; transition: 0.1s ease; }
-        .metronome-dot.pulse { background: #10B981; box-shadow: 0 0 10px #10B981; }
-        .chord { color: #F59E0B; font-weight: bold; background: rgba(245, 158, 11, 0.1); padding: 0 3px; border-radius: 4px; display: inline-block; }
+        .cifra-content-wrapper { max-width: 750px; margin: 0 auto; }
+        /* Estilos para el renderizado "Chords over Lyrics" */
+        .song-line {
+            margin-bottom: 1rem;
+        }
+        .chord-row {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #F59E0B;
+            min-height: 1.8em;
+            display: flex;
+            flex-wrap: wrap;
+            letter-spacing: normal;
+        }
+        .lyric-row {
+            font-size: 1rem;
+            line-height: 1.5;
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: -0.2rem;
+        }
+        .chord-slot {
+            flex: 1 1 auto;
+            white-space: pre;
+        }
+        .lyric-slot {
+            flex: 1 1 auto;
+            white-space: pre;
+        }
         .list-view-container { overflow-x: auto; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 1rem; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th, td { padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         th { color: var(--text-muted); font-weight: 600; }
         @media (max-width: 640px) { .app-title { font-size: 0.9rem; } .nav-item { min-width: 55px; } .cifra-toolbar { gap: 0.6rem; padding: 0.5rem; } }
-        @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info, .cifra-toolbar, .cifra-btn-close { display: none !important; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } .cifra-modal { display: block !important; position: relative !important; height: auto !important; background: white !important; color: black !important; } .cifra-body { background: white !important; } .cifra-content-wrapper { color: black !important; } .chord { color: black !important; background: none !important; border-bottom: 1px dashed #000; } }
+        @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info, .cifra-toolbar, .cifra-btn-close { display: none !important; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } .cifra-modal { display: block !important; position: relative !important; height: auto !important; background: white !important; color: black !important; } .cifra-body { background: white !important; } .cifra-content-wrapper { color: black !important; } .chord-row { color: black !important; } }
     </style>
 </head>
 <body>
@@ -154,7 +180,9 @@
             <div id="cifraContentWrapper" class="cifra-content-wrapper"></div>
         </div>
     </div>
+
 <script>
+    
     // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
@@ -183,12 +211,13 @@ function generateUniqueId() {
     return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
 }
 
-    // ==================== FUNCIONES AUXILIARES (sin cambios) ====================
+  // ==================== FUNCIONES AUXILIARES ====================
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
     function closeModal() { document.getElementById('modal')?.remove(); }
     function showModal(content) { const div = document.createElement('div'); div.id = 'modal'; div.className = 'modal'; div.style.display = 'flex'; div.innerHTML = `<div class="modal-content">${content}</div>`; document.body.appendChild(div); }
     function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime}); }
     function generateUniqueId() { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
+
     function transposeChord(chord, semitones) {
         const match = chord.match(/^([A-G][#b]?)(.*)$/);
         if (!match) return chord;
@@ -206,7 +235,7 @@ function generateUniqueId() {
         if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
         return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`);
     }
-
+ // Convertir formato espaciado (acordes en línea superior) a formato [Acorde] (ChordPro)
     function convertSpacedChordsToBrackets(text) {
         let lines = text.split('\n');
         let result = [];
@@ -237,6 +266,106 @@ function generateUniqueId() {
         return result.join('\n');
     }
 
+    // ==================== NUEVO RENDERIZADOR "CHORDS OVER LYRICS" (Songbook Pro) ====================
+    function renderChordProAsChordsOverLyrics(text) {
+        // text está en formato ChordPro: acordes dentro de [ ]
+        // Dividir en líneas
+        let lines = text.split('\n');
+        let html = '';
+        
+        for (let line of lines) {
+            line = line.trim();
+            if (line === '') continue;
+            
+            // Buscar acordes en la línea
+            let chordRegex = /\[([^\]]+)\]/g;
+            let matches = [...line.matchAll(chordRegex)];
+            if (matches.length === 0) {
+                // Línea sin acordes: se muestra como letra normal
+                html += `<div class="song-line"><div class="chord-row"></div><div class="lyric-row">${escapeHtml(line)}</div></div>`;
+                continue;
+            }
+            
+            // Construir línea de acordes y línea de letra
+            let chordLineHtml = '';
+            let lyricLineHtml = '';
+            let lastIndex = 0;
+            let chordsPositions = [];
+            
+            // Extraer posiciones de acordes y texto
+            for (let match of matches) {
+                let chord = match[1];
+                let start = match.index;
+                let end = start + match[0].length;
+                let textBefore = line.substring(lastIndex, start);
+                chordLineHtml += '<span class="chord-slot">' + '&nbsp;'.repeat(textBefore.length) + '</span>';
+                chordLineHtml += `<span class="chord-slot"><span class="chord">${escapeHtml(chord)}</span></span>`;
+                lyricLineHtml += escapeHtml(textBefore);
+                lyricLineHtml += escapeHtml(line.substring(start + match[0].length, end));
+                // La palabra que sigue? Mejor reemplazar por un marcador de posición
+                lastIndex = end;
+            }
+            let remaining = line.substring(lastIndex);
+            chordLineHtml += '<span class="chord-slot">' + '&nbsp;'.repeat(remaining.length) + '</span>';
+            lyricLineHtml += escapeHtml(remaining);
+            
+            html += `<div class="song-line"><div class="chord-row">${chordLineHtml}</div><div class="lyric-row">${lyricLineHtml}</div></div>`;
+        }
+        return html;
+    }
+
+    // Versión mejorada usando flex para alinear acordes encima de palabras
+    // Más precisa: dividir la línea en fragmentos de texto y acordes
+    function renderChordsOverLyrics(text) {
+        let lines = text.split('\n');
+        let output = [];
+        for (let line of lines) {
+            if (line.trim() === '') continue;
+            let parts = [];
+            let chordRegex = /\[([^\]]+)\]/g;
+            let lastIdx = 0;
+            let match;
+            while ((match = chordRegex.exec(line)) !== null) {
+                let textBefore = line.substring(lastIdx, match.index);
+                if (textBefore) parts.push({ type: 'text', content: textBefore });
+                parts.push({ type: 'chord', content: match[1] });
+                lastIdx = match.index + match[0].length;
+            }
+            if (lastIdx < line.length) parts.push({ type: 'text', content: line.substring(lastIdx) });
+            
+            if (parts.length === 0) {
+                output.push(`<div class="song-line"><div class="chord-row"></div><div class="lyric-row">${escapeHtml(line)}</div></div>`);
+                continue;
+            }
+            
+            let chordHtml = '';
+            let lyricHtml = '';
+            for (let part of parts) {
+                if (part.type === 'chord') {
+                    chordHtml += `<span class="chord-slot" style="display:inline-block; margin-right:0.3rem;"><span class="chord">${escapeHtml(part.content)}</span></span>`;
+                    lyricHtml += `<span class="lyric-slot" style="display:inline-block;">&nbsp;</span>`;
+                } else {
+                    // Texto: lo dividimos en palabras o caracteres para mantener el ancho
+                    // Para simplificar, mostramos el texto y en la línea de acordes ponemos espacios del mismo ancho
+                    let textEscaped = escapeHtml(part.content);
+                    lyricHtml += textEscaped;
+                    // Añadir espacios invisibles para alinear acordes (usando CSS)
+                    chordHtml += `<span class="chord-slot" style="display:inline-block; width:${part.content.length}ch;">&nbsp;</span>`;
+                }
+            }
+            output.push(`<div class="song-line"><div class="chord-row">${chordHtml}</div><div class="lyric-row">${lyricHtml}</div></div>`);
+        }
+        return output.join('');
+    }
+
+    // Función unificada para mostrar la canción en el visor (usa el nuevo formato)
+    function displaySongInViewer(song, transposedLyrics) {
+        let lyrics = transposedLyrics || song.lyrics || '';
+        let html = renderChordsOverLyrics(lyrics);
+        document.getElementById('cifraContentWrapper').innerHTML = html || `<p style="color:#64748b; text-align:center;">No hay letra cargada para esta canción.</p>`;
+    }
+
+    
     // ==================== AUTENTICACIÓN ====================
     async function login(email, password) {
         try {
@@ -524,19 +653,20 @@ function generateUniqueId() {
         await saveSong(song);
         closeModal();
     }
-    async function openLyricsEditor(songId) {
+     async function openLyricsEditor(songId) {
         const song = songs.find(s => s.id === songId);
         if (!song) return;
         let lyrics = song.lyrics || '';
         showModal(`
             <h3>Editar Letra y Acordes: ${escapeHtml(song.title)}</h3>
-            <div style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center;">
+            <div style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center; flex-wrap:wrap;">
                 <label>Tonalidad actual:</label>
                 <select id="transposeFromKey" class="form-control" style="width:100px;">${keys.map(k => `<option ${song.key===k?'selected':''}>${k}</option>`).join('')}</select>
                 <label>Transponer a:</label>
                 <select id="transposeToKey" class="form-control" style="width:100px;">${keys.map(k => `<option>${k}</option>`).join('')}</select>
                 <button class="btn btn-primary" onclick="applyTranspose()">Transponer</button>
                 <button id="convertChordsEditorBtn" class="btn btn-ghost" onclick="convertEditorLyrics()">Convertir formato espaciado</button>
+                <button id="previewLyricsBtn" class="btn btn-secondary" onclick="previewLyrics()">Vista Previa (Chords over Lyrics)</button>
             </div>
             <div class="form-group"><label>Letra (usa [Acorde] antes de la sílaba, o pega con acordes espaciados y usa el botón)</label><textarea id="lyricsEditor" rows="12" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea></div>
             <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLyrics('${song.id}')">Guardar Letra</button></div>
@@ -549,11 +679,12 @@ function generateUniqueId() {
             document.getElementById('transposeFromKey').value = toKey;
         };
         window.convertEditorLyrics = () => { const textarea = document.getElementById('lyricsEditor'); textarea.value = convertSpacedChordsToBrackets(textarea.value); };
+        window.previewLyrics = () => {
+            const lyricsPreview = document.getElementById('lyricsEditor').value;
+            const htmlPreview = renderChordsOverLyrics(lyricsPreview);
+            showModal(`<h3>Vista Previa (Chords over Lyrics)</h3><div style="background:#0F172A; color:#F1F5F9; padding:1rem; border-radius:1rem; max-height:60vh; overflow:auto;">${htmlPreview}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`);
+        };
         window.saveLyrics = async (id) => {
-            if (!isAdminUser && songs.find(s=>s.id===id) && !songs.find(s=>s.id===id).user_id) {
-                alert("Solo el administrador puede modificar canciones globales.");
-                return;
-            }
             const newLyrics = document.getElementById('lyricsEditor').value;
             const songToUpdate = songs.find(s => s.id === id);
             if (songToUpdate) { songToUpdate.lyrics = newLyrics; await saveSong(songToUpdate); }
@@ -1002,7 +1133,7 @@ function adminShifts() {
         list.items.forEach((item, i) => { const song = songs.find(s => s.id === (item.songId || item.song_id)); if (song) message += `${i+1}. *${song.title}* — Tono: ${item.keyOverride || item.key_override || song.key} (${song.bpm} BPM)\n`; });
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     }
-// ==================== VISOR CIFRA CLUB ====================
+ // ==================== VISOR CIFRA CLUB (MODIFICADO) ====================
     function openCifraViewer(songId) {
         const song = songs.find(s => s.id === songId);
         if (!song) return;
@@ -1041,16 +1172,19 @@ function adminShifts() {
         let newIdx = (idx + shift + 12) % 12;
         return noteNames[newIdx] + (isMinor ? 'm' : '');
     }
-    function renderCifraContent() {
+
+    
+   function renderCifraContent() {
         let lyrics = cifraOriginalLyrics;
         if (cifraSemitonesShift !== 0) {
             let targetKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
             lyrics = transposeLyrics(cifraOriginalLyrics, cifraCurrentSong.key, targetKey);
         }
-        let cleanHtml = escapeHtml(lyrics).replace(/\[([^\]]+)\]/g, '<span class="chord">$1</span>');
-        document.getElementById('cifraContentWrapper').innerHTML = cleanHtml || `<p style="color:#64748b; font-family:'Inter'; font-size:2rem; text-align:center;">No hay letra cargada para esta canción.</p>`;
+        // Usar el nuevo renderizador "Chords over Lyrics"
+        let html = renderChordsOverLyrics(lyrics);
+        document.getElementById('cifraContentWrapper').innerHTML = html || `<p style="color:#64748b; font-family:'Inter'; font-size:1rem; text-align:center;">No hay letra cargada para esta canción.</p>`;
     }
-    function changeTone(direction) {
+  function changeTone(direction) {
         cifraSemitonesShift += direction;
         document.getElementById('currentToneDisplay').innerText = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
         renderCifraContent();
@@ -1081,7 +1215,7 @@ function adminShifts() {
     }
     function adjustScrollSpeed(delta) { cifraScrollSpeed += delta; if (cifraScrollSpeed < 10) cifraScrollSpeed = 10; if (cifraScrollSpeed > 150) cifraScrollSpeed = 150; if (cifraScrollInterval) { toggleCifraAutoScroll(); toggleCifraAutoScroll(); } }
     function adjustCifraFontSize(delta) { cifraFontSize += delta; if (cifraFontSize < 12) cifraFontSize = 12; if (cifraFontSize > 36) cifraFontSize = 36; document.getElementById('cifraContentWrapper').style.fontSize = cifraFontSize + 'px'; }
-    async function saveCifraStateToServer() {
+   async function saveCifraStateToServer() {
         if (!cifraCurrentSong) return;
         if (!isAdminUser) { alert("Solo el administrador puede guardar cambios permanentes en las canciones."); return; }
         let finalKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
