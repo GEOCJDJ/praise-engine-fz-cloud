@@ -13,417 +13,1103 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ========== ESTILOS MODERNOS (Fusión de ambos) ========== */
+        /* ========== ESTILOS GLOBALES ========== */
         :root {
             --primary: #1E3A8A;
             --primary-light: #3B82F6;
-            --bg-dark: #0F172A;
-            --bg-card: #1E293B;
-            --text-light: #F8FAFC;
-            --text-muted: #94A3B8;
-            --accent: #10B981;
-            --danger: #EF4444;
-            --warning: #F59E0B;
-            --border: #334155;
+            --primary-rgb: 30, 58, 138;
+            --bg-app: #F8FAFC;
+            --surface: #FFFFFF;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --shadow: 0 10px 25px rgba(0,0,0,0.08);
+            --radius-lg: 1.5rem;
+            --radius-sm: 1rem;
         }
         body.dark {
             --primary: #3B82F6;
             --primary-light: #60A5FA;
-            --bg-dark: #0F172A;
-            --bg-card: #1E293B;
-            --text-light: #F1F5F9;
+            --primary-rgb: 59, 130, 246;
+            --bg-app: #0F172A;
+            --surface: #1E293B;
+            --text-main: #F1F5F9;
             --text-muted: #94A3B8;
             --border: #334155;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-light); min-height: 100vh; transition: background 0.2s; }
-        .app-container { display: flex; flex-direction: column; min-height: 100vh; }
-        header { background: var(--bg-card); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; position: sticky; top: 0; z-index: 100; }
-        .logo-area h1 { font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-        .logo-area span { font-size: 0.7rem; border: 1px solid var(--primary-light); padding: 2px 6px; border-radius: 4px; }
-        .user-status { display: flex; align-items: center; gap: 15px; }
-        .badge-rol { background: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
-        nav { background: var(--bg-card); display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; }
-        nav button { background: none; border: none; color: var(--text-muted); padding: 12px 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; white-space: nowrap; transition: 0.2s; }
-        nav button:hover { color: white; background: rgba(255,255,255,0.03); }
-        nav button.active { color: var(--primary-light); border-bottom-color: var(--primary-light); }
-        .main-content { padding: 20px; flex: 1; max-width: 1400px; width: 100%; margin: 0 auto; }
-        .view-section { display: none; animation: fadeIn 0.2s ease; }
-        .view-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Tarjetas */
-        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 15px; }
-        .premium-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: transform 0.2s, box-shadow 0.2s; }
-        .premium-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); border-color: #475569; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; }
-        
-        /* Botones y formularios */
-        .btn { background: var(--primary); color: white; border: none; padding: 8px 16px; font-size: 0.8rem; font-weight: 500; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
-        .btn:hover { background: var(--primary-light); }
-        .btn-danger { background: var(--danger); }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-secondary { background: #475569; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; }
-        .form-control { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; color: white; font-size: 0.85rem; }
-        .form-control:focus { border-color: var(--primary-light); outline: none; }
-        .password-wrapper { position: relative; }
-        .password-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); }
-        
-        /* Modales */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; padding: 25px; }
-        
-        /* Visor de cifrados */
-        .cifra-container { background: #0b0f19; border-radius: 12px; padding: 20px; font-family: 'Courier New', monospace; font-size: 1rem; line-height: 1.8; white-space: pre-wrap; color: #E2E8F0; }
-        .chord-badge { color: #3B82F6; font-weight: bold; display: inline-block; margin-right: 8px; }
-        
-        /* Exámenes */
-        .exam-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 2000; display: none; padding: 20px; overflow-y: auto; }
-        .exam-card { max-width: 700px; margin: 40px auto; background: var(--bg-card); border-radius: 16px; padding: 30px; }
-        .timer-bar-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin: 20px 0; overflow: hidden; }
-        .timer-bar-fill { height: 100%; background: var(--warning); transition: width 1s linear; }
-        .option-btn { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; text-align: left; margin-bottom: 10px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
-        .option-btn:hover { background: rgba(59,130,246,0.1); border-color: var(--primary-light); }
-        .option-btn.selected { background: var(--primary); border-color: var(--primary-light); font-weight: 600; }
-        
-        /* Login/Registro */
-        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-box { background: var(--bg-card); border: 1px solid var(--border); padding: 35px; border-radius: 20px; max-width: 450px; width: 100%; text-align: center; }
-        
-        @media (max-width: 640px) {
-            header { flex-direction: column; text-align: center; }
-            nav button { padding: 8px 12px; font-size: 0.75rem; }
-            .card-grid { grid-template-columns: 1fr; }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(--text-main); transition: 0.2s; }
+        .app-header { background: var(--surface); padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+        .app-title { font-size: 1.2rem; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--primary-light)); -webkit-background-clip: text; background-clip: text; color: transparent; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; }
+        .app-title i { font-size: 1.5rem; color: var(--primary); background: none; }
+        .nav-icons { display: flex; overflow-x: auto; gap: 0.75rem; align-items: center; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; min-width: 65px; padding: 0.5rem; cursor: pointer; color: var(--text-muted); font-size: 0.7rem; font-weight: 600; border-radius: var(--radius-sm); }
+        .nav-item i { font-size: 1.3rem; padding: 0.5rem; border-radius: 1rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .nav-item.active { color: var(--primary); background: rgba(var(--primary-rgb), 0.1); }
+        .nav-item.active i { background: var(--primary); color: white; }
+        .dark-mode-toggle, .user-info { cursor: pointer; display: flex; align-items: center; gap: 0.5rem; background: var(--bg-app); padding: 0.5rem 1rem; border-radius: var(--radius-lg); border: 1px solid var(--border); font-weight: 600; font-size: 0.8rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+        .search-container { position: relative; margin-bottom: 1rem; }
+        .search-box { width: 100%; background: var(--surface); border: 2px solid var(--border); padding: 0.9rem 1rem 0.9rem 3rem; border-radius: var(--radius-lg); font-size: 1rem; color: var(--text-main); }
+        .search-icon { position: absolute; left: 1.2rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+        .card { background: var(--surface); border-radius: var(--radius-lg); padding: 1.2rem; border: 1px solid var(--border); box-shadow: var(--shadow); cursor: pointer; transition: 0.2s; }
+        .card:hover { transform: translateY(-2px); }
+        .card-category { font-size: 0.7rem; font-weight: 800; background: var(--primary); color: white; padding: 0.2rem 0.7rem; border-radius: 50px; display: inline-block; margin-bottom: 0.5rem; }
+        .card-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 0.5rem 0; line-height: 1.3; }
+        .btn { padding: 0.6rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-ghost { background: transparent; border: 2px solid var(--border); color: var(--text-muted); }
+        .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.5rem; border-radius: 50%; width: 36px; height: 36px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
+        .modal-content { background: var(--surface); width: 100%; max-width: 900px; max-height: 85vh; border-radius: 2rem; padding: 1.5rem; overflow-y: auto; }
+        .form-group { margin-bottom: 1rem; }
+        .form-control { width: 100%; padding: 0.8rem; border-radius: var(--radius-lg); border: 2px solid var(--border); background: var(--bg-app); color: var(--text-main); }
+        .login-container { max-width: 450px; margin: 2rem auto; background: var(--surface); border-radius: 2rem; padding: 2rem; text-align: center; box-shadow: var(--shadow); }
+        .text-accent { color: var(--primary); text-decoration: none; }
+        .text-accent:hover { text-decoration: underline; }
+        .team-card { cursor: pointer; transition: 0.2s; }
+        .team-card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); }
+        .avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 0.5rem; }
+        /* Estilos del visor cifra */
+        .cifra-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0F172A; color: #F1F5F9; z-index: 2000; flex-direction: column; }
+        .cifra-header { background: #1E293B; padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        .cifra-title-area h2 { font-size: 1.4rem; font-weight: 800; color: #FFFFFF; }
+        .cifra-title-area p { font-size: 0.85rem; color: #94A3B8; }
+        .cifra-toolbar { background: #1E293B; padding: 0.75rem 1rem; display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #334155; }
+        .cifra-btn { background: #334155; color: white; border: none; padding: 0.5rem 0.9rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; transition: 0.2s; }
+        .cifra-btn:hover { background: #475569; }
+        .cifra-btn-close { background: #EF4444; }
+        .cifra-body { flex: 1; overflow-y: auto; padding: 1.5rem 1rem; background: #0F172A; scroll-behavior: smooth; }
+        .cifra-content-wrapper { max-width: 750px; margin: 0 auto; font-family: 'Courier New', Courier, monospace; }
+        .chord-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        .chord-table td { padding: 0; vertical-align: top; }
+        .chord-row td { font-size: 0.8rem; font-weight: bold; color: #F59E0B; text-align: left; }
+        .lyric-row td { font-size: 1rem; line-height: 1.4; text-align: left; }
+        .list-view-container { overflow-x: auto; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 1rem; }
+        .metronome-led { width: 30px; height: 30px; background: #475569; margin: 1rem auto; border-radius: 50%; transition: 0.1s; }
+        .tuner-container { text-align: center; }
+        .tuner-note { font-size: 4rem; font-weight: 800; font-family: monospace; }
+        .tuner-meter { width: 100%; height: 12px; background: #ddd; border-radius: 20px; margin: 1rem 0; overflow: hidden; }
+        .tuner-needle { height: 100%; width: 0%; background: var(--primary); transition: width 0.05s linear; }
+        .question-timer { font-size: 1.2rem; font-weight: bold; color: var(--primary); text-align: center; margin: 0.5rem 0; }
+        .teleprompter-screen { font-size: 2rem; text-align: center; padding: 2rem; background: #000; color: white; border-radius: 2rem; min-height: 300px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; }
+        .exam-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-app); z-index: 2000; display: none; padding: 20px; overflow-y: auto; }
+        .exam-card { max-width: 700px; margin: 40px auto; background: var(--surface); border-radius: 16px; padding: 30px; box-shadow: var(--shadow); }
+        .option-btn { width: 100%; background: var(--bg-app); border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; text-align: left; }
+        .option-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
+        @media (max-width: 640px) { .app-title { font-size: 0.9rem; } .nav-item { min-width: 55px; } }
+        @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info, .cifra-toolbar, .cifra-btn-close { display: none !important; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } .cifra-modal { display: block !important; position: relative !important; height: auto !important; background: white !important; color: black !important; } .cifra-body { background: white !important; } .cifra-content-wrapper { color: black !important; } .chord-row td { color: black !important; } }
     </style>
 </head>
 <body>
+    <div id="appRoot"></div>
 
-<div id="loginScreen" class="login-screen" style="display: none;">
-    <div class="login-box">
-        <h2 style="font-weight:800; margin-bottom:10px;">FZ-Praise® Cloud</h2>
-        <p style="color: var(--text-muted); font-size:14px; margin-bottom:25px;">Ministerio de Alabanza</p>
-        <form id="loginForm">
-            <div class="form-group"><input type="email" id="loginEmail" class="form-control" placeholder="Correo electrónico" required></div>
-            <div class="form-group password-wrapper">
-                <input type="password" id="loginPassword" class="form-control" placeholder="Contraseña" required>
-                <span class="password-toggle" onclick="togglePassword('loginPassword')"><i class="fa-regular fa-eye"></i></span>
+    <!-- VISOR CIFRA CLUB (MODAL) -->
+    <div id="cifraClubModal" class="cifra-modal">
+        <div class="cifra-header">
+            <div class="cifra-title-area">
+                <h2 id="cifraModalTitle">Título de la Canción</h2>
+                <p id="cifraModalArtist">Artista / Ministerio</p>
             </div>
-            <button type="submit" class="btn" style="width:100%; justify-content:center; padding:12px;">Iniciar Sesión</button>
-        </form>
-        <button class="btn btn-secondary" style="margin-top:15px; width:100%;" onclick="showRegisterForm()">Crear Cuenta Nueva</button>
-    </div>
-</div>
-
-<div id="registerScreen" class="login-screen" style="display: none;">
-    <div class="login-box">
-        <h2 style="font-weight:800; margin-bottom:10px;">Registro de Usuario</h2>
-        <p style="color: var(--text-muted); font-size:14px; margin-bottom:15px;">Completa todos los campos obligatorios (*)</p>
-        <form id="registerForm">
-            <div class="form-group"><label>Nombre completo *</label><input type="text" id="regNombre" class="form-control" required></div>
-            <div class="form-group"><label>Correo electrónico *</label><input type="email" id="regEmail" class="form-control" required></div>
-            <div class="form-group"><label>Fecha de nacimiento *</label><input type="date" id="regFechaNac" class="form-control" required></div>
-            <div class="form-group password-wrapper">
-                <label>Contraseña *</label><input type="password" id="regPassword" class="form-control" required>
-                <span class="password-toggle" onclick="togglePassword('regPassword')"><i class="fa-regular fa-eye"></i></span>
-            </div>
-            <div class="form-group password-wrapper">
-                <label>Confirmar contraseña *</label><input type="password" id="regConfirmPassword" class="form-control" required>
-                <span class="password-toggle" onclick="togglePassword('regConfirmPassword')"><i class="fa-regular fa-eye"></i></span>
-            </div>
-            <button type="submit" class="btn" style="width:100%; justify-content:center; padding:12px;">Registrarse</button>
-        </form>
-        <button class="btn btn-secondary" style="margin-top:15px; width:100%;" onclick="showLoginForm()">Volver al inicio de sesión</button>
-    </div>
-</div>
-
-<div class="app-container" id="appContainer" style="display: none;">
-    <header>
-        <div class="logo-area"><h1>FZ-Praise® Cloud <span>PRO</span></h1></div>
-        <div class="user-status">
-            <span id="userEmailDisplay" style="font-size:13px; color:var(--text-muted);">Usuario</span>
-            <span id="userRoleBadge" class="badge-rol">Miembro</span>
-            <button class="btn btn-danger" onclick="logout()" style="padding:6px 12px;"><i class="fa-solid fa-sign-out"></i></button>
-            <button id="darkModeToggle" class="btn btn-secondary" style="padding:6px 12px;"><i class="fas fa-moon"></i></button>
+            <button class="cifra-btn cifra-btn-close" onclick="closeCifraViewer()"><i class="fa-solid fa-xmark"></i> Salir</button>
         </div>
-    </header>
+        <div class="cifra-toolbar">
+            <div class="tool-group"><span>TONO:</span><button class="cifra-btn" onclick="changeTone(-1)">-</button><span id="currentToneDisplay" style="min-width:35px; text-align:center; color:#f59e0b;">Orig</span><button class="cifra-btn" onclick="changeTone(1)">+</button></div>
+            <div class="tool-group"><span>BPM:</span><input type="number" id="cifraBpmInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()"><button id="btnMetronomeToggle" class="cifra-btn" onclick="toggleCifraMetronome()"><i class="fa-solid fa-drum"></i> Iniciar</button><div id="metronomeVisualDot" class="metronome-dot"></div></div>
+            <div class="tool-group"><span>SCROLL:</span><button id="btnAutoScrollToggle" class="cifra-btn" onclick="toggleCifraAutoScroll()"><i class="fa-solid fa-play"></i> Play</button><button class="cifra-btn" onclick="adjustScrollSpeed(2)"><i class="fa-solid fa-angle-down"></i></button><button class="cifra-btn" onclick="adjustScrollSpeed(-2)"><i class="fa-solid fa-angle-up"></i></button></div>
+            <div class="tool-group"><span>ZOOM:</span><button class="cifra-btn" onclick="adjustCifraFontSize(-1)">-</button><button class="cifra-btn" onclick="adjustCifraFontSize(1)">+</button></div>
+            <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+            <div class="tool-group" style="margin-left:auto;"><button class="cifra-btn" id="prevSongBtn" onclick="navigateSong(-1)">◀ Anterior</button><button class="cifra-btn" id="nextSongBtn" onclick="navigateSong(1)">Siguiente ▶</button></div>
+        </div>
+        <div id="cifraBodyContainer" class="cifra-body"><div id="cifraContentWrapper" class="cifra-content-wrapper"></div></div>
+    </div>
 
-    <nav>
-        <button onclick="switchView('songs-view')" id="nav-songs-view" class="active"><i class="fa-solid fa-music"></i> Canciones</button>
-        <button onclick="switchView('lists-view')" id="nav-lists-view"><i class="fa-solid fa-list-ul"></i> Listas</button>
-        <button onclick="switchView('members-view')" id="nav-members-view"><i class="fa-solid fa-users"></i> Directorio</button>
-        <button onclick="switchView('moodle-view')" id="nav-moodle-view"><i class="fa-solid fa-graduation-cap"></i> Aula Virtual</button>
-        <button onclick="switchView('resources-view')" id="nav-resources-view"><i class="fa-solid fa-tools"></i> Recursos</button>
-        <button onclick="switchView('admin-view')" id="nav-admin-view" style="display:none;"><i class="fa-solid fa-lock"></i> Admin</button>
-    </nav>
-
-    <main class="main-content">
-        <!-- SECCIÓN CANCIONES -->
-        <section id="songs-view" class="view-section active">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
-                <div><h2>Catálogo de Canciones</h2><p style="color:var(--text-muted);">Base global del ministerio</p></div>
-                <button class="btn admin-only" id="newSongBtn" style="display:none;" onclick="openSongModal()"><i class="fa-solid fa-plus"></i> Nueva Canción</button>
-            </div>
-            <div class="form-group"><input type="text" id="searchSongInput" class="form-control" placeholder="Filtrar por título, artista o tono..." oninput="filterSongs()"></div>
-            <div class="card-grid" id="songsGrid"></div>
-        </section>
-
-        <!-- SECCIÓN LISTAS -->
-        <section id="lists-view" class="view-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <div><h2>Listas de Alabanza</h2><p style="color:var(--text-muted);">Planificación semanal</p></div>
-                <button class="btn admin-only" onclick="openCreateListModal()" style="display:none;"><i class="fa-solid fa-calendar-plus"></i> Nueva Lista</button>
-            </div>
-            <div class="card-grid" id="listsGrid"></div>
-        </section>
-
-        <!-- SECCIÓN DIRECTORIO -->
-        <section id="members-view" class="view-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <div><h2>Miembros del Equipo</h2><p style="color:var(--text-muted);">Directorio completo</p></div>
-                <button class="btn admin-only" onclick="openAddMemberModal()" style="display:none;"><i class="fa-solid fa-user-plus"></i> Registrar Miembro</button>
-            </div>
-            <div class="card-grid" id="membersGrid"></div>
-        </section>
-
-        <!-- SECCIÓN AULA VIRTUAL -->
-        <section id="moodle-view" class="view-section">
-            <div style="background:linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%); padding:25px; border-radius:12px; margin-bottom:20px;">
-                <h2 style="font-size:1.5rem;">Capacitación de Alabanza & Teología</h2>
-                <p style="color:#CBD5E1;">Plataforma de evaluación continua</p>
-            </div>
-            <div id="moodleCoursesContainer"></div>
-            <button class="btn admin-only" onclick="openCreateCourseModal()" style="margin-top:15px; display:none;"><i class="fa-solid fa-plus"></i> Crear Curso</button>
-        </section>
-
-        <!-- SECCIÓN RECURSOS -->
-        <section id="resources-view" class="view-section">
-            <div class="card-grid">
-                <div class="premium-card" onclick="openTeleprompter()"><i class="fas fa-scroll" style="font-size:2rem;"></i><h3>Teleprompter</h3><p>Letra gigante con toque</p></div>
-                <div class="premium-card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Respaldo JSON</h3><p>Exportar / Importar</p></div>
-                <div class="premium-card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3><p>Guitarra / Bajo</p></div>
-                <div class="premium-card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3></div>
-                <div class="premium-card" onclick="viewShiftsCalendar()"><i class="fas fa-calendar-alt"></i><h3>Turnos</h3></div>
-            </div>
-        </section>
-
-        <!-- SECCIÓN ADMIN -->
-        <section id="admin-view" class="view-section">
-            <div class="card-grid">
-                <div class="premium-card" onclick="adminAttendance()"><i class="fas fa-user-check"></i><h3>Control Asistencia</h3></div>
-                <div class="premium-card" onclick="adminShifts()"><i class="fas fa-calendar-week"></i><h3>Gestión Turnos</h3></div>
-                <div class="premium-card" onclick="adminTeam()"><i class="fas fa-users"></i><h3>Gestionar Equipo</h3></div>
-            </div>
-        </section>
-    </main>
-</div>
-
-<!-- MODALES -->
-<div id="songModal" class="modal"><div class="modal-content"><h3>Canción</h3><form id="songForm"><input type="hidden" id="songId"><div class="form-group"><label>Título</label><input type="text" id="songTitle" class="form-control" required></div><div class="form-group"><label>Artista</label><input type="text" id="songArtist" class="form-control"></div><div class="form-group"><label>Categoría</label><select id="songCategory" class="form-control"><option>Adoración</option><option>Exaltación</option><option>Júbilo</option></select></div><div class="form-group"><label>Tonalidad</label><input type="text" id="songKey" class="form-control" required></div><div class="form-group"><label>BPM</label><input type="number" id="songBpm" class="form-control" value="80"></div><div class="form-group"><label>Letra (usa [Acorde])</label><textarea id="songLyrics" rows="8" class="form-control"></textarea></div><div style="display:flex; justify-content:flex-end; gap:10px;"><button type="button" class="btn btn-secondary" onclick="closeModal('songModal')">Cancelar</button><button type="submit" class="btn">Guardar</button></div></form></div></div>
-
-<div id="listModal" class="modal"><div class="modal-content"><h3>Nueva Lista</h3><div class="form-group"><input type="text" id="listName" class="form-control" placeholder="Nombre del evento"></div><div class="form-group"><input type="text" id="listDate" class="form-control" placeholder="Fecha (opcional)"></div><div style="display:flex; gap:10px;"><button class="btn btn-secondary" onclick="closeModal('listModal')">Cancelar</button><button class="btn" onclick="saveList()">Crear</button></div></div></div>
-
-<div id="addMemberModal" class="modal"><div class="modal-content"><h3>Registrar Miembro</h3><div class="form-group"><label>ID de Auth (UUID)</label><input type="text" id="memberAuthId" class="form-control" placeholder="uuid del usuario"></div><div class="form-group"><label>Nombre</label><input type="text" id="memberName" class="form-control" required></div><div class="form-group"><label>Rol</label><select id="memberRole" class="form-control"><option value="miembro">Miembro</option><option value="admin">Administrador</option></select></div><div style="display:flex; gap:10px;"><button class="btn btn-secondary" onclick="closeModal('addMemberModal')">Cancelar</button><button class="btn" onclick="addMember()">Registrar</button></div></div></div>
-
-<div id="profileModal" class="modal"><div class="modal-content" id="profileContent"></div></div>
-
-<div id="backupModal" class="modal"><div class="modal-content"><h3>Respaldo JSON</h3><button class="btn" onclick="exportBackup()"><i class="fas fa-download"></i> Exportar</button><div style="margin:15px 0"><input type="file" id="restoreFile" accept=".json" class="form-control"></div><button class="btn" onclick="importBackup()">Restaurar</button><button class="btn btn-secondary" onclick="closeModal('backupModal')">Cerrar</button></div></div>
-
-<div id="teleprompterModal" class="modal"><div class="modal-content"><h3>Teleprompter</h3><select id="teleSongSelect" class="form-control"></select><div id="teleLyricsDisplay" class="cifra-container" style="margin-top:15px; min-height:200px;">Selecciona una canción</div><button class="btn btn-secondary" onclick="closeModal('teleprompterModal')">Cerrar</button></div></div>
-
-<div id="cifraModal" class="modal"><div class="modal-content" style="max-width:900px;"><div style="display:flex; justify-content:space-between; margin-bottom:15px;"><h3 id="cifraTitle"></h3><button class="btn btn-secondary" onclick="closeModal('cifraModal')">Cerrar</button></div><div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;"><button class="btn" onclick="transposeSong(-1)">-1</button><span id="tonalShiftSpan">Original</span><button class="btn" onclick="transposeSong(1)">+1</button><button id="metroBtn" class="btn" onclick="toggleMetronome()"><i class="fa-solid fa-play"></i> Metrónomo</button><input type="number" id="metroBpm" style="width:70px;" value="80" class="form-control"><div id="metroDot" style="width:12px;height:12px;background:#475569;border-radius:50%;"></div><button class="btn admin-only" id="saveCifraBtn" onclick="saveTransposedKey()" style="display:none; background:var(--accent);">Guardar Tono</button></div><div id="cifraContent" class="cifra-container"></div></div></div>
-
-<div id="examOverlay" class="exam-overlay"><div class="exam-card"><div style="display:flex; justify-content:space-between;"><h2 id="examProgress"></h2><div id="examTimer" style="font-weight:800; color:var(--warning);">--s</div></div><div class="timer-bar-container"><div id="examTimerBar" class="timer-bar-fill"></div></div><h3 id="examQuestion" style="margin:20px 0;"></h3><div id="examOptions"></div><div style="margin-top:20px;"><button class="btn" id="examNextBtn" style="background:var(--accent);">Enviar Respuesta <i class="fa-solid fa-chevron-right"></i></button></div></div></div>
-
-<script>
+<script>    
     // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    let currentUser = null, isAdmin = false;
-    let songs = [], lists = [], perfiles = [], asistencia = [], turnos = [], cursos = [], modulos = [], examenes = [], preguntas = [];
-    let currentSongIndex = -1, cifraCurrentSong = null, cifraShift = 0, metroInterval = null;
-    let examQuestions = [], examCurrentIndex = 0, examScore = 0, examTimerInterval = null, examTimeLeft = 0, currentExamId = null, selectedOption = null;
-    let currentTab = 'songs';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let currentUser = null;
+    let songs = [], lists = [], team = [], attendance = [], shifts = [], modules = [], cursos = [], modulosList = [], examenes = [], preguntas = [];
+    let currentTab = 'songs', selectedListId = null, listsViewMode = 'grid';
+    let sortableInstance = null, metronomeInterval = null, adminVisible = false;
+    let isAdminUser = false;
+    const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
+    const noteMap = { 'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11 };
+    const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    let cifraCurrentSong = null;
+    let cifraOriginalLyrics = "";
+    let cifraSemitonesShift = 0;
+    let cifraScrollInterval = null;
+    let cifraScrollSpeed = 35;
+    let cifraFontSize = 18;
+    let cifraMetroInterval = null;
+    let cifraMetroRunning = false;
+    let currentSongIndex = -1;
+    let examQuestions = [], examCurrentIndex = 0, examScore = 0, examTimer = null, examTimeLeft = 0, currentExamId = null, selectedOption = null;
 
     // ==================== FUNCIONES AUXILIARES ====================
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function showModal(content, id = 'tempModal') { let div = document.getElementById(id); if(!div){ div=document.createElement('div'); div.id=id; div.className='modal'; document.body.appendChild(div); } div.innerHTML=`<div class="modal-content">${content}</div>`; div.style.display='flex'; }
-    function generateId() { return crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).substr(2,9); }
-    function togglePassword(fieldId) { let field = document.getElementById(fieldId); if(field.type === 'password') field.type = 'text'; else field.type = 'password'; }
+    function closeModal() { document.getElementById('modal')?.remove(); }
+    function showModal(content) { const div = document.createElement('div'); div.id = 'modal'; div.className = 'modal'; div.style.display = 'flex'; div.innerHTML = `<div class="modal-content">${content}</div>`; document.body.appendChild(div); }
+    function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime}); }
+    function generateUniqueId() { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
+
+    function transposeChord(chord, semitones) {
+        const match = chord.match(/^([A-G][#b]?)(.*)$/);
+        if (!match) return chord;
+        let base = match[1], suffix = match[2];
+        let idx = noteMap[base];
+        if (idx === undefined) return chord;
+        let newIdx = (idx + semitones + 12) % 12;
+        return noteNames[newIdx] + suffix;
+    }
+    function transposeLyrics(text, fromKey, toKey) {
+        if (!text || !fromKey || !toKey || fromKey === toKey) return text;
+        const fromBase = fromKey.replace(/m$/, ''), toBase = toKey.replace(/m$/, '');
+        let semitones = (noteMap[toBase] - noteMap[fromBase] + 12) % 12;
+        if (fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
+        if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12;
+        return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`);
+    }
+
+    function convertSpacedChordsToBrackets(text) {
+        let lines = text.split('\n');
+        let result = [];
+        let i = 0;
+        while (i < lines.length) {
+            let line = lines[i];
+            if (line.match(/^[\sA-Ga-g0-9#b\/]+$/) && !line.match(/[aeiouáéíóú]/i)) {
+                let nextLine = lines[i+1] || '';
+                let chordLine = line.trim();
+                let lyricLine = nextLine;
+                let chords = chordLine.split(/\s+/).filter(c => c.length > 0);
+                let words = lyricLine.split(/(\s+)/);
+                let newLyric = '';
+                let chordIndex = 0;
+                for (let w of words) {
+                    if (w.trim().length > 0 && chordIndex < chords.length) {
+                        newLyric += `[${chords[chordIndex]}] ${w}`;
+                        chordIndex++;
+                    } else newLyric += w;
+                }
+                result.push(newLyric);
+                i += 2;
+            } else {
+                result.push(line);
+                i++;
+            }
+        }
+        return result.join('\n');
+    }
+
+    function renderChordsOverLyrics(text) {
+        if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
+        let lines = text.split('\n');
+        let html = '';
+        for (let line of lines) {
+            line = line.trim();
+            if (line === '') continue;
+            let parts = [];
+            let chordRegex = /\[([^\]]+)\]/g;
+            let lastIdx = 0;
+            let match;
+            while ((match = chordRegex.exec(line)) !== null) {
+                let textBefore = line.substring(lastIdx, match.index);
+                if (textBefore) parts.push({ type: 'text', content: textBefore });
+                parts.push({ type: 'chord', content: match[1] });
+                lastIdx = match.index + match[0].length;
+            }
+            if (lastIdx < line.length) parts.push({ type: 'text', content: line.substring(lastIdx) });
+            if (parts.length === 0) {
+                html += `<div class="song-line"><div class="chord-line"></div><div class="lyric-line">${escapeHtml(line)}</div></div>`;
+                continue;
+            }
+            html += `<table class="chord-table">`;
+            html += `<tr class="chord-row">`;
+            for (let part of parts) {
+                if (part.type === 'chord') {
+                    html += `<td><span class="chord-word">${escapeHtml(part.content)}</span></td>`;
+                } else {
+                    let words = part.content.split(/(\s+)/);
+                    for (let w of words) {
+                        if (w.trim() === '') html += `<td>&nbsp;</td>`;
+                        else html += `<td>&nbsp;</td>`;
+                    }
+                }
+            }
+            html += `<tr>`;
+            html += `<tr class="lyric-row">`;
+            for (let part of parts) {
+                if (part.type === 'chord') {
+                    html += `<td>&nbsp;</td>`;
+                } else {
+                    let words = part.content.split(/(\s+)/);
+                    for (let w of words) {
+                        if (w.trim() === '') html += `<td>&nbsp;</td>`;
+                        else html += `<td>${escapeHtml(w)}</td>`;
+                    }
+                }
+            }
+            html += `</tr>`;
+            html += `</table>`;
+        }
+        return html;
+    }
 
     // ==================== AUTENTICACIÓN ====================
     async function login(email, password) {
-        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) { alert(error.message); return false; }
-        currentUser = data.user;
-        const { data: profile } = await supabase.from('perfiles').select('rol').eq('id', currentUser.id).single();
-        isAdmin = profile?.rol === 'admin';
-        await loadAllData();
-        renderApp();
-        return true;
+        try {
+            const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            currentUser = data.user;
+            const { data: profile } = await supabaseClient.from('perfiles').select('rol').eq('id', currentUser.id).single();
+            isAdminUser = (profile && profile.rol === 'admin');
+            await loadUserData();
+            renderApp();
+        } catch (err) { alert("Error al iniciar sesión: " + err.message); }
     }
-    async function register(nombre, email, password, fechaNac) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) { alert(error.message); return false; }
-        if (data.user) {
-            await supabase.from('perfiles').insert([{ id: data.user.id, nombre, fecha_nacimiento: fechaNac, rol: 'miembro' }]);
-            alert("Registro exitoso. Revisa tu correo para confirmar (si está activada la verificación). Ahora puedes iniciar sesión.");
-            showLoginForm();
-        }
-        return true;
+    async function resetPassword(email) {
+        try {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+            if (error) throw error;
+            alert("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
+        } catch(err) { alert("Error: " + err.message); }
     }
-    async function logout() { await supabase.auth.signOut(); currentUser = null; isAdmin = false; showLoginForm(); }
-    
-    function showLoginForm() {
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('registerScreen').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'none';
+    async function logout() { await supabaseClient.auth.signOut(); currentUser = null; isAdminUser = false; renderLogin(); }
+    function renderRegister() {
+        document.getElementById('appRoot').innerHTML = `
+            <div class="login-container">
+                <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
+                <h2>Crear Cuenta</h2>
+                <div class="form-group"><input type="text" id="regName" class="form-control" placeholder="Nombre completo *" required></div>
+                <div class="form-group"><input type="email" id="regEmail" class="form-control" placeholder="Correo electrónico *" required></div>
+                <div class="form-group"><input type="date" id="regFecha" class="form-control" required></div>
+                <div class="form-group"><input type="password" id="regPass" class="form-control" placeholder="Contraseña *" required></div>
+                <div class="form-group"><input type="password" id="regConfirmPass" class="form-control" placeholder="Confirmar contraseña *" required></div>
+                <button class="btn btn-primary w-100 mb-2" onclick="registerUser()">Registrarme</button>
+                <button class="btn btn-ghost w-100" onclick="renderLogin()">Volver al inicio</button>
+            </div>`;
     }
-    function showRegisterForm() {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('registerScreen').style.display = 'flex';
-        document.getElementById('appContainer').style.display = 'none';
-    }
-    
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await login(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value);
-    });
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nombre = document.getElementById('regNombre').value.trim();
+    async function registerUser() {
+        const name = document.getElementById('regName').value.trim();
         const email = document.getElementById('regEmail').value.trim();
-        const pass = document.getElementById('regPassword').value;
-        const confirm = document.getElementById('regConfirmPassword').value;
-        const fecha = document.getElementById('regFechaNac').value;
-        if (!nombre || !email || !pass || !fecha) { alert("Todos los campos marcados con * son obligatorios"); return; }
-        if (pass !== confirm) { alert("Las contraseñas no coinciden"); return; }
-        await register(nombre, email, pass, fecha);
-    });
+        const fecha = document.getElementById('regFecha').value;
+        const password = document.getElementById('regPass').value;
+        const confirm = document.getElementById('regConfirmPass').value;
+        if (!name || !email || !fecha || !password) { alert("Completa todos los campos"); return; }
+        if (password !== confirm) { alert("Las contraseñas no coinciden"); return; }
+        try {
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) throw error;
+            if (data.user) {
+                await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, fecha_nacimiento: fecha, rol: 'user' }]);
+                alert("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión.");
+                renderLogin();
+            }
+        } catch (err) {
+            if (err.message.includes("User already registered")) alert("Este correo ya está registrado.");
+            else alert("Error en el registro: " + err.message);
+        }
+    }
+    function renderLogin() {
+        document.getElementById('appRoot').innerHTML = `
+            <div class="login-container">
+                <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
+                <h2>Praise Engine FZ® Cloud</h2>
+                <div class="form-group"><input type="email" id="loginEmail" class="form-control" placeholder="Email"></div>
+                <div class="form-group"><input type="password" id="loginPass" class="form-control" placeholder="Contraseña"></div>
+                <button class="btn btn-primary w-100 mb-2" onclick="login(loginEmail.value, loginPass.value)">Iniciar Sesión</button>
+                <button class="btn btn-ghost w-100 mb-2" onclick="renderRegister()">Registrarse</button>
+                <div style="text-align: center; margin-top: 10px;"><a href="#" onclick="showResetPassword()" class="text-accent small">¿Olvidaste tu contraseña?</a></div>
+            </div>`;
+        window.showResetPassword = () => { const email = prompt("Introduce tu email:"); if(email) resetPassword(email); };
+    }
 
     // ==================== CARGA DE DATOS ====================
-    async function loadAllData() {
+    async function loadUserData() {
         if (!currentUser) return;
-        const { data: s } = await supabase.from('canciones').select('*'); songs = s || [];
-        const { data: l } = await supabase.from('listas').select('*'); lists = l || [];
-        for(let list of lists) {
-            const { data: items } = await supabase.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
-            list.items = items || [];
-        }
-        const { data: p } = await supabase.from('perfiles').select('*'); perfiles = p || [];
-        const { data: a } = await supabase.from('asistencia').select('*'); asistencia = a || [];
-        const { data: t } = await supabase.from('turnos').select('*'); turnos = t || [];
-        const { data: c } = await supabase.from('cursos').select('*'); cursos = c || [];
-        const { data: m } = await supabase.from('modulos').select('*'); modulos = m || [];
-        const { data: e } = await supabase.from('examenes').select('*'); examenes = e || [];
-        const { data: q } = await supabase.from('preguntas').select('*'); preguntas = q || [];
+        try {
+            const { data: s } = await supabaseClient.from('canciones').select('*'); songs = s || [];
+            const { data: l } = await supabaseClient.from('listas').select('*'); lists = l || [];
+            for (let list of lists) {
+                const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
+                list.items = items || [];
+            }
+            const { data: t } = await supabaseClient.from('equipo').select('*'); team = t || [];
+            const { data: a } = await supabaseClient.from('asistencia').select('*'); attendance = a || [];
+            const { data: sh } = await supabaseClient.from('turnos').select('*'); shifts = sh || [];
+            const { data: c } = await supabaseClient.from('cursos').select('*'); cursos = c || [];
+            const { data: m } = await supabaseClient.from('modulos').select('*'); modulosList = m || [];
+            const { data: e } = await supabaseClient.from('examenes').select('*'); examenes = e || [];
+            const { data: p } = await supabaseClient.from('preguntas').select('*'); preguntas = p || [];
+            if (cursos.length === 0 && isAdminUser) {
+                await supabaseClient.from('cursos').insert([{ id: 'curso_worship', titulo: 'Introducción a la Adoración Cristiana', descripcion: 'Curso completo' }]);
+                await supabaseClient.from('modulos').insert([{ id: 'mod_worship', curso_id: 'curso_worship', titulo: 'Módulo Único', orden_index: 1 }]);
+                await supabaseClient.from('examenes').insert([{ id: 'exam_worship', modulo_id: 'mod_worship', titulo: 'Evaluación Final', tiempo_por_pregunta: 15 }]);
+                const preg = [
+                    { examen_id: 'exam_worship', enunciado: '¿Cuál es la raíz etimológica del AT para "adorar"?', opcion_a: 'Abad', opcion_b: 'Shachah', opcion_c: 'Latreia', opcion_d: 'Proskuneo', opcion_correcta: 'B', orden_index: 1 },
+                    { examen_id: 'exam_worship', enunciado: 'En el NT, "Proskuneo" evoca:', opcion_a: 'Ofrecer holocaustos', opcion_b: 'Cantar salmos', opcion_c: 'Besar la mano en reverencia', opcion_d: 'Edificar altares', opcion_correcta: 'C', orden_index: 2 },
+                    { examen_id: 'exam_worship', enunciado: 'Romanos 12:1, el "culto racional" es:', opcion_a: 'Asistir puntualmente', opcion_b: 'Presentar el cuerpo como sacrificio vivo', opcion_c: 'Cantar himnos', opcion_d: 'Diezmar', opcion_correcta: 'B', orden_index: 3 },
+                    { examen_id: 'exam_worship', enunciado: 'Dimensión que describe la comunión entre creyentes:', opcion_a: 'Vertical', opcion_b: 'Horizontal', opcion_c: 'Intelectual', opcion_d: 'Emocional', opcion_correcta: 'B', orden_index: 4 },
+                    { examen_id: 'exam_worship', enunciado: 'Principio regulador de Calvino:', opcion_a: 'Se puede usar cualquier arte', opcion_b: 'Limitarse a lo ordenado en la Biblia', opcion_c: 'Libertad absoluta', opcion_d: 'Solo música instrumental', opcion_correcta: 'B', orden_index: 5 },
+                    { examen_id: 'exam_worship', enunciado: 'Lutero sostenía el principio normativo:', opcion_a: 'Eliminar tradiciones', opcion_b: 'Mantener prácticas no contradictorias', opcion_c: 'Prohibir la música', opcion_d: 'Los laicos no cantan', opcion_correcta: 'B', orden_index: 6 },
+                    { examen_id: 'exam_worship', enunciado: 'Poner manos sobre el animal sacrificado simbolizaba:', opcion_a: 'Bendición', opcion_b: 'Transferencia de culpa', opcion_c: 'Propiedad', opcion_d: 'Purificación', opcion_correcta: 'B', orden_index: 7 },
+                    { examen_id: 'exam_worship', enunciado: 'Juan 4, los verdaderos adoradores adoran en:', opcion_a: 'Jerusalén', opcion_b: 'Espíritu y verdad', opcion_c: 'Templos', opcion_d: 'Silencio', opcion_correcta: 'B', orden_index: 8 },
+                    { examen_id: 'exam_worship', enunciado: 'Rol de los músicos en la iglesia:', opcion_a: 'Exhibir virtuosismo', opcion_b: 'Ser servidores invisibles', opcion_c: 'Reemplazar la predicación', opcion_d: 'Competir', opcion_correcta: 'B', orden_index: 9 },
+                    { examen_id: 'exam_worship', enunciado: 'La palabra "Latreia" se traduce como:', opcion_a: 'Canto coral', opcion_b: 'Servicio sagrado', opcion_c: 'Éxtasis', opcion_d: 'Ofrenda', opcion_correcta: 'B', orden_index: 10 },
+                    { examen_id: 'exam_worship', enunciado: 'La adoración celestial es:', opcion_a: 'Cesará', opcion_b: 'Eterna y continua', opcion_c: 'Temporal', opcion_d: 'Solo domingos', opcion_correcta: 'B', orden_index: 11 },
+                    { examen_id: 'exam_worship', enunciado: 'El sincretismo litúrgico es peligroso porque:', opcion_a: 'Requiere tecnología', opcion_b: 'Mezcla ídolos con la fe', opcion_c: 'Divide generaciones', opcion_d: 'Exige muchos ensayos', opcion_correcta: 'B', orden_index: 12 },
+                    { examen_id: 'exam_worship', enunciado: 'Expresión de adoración ordenada en Salmos:', opcion_a: 'Permanecer inmóvil', opcion_b: 'Batir las manos', opcion_c: 'Danzar de espaldas', opcion_d: 'Vestir túnicas', opcion_correcta: 'B', orden_index: 13 },
+                    { examen_id: 'exam_worship', enunciado: 'Las misiones existen porque:', opcion_a: 'Extender influencia', opcion_b: 'La adoración aún no existe en esos pueblos', opcion_c: 'Establecer centros', opcion_d: 'Requisito', opcion_correcta: 'B', orden_index: 14 },
+                    { examen_id: 'exam_worship', enunciado: 'Koinonía se asocia a:', opcion_a: 'Liderazgo', opcion_b: 'Comunión fraterna', opcion_c: 'Teoría musical', opcion_d: 'Orden litúrgico', opcion_correcta: 'B', orden_index: 15 },
+                    { examen_id: 'exam_worship', enunciado: 'Evento central que transformó la adoración del AT al NT:', opcion_a: 'Templo de Herodes', opcion_b: 'El sacrificio de Cristo', opcion_c: 'Traducción de la Biblia', opcion_d: 'Invención de himnarios', opcion_correcta: 'B', orden_index: 16 },
+                    { examen_id: 'exam_worship', enunciado: 'Adorar "en verdad" significa:', opcion_a: 'Opiniones personales', opcion_b: 'Conformidad con la Palabra y sinceridad', opcion_c: 'Canciones históricas', opcion_d: 'Evitar instrumentos', opcion_correcta: 'B', orden_index: 17 },
+                    { examen_id: 'exam_worship', enunciado: 'Motivación para la excelencia técnica:', opcion_a: 'Lograr aplauso', opcion_b: 'Dar lo mejor a Dios', opcion_c: 'Demostrar superioridad', opcion_d: 'Grabar producciones', opcion_correcta: 'B', orden_index: 18 },
+                    { examen_id: 'exam_worship', enunciado: 'Peligro del legalismo litúrgico:', opcion_a: 'Fomentar avivamiento', opcion_b: 'Priorizar formas sobre el corazón', opcion_c: 'Invertir tiempo en pobres', opcion_d: 'Participación activa', opcion_correcta: 'B', orden_index: 19 },
+                    { examen_id: 'exam_worship', enunciado: 'Virtud distintiva de un líder de alabanza:', opcion_a: 'Rango vocal', opcion_b: 'Corazón de siervo', opcion_c: 'Carisma', opcion_d: 'Control autocrático', opcion_correcta: 'B', orden_index: 20 }
+                ];
+                for (let q of preg) await supabaseClient.from('preguntas').insert(q);
+                const { data: newC } = await supabaseClient.from('cursos').select('*'); cursos = newC || [];
+                const { data: newM } = await supabaseClient.from('modulos').select('*'); modulosList = newM || [];
+                const { data: newE } = await supabaseClient.from('examenes').select('*'); examenes = newE || [];
+                const { data: newP } = await supabaseClient.from('preguntas').select('*'); preguntas = newP || [];
+            }
+        } catch(e) { console.error("Error cargando datos:", e); alert("Error al cargar datos. Recarga la página."); }
     }
 
-    // ==================== RENDER APP ====================
-    function renderApp() {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('registerScreen').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('userEmailDisplay').innerText = currentUser.email;
-        document.getElementById('userRoleBadge').innerText = isAdmin ? 'Administrador' : 'Miembro';
-        document.getElementById('userRoleBadge').style.background = isAdmin ? 'var(--warning)' : 'var(--primary)';
-        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'inline-flex' : 'none');
-        document.getElementById('nav-admin-view').style.display = isAdmin ? 'flex' : 'none';
-        renderCurrentView();
+    // ==================== FUNCIONES DE GUARDADO (solo admin) ====================
+    async function saveSong(song) {
+        if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return false; }
+        try {
+            if (!song.id) song.id = generateUniqueId();
+            if (song.id && songs.some(s => s.id === song.id)) await supabaseClient.from('canciones').update(song).eq('id', song.id);
+            else await supabaseClient.from('canciones').insert(song);
+            await loadUserData(); renderCurrentView(); return true;
+        } catch (err) { console.error(err); alert("Error al guardar: " + err.message); return false; }
     }
-    function switchView(viewId) {
-        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
-        document.getElementById('nav-' + viewId).classList.add('active');
+    async function deleteSong(id) { if (!isAdminUser) return; await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
+    async function saveList(list) {
+        if (!isAdminUser) { alert("Solo administrador puede crear/editar listas."); return; }
+        try {
+            if (list.id) {
+                await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id);
+                await supabaseClient.from('lista_items').delete().eq('lista_id', list.id);
+                for (let i = 0; i < list.items.length; i++) {
+                    const item = list.items[i];
+                    await supabaseClient.from('lista_items').insert({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || item.key_override || null, orden: i });
+                }
+            } else {
+                const newId = generateUniqueId();
+                await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date });
+                for (let i = 0; i < list.items.length; i++) {
+                    const item = list.items[i];
+                    await supabaseClient.from('lista_items').insert({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || item.key_override || null, orden: i });
+                }
+            }
+            await loadUserData(); renderCurrentView();
+        } catch(e) { console.error(e); alert("Error guardando lista."); }
+    }
+    async function deleteList(id) { if (!isAdminUser) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
+    async function saveTeam(members) { if (!isAdminUser) return; team = members; await supabaseClient.from('equipo').delete().neq('id', '0'); for (let m of team) { if (!m.id) m.id = generateUniqueId(); await supabaseClient.from('equipo').insert(m); } await loadUserData(); renderCurrentView(); }
+    async function saveAttendance(reg) { if (!isAdminUser) return; attendance = reg; await supabaseClient.from('asistencia').delete().neq('id', '0'); for (let a of attendance) await supabaseClient.from('asistencia').insert(a); await loadUserData(); }
+    async function saveShifts(sh) { if (!isAdminUser) return; shifts = sh; await supabaseClient.from('turnos').delete().neq('id', '0'); for (let s of shifts) await supabaseClient.from('turnos').insert(s); await loadUserData(); }
+
+    // ==================== RENDER PRINCIPAL ====================
+    function renderApp() {
+        if (!currentUser) { renderLogin(); return; }
+        document.getElementById('appRoot').innerHTML = `
+            <header class="app-header">
+                <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> Praise Engine FZ® Cloud <small>| I.E.C. Fortaleza</small></div>
+                <div class="nav-icons">
+                    <div class="nav-item active" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
+                    <div class="nav-item" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+                    <div class="nav-item" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
+                    <div class="nav-item" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
+                    ${isAdminUser ? `<div class="nav-item" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
+                    <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
+                    <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
+                </div>
+            </header>
+            <div class="container">
+                <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div>
+                <div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div>
+                <div id="mainContent"></div>
+            </div>`;
+        document.querySelectorAll('.nav-item[data-tab]').forEach(el => el.addEventListener('click', () => {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active'); currentTab = el.dataset.tab; selectedListId = null; renderCurrentView();
+        }));
+        const darkToggle = document.getElementById('darkModeToggle');
+        darkToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('iec_darkmode', document.body.classList.contains('dark'));
+            darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro';
+        });
+        if (localStorage.getItem('iec_darkmode') === 'true') { document.body.classList.add('dark'); darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro'; }
         renderCurrentView();
+        const titleEl = document.getElementById('easterEggTitle');
+        let timer = null;
+        titleEl.addEventListener('mousedown', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 5000));
+        titleEl.addEventListener('mouseup', () => clearTimeout(timer));
     }
     function renderCurrentView() {
-        if (document.getElementById('songs-view').classList.contains('active')) renderSongs();
-        if (document.getElementById('lists-view').classList.contains('active')) renderLists();
-        if (document.getElementById('members-view').classList.contains('active')) renderMembers();
-        if (document.getElementById('moodle-view').classList.contains('active')) renderMoodle();
+        if (currentTab === 'songs') renderSongsGrid();
+        else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
+        else if (currentTab === 'resources') renderResources();
+        else if (currentTab === 'moodle') renderMoodle();
+        else if (currentTab === 'admin' && isAdminUser) renderAdmin();
     }
-    
-    // ==================== CANCIONES ====================
-    function renderSongs() {
-        const query = document.getElementById('searchSongInput')?.value.toLowerCase() || '';
-        let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || (s.artist && s.artist.toLowerCase().includes(query)) || s.key.toLowerCase().includes(query));
+
+    // ==================== CANCIONERO ====================
+    function renderSongsGrid() {
+        const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
+        let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
         filtered.sort((a,b)=>a.title.localeCompare(b.title));
-        const container = document.getElementById('songsGrid');
-        container.innerHTML = filtered.map((s, idx) => `<div class="premium-card" onclick="openCifraViewer('${s.id}', ${idx})"><div style="display:flex; justify-content:space-between;"><h4 style="font-weight:700;">${escapeHtml(s.title)}</h4><span style="background:rgba(59,130,246,0.15); color:var(--primary-light); padding:2px 8px; border-radius:4px;">${s.key}</span></div><p style="color:var(--text-muted);">${s.artist || 'Sin artista'}</p><div style="margin-top:12px; display:flex; gap:8px;" onclick="event.stopPropagation()">${isAdmin ? `<button class="btn btn-secondary" style="padding:4px 8px;" onclick="openSongModal('${s.id}')">Editar</button><button class="btn btn-danger" style="padding:4px 8px;" onclick="deleteSong('${s.id}')">Eliminar</button>` : ''}<button class="btn" style="padding:4px 8px;" onclick="openMetronome('${s.id}')">Metrónomo</button></div></div>`).join('');
+        document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button><button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar JSON</button>` : `<span class="text-muted">Canciones globales</span>`;
+        const container = document.getElementById('mainContent');
+        container.innerHTML = `<div class="grid">${filtered.map((s, idx) => `<div class="card" onclick="openCifraViewer('${s.id}', ${idx})"><span class="card-category">${s.category}</span><div class="card-title" style="color:var(--primary-light); font-weight:bold;">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${isAdminUser ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button></div></div>`).join('')}</div>`;
     }
-    function filterSongs() { renderSongs(); }
-    function openSongModal(id=null) { if(!isAdmin) return; const s = songs.find(s=>s.id===id) || {}; document.getElementById('songId').value = s.id || ''; document.getElementById('songTitle').value = s.title || ''; document.getElementById('songArtist').value = s.artist || ''; document.getElementById('songCategory').value = s.category || 'Adoración'; document.getElementById('songKey').value = s.key || 'C'; document.getElementById('songBpm').value = s.bpm || 80; document.getElementById('songLyrics').value = s.lyrics || ''; document.getElementById('songModal').style.display = 'flex'; }
-    document.getElementById('songForm').addEventListener('submit', async (e) => { e.preventDefault(); if(!isAdmin) return; const id = document.getElementById('songId').value; const song = { id: id || generateId(), title: document.getElementById('songTitle').value, artist: document.getElementById('songArtist').value, category: document.getElementById('songCategory').value, key: document.getElementById('songKey').value, bpm: parseInt(document.getElementById('songBpm').value)||80, lyrics: document.getElementById('songLyrics').value }; if(id) await supabase.from('canciones').update(song).eq('id',id); else await supabase.from('canciones').insert(song); closeModal('songModal'); await loadAllData(); renderSongs(); });
-    async function deleteSong(id){ if(!isAdmin||!confirm('¿Eliminar?')) return; await supabase.from('canciones').delete().eq('id',id); await loadAllData(); renderSongs(); }
-    function openMetronome(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; const bpm = song.bpm||80; showModal(`<div style="text-align:center"><h3>Metrónomo: ${escapeHtml(song.title)}</h3><div id="metroLed" style="width:40px;height:40px;background:#475569;border-radius:50%;margin:20px auto;"></div><p style="font-size:1.5rem;">${bpm} BPM</p><button id="startMetro" class="btn">Iniciar</button><button id="stopMetro" class="btn btn-secondary">Detener</button></div>`, 'metroModal'); let interval; document.getElementById('startMetro').onclick=()=>{if(interval)clearInterval(interval); interval=setInterval(()=>{const led=document.getElementById('metroLed'); led.style.background=led.style.background==='#475569'?'#3B82F6':'#475569';},60000/bpm);}; document.getElementById('stopMetro').onclick=()=>{clearInterval(interval);}; }
-    
-    // ==================== VISOR CIFRAS ====================
-    function openCifraViewer(songId, index) { currentSongIndex = index; const song = songs.find(s=>s.id===songId); if(!song) return; cifraCurrentSong = song; cifraShift = 0; document.getElementById('cifraTitle').innerHTML = `${escapeHtml(song.title)} - ${escapeHtml(song.key)}`; document.getElementById('tonalShiftSpan').innerText = 'Original'; document.getElementById('metroBpm').value = song.bpm||80; renderCifraContent(); document.getElementById('cifraModal').style.display = 'flex'; }
-    function renderCifraContent() { let lyrics = cifraCurrentSong.lyrics || ''; if(cifraShift!==0){ let newKey = shiftKey(cifraCurrentSong.key, cifraShift); lyrics = transposeLyrics(lyrics, cifraCurrentSong.key, newKey); } const html = formatLyricsWithChords(lyrics); document.getElementById('cifraContent').innerHTML = html; }
-    function shiftKey(key, semitones){ const scale=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; let isMinor=key.endsWith('m'); let base=key.replace('m',''); let idx=scale.indexOf(base); if(idx===-1)return key; let newIdx=(idx+semitones+12)%12; return scale[newIdx]+(isMinor?'m':''); }
-    function transposeLyrics(text, fromKey, toKey){ if(fromKey===toKey) return text; let semitones = (shiftKey(toKey,0) && shiftKey(fromKey,0))?0:0; return text.replace(/\[([^\]]+)\]/g, (m,chord)=>`[${shiftChord(chord, semitones)}]`); }
-    function shiftChord(chord, semitones){ const scale=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; let match=chord.match(/^([A-G][#b]?)(.*)$/); if(!match) return chord; let base=match[1], suffix=match[2]; let idx=scale.indexOf(base); if(idx===-1) return chord; let newIdx=(idx+semitones+12)%12; return scale[newIdx]+suffix; }
-    function formatLyricsWithChords(text){ if(!text) return '<p>No hay letra</p>'; let lines=text.split('\n'); let html=''; for(let line of lines){ let chordRegex=/\[([^\]]+)\]/g; let parts=[]; let lastIdx=0; let match; while((match=chordRegex.exec(line))!==null){ let before=line.substring(lastIdx,match.index); if(before) parts.push({type:'text',content:before}); parts.push({type:'chord',content:match[1]}); lastIdx=match.index+match[0].length; } if(lastIdx<line.length) parts.push({type:'text',content:line.substring(lastIdx)}); if(parts.length===0){ html+=`<div>${escapeHtml(line)}</div>`; continue; } let chordHtml='', lyricHtml=''; for(let p of parts){ if(p.type==='chord'){ chordHtml+=`<span class="chord-badge">${escapeHtml(p.content)}</span>`; lyricHtml+=`<span>&nbsp;&nbsp;</span>`; }else{ let words=p.content.split(/(\s+)/); for(let w of words){ if(w.trim()===''){ chordHtml+=`<span>&nbsp;</span>`; lyricHtml+=`<span>&nbsp;</span>`; }else{ chordHtml+=`<span style="display:inline-block; margin-right:4px;">&nbsp;</span>`; lyricHtml+=`<span>${escapeHtml(w)}</span>`; } } } } html+=`<div><div>${chordHtml}</div><div>${lyricHtml}</div></div>`; } return html; }
-    function transposeSong(dir) { cifraShift += dir; document.getElementById('tonalShiftSpan').innerText = cifraShift===0?'Original':`${cifraShift>0?'+':''}${cifraShift} semitonos`; renderCifraContent(); }
-    async function saveTransposedKey() { if(!isAdmin||!cifraCurrentSong) return; let newKey=shiftKey(cifraCurrentSong.key, cifraShift); await supabase.from('canciones').update({key:newKey}).eq('id',cifraCurrentSong.id); alert(`Tonalidad actualizada a ${newKey}`); await loadAllData(); renderSongs(); closeModal('cifraModal'); }
-    function toggleMetronome() { const btn=document.getElementById('metroBtn'); if(metroInterval){ clearInterval(metroInterval); metroInterval=null; btn.innerHTML='<i class="fa-solid fa-play"></i> Metrónomo'; document.getElementById('metroDot').classList.remove('active'); }else{ const bpm=parseInt(document.getElementById('metroBpm').value)||80; const ms=60000/bpm; btn.innerHTML='<i class="fa-solid fa-pause"></i> Metrónomo'; let count=0; metroInterval=setInterval(()=>{ const dot=document.getElementById('metroDot'); dot.classList.add('active'); setTimeout(()=>dot.classList.remove('active'),50); if(navigator.vibrate) navigator.vibrate(30); },ms); } }
-    
+    function openSongModal(id=null) {
+        if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return; }
+        const s = songs.find(s => s.id === id) || { title: '', category: 'Adoración', key: 'C', bpm: 80, chordsUrl: '', chordsData: '', lyrics: '' };
+        showModal(`<h3>${id ? 'Editar' : 'Nueva'} Canción</h3>
+            <div class="form-group"><label>Título</label><input id="mTitle" class="form-control" value="${escapeHtml(s.title)}"></div>
+            <div class="form-group"><label>Categoría</label><select id="mCat" class="form-control"><option ${s.category==='Adoración'?'selected':''}>Adoración</option><option ${s.category==='Exaltación'?'selected':''}>Exaltación</option><option ${s.category==='Júbilo'?'selected':''}>Júbilo</option></select></div>
+            <div class="form-group"><label>Tonalidad</label><select id="mKey" class="form-control">${keys.map(k => `<option ${s.key===k?'selected':''}>${k}</option>`).join('')}</select></div>
+            <div class="form-group"><label>BPM</label><input id="mBpm" type="number" class="form-control" value="${s.bpm||80}"></div>
+            <div class="form-group"><label>Enlace acordes (PDF/imagen)</label><input id="mChordsUrl" class="form-control" value="${escapeHtml(s.chordsUrl)}"></div>
+            <div class="form-group"><label>Subir archivo</label><input type="file" id="mChordsFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control"></div>
+            <div class="form-group"><label>Letra</label><textarea id="mLyrics" rows="6" class="form-control">${escapeHtml(s.lyrics)}</textarea>
+                <button id="convertChordsBtn" class="btn btn-ghost" style="margin-top:0.5rem;" onclick="convertLyricsInModal()">Convertir formato (espaciado -> [Acorde])</button>
+            </div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveSongFromModal('${id}')">Guardar</button></div>`);
+        window.convertLyricsInModal = () => { const textarea = document.getElementById('mLyrics'); textarea.value = convertSpacedChordsToBrackets(textarea.value); };
+    }
+    async function saveSongFromModal(id) {
+        if (!isAdminUser) return;
+        const title = document.getElementById('mTitle').value.trim();
+        if (!title) return alert("Título requerido");
+        const file = document.getElementById('mChordsFile').files[0];
+        let chordsData = '';
+        if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); }
+        const song = {
+            id: id || generateUniqueId(),
+            title, category: document.getElementById('mCat').value, key: document.getElementById('mKey').value,
+            bpm: parseInt(document.getElementById('mBpm').value) || 80,
+            chordsUrl: document.getElementById('mChordsUrl').value.trim(),
+            chordsData: chordsData || (id ? songs.find(s=>s.id===id)?.chordsData : ''),
+            lyrics: document.getElementById('mLyrics').value, youtube: ''
+        };
+        await saveSong(song);
+        closeModal();
+    }
+    async function openLyricsEditor(songId) {
+        const song = songs.find(s => s.id === songId);
+        if (!song) return;
+        let lyrics = song.lyrics || '';
+        showModal(`
+            <h3>Editar Letra y Acordes: ${escapeHtml(song.title)}</h3>
+            <div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
+                <label>Tonalidad actual:</label><select id="transposeFromKey" class="form-control" style="width:100px;">${keys.map(k => `<option ${song.key===k?'selected':''}>${k}</option>`).join('')}</select>
+                <label>Transponer a:</label><select id="transposeToKey" class="form-control" style="width:100px;">${keys.map(k => `<option>${k}</option>`).join('')}</select>
+                <button class="btn btn-primary" onclick="applyTranspose()">Transponer</button>
+                <button id="convertChordsEditorBtn" class="btn btn-ghost" onclick="convertEditorLyrics()">Convertir formato</button>
+                <button id="previewLyricsBtn" class="btn btn-secondary" onclick="previewLyrics()">Vista Previa</button>
+            </div>
+            <div class="form-group"><textarea id="lyricsEditor" rows="12" class="form-control" style="font-family:monospace;">${escapeHtml(lyrics)}</textarea></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLyrics('${song.id}')">Guardar</button></div>
+        `);
+        window.applyTranspose = () => {
+            const fromKey = document.getElementById('transposeFromKey').value;
+            const toKey = document.getElementById('transposeToKey').value;
+            const textarea = document.getElementById('lyricsEditor');
+            textarea.value = transposeLyrics(textarea.value, fromKey, toKey);
+            document.getElementById('transposeFromKey').value = toKey;
+        };
+        window.convertEditorLyrics = () => { const textarea = document.getElementById('lyricsEditor'); textarea.value = convertSpacedChordsToBrackets(textarea.value); };
+        window.previewLyrics = () => {
+            const lyricsPreview = document.getElementById('lyricsEditor').value;
+            const htmlPreview = renderChordsOverLyrics(lyricsPreview);
+            showModal(`<h3>Vista Previa</h3><div style="background:#0F172A; color:#F1F5F9; padding:1rem; border-radius:1rem; max-height:60vh; overflow:auto;">${htmlPreview}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`);
+        };
+        window.saveLyrics = async (id) => {
+            const newLyrics = document.getElementById('lyricsEditor').value;
+            const songToUpdate = songs.find(s => s.id === id);
+            if (songToUpdate) { songToUpdate.lyrics = newLyrics; await saveSong(songToUpdate); }
+            closeModal();
+        };
+    }
+    function openMetronome(songId) {
+        const song = songs.find(s => s.id === songId);
+        if (!song) return;
+        const bpm = song.bpm || 80;
+        const intervalMs = 60000 / bpm;
+        if (metronomeInterval) clearInterval(metronomeInterval);
+        showModal(`<div style="text-align:center"><h3>Metrónomo: ${escapeHtml(song.title)}</h3><div class="metronome-led" id="metroLed"></div><p style="font-size:1.5rem;">${bpm} BPM</p><button class="btn btn-primary" id="startMetroBtn">Iniciar</button><button class="btn btn-ghost" id="stopMetroBtn">Detener</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
+        const led = document.getElementById('metroLed'); const startBtn = document.getElementById('startMetroBtn'); const stopBtn = document.getElementById('stopMetroBtn');
+        let isRunning = false;
+        const tick = () => { led.style.background = "#3B82F6"; if (navigator.vibrate) navigator.vibrate(40); setTimeout(() => led.style.background = "#475569", 100); };
+        startBtn.onclick = () => { if (!isRunning) { isRunning = true; tick(); metronomeInterval = setInterval(() => { if (isRunning) tick(); }, intervalMs); } };
+        stopBtn.onclick = () => { if (metronomeInterval) clearInterval(metronomeInterval); isRunning = false; };
+    }
+    function viewChords(songId) {
+        const song = songs.find(s => s.id === songId);
+        if (!song) return;
+        let content = '';
+        if (song.chordsData) { const blob = dataURLtoBlob(song.chordsData); const url = URL.createObjectURL(blob); content = `<iframe src="${url}" style="width:100%; height:420px; border:none"></iframe><br><a href="${url}" download="acordes_${song.id}.pdf" class="btn btn-primary">Descargar Archivo</a>`; }
+        else if (song.chordsUrl) { content = `<iframe src="${song.chordsUrl}" style="width:100%; height:420px; border:none"></iframe><br><a href="${song.chordsUrl}" target="_blank" class="btn btn-primary">Abrir enlace</a>`; }
+        else { content = `<p>No hay archivos adjuntos.</p>`; }
+        showModal(`<h3>Acordes: ${escapeHtml(song.title)}</h3>${content}<div style="margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
+    }
+
     // ==================== LISTAS ====================
-    function renderLists() { const container = document.getElementById('listsGrid'); container.innerHTML = lists.map(l => `<div class="premium-card"><h4 style="font-weight:700;">${escapeHtml(l.name)}</h4><div>${l.items?.length||0} canciones</div><div style="margin-top:10px; display:flex; gap:8px;"><button class="btn" style="padding:4px 8px;" onclick="openAddSongToList('${l.id}')">Añadir Canción</button><button class="btn btn-secondary" style="padding:4px 8px;" onclick="printList('${l.id}')">Imprimir</button>${isAdmin?`<button class="btn btn-danger" style="padding:4px 8px;" onclick="deleteList('${l.id}')">Eliminar</button>`:''}</div></div>`).join(''); }
-    function openCreateListModal() { document.getElementById('listName').value=''; document.getElementById('listDate').value=''; document.getElementById('listModal').style.display='flex'; }
-    async function saveList() { const name=document.getElementById('listName').value; const date=document.getElementById('listDate').value; if(!name) return; const id=generateId(); await supabase.from('listas').insert([{id,name,date}]); closeModal('listModal'); await loadAllData(); renderLists(); }
-    async function deleteList(id){ if(confirm('¿Eliminar lista?')){ await supabase.from('listas').delete().eq('id',id); await loadAllData(); renderLists(); } }
-    async function openAddSongToList(listId){ const title=prompt('Nombre de la canción:'); if(!title) return; const song=songs.find(s=>s.title.toLowerCase().includes(title.toLowerCase())); if(!song){ alert('Canción no encontrada'); return; } const items = lists.find(l=>l.id===listId)?.items||[]; const newOrder=items.length; await supabase.from('lista_items').insert([{lista_id:listId, song_id:song.id, orden:newOrder}]); await loadAllData(); renderLists(); }
-    function printList(listId){ const list=lists.find(l=>l.id===listId); if(!list||!list.items?.length){ alert('Lista vacía'); return; } const win=window.open(); win.document.write(`<html><head><title>${escapeHtml(list.name)}</title><style>body{font-family:sans-serif;margin:0.2cm}.print-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.print-card{border:1px solid #000;border-radius:8px;padding:6px;break-inside:avoid}.print-title{font-weight:bold;text-align:center}</style></head><body><div class="print-grid">`); for(let i=0;i<12;i++){ win.document.write(`<div class="print-card"><div class="print-title">${escapeHtml(list.name)}</div>`); list.items.forEach(item=>{ const s=songs.find(ss=>ss.id===item.song_id); if(s) win.document.write(`<div>🎵 ${escapeHtml(s.title)} (${item.key_override||s.key})</div>`); }); win.document.write(`<div class="print-footer">FZ-Praise®</div></div>`); } win.document.write('</div></body></html>'); win.document.close(); win.print(); }
-    
-    // ==================== MIEMBROS ====================
-    function renderMembers() { const container = document.getElementById('membersGrid'); container.innerHTML = perfiles.map(p => `<div class="premium-card" onclick="showProfile('${p.id}')"><div class="avatar">${(p.nombre||'U').charAt(0).toUpperCase()}</div><div><h4>${escapeHtml(p.nombre||'Sin nombre')}</h4><p style="color:var(--text-muted);">${escapeHtml(p.rol||'Miembro')}</p></div></div>`).join(''); }
-    function openAddMemberModal() { if(!isAdmin) return; document.getElementById('memberAuthId').value=''; document.getElementById('memberName').value=''; document.getElementById('memberRole').value='miembro'; document.getElementById('addMemberModal').style.display='flex'; }
-    async function addMember() { const id=document.getElementById('memberAuthId').value; const name=document.getElementById('memberName').value; const role=document.getElementById('memberRole').value; if(!id||!name) return; await supabase.from('perfiles').insert([{id, nombre:name, rol:role}]); closeModal('addMemberModal'); await loadAllData(); renderMembers(); }
-    async function showProfile(userId) { const p=perfiles.find(pr=>pr.id===userId); if(!p) return; const canEdit = (isAdmin || currentUser.id===userId); let html=`<h3>${escapeHtml(p.nombre||'Usuario')}</h3><p><strong>Rol:</strong> ${escapeHtml(p.rol)}</p><p><strong>Fecha nac.:</strong> ${p.fecha_nacimiento||'No especificada'}</p><p><strong>Celular:</strong> ${p.celular?`<a href="https://wa.me/${p.celular.replace(/[^0-9]/g,'')}" target="_blank">${escapeHtml(p.celular)} <i class="fab fa-whatsapp"></i></a>`:'No especificado'}</p><p><strong>Red social:</strong> ${p.red_social?`<a href="${p.red_social}" target="_blank">${escapeHtml(p.red_social)}</a>`:'No'}</p><p><strong>Película fav:</strong> ${p.pelicula_favorita||'—'}</p><p><strong>Música fav:</strong> ${p.musica_favorita||'—'}</p><p><strong>Cantante fav:</strong> ${p.cantante_favorito||'—'}</p><p><strong>Grupo fav:</strong> ${p.grupo_favorito||'—'}</p><p><strong>Expectativas:</strong> ${p.expectativas||'—'}</p><p><strong>Mejoras:</strong> ${p.mejoras||'—'}</p><hr>`; if(canEdit){ html+=`<button class="btn" onclick="editProfile('${p.id}')">Editar perfil</button>`; } html+=`<button class="btn btn-secondary" onclick="closeModal('profileModal')">Cerrar</button>`; document.getElementById('profileContent').innerHTML=html; document.getElementById('profileModal').style.display='flex'; }
-    function editProfile(userId) { const p=perfiles.find(pr=>pr.id===userId); if(!p) return; showModal(`<h3>Editar Perfil</h3><div class="form-group"><label>Celular</label><input type="text" id="editCelular" class="form-control" value="${escapeHtml(p.celular||'')}"></div><div class="form-group"><label>Red social (URL)</label><input type="url" id="editRedSocial" class="form-control" value="${escapeHtml(p.red_social||'')}"></div><div class="form-group"><label>Película favorita</label><input type="text" id="editPelicula" class="form-control" value="${escapeHtml(p.pelicula_favorita||'')}"></div><div class="form-group"><label>Música favorita</label><input type="text" id="editMusica" class="form-control" value="${escapeHtml(p.musica_favorita||'')}"></div><div class="form-group"><label>Cantante favorito</label><input type="text" id="editCantante" class="form-control" value="${escapeHtml(p.cantante_favorito||'')}"></div><div class="form-group"><label>Grupo favorito</label><input type="text" id="editGrupo" class="form-control" value="${escapeHtml(p.grupo_favorito||'')}"></div><div class="form-group"><label>Expectativas</label><textarea id="editExpectativas" class="form-control" rows="2">${escapeHtml(p.expectativas||'')}</textarea></div><div class="form-group"><label>Mejoras</label><textarea id="editMejoras" class="form-control" rows="2">${escapeHtml(p.mejoras||'')}</textarea></div><div style="display:flex; gap:10px;"><button class="btn btn-secondary" onclick="closeModal('tempModal')">Cancelar</button><button class="btn" onclick="saveProfile('${p.id}')">Guardar</button></div>`, 'tempModal'); window.saveProfile = async (id) => { const updates = { celular: document.getElementById('editCelular').value, red_social: document.getElementById('editRedSocial').value, pelicula_favorita: document.getElementById('editPelicula').value, musica_favorita: document.getElementById('editMusica').value, cantante_favorito: document.getElementById('editCantante').value, grupo_favorito: document.getElementById('editGrupo').value, expectativas: document.getElementById('editExpectativas').value, mejoras: document.getElementById('editMejoras').value }; await supabase.from('perfiles').update(updates).eq('id', id); closeModal('tempModal'); await loadAllData(); renderMembers(); }; }
-    
-    // ==================== AULA VIRTUAL (MOODLE) ====================
-    async function renderMoodle() { const container = document.getElementById('moodleCoursesContainer'); container.innerHTML = ''; for(let curso of cursos){ let mods = modulos.filter(m => m.curso_id === curso.id); let html = `<div class="premium-card" style="margin-bottom:20px;"><h3>${escapeHtml(curso.titulo)}</h3><p>${escapeHtml(curso.descripcion||'')}</p>`; for(let mod of mods){ let examenesMod = examenes.filter(e => e.modulo_id === mod.id); html += `<div style="margin-top:15px; padding:10px; border-left:3px solid var(--primary-light);"><strong>${escapeHtml(mod.titulo)}</strong>`; for(let ex of examenesMod){ let { data: intento } = await supabase.from('intentos_examen').select('*').eq('user_id', currentUser.id).eq('examen_id', ex.id).single(); if(intento){ html += `<div style="background:rgba(16,185,129,0.1); padding:8px; margin-top:6px;">✅ Completado - Nota: ${intento.puntaje}/20</div>`; }else{ html += `<button class="btn" style="margin-top:8px;" onclick="startExam('${ex.id}')">Rendir Examen: ${escapeHtml(ex.titulo)}</button>`; } } html += `</div>`; } if(isAdmin){ html += `<button class="btn btn-secondary" style="margin-top:10px;" onclick="addModule('${curso.id}')">Añadir Módulo</button>`; } html += `</div>`; container.innerHTML += html; } }
-    function openCreateCourseModal() { if(!isAdmin) return; const name=prompt('Nombre del curso:'); if(name) supabase.from('cursos').insert([{titulo:name, creado_por:currentUser.id}]).then(()=>{loadAllData(); renderMoodle();}); }
-    async function addModule(cursoId){ const title=prompt('Título del módulo:'); if(title) await supabase.from('modulos').insert([{curso_id:cursoId, titulo:title}]); await loadAllData(); renderMoodle(); }
-    async function startExam(examenId){ const {data:existing}=await supabase.from('intentos_examen').select('*').eq('user_id',currentUser.id).eq('examen_id',examenId).single(); if(existing){ alert('Ya completaste este examen.'); return; } const qs = preguntas.filter(q => q.examen_id === examenId).sort((a,b)=>a.orden_index-b.orden_index); if(qs.length===0){ alert('Este examen no tiene preguntas.'); return; } examQuestions = qs; examCurrentIndex=0; examScore=0; currentExamId=examenId; document.getElementById('examOverlay').style.display='block'; loadExamQuestion(); }
-    function loadExamQuestion(){ if(examCurrentIndex >= examQuestions.length){ finishExam(); return; } const q = examQuestions[examCurrentIndex]; document.getElementById('examProgress').innerText = `Pregunta ${examCurrentIndex+1} de ${examQuestions.length}`; document.getElementById('examQuestion').innerText = q.enunciado; document.getElementById('examOptions').innerHTML = ` <button class="option-btn" onclick="selectOption('A', this)"><strong>A.</strong> ${escapeHtml(q.opcion_a)}</button><button class="option-btn" onclick="selectOption('B', this)"><strong>B.</strong> ${escapeHtml(q.opcion_b)}</button><button class="option-btn" onclick="selectOption('C', this)"><strong>C.</strong> ${escapeHtml(q.opcion_c)}</button><button class="option-btn" onclick="selectOption('D', this)"><strong>D.</strong> ${escapeHtml(q.opcion_d)}</button> `; selectedOption = null; examTimeLeft = 15; document.getElementById('examTimer').innerText = `${examTimeLeft}s`; document.getElementById('examTimerBar').style.width = '100%'; if(examTimerInterval) clearInterval(examTimerInterval); examTimerInterval = setInterval(()=>{ examTimeLeft--; document.getElementById('examTimer').innerText = `${examTimeLeft}s`; let percent = (examTimeLeft/15)*100; document.getElementById('examTimerBar').style.width = `${percent}%`; if(examTimeLeft <= 0){ clearInterval(examTimerInterval); submitAnswer(); } },1000); }
-    function selectOption(letter, element){ selectedOption = letter; document.querySelectorAll('.option-btn').forEach(btn=>btn.classList.remove('selected')); element.classList.add('selected'); }
-    function submitAnswer(){ clearInterval(examTimerInterval); const currentQ = examQuestions[examCurrentIndex]; if(selectedOption && selectedOption === currentQ.opcion_correcta){ examScore++; } examCurrentIndex++; loadExamQuestion(); }
-    async function finishExam(){ let finalScore = (examScore / examQuestions.length) * 20; await supabase.from('intentos_examen').insert([{user_id:currentUser.id, examen_id:currentExamId, puntaje:finalScore.toFixed(2)}]); alert(`Examen finalizado. Puntaje: ${finalScore.toFixed(2)} / 20`); document.getElementById('examOverlay').style.display = 'none'; await loadAllData(); renderMoodle(); }
-    
+    function renderLists() {
+        const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
+        let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
+        document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button><button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>` : `<span class="text-muted">Listas (solo lectura)</span>`;
+        const container = document.getElementById('mainContent');
+        if (listsViewMode === 'grid') {
+            container.innerHTML = `<div class="grid">${filtered.map(l => `<div class="card" onclick="selectedListId='${l.id}'; renderCurrentView()"><span class="card-category">Lista</span><div class="card-title">${escapeHtml(l.name)}</div><div>📅 ${l.date || 'Sin fecha'}</div><div>🎵 ${l.items ? l.items.length : 0} canciones</div>${isAdminUser ? `<div onclick="event.stopPropagation()" style="margin-top:0.5rem;"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></div>` : ''}</div>`).join('')}</div>`;
+        } else {
+            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th>${isAdminUser ? '<th>Acciones</th>' : ''}</thead><tbody>${filtered.map(l => `<tr onclick="selectedListId='${l.id}'; renderCurrentView()"><td><b>${escapeHtml(l.name)}</b></td><td>${l.date || '—'}</td><td>${l.items ? l.items.length : 0}${isAdminUser ? `<td onclick="event.stopPropagation()"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></td>` : ''}</tr>`).join('')}</tbody>}</div>`;
+        }
+    }
+    function openCreateListModal() {
+        showModal(`<h3>Nueva Lista</h3><div class="form-group"><input id="lName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="lDate" class="form-control" placeholder="Fecha"></div><button class="btn btn-primary" onclick="saveNewList()">Crear</button>`);
+        flatpickr("#lDate", { locale: "es", dateFormat: "d/m/Y" });
+    }
+    async function saveNewList() {
+        const name = document.getElementById('lName').value.trim() || "Lista sin nombre";
+        const date = document.getElementById('lDate').value;
+        await saveList({ id: null, name, date, items: [] });
+        closeModal();
+    }
+    async function editListName(id) {
+        const list = lists.find(l => l.id === id);
+        const newName = prompt("Nuevo nombre:", list.name);
+        if (newName) { list.name = newName; await saveList(list); }
+    }
+    function renderListDetail() {
+        const list = lists.find(l => l.id === selectedListId);
+        if (!list) { selectedListId = null; renderLists(); return; }
+        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()"><i class="fas fa-arrow-left"></i> Volver</button>
+            <button class="btn btn-primary" onclick="openAddSongToListModal()"><i class="fas fa-plus"></i> Añadir Canción</button>
+            <button class="btn btn-ghost" onclick="printList('${list.id}')"><i class="fas fa-print"></i> Imprimir (12 copias)</button>
+            <button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+            <button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')"><i class="fas fa-file-excel"></i> Excel</button>`;
+        document.getElementById('viewControls').innerHTML = '';
+        const container = document.getElementById('mainContent');
+        container.innerHTML = `<div class="card" style="margin-bottom:1rem"><h2>${escapeHtml(list.name)}</h2><p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p></div><div id="dragArea"></div>`;
+        const dragArea = document.getElementById('dragArea');
+        if (!list.items || list.items.length === 0) { dragArea.innerHTML = `<p style="padding:1rem; text-align:center;">No hay canciones agregadas.</p>`; return; }
+        dragArea.innerHTML = list.items.map((item, idx) => {
+            const song = songs.find(s => s.id === (item.songId || item.song_id));
+            if (!song) return '';
+            let currentTone = item.keyOverride || item.key_override || song.key;
+            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;" onclick="openCifraViewer('${song.id}')">
+                <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
+                <div style="flex:1"><b style="color:var(--primary-light);">${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm||'--'} BPM</div></div>
+                <div onclick="event.stopPropagation()" style="display:flex; gap:0.3rem;"><button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
+                ${isAdminUser ? `<button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>` : ''}</div>
+            </div>`;
+        }).join('');
+        if (sortableInstance) sortableInstance.destroy();
+        if (isAdminUser) {
+            sortableInstance = new Sortable(dragArea, { handle: '.drag-handle', animation: 200, onEnd: () => { const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); list.items = newOrder; saveList(list); } });
+        }
+    }
+    function openAddSongToListModal() {
+        const list = lists.find(l => l.id === selectedListId);
+        if (!list) return;
+        showModal(`<h3>Añadir canción a "${escapeHtml(list.name)}"</h3><input type="text" id="searchSongAdd" class="form-control" placeholder="Buscar..." style="margin-bottom:1rem"><div id="songsAddList" style="max-height:300px;overflow-y:auto"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
+        const renderList = () => {
+            const q = document.getElementById('searchSongAdd')?.value.toLowerCase() || '';
+            const filtered = songs.filter(s => s.title.toLowerCase().includes(q));
+            document.getElementById('songsAddList').innerHTML = filtered.map(s => `<div class="card" style="margin-bottom:0.5rem; cursor:pointer" onclick="addSongToList('${list.id}','${s.id}'); closeModal();"><b>${escapeHtml(s.title)}</b> <span class="card-category">${s.category}</span> <span style="float:right"><b>${s.key}</b></span></div>`).join('');
+        };
+        renderList();
+        document.getElementById('searchSongAdd')?.addEventListener('input', renderList);
+    }
+    async function addSongToList(listId, songId) {
+        const list = lists.find(l => l.id === listId);
+        if (!list.items) list.items = [];
+        if (list.items.some(item => (item.songId || item.song_id) === songId)) return alert("Ya está en la lista.");
+        list.items.push({ songId: songId, keyOverride: null });
+        await saveList(list);
+        renderListDetail();
+    }
+    async function removeSongFromList(listId, idx) {
+        if(confirm("¿Quitar canción?")) {
+            const list = lists.find(l => l.id === listId);
+            list.items.splice(idx, 1);
+            await saveList(list);
+            renderListDetail();
+        }
+    }
+    async function changeItemKey(listId, idx) {
+        const list = lists.find(l => l.id === listId);
+        const item = list.items[idx];
+        const song = songs.find(s => s.id === (item.songId || item.song_id));
+        const newKey = prompt(`Cambiar tonalidad de "${song.title}" para esta lista:`, item.keyOverride || item.key_override || song.key);
+        if (newKey && keys.includes(newKey)) { item.keyOverride = newKey; await saveList(list); renderListDetail(); }
+        else if (newKey) alert("Tonalidad no válida.");
+    }
+    function exportAllListsToExcel() {
+        const data = [["Lista", "Canción", "Categoría", "Tonalidad"]];
+        lists.forEach(list => { if(list.items) list.items.forEach(item => { const song = songs.find(s => s.id === (item.songId || item.song_id)); if (song) data.push([list.name, song.title, song.category, item.keyOverride || item.key_override || song.key]); }); });
+        const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Todas_Listas"); XLSX.writeFile(wb, "todas_listas_iec.xlsx");
+    }
+    function printList(listId) {
+        const list = lists.find(l => l.id === listId);
+        if (!list || !list.items || list.items.length === 0) return alert("Lista vacía");
+        const win = window.open();
+        win.document.write(`<html><head><title>${escapeHtml(list.name)}</title><style>body{font-family:sans-serif;margin:0.2cm}.print-area{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.print-card{border:1px solid #000;border-radius:8px;padding:6px;break-inside:avoid}.print-title{font-weight:bold;text-align:center;border-bottom:1px solid #aaa;margin-bottom:4px}.print-song{font-size:8pt;margin:2px 0}.print-footer{font-size:6pt;text-align:center;margin-top:4px}</style></head><body><div class="print-area">`);
+        for (let i = 0; i < 12; i++) {
+            win.document.write(`<div class="print-card"><div class="print-title">${escapeHtml(list.name)}</div>`);
+            list.items.forEach(item => { const s = songs.find(s => s.id === (item.songId || item.song_id)); if (s) win.document.write(`<div class="print-song">🎵 ${escapeHtml(s.title)} (${item.keyOverride || item.key_override || s.key})</div>`); });
+            win.document.write(`<div class="print-footer">Praise Engine FZ®</div></div>`);
+        }
+        win.document.write('</div></body></html>'); win.document.close(); win.print();
+    }
+    function exportListToExcel(listId) {
+        const list = lists.find(l => l.id === listId);
+        const data = [["Canción", "Tonalidad"]];
+        if(list.items) { list.items.forEach(item => { const s = songs.find(s => s.id === (item.songId || item.song_id)); if (s) data.push([s.title, item.keyOverride || item.key_override || s.key]); }); }
+        const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, list.name.slice(0,31)); XLSX.writeFile(wb, `${list.name.replace(/[^a-z0-9]/gi,'_')}.xlsx`);
+    }
+    function shareListWhatsApp(listId) {
+        const list = lists.find(l => l.id === listId);
+        if (!list || !list.items || list.items.length===0) return alert("Lista vacía");
+        let message = `🎵 *${list.name}* 🎵\n📅 ${list.date || ''}\n\n`;
+        list.items.forEach((item, i) => { const song = songs.find(s => s.id === (item.songId || item.song_id)); if (song) message += `${i+1}. ${song.title} (${item.keyOverride || item.key_override || song.key})\n`; });
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    }
+
     // ==================== RECURSOS ====================
-    function openTeleprompter() { const selectSongs = songs.map(s => `<option value="${s.id}">${escapeHtml(s.title)}</option>`).join(''); showModal(`<h3>Teleprompter</h3><select id="teleSongSel" class="form-control"><option value="">Selecciona...</option>${selectSongs}</select><div id="teleDisplay" class="cifra-container" style="margin-top:15px; min-height:200px;">Selecciona una canción</div><button class="btn btn-secondary" onclick="closeModal('teleprompterModal')">Cerrar</button>`, 'teleprompterModal'); let currentLines=[], lineIdx=0; window.advanceLyrics=()=>{ if(currentLines.length){ lineIdx=(lineIdx+1)%currentLines.length; document.getElementById('teleDisplay').innerHTML=currentLines[lineIdx].replace(/\n/g,'<br>'); } }; document.getElementById('teleSongSel').addEventListener('change',(e)=>{ const song=songs.find(s=>s.id===e.target.value); if(!song) return; let lyrics=song.lyrics||''; currentLines=lyrics.split('\n').filter(l=>l.trim()); lineIdx=0; document.getElementById('teleDisplay').innerHTML=currentLines[0]||'Sin letra'; }); }
-    function openBackupModal() { document.getElementById('backupModal').style.display='flex'; }
-    async function exportBackup(){ const data={songs,lists,perfiles,asistencia,turnos,cursos,modulos,examenes,preguntas}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`backup_${new Date().toISOString()}.json`; a.click(); }
-    async function importBackup(){ const file=document.getElementById('restoreFile').files[0]; if(!file) return; const reader=new FileReader(); reader.onload=async(e)=>{ const data=JSON.parse(e.target.result); if(data.songs) for(let s of data.songs) await supabase.from('canciones').upsert(s); if(data.lists) for(let l of data.lists) await supabase.from('listas').upsert(l); alert('Importación completada'); await loadAllData(); renderCurrentView(); }; reader.readAsText(file); }
-    function openTuner() { alert('Afinador en desarrollo'); }
-    function viewAttendanceReport() { alert('Reporte de asistencia'); }
-    function viewShiftsCalendar() { alert('Calendario de turnos'); }
-    function adminAttendance() { alert('Control de asistencia (solo admin)'); }
-    function adminShifts() { alert('Gestión de turnos (solo admin)'); }
-    function adminTeam() { alert('Gestión de equipo (solo admin)'); }
-    
+    function renderResources() {
+        document.getElementById('actionHeader').innerHTML = '';
+        document.getElementById('mainContent').innerHTML = `<div class="grid">
+            <div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll"></i><h3>Teleprompter</h3></div>
+            <div class="card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Respaldo JSON</h3></div>
+            <div class="card" onclick="openTeamModal()"><i class="fas fa-users"></i><h3>Miembros del Equipo</h3></div>
+            <div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3></div>
+            <div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3></div>
+            <div class="card" onclick="viewShiftsCalendar()"><i class="fas fa-calendar-alt"></i><h3>Turnos</h3></div>
+        </div>`;
+    }
+    function openTeleprompter() {
+        const selectSongs = songs.map(s => `<option value="${s.id}">${escapeHtml(s.title)}</option>`).join('');
+        showModal(`<h3>Teleprompter</h3><select id="teleSongSelect" class="form-control"><option value="">Selecciona...</option>${selectSongs}</select><div id="teleLyricsDisplay" class="teleprompter-screen" style="margin-top:1rem;" onclick="advanceLyrics()">Selecciona una canción</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
+        let currentLines = [], lineIndex = 0;
+        window.advanceLyrics = () => { if (currentLines.length) { lineIndex = (lineIndex + 1) % currentLines.length; document.getElementById('teleLyricsDisplay').innerHTML = currentLines[lineIndex].replace(/\n/g,'<br>'); } };
+        document.getElementById('teleSongSelect').addEventListener('change', (e) => { const song = songs.find(s => s.id === e.target.value); if(!song) return; let lyrics = song.lyrics || "Letra no disponible."; currentLines = lyrics.split('\n').filter(l => l.trim()); lineIndex = 0; document.getElementById('teleLyricsDisplay').innerHTML = currentLines[0] || "Sin letra"; });
+    }
+    function openBackupModal() {
+        showModal(`<h3>Respaldo y Restauración</h3><button class="btn btn-primary" onclick="exportBackup()"><i class="fas fa-download"></i> Exportar respaldo</button><div style="margin:1rem 0"><input type="file" id="restoreFile" accept=".json" class="form-control"></div><button class="btn btn-ghost" onclick="importBackup()">Restaurar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
+    }
+    function exportBackup() {
+        const data = { songs, lists, team, attendance, shifts, cursos, modulosList, examenes, preguntas };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `praise_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+    }
+    async function importBackup() {
+        const file = document.getElementById('restoreFile').files[0];
+        if (!file) return alert("Selecciona un archivo JSON");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.songs) for (let s of data.songs) await supabaseClient.from('canciones').upsert(s);
+                if (data.lists) for (let l of data.lists) await supabaseClient.from('listas').upsert(l);
+                if (data.team) for (let t of data.team) await supabaseClient.from('equipo').upsert(t);
+                alert("Importación completada");
+                await loadUserData(); renderCurrentView();
+            } catch(err) { alert("Archivo inválido"); }
+            closeModal();
+        };
+        reader.readAsText(file);
+    }
+    function openTeamModal() {
+        let content = `<h3>Miembros del Equipo</h3><div class="grid">`;
+        team.forEach(m => {
+            content += `<div class="card team-card" onclick="showMemberProfile('${m.id}')">
+                            <div class="avatar">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
+                            <div class="card-title">${escapeHtml(m.name)}</div>
+                            <div>${escapeHtml(m.role)}</div>
+                        </div>`;
+        });
+        content += `</div>`;
+        if (isAdminUser) content += `<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="adminTeam()">Gestionar Equipo</button></div>`;
+        content += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        showModal(content);
+    }
+    async function showMemberProfile(memberId) {
+        const member = team.find(m => m.id === memberId);
+        if (!member) return;
+        const canEdit = (isAdminUser || (currentUser && currentUser.id === member.user_id));
+        let memberAttendance = attendance.filter(a => a.member_id === memberId);
+        let memberShifts = shifts.filter(s => s.member_id === memberId);
+        let html = `<h3>Perfil: ${escapeHtml(member.name)}</h3>
+                    <p><strong>Rol:</strong> ${escapeHtml(member.role)}</p>
+                    <p><strong>Fecha Nacimiento:</strong> ${member.fecha_nacimiento || 'No especificada'}</p>
+                    <p><strong>Celular:</strong> ${member.celular ? `<a href="https://wa.me/${member.celular.replace(/[^0-9]/g,'')}" target="_blank">${escapeHtml(member.celular)} <i class="fab fa-whatsapp"></i></a>` : 'No'}</p>
+                    <p><strong>Red social:</strong> ${member.red_social ? `<a href="${member.red_social}" target="_blank">${escapeHtml(member.red_social)}</a>` : 'No'}</p>
+                    <p><strong>Película favorita:</strong> ${member.pelicula_favorita || '—'}</p>
+                    <p><strong>Música favorita:</strong> ${member.musica_favorita || '—'}</p>
+                    <p><strong>Cantante favorito:</strong> ${member.cantante_favorito || '—'}</p>
+                    <p><strong>Grupo favorito:</strong> ${member.grupo_favorito || '—'}</p>
+                    <p><strong>Expectativas:</strong> ${member.expectativas || '—'}</p>
+                    <p><strong>Mejoras necesarias:</strong> ${member.mejoras || '—'}</p>
+                    <h4>Asistencia</h4><ul>`;
+        memberAttendance.forEach(a => html += `<li>${a.fecha} - ${a.estado}</li>`);
+        html += `</ul><h4>Turnos</h4><ul>`;
+        memberShifts.forEach(s => html += `<li>📅 ${s.fecha}</li>`);
+        html += `</ul>`;
+        if (canEdit) html += `<hr><button class="btn btn-primary" onclick="editMemberProfile('${member.id}')">Editar mi perfil</button>`;
+        html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        showModal(html);
+    }
+    function editMemberProfile(memberId) {
+        const member = team.find(m => m.id === memberId);
+        if (!member) return;
+        showModal(`
+            <h3>Editar Perfil: ${escapeHtml(member.name)}</h3>
+            <div class="form-group"><label>Celular</label><input id="editCelular" class="form-control" value="${member.celular||''}"></div>
+            <div class="form-group"><label>Red social (URL)</label><input id="editRedSocial" class="form-control" value="${member.red_social||''}"></div>
+            <div class="form-group"><label>Película favorita</label><input id="editPelicula" class="form-control" value="${member.pelicula_favorita||''}"></div>
+            <div class="form-group"><label>Música favorita</label><input id="editMusica" class="form-control" value="${member.musica_favorita||''}"></div>
+            <div class="form-group"><label>Cantante favorito</label><input id="editCantante" class="form-control" value="${member.cantante_favorito||''}"></div>
+            <div class="form-group"><label>Grupo favorito</label><input id="editGrupo" class="form-control" value="${member.grupo_favorito||''}"></div>
+            <div class="form-group"><label>Expectativas</label><textarea id="editExpectativas" rows="2" class="form-control">${member.expectativas||''}</textarea></div>
+            <div class="form-group"><label>Mejoras</label><textarea id="editMejoras" rows="2" class="form-control">${member.mejoras||''}</textarea></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveMemberProfile('${member.id}')">Guardar</button></div>
+        `);
+        window.saveMemberProfile = async (id) => {
+            const updates = {
+                celular: document.getElementById('editCelular').value,
+                red_social: document.getElementById('editRedSocial').value,
+                pelicula_favorita: document.getElementById('editPelicula').value,
+                musica_favorita: document.getElementById('editMusica').value,
+                cantante_favorito: document.getElementById('editCantante').value,
+                grupo_favorito: document.getElementById('editGrupo').value,
+                expectativas: document.getElementById('editExpectativas').value,
+                mejoras: document.getElementById('editMejoras').value
+            };
+            await supabaseClient.from('equipo').update(updates).eq('id', id);
+            await loadUserData();
+            closeModal();
+            showMemberProfile(id);
+        };
+    }
+    function openTuner() {
+        showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
+        const noteElem = document.getElementById('tunerNote'); const needleElem = document.getElementById('tunerNeedle');
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { noteElem.innerText = "Sin micrófono"; return; }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaStreamSource(stream);
+            const analyser = audioCtx.createAnalyser(); analyser.fftSize = 2048; source.connect(analyser);
+            const bufferLength = analyser.frequencyBinCount; const dataArray = new Float32Array(bufferLength);
+            const detectPitch = () => {
+                if(!document.getElementById('tunerNote')) return;
+                analyser.getFloatTimeDomainData(dataArray);
+                let maxSample = 0;
+                for (let i=0; i<bufferLength; i++) if (Math.abs(dataArray[i]) > maxSample) maxSample = Math.abs(dataArray[i]);
+                if (maxSample < 0.01) { requestAnimationFrame(detectPitch); return; }
+                let autocorr = new Array(bufferLength);
+                for (let lag=0; lag<bufferLength; lag++) {
+                    let sum=0;
+                    for (let i=0; i<bufferLength-lag; i++) sum += dataArray[i]*dataArray[i+lag];
+                    autocorr[lag]=sum;
+                }
+                let maxVal=-1, maxLag=0;
+                for (let lag=20; lag<bufferLength/2; lag++) if (autocorr[lag] > maxVal) { maxVal=autocorr[lag]; maxLag=lag; }
+                let freq = audioCtx.sampleRate / maxLag;
+                let noteNum = 12 * Math.log2(freq / 440) + 69;
+                let roundedNote = Math.round(noteNum);
+                let cents = Math.round((noteNum - roundedNote) * 100);
+                let note = noteNames[roundedNote % 12];
+                if (freq > 50 && freq < 600) {
+                    noteElem.innerText = `${note} (${cents>0?'+':''}${cents}¢)`;
+                    let percent = Math.min(100, Math.max(0, 50 + (cents/50)*50));
+                    needleElem.style.width = `${percent}%`;
+                    needleElem.style.background = Math.abs(cents) < 5 ? "#10B981" : "#F59E0B";
+                } else { noteElem.innerText = "--"; needleElem.style.width = "0%"; }
+                requestAnimationFrame(detectPitch);
+            };
+            detectPitch();
+        }).catch(() => { if(noteElem) noteElem.innerText = "Permiso denegado"; });
+    }
+    function viewAttendanceReport() {
+        let html = `<h3>Reporte de Asistencia</h3><table style="width:100%; border-collapse:collapse;"><thead><tr><th>Fecha</th><th>Miembro</th><th>Estado</th></tr></thead><tbody>`;
+        attendance.forEach(reg => { const member = team.find(m => m.id === reg.member_id); html += `<tr><td>${reg.fecha}</td><td>${member ? escapeHtml(member.name) : 'Desconocido'}</td><td>${reg.estado === 'puntual' ? '✅ Puntual' : '⚠️ Tarde'}</td></tr>`; });
+        html += `</tbody></tr><button class="btn btn-primary" onclick="exportAttendanceExcel()">Exportar Excel</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        showModal(html);
+    }
+    function exportAttendanceExcel() {
+        const data = [["Fecha", "Miembro", "Estado"]];
+        attendance.forEach(reg => { const member = team.find(m => m.id === reg.member_id); data.push([reg.fecha, member ? member.name : 'Desconocido', reg.estado]); });
+        const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Asistencia"); XLSX.writeFile(wb, `asistencia_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+    function viewShiftsCalendar() {
+        let html = `<h3>Turnos Programados</h3><table style="width:100%"><thead><tr><th>Fecha</th><th>Miembro</th></tr></thead><tbody>`;
+        shifts.slice().sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(s => { const member = team.find(m => m.id === s.member_id); html += `<tr><td>${s.fecha}</td><td>${member ? escapeHtml(member.name) : 'No asignado'}</td></tr>`; });
+        html += `</tbody></table><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        showModal(html);
+    }
+
+    // ==================== AULA VIRTUAL ====================
+    async function renderMoodle() {
+        const container = document.getElementById('mainContent');
+        document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateCourseModal()"><i class="fas fa-plus"></i> Crear Curso</button>` : '';
+        let html = '';
+        for (let curso of cursos) {
+            let mods = modulosList.filter(m => m.curso_id === curso.id);
+            html += `<div class="card" style="margin-bottom:1rem;"><h3>${escapeHtml(curso.titulo)}</h3><p>${escapeHtml(curso.descripcion || '')}</p>`;
+            for (let mod of mods) {
+                let examenesMod = examenes.filter(e => e.modulo_id === mod.id);
+                html += `<div style="margin-top:1rem; padding-left:1rem; border-left:3px solid var(--primary-light);"><strong>${escapeHtml(mod.titulo)}</strong>`;
+                for (let ex of examenesMod) {
+                    const { data: intento } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
+                    if (intento) {
+                        html += `<div style="margin-top:0.5rem; background:rgba(16,185,129,0.1); padding:0.5rem; border-radius:8px;">✅ Completado - Nota: ${intento.puntaje}/20</div>`;
+                    } else {
+                        html += `<button class="btn btn-primary" style="margin-top:0.5rem;" onclick="startExam('${ex.id}')">Rendir Examen: ${escapeHtml(ex.titulo)}</button>`;
+                    }
+                }
+                html += `</div>`;
+            }
+            if (isAdminUser) {
+                html += `<button class="btn btn-secondary" style="margin-top:1rem;" onclick="openAddModuleModal('${curso.id}')">Añadir Módulo</button>`;
+            }
+            html += `</div>`;
+        }
+        container.innerHTML = html || '<p>No hay cursos disponibles.</p>';
+    }
+    function openCreateCourseModal() {
+        if (!isAdminUser) return;
+        const title = prompt("Nombre del curso:");
+        if (title) supabaseClient.from('cursos').insert([{ titulo: title, creado_por: currentUser.id }]).then(() => { loadUserData(); renderMoodle(); });
+    }
+    async function openAddModuleModal(cursoId) {
+        const title = prompt("Título del módulo:");
+        if (title) await supabaseClient.from('modulos').insert([{ curso_id: cursoId, titulo: title, orden_index: 1 }]);
+        await loadUserData(); renderMoodle();
+    }
+    async function startExam(examenId) {
+        const { data: existing } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).eq('examen_id', examenId).single();
+        if (existing) { alert("Ya completaste este examen."); return; }
+        const qs = preguntas.filter(q => q.examen_id === examenId).sort((a,b)=>a.orden_index-b.orden_index);
+        if (qs.length === 0) { alert("Este examen no tiene preguntas."); return; }
+        examQuestions = qs; examCurrentIndex = 0; examScore = 0; currentExamId = examenId;
+        document.getElementById('examOverlay').style.display = 'block';
+        loadExamQuestion();
+    }
+    function loadExamQuestion() {
+        if (examCurrentIndex >= examQuestions.length) { finishExam(); return; }
+        const q = examQuestions[examCurrentIndex];
+        document.getElementById('examProgressTitle').innerText = `Pregunta ${examCurrentIndex+1} de ${examQuestions.length}`;
+        document.getElementById('examQuestionText').innerText = q.enunciado;
+        document.getElementById('examOptionsContainer').innerHTML = `
+            <button class="option-btn" onclick="selectExamOption('A', this)"><strong>A.</strong> ${escapeHtml(q.opcion_a)}</button>
+            <button class="option-btn" onclick="selectExamOption('B', this)"><strong>B.</strong> ${escapeHtml(q.opcion_b)}</button>
+            <button class="option-btn" onclick="selectExamOption('C', this)"><strong>C.</strong> ${escapeHtml(q.opcion_c)}</button>
+            <button class="option-btn" onclick="selectExamOption('D', this)"><strong>D.</strong> ${escapeHtml(q.opcion_d)}</button>
+        `;
+        selectedOption = null; examTimeLeft = 15;
+        document.getElementById('examTimerDisplay').innerText = `${examTimeLeft}s`;
+        document.getElementById('timerBarFill').style.width = '100%';
+        if (examTimer) clearInterval(examTimer);
+        examTimer = setInterval(() => {
+            examTimeLeft--;
+            document.getElementById('examTimerDisplay').innerText = `${examTimeLeft}s`;
+            document.getElementById('timerBarFill').style.width = `${(examTimeLeft/15)*100}%`;
+            if (examTimeLeft <= 0) { clearInterval(examTimer); submitSelectedAnswer(); }
+        }, 1000);
+        window.selectExamOption = (letter, element) => {
+            selectedOption = letter;
+            document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('selected'));
+            element.classList.add('selected');
+        };
+        window.submitSelectedAnswer = () => {
+            clearInterval(examTimer);
+            const currentQ = examQuestions[examCurrentIndex];
+            if (selectedOption && selectedOption === currentQ.opcion_correcta) examScore++;
+            examCurrentIndex++;
+            loadExamQuestion();
+        };
+    }
+    async function finishExam() {
+        let finalScore = (examScore / examQuestions.length) * 20;
+        await supabaseClient.from('intentos_examen').insert([{ user_id: currentUser.id, examen_id: currentExamId, puntaje: finalScore.toFixed(2) }]);
+        alert(`Examen finalizado. Puntaje: ${finalScore.toFixed(2)} / 20`);
+        document.getElementById('examOverlay').style.display = 'none';
+        await loadUserData(); renderMoodle();
+    }
+    // ==================== ADMINISTRACIÓN ====================
+    function renderAdmin() {
+        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
+        document.getElementById('mainContent').innerHTML = `<div class="grid">
+            <div class="card" onclick="adminAttendance()"><i class="fas fa-user-check"></i><h3>Control de Asistencia</h3><p>Registrar puntualidad</p></div>
+            <div class="card" onclick="adminShifts()"><i class="fas fa-calendar-week"></i><h3>Gestión de Turnos</h3><p>Asignar fechas</p></div>
+            <div class="card" onclick="adminTeam()"><i class="fas fa-users"></i><h3>Gestionar Equipo</h3><p>Añadir/eliminar miembros</p></div>
+        </div>`;
+    }
+    function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
+    function adminTeam() {
+        const render = () => {
+            showModal(`<h3>Gestionar Miembros</h3><div id="teamListAdmin">${team.map((m, idx) => `<div style="display:flex; justify-content:space-between;"><span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMemberAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin miembros</p>'}</div><div class="form-group"><input id="newMemberName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="newMemberRole" class="form-control" placeholder="Rol"></div><button class="btn btn-primary" onclick="addTeamMemberAdmin()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
+            window.addTeamMemberAdmin = async () => {
+                const name = document.getElementById('newMemberName').value.trim();
+                const role = document.getElementById('newMemberRole').value.trim();
+                if (name) { team.push({ id: generateUniqueId(), name, role, user_id: currentUser.id }); await saveTeam(team); render(); }
+            };
+            window.removeTeamMemberAdmin = async (idx) => { if(confirm("¿Eliminar miembro?")) { team.splice(idx,1); await saveTeam(team); render(); } };
+        };
+        render();
+    }
+    function adminAttendance() {
+        let html = `<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        showModal(html);
+        flatpickr("#attDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
+        const renderAttList = () => {
+            const container = document.getElementById('attList');
+            if (container) container.innerHTML = attendance.map((a, idx) => { const m = team.find(t=>t.id===a.member_id); return `<div>${a.fecha} - ${m?.name} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join('');
+        };
+        window.saveAttendanceAdmin = async () => {
+            const date = document.getElementById('attDate').value;
+            const memberId = document.getElementById('attMember').value;
+            const status = document.getElementById('attStatus').value;
+            if (!date || !memberId) return alert("Completa los campos");
+            attendance.push({ id: generateUniqueId(), fecha: date, member_id: memberId, estado: status });
+            await saveAttendance(attendance); renderAttList(); document.getElementById('attDate').value = '';
+        };
+        window.deleteAttendanceAdmin = async (idx) => { attendance.splice(idx,1); await saveAttendance(attendance); renderAttList(); };
+        renderAttList();
+    }
+    function adminShifts() {
+        let html = `<h3>Gestión de Turnos</h3><div class="form-group"><label>Fecha</label><input id="shiftDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="shiftMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><button class="btn btn-primary" onclick="saveShiftAdmin()">Asignar</button><hr><h4>Turnos asignados</h4><div id="shiftList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        showModal(html);
+        flatpickr("#shiftDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
+        const renderShiftList = () => {
+            const container = document.getElementById('shiftList');
+            if (container) container.innerHTML = shifts.map((s, idx) => { const m = team.find(t=>t.id===s.member_id); return `<div>${s.fecha} - ${m?.name} <button class="btn-icon" onclick="deleteShiftAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join('');
+        };
+        window.saveShiftAdmin = async () => {
+            const date = document.getElementById('shiftDate').value;
+            const memberId = document.getElementById('shiftMember').value;
+            if (!date || !memberId) return;
+            shifts.push({ id: generateUniqueId(), fecha: date, member_id: memberId });
+            await saveShifts(shifts); renderShiftList(); document.getElementById('shiftDate').value = '';
+        };
+        window.deleteShiftAdmin = async (idx) => { shifts.splice(idx,1); await saveShifts(shifts); renderShiftList(); };
+        renderShiftList();
+    }
+
+    // ==================== VISOR CIFRA ====================
+    function openCifraViewer(songId, index) {
+        currentSongIndex = index;
+        const song = songs.find(s => s.id === songId);
+        if (!song) return;
+        cifraCurrentSong = song;
+        cifraOriginalLyrics = song.lyrics || "";
+        cifraSemitonesShift = 0;
+        document.getElementById('cifraModalTitle').innerText = song.title;
+        document.getElementById('cifraModalArtist').innerText = song.category;
+        document.getElementById('currentToneDisplay').innerText = song.key;
+        document.getElementById('cifraBpmInput').value = song.bpm || 80;
+        if (cifraScrollInterval) clearInterval(cifraScrollInterval);
+        cifraScrollInterval = null;
+        document.getElementById('btnAutoScrollToggle').innerHTML = `<i class="fa-solid fa-play"></i> Play`;
+        document.getElementById('cifraBodyContainer').scrollTop = 0;
+        if (cifraMetroInterval) clearInterval(cifraMetroInterval);
+        cifraMetroRunning = false;
+        document.getElementById('btnMetronomeToggle').innerHTML = `<i class="fa-solid fa-drum"></i> Iniciar`;
+        document.getElementById('metronomeVisualDot').classList.remove('pulse');
+        cifraFontSize = 18;
+        document.getElementById('cifraContentWrapper').style.fontSize = cifraFontSize + 'px';
+        renderCifraContent();
+        document.getElementById('cifraClubModal').style.display = 'flex';
+    }
+    function closeCifraViewer() {
+        if (cifraScrollInterval) clearInterval(cifraScrollInterval);
+        if (cifraMetroInterval) clearInterval(cifraMetroInterval);
+        document.getElementById('cifraClubModal').style.display = 'none';
+    }
+    function navigateSong(delta) {
+        let newIndex = currentSongIndex + delta;
+        if (newIndex < 0) newIndex = songs.length - 1;
+        if (newIndex >= songs.length) newIndex = 0;
+        const newSong = songs[newIndex];
+        if (newSong) openCifraViewer(newSong.id, newIndex);
+    }
+    function getShiftedKey(origKey, shift) {
+        if (!origKey) return 'C';
+        const isMinor = origKey.endsWith('m');
+        const base = origKey.replace(/m$/, '');
+        let idx = noteMap[base];
+        if (idx === undefined) return origKey;
+        let newIdx = (idx + shift + 12) % 12;
+        return noteNames[newIdx] + (isMinor ? 'm' : '');
+    }
+    function renderCifraContent() {
+        let lyrics = cifraOriginalLyrics;
+        if (cifraSemitonesShift !== 0) {
+            let targetKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+            lyrics = transposeLyrics(cifraOriginalLyrics, cifraCurrentSong.key, targetKey);
+        }
+        let html = renderChordsOverLyrics(lyrics);
+        document.getElementById('cifraContentWrapper').innerHTML = html;
+    }
+    function changeTone(direction) {
+        cifraSemitonesShift += direction;
+        document.getElementById('currentToneDisplay').innerText = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+        renderCifraContent();
+    }
+    function updateSongBpm() { if (cifraCurrentSong) cifraCurrentSong.bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80; if (cifraMetroRunning) { toggleCifraMetronome(); toggleCifraMetronome(); } }
+    function toggleCifraMetronome() {
+        const dot = document.getElementById('metronomeVisualDot');
+        const btn = document.getElementById('btnMetronomeToggle');
+        if (cifraMetroRunning) {
+            clearInterval(cifraMetroInterval); cifraMetroRunning = false;
+            btn.innerHTML = `<i class="fa-solid fa-drum"></i> Iniciar`; dot.classList.remove('pulse');
+        } else {
+            cifraMetroRunning = true; btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pausa`;
+            let bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+            cifraMetroInterval = setInterval(() => { dot.classList.add('pulse'); if (navigator.vibrate) navigator.vibrate(30); setTimeout(() => dot.classList.remove('pulse'), 90); }, 60000 / bpm);
+        }
+    }
+    function toggleCifraAutoScroll() {
+        const btn = document.getElementById('btnAutoScrollToggle');
+        const container = document.getElementById('cifraBodyContainer');
+        if (cifraScrollInterval) { clearInterval(cifraScrollInterval); cifraScrollInterval = null; btn.innerHTML = `<i class="fa-solid fa-play"></i> Play`; }
+        else { btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pausa`; cifraScrollInterval = setInterval(() => { container.scrollTop += 1; if (container.scrollTop >= (container.scrollHeight - container.clientHeight)) { clearInterval(cifraScrollInterval); cifraScrollInterval = null; btn.innerHTML = `<i class="fa-solid fa-play"></i> Play`; } }, cifraScrollSpeed); }
+    }
+    function adjustScrollSpeed(delta) { cifraScrollSpeed += delta; if (cifraScrollSpeed < 10) cifraScrollSpeed = 10; if (cifraScrollSpeed > 150) cifraScrollSpeed = 150; if (cifraScrollInterval) { toggleCifraAutoScroll(); toggleCifraAutoScroll(); } }
+    function adjustCifraFontSize(delta) { cifraFontSize += delta; if (cifraFontSize < 12) cifraFontSize = 12; if (cifraFontSize > 36) cifraFontSize = 36; document.getElementById('cifraContentWrapper').style.fontSize = cifraFontSize + 'px'; }
+    async function saveCifraStateToServer() {
+        if (!cifraCurrentSong) return;
+        if (!isAdminUser) { alert("Solo administrador puede guardar cambios permanentes."); return; }
+        let finalKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+        let finalBpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+        cifraCurrentSong.key = finalKey; cifraCurrentSong.bpm = finalBpm;
+        await saveSong(cifraCurrentSong);
+        alert("¡Tono y BPM guardados!");
+        cifraSemitonesShift = 0;
+    }
+
     // ==================== INICIALIZACIÓN ====================
     (async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             currentUser = session.user;
-            const { data: profile } = await supabase.from('perfiles').select('rol').eq('id', currentUser.id).single();
-            isAdmin = profile?.rol === 'admin';
-            await loadAllData();
+            const { data: profile } = await supabaseClient.from('perfiles').select('rol').eq('id', currentUser.id).single();
+            isAdminUser = (profile && profile.rol === 'admin');
+            await loadUserData();
             renderApp();
-        } else {
-            showLoginForm();
-        }
+        } else { renderLogin(); }
     })();
 </script>
 </body>
