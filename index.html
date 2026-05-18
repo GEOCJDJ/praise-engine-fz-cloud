@@ -2030,41 +2030,57 @@ function adminTeam() {
     render();
 }
 
-    function adminAttendance() {
-        let html = `<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-        showModal(html);
-        flatpickr("#attDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
-        const renderAttList = () => {
-            const container = document.getElementById('attList');
-            if (container) container.innerHTML = attendance.map((a, idx) => { const m = team.find(t=>t.id===a.member_id); return `<div>${a.fecha} - ${m?.name} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join('');
-        };
-        window.saveAttendanceAdmin = async () => {
-            const date = document.getElementById('attDate').value;
-            const memberId = document.getElementById('attMember').value;
-            const status = document.getElementById('attStatus').value;
-            if (!date || !memberId) return alert("Completa los campos");
-            attendance.push({ id: generateUniqueId(), fecha: date, member_id: memberId, estado: status });
-            await saveAttendance(attendance); renderAttList(); document.getElementById('attDate').value = '';
-        };
-        window.deleteAttendanceAdmin = async (idx) => { attendance.splice(idx,1); await saveAttendance(attendance); renderAttList(); };
-        renderAttList();
-    }
-   function adminShifts() {
-    // Convertir turnos a un objeto fecha -> nombre del miembro
-    const turnosMap = {};
-    shifts.forEach(s => {
-        const member = team.find(m => m.id === s.member_id);
-        turnosMap[s.fecha] = member ? member.name : 'Desconocido';
-    });
+   function adminAttendance() {
+    let html = `<h3>Registro de Asistencia</h3>
+        <div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div>
+        <div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div>
+        <button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button>
+        <hr><h4>Historial</h4><div id="attList"></div>
+        <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(html);
+    flatpickr("#attDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
 
-    // Función para refrescar la lista de turnos
+    const renderAttList = () => {
+        const container = document.getElementById('attList');
+        if (container) container.innerHTML = attendance.map((a, idx) => {
+            const m = team.find(t => t.id === a.member_id);
+            return `<div>${a.fecha} - ${m?.name} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`;
+        }).join('');
+    };
+
+    window.saveAttendanceAdmin = async () => {
+        const date = document.getElementById('attDate').value;
+        const memberId = document.getElementById('attMember').value;
+        const status = document.getElementById('attStatus').value;
+        if (!date || !memberId) return alert("Completa los campos");
+        // Insertar directamente en Supabase sin enviar id
+        const { error } = await supabaseClient.from('asistencia').insert([{ fecha: date, member_id: memberId, estado: status }]);
+        if (error) return alert("Error: " + error.message);
+        await loadUserData();  // recarga globalmente
+        renderAttList();
+        document.getElementById('attDate').value = '';
+    };
+
+    window.deleteAttendanceAdmin = async (id) => {
+        if (confirm("¿Eliminar este registro?")) {
+            const { error } = await supabaseClient.from('asistencia').delete().eq('id', id);
+            if (error) return alert("Error: " + error.message);
+            await loadUserData();
+            renderAttList();
+        }
+    };
+    renderAttList();
+}
+   function adminShifts() {
+    // Obtener turnos existentes
     const renderShiftList = () => {
         const listContainer = document.getElementById('shiftsListUl');
         if (listContainer) {
             listContainer.innerHTML = shifts.map(s => {
                 const member = team.find(m => m.id === s.member_id);
                 return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} 
-                        <button class="btn-icon" onclick="deleteShiftByDate('${s.fecha}')"><i class="fas fa-trash"></i></button></li>`;
+                        <button class="btn-icon" onclick="deleteShiftByDate('${s.id}')"><i class="fas fa-trash"></i></button></li>`;
             }).join('') || '<li>No hay turnos asignados.</li>';
         }
     };
@@ -2077,13 +2093,10 @@ function adminTeam() {
         </div>
         <div style="margin-top: 1rem;">
             <h4>Turnos asignados</h4>
-            <ul id="shiftsListUl">
-                ${shifts.map(s => {
-                    const member = team.find(m => m.id === s.member_id);
-                    return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} 
-                            <button class="btn-icon" onclick="deleteShiftByDate('${s.fecha}')"><i class="fas fa-trash"></i></button></li>`;
-                }).join('') || '<li>No hay turnos asignados.</li>'}
-            </ul>
+            <ul id="shiftsListUl">${shifts.map(s => {
+                const member = team.find(m => m.id === s.member_id);
+                return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} <button class="btn-icon" onclick="deleteShiftByDate('${s.id}')"><i class="fas fa-trash"></i></button></li>`;
+            }).join('') || '<li>No hay turnos asignados.</li>'}</ul>
         </div>
         <div style="text-align: right; margin-top: 1rem;">
             <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
@@ -2091,13 +2104,17 @@ function adminTeam() {
     `;
     showModal(modalHtml);
 
-    // Configurar flatpickr con onDayCreate para marcar días con turno
+    const turnosMap = {};
+    shifts.forEach(s => {
+        const member = team.find(m => m.id === s.member_id);
+        turnosMap[s.fecha] = member ? member.name : 'Desconocido';
+    });
+
     flatpickr("#shiftCalendar", {
         locale: "es",
         dateFormat: "d/m/Y",
         inline: true,
         onDayCreate: (dObj, dStr, fp, dayElem) => {
-            // Formatear fecha como dd/mm/yyyy para comparar con turnosMap
             const year = dayElem.dateObj.getFullYear();
             const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
             const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
@@ -2110,10 +2127,10 @@ function adminTeam() {
             }
         },
         onChange: (selectedDates, dateStr) => {
-            // Si ya hay turno, preguntar si desea eliminarlo; si no, asignar
             if (turnosMap[dateStr]) {
                 if (confirm(`Ya existe un turno para ${dateStr} (${turnosMap[dateStr]}). ¿Deseas eliminarlo?`)) {
-                    deleteShiftByDate(dateStr);
+                    const shiftToDelete = shifts.find(s => s.fecha === dateStr);
+                    if (shiftToDelete) deleteShiftById(shiftToDelete.id);
                 }
             } else {
                 // Mostrar selector de miembros
@@ -2140,31 +2157,32 @@ function adminTeam() {
 
     window.confirmAssignShift = async (dateStr) => {
         const memberId = document.getElementById('shiftMemberSelect')?.value;
-        if (!memberId) {
-            alert("Selecciona un miembro");
-            return;
-        }
+        if (!memberId) return alert("Selecciona un miembro");
         if (shifts.some(s => s.fecha === dateStr)) {
             alert("Ya hay un turno en esa fecha. Elimínalo primero.");
             closeModal();
             adminShifts();
             return;
         }
-        shifts.push({ id: generateUniqueId(), fecha: dateStr, member_id: memberId });
-        await saveShifts(shifts);
+        // Insertar directamente sin id
+        const { error } = await supabaseClient.from('turnos').insert([{ fecha: dateStr, member_id: memberId }]);
+        if (error) return alert("Error: " + error.message);
+        await loadUserData();
         closeModal();
         adminShifts();
     };
 
-    window.deleteShiftByDate = async (fecha) => {
-        if (confirm(`¿Eliminar el turno del ${fecha}?`)) {
-            const index = shifts.findIndex(s => s.fecha === fecha);
-            if (index !== -1) shifts.splice(index, 1);
-            await saveShifts(shifts);
+    window.deleteShiftById = async (shiftId) => {
+        if (confirm("¿Eliminar este turno?")) {
+            const { error } = await supabaseClient.from('turnos').delete().eq('id', shiftId);
+            if (error) return alert("Error: " + error.message);
+            await loadUserData();
             closeModal();
             adminShifts();
         }
     };
+
+    renderShiftList();
 }
 
     // ==================== VISOR CIFRA ====================
