@@ -167,6 +167,21 @@
     background: var(--primary) !important;
     color: white !important;
 }
+
+   .profile-detail-card {
+    background: var(--bg-app);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.profile-detail-card h4 {
+    border-left: 4px solid var(--primary);
+    padding-left: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.profile-detail-card p {
+    margin: 0.3rem 0;
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1076,32 +1091,37 @@ async function addSelectedSongsToList(listId) {
         content += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(content);
     }
-    async function showMemberProfile(memberId) {
-        const member = team.find(m => m.id === memberId);
-        if (!member) return;
-        const canEdit = (isAdminUser || (currentUser && currentUser.id === member.user_id));
-        let memberAttendance = attendance.filter(a => a.member_id === memberId);
-        let memberShifts = shifts.filter(s => s.member_id === memberId);
-        let html = `<h3>Perfil: ${escapeHtml(member.name)}</h3>
-                    <p><strong>Rol:</strong> ${escapeHtml(member.role)}</p>
-                    <p><strong>Fecha Nacimiento:</strong> ${member.fecha_nacimiento || 'No especificada'}</p>
-                    <p><strong>Celular:</strong> ${member.celular ? `<a href="https://wa.me/${member.celular.replace(/[^0-9]/g,'')}" target="_blank">${escapeHtml(member.celular)} <i class="fab fa-whatsapp"></i></a>` : 'No'}</p>
-                    <p><strong>Red social:</strong> ${member.red_social ? `<a href="${member.red_social}" target="_blank">${escapeHtml(member.red_social)}</a>` : 'No'}</p>
-                    <p><strong>Película favorita:</strong> ${member.pelicula_favorita || '—'}</p>
-                    <p><strong>Música favorita:</strong> ${member.musica_favorita || '—'}</p>
-                    <p><strong>Cantante favorito:</strong> ${member.cantante_favorito || '—'}</p>
-                    <p><strong>Grupo favorito:</strong> ${member.grupo_favorito || '—'}</p>
-                    <p><strong>Expectativas:</strong> ${member.expectativas || '—'}</p>
-                    <p><strong>Mejoras necesarias:</strong> ${member.mejoras || '—'}</p>
-                    <h4>Asistencia</h4><ul>`;
-        memberAttendance.forEach(a => html += `<li>${a.fecha} - ${a.estado}</li>`);
-        html += `</ul><h4>Turnos</h4><ul>`;
-        memberShifts.forEach(s => html += `<li>📅 ${s.fecha}</li>`);
-        html += `</ul>`;
-        if (canEdit) html += `<hr><button class="btn btn-primary" onclick="editMemberProfile('${member.id}')">Editar mi perfil</button>`;
-        html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-        showModal(html);
+    
+  async function showMemberProfile(memberId, fromList = false) {
+    const member = team.find(m => m.id === memberId);
+    if (!member) return;
+    const canEdit = (isAdminUser || (currentUser && currentUser.id === member.user_id));
+    let memberAttendance = attendance.filter(a => a.member_id === memberId);
+    let memberShifts = shifts.filter(s => s.member_id === memberId);
+    let html = `<h3>Perfil: ${escapeHtml(member.name)}</h3>
+                <p><strong>Rol:</strong> ${escapeHtml(member.role)}</p>
+                <p><strong>Fecha Nacimiento:</strong> ${member.fecha_nacimiento || 'No especificada'}</p>
+                <p><strong>Celular:</strong> ${member.celular ? `<a href="https://wa.me/${member.celular.replace(/[^0-9]/g,'')}" target="_blank">${escapeHtml(member.celular)} <i class="fab fa-whatsapp"></i></a>` : 'No'}</p>
+                <p><strong>Red social:</strong> ${member.red_social ? `<a href="${member.red_social}" target="_blank">${escapeHtml(member.red_social)}</a>` : 'No'}</p>
+                <p><strong>Película favorita:</strong> ${member.pelicula_favorita || '—'}</p>
+                <p><strong>Música favorita:</strong> ${member.musica_favorita || '—'}</p>
+                <p><strong>Cantante favorito:</strong> ${member.cantante_favorito || '—'}</p>
+                <p><strong>Grupo favorito:</strong> ${member.grupo_favorito || '—'}</p>
+                <p><strong>Expectativas:</strong> ${member.expectativas || '—'}</p>
+                <p><strong>Mejoras necesarias:</strong> ${member.mejoras || '—'}</p>
+                <h4>Asistencia</h4><ul>`;
+    memberAttendance.forEach(a => html += `<li>${a.fecha} - ${a.estado}</li>`);
+    html += `</ul><h4>Turnos</h4><ul>`;
+    memberShifts.forEach(s => html += `<li>📅 ${s.fecha}</li>`);
+    html += `</ul>`;
+    if (canEdit) html += `<hr><button class="btn btn-primary" onclick="editMemberProfile('${member.id}')">✏️ Editar mi perfil</button>`;
+    if (fromList) {
+        html += `<button class="btn btn-ghost" onclick="adminTeam()" style="margin-left: 0.5rem;">← Volver a la lista</button>`;
     }
+    html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(html);
+}
+    
     function editMemberProfile(memberId) {
         const member = team.find(m => m.id === memberId);
         if (!member) return;
@@ -1826,7 +1846,6 @@ async function saveAllQuestions() {
 }
 function adminTeam() {
     const render = () => {
-        // Generar grid de tarjetas
         let cardsHtml = `<div class="grid" style="margin-bottom: 1.5rem;">`;
         team.forEach(m => {
             cardsHtml += `
@@ -1842,7 +1861,6 @@ function adminTeam() {
         });
         cardsHtml += `</div>`;
 
-        // Formulario para agregar
         const formHtml = `
             <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-app); border-radius: var(--radius-lg);">
                 <h4>Agregar nuevo miembro</h4>
@@ -1861,18 +1879,18 @@ function adminTeam() {
             </div>
         `);
 
-        // Agregar event listeners a las tarjetas después de que existan en el DOM
         setTimeout(() => {
             document.querySelectorAll('.team-card').forEach(card => {
                 card.addEventListener('click', (e) => {
-                    if (e.target.closest('.btn-icon')) return; // evitar eliminar
+                    if (e.target.closest('.btn-icon')) return;
                     const memberId = card.dataset.memberId;
-                    showMemberProfile(memberId);
+                    closeModal();               // Cierra la lista de miembros
+                    showMemberProfile(memberId, true); // Abre el perfil individual
                 });
             });
         }, 50);
     };
-    // Funciones auxiliares internas (ya deben existir en el ámbito global)
+
     window.addTeamMemberAdmin = async () => {
         const name = document.getElementById('newMemberName')?.value.trim();
         const role = document.getElementById('newMemberRole')?.value.trim();
@@ -1885,8 +1903,8 @@ function adminTeam() {
         };
         team.push(newMember);
         await saveTeam(team);
-        closeModal();  // cierra el modal actual
-        adminTeam();   // vuelve a abrir el modal actualizado
+        closeModal();
+        adminTeam();
     };
 
     window.removeTeamMemberAdmin = async (memberId) => {
@@ -1922,23 +1940,111 @@ function adminTeam() {
         renderAttList();
     }
     function adminShifts() {
-        let html = `<h3>Gestión de Turnos</h3><div class="form-group"><label>Fecha</label><input id="shiftDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="shiftMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><button class="btn btn-primary" onclick="saveShiftAdmin()">Asignar</button><hr><h4>Turnos asignados</h4><div id="shiftList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-        showModal(html);
-        flatpickr("#shiftDate", { locale: "es", dateFormat: "d/m/Y", defaultDate: "today" });
-        const renderShiftList = () => {
-            const container = document.getElementById('shiftList');
-            if (container) container.innerHTML = shifts.map((s, idx) => { const m = team.find(t=>t.id===s.member_id); return `<div>${s.fecha} - ${m?.name} <button class="btn-icon" onclick="deleteShiftAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`; }).join('');
-        };
-        window.saveShiftAdmin = async () => {
-            const date = document.getElementById('shiftDate').value;
-            const memberId = document.getElementById('shiftMember').value;
-            if (!date || !memberId) return;
-            shifts.push({ id: generateUniqueId(), fecha: date, member_id: memberId });
-            await saveShifts(shifts); renderShiftList(); document.getElementById('shiftDate').value = '';
-        };
-        window.deleteShiftAdmin = async (idx) => { shifts.splice(idx,1); await saveShifts(shifts); renderShiftList(); };
-        renderShiftList();
-    }
+    // Función para refrescar la lista de turnos dentro del modal
+    const renderShiftList = () => {
+        const listContainer = document.getElementById('shiftsListUl');
+        if (listContainer) {
+            listContainer.innerHTML = shifts.map(s => {
+                const member = team.find(m => m.id === s.member_id);
+                return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} 
+                        <button class="btn-icon" onclick="deleteShiftByDate('${s.fecha}')"><i class="fas fa-trash"></i></button></li>`;
+            }).join('') || '<li>No hay turnos asignados.</li>';
+        }
+    };
+
+    // Crear el modal con calendario y lista
+    const modalHtml = `
+        <h3>Gestión de Turnos</h3>
+        <div class="form-group">
+            <label>📅 Calendario – Haz clic en una fecha para asignar un turno</label>
+            <input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha">
+        </div>
+        <div style="margin-top: 1rem;">
+            <h4>Turnos asignados</h4>
+            <ul id="shiftsListUl">
+                ${shifts.map(s => {
+                    const member = team.find(m => m.id === s.member_id);
+                    return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} 
+                            <button class="btn-icon" onclick="deleteShiftByDate('${s.fecha}')"><i class="fas fa-trash"></i></button></li>`;
+                }).join('') || '<li>No hay turnos asignados.</li>'}
+            </ul>
+        </div>
+        <div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+        </div>
+    `;
+    showModal(modalHtml);
+
+    // Inicializar flatpickr en modo calendario (inline)
+    flatpickr("#shiftCalendar", {
+        locale: "es",
+        dateFormat: "d/m/Y",
+        inline: true,   // muestra el calendario siempre visible
+        onChange: function(selectedDates, dateStr) {
+            // Al seleccionar una fecha, mostrar un selector de miembros
+            const memberOptions = team.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.role)})</option>`).join('');
+            const confirmHtml = `
+                <div>
+                    <p>Asignar turno para el <strong>${dateStr}</strong></p>
+                    <select id="shiftMemberSelect" class="form-control">${memberOptions}</select>
+                    <div style="margin-top: 1rem; text-align: right;">
+                        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                        <button class="btn btn-primary" onclick="confirmAssignShift('${dateStr}')">Asignar</button>
+                    </div>
+                </div>
+            `;
+            // Reemplazar el contenido del modal actual con el selector (sin cerrar el modal)
+            const modalContent = document.querySelector('#modal .modal-content');
+            if (modalContent) {
+                modalContent.innerHTML = confirmHtml;
+                // Ajustar altura máxima
+                modalContent.style.maxHeight = '85vh';
+                modalContent.style.overflowY = 'auto';
+            }
+        }
+    });
+
+    // Función para confirmar la asignación
+    window.confirmAssignShift = async (dateStr) => {
+        const memberId = document.getElementById('shiftMemberSelect')?.value;
+        if (!memberId) {
+            alert("Selecciona un miembro");
+            return;
+        }
+        if (shifts.some(s => s.fecha === dateStr)) {
+            alert("Ya hay un turno asignado en esa fecha. Elimínalo primero.");
+            // Volver a abrir el calendario
+            closeModal();
+            adminShifts();
+            return;
+        }
+        shifts.push({ id: generateUniqueId(), fecha: dateStr, member_id: memberId });
+        await saveShifts(shifts);
+        // Recargar el modal completo
+        closeModal();
+        adminShifts();
+    };
+
+    // Función para eliminar turno por fecha
+    window.deleteShiftByDate = async (fecha) => {
+        if (confirm(`¿Eliminar el turno del ${fecha}?`)) {
+            const index = shifts.findIndex(s => s.fecha === fecha);
+            if (index !== -1) shifts.splice(index, 1);
+            await saveShifts(shifts);
+            // Refrescar el modal sin cerrarlo completamente
+            const modalContent = document.querySelector('#modal .modal-content');
+            if (modalContent) {
+                // Simplemente volvemos a generar el modal (cerrar y abrir)
+                closeModal();
+                adminShifts();
+            } else {
+                // Fallback
+                closeModal();
+                adminShifts();
+            }
+        }
+    };
+}
 
     // ==================== VISOR CIFRA ====================
    function openCifraViewer(songId, index) {
