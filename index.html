@@ -1116,7 +1116,8 @@ async function addSelectedSongsToList(listId) {
     html += `</ul>`;
     if (canEdit) html += `<hr><button class="btn btn-primary" onclick="editMemberProfile('${member.id}')">✏️ Editar mi perfil</button>`;
     if (fromList) {
-        html += `<button class="btn btn-ghost" onclick="adminTeam()" style="margin-left: 0.5rem;">← Volver a la lista</button>`;
+html += `<button class="btn btn-ghost" onclick="closeModal(); setTimeout(() => adminTeam(), 50);" style="margin-left: 0.5rem;">← Volver a la lista</button>`;
+        
     }
     html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
     showModal(html);
