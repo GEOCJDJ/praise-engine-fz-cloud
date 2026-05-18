@@ -112,6 +112,49 @@
         .option-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
         @media (max-width: 640px) { .app-title { font-size: 0.9rem; } .nav-item { min-width: 55px; } }
         @media print { .app-header, .search-container, .view-controls, #actionHeader, .modal, .btn, .user-info, .cifra-toolbar, .cifra-btn-close { display: none !important; } .print-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .print-card { border: 1px solid #000; border-radius: 8px; padding: 6px; break-inside: avoid; } .print-title { font-weight: bold; text-align: center; border-bottom: 1px solid #aaa; margin-bottom: 4px; } .print-song { font-size: 8pt; margin: 2px 0; } .print-footer { font-size: 6pt; text-align: center; margin-top: 4px; } .cifra-modal { display: block !important; position: relative !important; height: auto !important; background: white !important; color: black !important; } .cifra-body { background: white !important; } .cifra-content-wrapper { color: black !important; } .chord-row td { color: black !important; } }
+    
+    /* Mejora para alineación de acordes */
+.cifra-content-wrapper {
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 1.5;
+}
+.chord-line {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+.chord-item {
+    font-weight: bold;
+    color: #F59E0B;
+    font-size: 0.9rem;
+    margin-right: 0.8rem;
+    white-space: nowrap;
+}
+.lyric-line {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.lyric-item {
+    font-size: 1rem;
+    white-space: pre-wrap;
+    margin-right: 0.8rem;
+}
+/* Metrónomo visual */
+.metronome-dot {
+    width: 20px;
+    height: 20px;
+    background-color: #475569;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 10px;
+    transition: background 0.05s;
+}
+.metronome-dot.pulse {
+    background-color: #3B82F6;
+    box-shadow: 0 0 8px #3B82F6;
+}
+    
     </style>
 </head>
 <body>
@@ -186,81 +229,116 @@
         return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`);
     }
 
-    function convertSpacedChordsToBrackets(text) {
-        let lines = text.split('\n');
-        let result = [];
-        let i = 0;
-        while (i < lines.length) {
-            let line = lines[i];
-            if (line.match(/^[\sA-Ga-g0-9#b\/]+$/) && !line.match(/[aeiouáéíóú]/i)) {
-                let nextLine = lines[i+1] || '';
-                let chordLine = line.trim();
-                let lyricLine = nextLine;
-                let chords = chordLine.split(/\s+/).filter(c => c.length > 0);
-                let words = lyricLine.split(/(\s+)/);
-                let newLyric = '';
-                let chordIndex = 0;
-                for (let w of words) {
-                    if (w.trim().length > 0 && chordIndex < chords.length) {
-                        newLyric += `[${chords[chordIndex]}] ${w}`;
-                        chordIndex++;
-                    } else newLyric += w;
+   function convertSpacedChordsToBrackets(text) {
+    const lines = text.split('\n');
+    const result = [];
+    let i = 0;
+    while (i < lines.length) {
+        let line = lines[i];
+        if (line.trim() === '') { result.push(line); i++; continue; }
+        // Si la línea actual parece una línea de acordes (sin vocales)
+        if (/^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line) && i+1 < lines.length) {
+            const chords = line.trim().split(/\s+/);
+            const lyricLine = lines[i+1];
+            const words = lyricLine.split(/(\s+)/);
+            let newLine = '';
+            let chordIndex = 0;
+            for (let word of words) {
+                if (word.trim() !== '' && chordIndex < chords.length) {
+                    newLine += `[${chords[chordIndex]}]${word}`;
+                    chordIndex++;
+                } else {
+                    newLine += word;
                 }
-                result.push(newLyric);
-                i += 2;
-            } else {
-                result.push(line);
-                i++;
             }
+            result.push(newLine);
+            i += 2;
+        } else {
+            result.push(line);
+            i++;
         }
-        return result.join('\n');
     }
+    return result.join('\n');
+}
 
    function renderChordsOverLyrics(text) {
     if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
     
-    let lines = text.split('\n');
+    const lines = text.split('\n');
     let html = '';
+    let i = 0;
     
-    for (let line of lines) {
-        line = line.trim();
-        if (line === '') continue;
+    while (i < lines.length) {
+        let line = lines[i];
+        if (line.trim() === '') { i++; continue; }
         
-        // Buscar patrones como [Acorde]texto
-        let chordPattern = /\[([^\]]+)\]([^[]*)/g;
-        let parts = [];
-        let match;
-        let lastIndex = 0;
+        // Detectar si la línea actual es solo acordes (sin vocales, solo letras de acordes y espacios)
+        const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line);
         
-        while ((match = chordPattern.exec(line)) !== null) {
-            let chord = match[1];
-            let textPart = match[2];
-            parts.push({ chord, text: textPart });
-            lastIndex = match.index + match[0].length;
+        if (isChordLine && i + 1 < lines.length) {
+            // Formato acordes arriba, letra abajo
+            const chordLine = line.trim().split(/\s+/);
+            const lyricLine = lines[i+1].trim();
+            
+            // Dividir la letra en palabras (manteniendo espacios)
+            const words = lyricLine.split(/(\s+)/);
+            // Reconstruir con acordes alineados
+            let chordHtml = '<div class="chord-line">';
+            let lyricHtml = '<div class="lyric-line">';
+            let wordIndex = 0;
+            
+            for (let chord of chordLine) {
+                if (wordIndex >= words.length) break;
+                let word = words[wordIndex];
+                // Mostrar acorde encima de la palabra
+                chordHtml += `<span class="chord-item" style="min-width: ${Math.max(word.length * 0.8, 2)}rem;">${escapeHtml(chord)}</span>`;
+                lyricHtml += `<span class="lyric-item" style="min-width: ${Math.max(word.length * 0.8, 2)}rem;">${escapeHtml(word)}</span>`;
+                wordIndex++;
+            }
+            // Agregar el resto de palabras sin acorde
+            while (wordIndex < words.length) {
+                lyricHtml += `<span class="lyric-item">${escapeHtml(words[wordIndex])}</span>`;
+                chordHtml += `<span class="chord-item" style="visibility:hidden;">&nbsp;</span>`;
+                wordIndex++;
+            }
+            chordHtml += '</div>';
+            lyricHtml += '</div>';
+            html += `<div class="song-line">${chordHtml}${lyricHtml}</div>`;
+            i += 2;
+        } else {
+            // Formato normal con [Acorde]texto o texto plano
+            // Buscar patrones [Acorde]texto
+            const parts = [];
+            const regex = /\[([^\]]+)\]([^[]*)/g;
+            let match;
+            let lastIndex = 0;
+            let hasChord = false;
+            while ((match = regex.exec(line)) !== null) {
+                hasChord = true;
+                parts.push({ chord: match[1], text: match[2] });
+                lastIndex = match.index + match[0].length;
+            }
+            if (!hasChord) {
+                // Línea sin acordes, mostrar como texto simple
+                html += `<div class="song-line"><div class="lyric-line">${escapeHtml(line)}</div></div>`;
+                i++;
+                continue;
+            }
+            // Construir visual con acordes encima de texto
+            let chordHtml = '<div class="chord-line">';
+            let lyricHtml = '<div class="lyric-line">';
+            for (let part of parts) {
+                let textLen = part.text.length;
+                let width = Math.max(textLen * 0.8, 1) + 'rem';
+                chordHtml += `<span class="chord-item" style="min-width:${width};">${escapeHtml(part.chord)}</span>`;
+                lyricHtml += `<span class="lyric-item" style="min-width:${width};">${escapeHtml(part.text)}</span>`;
+            }
+            chordHtml += '</div>';
+            lyricHtml += '</div>';
+            html += `<div class="song-line">${chordHtml}${lyricHtml}</div>`;
+            i++;
         }
-        
-        if (parts.length === 0) {
-            // Línea sin acordes
-            html += `<div class="song-line" style="margin-bottom:1rem;">${escapeHtml(line)}</div>`;
-            continue;
-        }
-        
-        // Construir tabla visual: acordes arriba, letra abajo
-        let chordHtml = '<div class="chord-row" style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:0.5rem;">';
-        let lyricHtml = '<div class="lyric-row" style="display:flex; flex-wrap:wrap; gap:0.5rem;">';
-        
-        for (let part of parts) {
-            // Espaciador flexible para que el acorde quede encima de la palabra
-            chordHtml += `<span style="font-weight:bold; color:#F59E0B; font-size:0.85rem; min-width:${Math.max(part.text.length * 0.8, 1)}rem;">${escapeHtml(part.chord)}</span>`;
-            lyricHtml += `<span style="font-size:1rem;">${escapeHtml(part.text)}</span>`;
-        }
-        
-        chordHtml += '</div>';
-        lyricHtml += '</div>';
-        
-        html += `<div class="song-line" style="margin-bottom:1rem;">${chordHtml}${lyricHtml}</div>`;
     }
-    
     return html;
 }
     // ==================== AUTENTICACIÓN ====================
@@ -1088,17 +1166,18 @@ window.showModuleContent = async (moduleId) => {
     }
 
     // ==================== VISOR CIFRA ====================
-    function openCifraViewer(songId, index) {
-        currentSongIndex = index;
-        const song = songs.find(s => s.id === songId);
-        if (!song) return;
-        cifraCurrentSong = song;
-        cifraOriginalLyrics = song.lyrics || "";
-        cifraSemitonesShift = 0;
-        document.getElementById('cifraModalTitle').innerText = song.title;
-        document.getElementById('cifraModalArtist').innerText = song.category;
-        document.getElementById('currentToneDisplay').innerText = song.key;
-        document.getElementById('cifraBpmInput').value = song.bpm || 80;
+   function openCifraViewer(songId, index) {
+    currentSongIndex = index;
+    const song = songs.find(s => s.id === songId);
+    if (!song) return;
+    cifraCurrentSong = song;
+    cifraOriginalLyrics = song.lyrics || "";
+    // Inicializar shift en 0 porque la canción ya tiene su tono base
+    cifraSemitonesShift = 0;
+    document.getElementById('cifraModalTitle').innerText = song.title;
+    document.getElementById('cifraModalArtist').innerText = song.category;
+    document.getElementById('currentToneDisplay').innerText = song.key;
+    document.getElementById('cifraBpmInput').value = song.bpm || 80;
         if (cifraScrollInterval) clearInterval(cifraScrollInterval);
         cifraScrollInterval = null;
         document.getElementById('btnAutoScrollToggle').innerHTML = `<i class="fa-solid fa-play"></i> Play`;
