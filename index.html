@@ -629,25 +629,25 @@ songs = (s || []).map(song => ({
     async function deleteList(id) { if (!isAdminUser) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
     async function saveTeam(members) { if (!isAdminUser) return; team = members; await supabaseClient.from('equipo').delete().neq('id', '0'); for (let m of team) { if (!m.id) m.id = generateUniqueId(); await supabaseClient.from('equipo').insert(m); } await loadUserData(); renderCurrentView(); }
     
-    async function saveShifts(shiftsArray) {
-    if (!isAdminUser) return;
-    try {
-        // Usar upsert para evitar eliminar todos los registros
-        const { error } = await supabaseClient.from('turnos').upsert(shiftsArray, { onConflict: 'id' });
-        if (error) throw error;
-        await loadUserData();
+   // async function saveShifts(shiftsArray) {
+ //   if (!isAdminUser) return;
+   // try {
+    //    // Usar upsert para evitar eliminar todos los registros
+    //    const { error } = await supabaseClient.from('turnos').upsert(shiftsArray, { onConflict: 'id' });
+    //    if (error) throw error;
+   //     await loadUserData();
         // No es necesario llamar a renderCurrentView() aquí porque loadUserData ya actualiza las variables
-    } catch(e) { console.error(e); alert("Error guardando turnos: " + e.message); }
-}
+    //} catch(e) { console.error(e); alert("Error guardando turnos: " + e.message); }
+//}
 
-async function saveAttendance(attendanceArray) {
-    if (!isAdminUser) return;
-    try {
-        const { error } = await supabaseClient.from('asistencia').upsert(attendanceArray, { onConflict: 'id' });
-        if (error) throw error;
-        await loadUserData();
-    } catch(e) { console.error(e); alert("Error guardando asistencias: " + e.message); }
-}
+//async function saveAttendance(attendanceArray) {
+  //  if (!isAdminUser) return;
+    //try {
+      //  const { error } = await supabaseClient.from('asistencia').upsert(attendanceArray, { onConflict: 'id' });
+        //if (error) throw error;
+        //await loadUserData();
+    //} catch(e) { console.error(e); alert("Error guardando asistencias: " + e.message); }
+//}
     
     
    // ==================== RENDER PRINCIPAL ====================
@@ -2043,7 +2043,7 @@ function adminTeam() {
 
     const renderAttList = () => {
         const container = document.getElementById('attList');
-        if (container) container.innerHTML = attendance.map((a, idx) => {
+        if (container) container.innerHTML = attendance.map((a) => {
             const m = team.find(t => t.id === a.member_id);
             return `<div>${a.fecha} - ${m?.name} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`;
         }).join('');
@@ -2054,10 +2054,10 @@ function adminTeam() {
         const memberId = document.getElementById('attMember').value;
         const status = document.getElementById('attStatus').value;
         if (!date || !memberId) return alert("Completa los campos");
-        // Insertar directamente en Supabase sin enviar id
+        // Insertar directamente sin enviar id (Supabase asigna autoincrement)
         const { error } = await supabaseClient.from('asistencia').insert([{ fecha: date, member_id: memberId, estado: status }]);
         if (error) return alert("Error: " + error.message);
-        await loadUserData();  // recarga globalmente
+        await loadUserData();
         renderAttList();
         document.getElementById('attDate').value = '';
     };
@@ -2072,15 +2072,21 @@ function adminTeam() {
     };
     renderAttList();
 }
-   function adminShifts() {
-    // Obtener turnos existentes
+  function adminShifts() {
+    // Mapa de fechas a nombre de miembro para pintar el calendario
+    const turnosMap = {};
+    shifts.forEach(s => {
+        const member = team.find(m => m.id === s.member_id);
+        turnosMap[s.fecha] = member ? member.name : 'Desconocido';
+    });
+
     const renderShiftList = () => {
         const listContainer = document.getElementById('shiftsListUl');
         if (listContainer) {
             listContainer.innerHTML = shifts.map(s => {
                 const member = team.find(m => m.id === s.member_id);
                 return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} 
-                        <button class="btn-icon" onclick="deleteShiftByDate('${s.id}')"><i class="fas fa-trash"></i></button></li>`;
+                        <button class="btn-icon" onclick="deleteShiftById(${s.id})"><i class="fas fa-trash"></i></button></li>`;
             }).join('') || '<li>No hay turnos asignados.</li>';
         }
     };
@@ -2095,7 +2101,7 @@ function adminTeam() {
             <h4>Turnos asignados</h4>
             <ul id="shiftsListUl">${shifts.map(s => {
                 const member = team.find(m => m.id === s.member_id);
-                return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} <button class="btn-icon" onclick="deleteShiftByDate('${s.id}')"><i class="fas fa-trash"></i></button></li>`;
+                return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} <button class="btn-icon" onclick="deleteShiftById(${s.id})"><i class="fas fa-trash"></i></button></li>`;
             }).join('') || '<li>No hay turnos asignados.</li>'}</ul>
         </div>
         <div style="text-align: right; margin-top: 1rem;">
@@ -2103,12 +2109,6 @@ function adminTeam() {
         </div>
     `;
     showModal(modalHtml);
-
-    const turnosMap = {};
-    shifts.forEach(s => {
-        const member = team.find(m => m.id === s.member_id);
-        turnosMap[s.fecha] = member ? member.name : 'Desconocido';
-    });
 
     flatpickr("#shiftCalendar", {
         locale: "es",
@@ -2133,7 +2133,6 @@ function adminTeam() {
                     if (shiftToDelete) deleteShiftById(shiftToDelete.id);
                 }
             } else {
-                // Mostrar selector de miembros
                 const memberOptions = team.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.role)})</option>`).join('');
                 const confirmHtml = `
                     <div>
@@ -2164,7 +2163,7 @@ function adminTeam() {
             adminShifts();
             return;
         }
-        // Insertar directamente sin id
+        // Insertar sin enviar id (dejar que Supabase asigne autoincrement)
         const { error } = await supabaseClient.from('turnos').insert([{ fecha: dateStr, member_id: memberId }]);
         if (error) return alert("Error: " + error.message);
         await loadUserData();
