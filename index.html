@@ -632,11 +632,18 @@ function renderApp() {
             </div>
         </footer>
     `;
-    document.querySelectorAll('.nav-item[data-tab]').forEach(el => el.addEventListener('click', () => {
+   document.querySelectorAll('.nav-item[data-tab]').forEach(el => {
+    el.addEventListener('click', () => {
+        // Remover active de todas
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        // Agregar active al actual
+        el.classList.add('active');
+        // Actualizar variable global y vista
         currentTab = el.dataset.tab;
         selectedListId = null;
         renderCurrentView();
-    }));
+    });
+});
     const darkToggle = document.getElementById('darkModeToggle');
     darkToggle.addEventListener('click', () => {
         document.body.classList.toggle('dark');
