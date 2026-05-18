@@ -336,7 +336,7 @@
     async function loadUserData() {
         if (!currentUser) return;
         try {
-          const { data: s } = await supabaseClient.from('canciones').select('*');
+         const { data: s } = await supabaseClient.from('canciones').select('*'); 
 songs = (s || []).map(song => ({
     ...song,
     chordsUrl: song.chords_url,
@@ -394,15 +394,16 @@ songs = (s || []).map(song => ({
     async function saveSong(song) {
     if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return false; }
     try {
+        // Mapear a los nombres reales de las columnas en Supabase (snake_case)
         const cleanSong = {
             id: song.id || generateUniqueId(),
-            user_id: currentUser.id,          // Agregar el ID del usuario actual
+            user_id: currentUser.id,
             title: song.title || "Sin título",
             category: song.category || "Adoración",
             key: song.key || "C",
             bpm: parseInt(song.bpm) || 80,
-            chords_url: song.chordsUrl || "",   // Cambiado
-            chords_data: song.chordsData || "", // Cambiado
+            chords_url: song.chordsUrl || "",   // ← importante: snake_case
+            chords_data: song.chordsData || "", // ← importante: snake_case
             lyrics: song.lyrics || "",
             youtube: song.youtube || ""
         };
@@ -520,24 +521,49 @@ songs = (s || []).map(song => ({
             <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveSongFromModal('${id}')">Guardar</button></div>`);
         window.convertLyricsInModal = () => { const textarea = document.getElementById('mLyrics'); textarea.value = convertSpacedChordsToBrackets(textarea.value); };
     }
-    async function saveSongFromModal(id) {
-        if (!isAdminUser) return;
-        const title = document.getElementById('mTitle').value.trim();
-        if (!title) return alert("Título requerido");
-        const file = document.getElementById('mChordsFile').files[0];
-        let chordsData = '';
-        if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); }
-        const song = {
-    id: id || generateUniqueId(),
-    title, category, key: document.getElementById('mKey').value,
-    bpm: parseInt(document.getElementById('mBpm').value) || 80,
-    chordsUrl: document.getElementById('mChordsUrl').value.trim(),   // Esto se convertirá a chords_url en saveSong
-    chordsData: chordsData || (id ? songs.find(s=>s.id===id)?.chordsData : ''),
-    lyrics: document.getElementById('mLyrics').value, youtube: ''
-};
-        await saveSong(song);
-        closeModal();
+ async function saveSongFromModal(id) {
+    if (!isAdminUser) return;
+    
+    const title = document.getElementById('mTitle').value.trim();
+    if (!title) return alert("Título requerido");
+    
+    const category = document.getElementById('mCat').value;
+    const key = document.getElementById('mKey').value;
+    const bpm = parseInt(document.getElementById('mBpm').value) || 80;
+    const chordsUrl = document.getElementById('mChordsUrl').value.trim();
+    const lyrics = document.getElementById('mLyrics').value;
+    
+    let chordsData = '';
+    const file = document.getElementById('mChordsFile').files[0];
+    if (file) {
+        const reader = new FileReader();
+        await new Promise(resolve => {
+            reader.onload = e => {
+                chordsData = e.target.result;
+                resolve();
+            };
+            reader.readAsDataURL(file);
+        });
+    } else if (id) {
+        const existingSong = songs.find(s => s.id === id);
+        if (existingSong) chordsData = existingSong.chordsData || '';
     }
+    
+    const song = {
+        id: id || generateUniqueId(),
+        title: title,
+        category: category,
+        key: key,
+        bpm: bpm,
+        chordsUrl: chordsUrl,
+        chordsData: chordsData,
+        lyrics: lyrics,
+        youtube: ''
+    };
+    
+    await saveSong(song);
+    closeModal();
+}
     async function openLyricsEditor(songId) {
         const song = songs.find(s => s.id === songId);
         if (!song) return;
