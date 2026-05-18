@@ -400,7 +400,7 @@
         document.getElementById('appRoot').innerHTML = `
             <div class="login-container">
                 <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
-                <h2>Praise Engine FZ® Cloud</h2>
+                <h2>FZ-Praise® Cloud</h2>
                 <div class="form-group"><input type="email" id="loginEmail" class="form-control" placeholder="Email"></div>
                 <div class="form-group"><input type="password" id="loginPass" class="form-control" placeholder="Contraseña"></div>
                 <button class="btn btn-primary w-100 mb-2" onclick="login(loginEmail.value, loginPass.value)">Iniciar Sesión</button>
@@ -533,7 +533,7 @@ songs = (s || []).map(song => ({
         if (!currentUser) { renderLogin(); return; }
         document.getElementById('appRoot').innerHTML = `
             <header class="app-header">
-                <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> Praise Engine FZ® Cloud <small>| I.E.C. Fortaleza</small></div>
+                <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| I.E.C. Fortaleza Sur</small></div>
                 <div class="nav-icons">
                     <div class="nav-item active" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
                     <div class="nav-item" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
@@ -702,17 +702,57 @@ songs = (s || []).map(song => ({
     }
 
     // ==================== LISTAS ====================
-    function renderLists() {
-        const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
-        let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
-        document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button><button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>` : `<span class="text-muted">Listas (solo lectura)</span>`;
-        const container = document.getElementById('mainContent');
-        if (listsViewMode === 'grid') {
-            container.innerHTML = `<div class="grid">${filtered.map(l => `<div class="card" onclick="selectedListId='${l.id}'; renderCurrentView()"><span class="card-category">Lista</span><div class="card-title">${escapeHtml(l.name)}</div><div>📅 ${l.date || 'Sin fecha'}</div><div>🎵 ${l.items ? l.items.length : 0} canciones</div>${isAdminUser ? `<div onclick="event.stopPropagation()" style="margin-top:0.5rem;"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></div>` : ''}</div>`).join('')}</div>`;
-        } else {
-            container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th>${isAdminUser ? '<th>Acciones</th>' : ''}</thead><tbody>${filtered.map(l => `<tr onclick="selectedListId='${l.id}'; renderCurrentView()"><td><b>${escapeHtml(l.name)}</b></td><td>${l.date || '—'}</td><td>${l.items ? l.items.length : 0}${isAdminUser ? `<td onclick="event.stopPropagation()"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></td>` : ''}</tr>`).join('')}</tbody>}</div>`;
-        }
+   function renderLists() {
+    const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
+    let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
+    document.getElementById('actionHeader').innerHTML = isAdminUser ? `
+        <button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button>
+        <button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>
+    ` : `<span class="text-muted">Listas (solo lectura)</span>`;
+    
+    const container = document.getElementById('mainContent');
+    if (listsViewMode === 'grid') {
+        container.innerHTML = `<div class="grid" id="listsGrid">${filtered.map(l => `
+            <div class="card list-card" data-list-id="${l.id}">
+                <span class="card-category">Lista</span>
+                <div class="card-title">${escapeHtml(l.name)}</div>
+                <div>📅 ${l.date || 'Sin fecha'}</div>
+                <div>🎵 ${l.items ? l.items.length : 0} canciones</div>
+                ${isAdminUser ? `
+                    <div onclick="event.stopPropagation()" style="margin-top:0.5rem;">
+                        <button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                ` : ''}
+            </div>`).join('')}</div>`;
+        
+        document.querySelectorAll('.list-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-icon')) return;
+                const listId = card.dataset.listId;
+                selectedListId = listId;
+                renderCurrentView();
+            });
+        });
+    } else {
+        container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th>${isAdminUser ? '<th>Acciones</th>' : ''}</tr></thead><tbody id="listsTableBody">${filtered.map(l => `
+            <tr class="list-row" data-list-id="${l.id}">
+                <td><b>${escapeHtml(l.name)}</b></td>
+                <td>${l.date || '—'}</td>
+                <td>${l.items ? l.items.length : 0}</td>
+                ${isAdminUser ? `<td onclick="event.stopPropagation()"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></td>` : ''}
+            </tr>`).join('')}</tbody></div>`;
+        
+        document.querySelectorAll('.list-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-icon')) return;
+                const listId = row.dataset.listId;
+                selectedListId = listId;
+                renderCurrentView();
+            });
+        });
     }
+}
     function openCreateListModal() {
         showModal(`<h3>Nueva Lista</h3><div class="form-group"><input id="lName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="lDate" class="form-control" placeholder="Fecha"></div><button class="btn btn-primary" onclick="saveNewList()">Crear</button>`);
         flatpickr("#lDate", { locale: "es", dateFormat: "d/m/Y" });
@@ -729,54 +769,113 @@ songs = (s || []).map(song => ({
         if (newName) { list.name = newName; await saveList(list); }
     }
     function renderListDetail() {
-        const list = lists.find(l => l.id === selectedListId);
-        if (!list) { selectedListId = null; renderLists(); return; }
-        document.getElementById('actionHeader').innerHTML = `<button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()"><i class="fas fa-arrow-left"></i> Volver</button>
-            <button class="btn btn-primary" onclick="openAddSongToListModal()"><i class="fas fa-plus"></i> Añadir Canción</button>
-            <button class="btn btn-ghost" onclick="printList('${list.id}')"><i class="fas fa-print"></i> Imprimir (12 copias)</button>
-            <button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')"><i class="fab fa-whatsapp"></i> WhatsApp</button>
-            <button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')"><i class="fas fa-file-excel"></i> Excel</button>`;
-        document.getElementById('viewControls').innerHTML = '';
-        const container = document.getElementById('mainContent');
-        container.innerHTML = `<div class="card" style="margin-bottom:1rem"><h2>${escapeHtml(list.name)}</h2><p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p></div><div id="dragArea"></div>`;
-        const dragArea = document.getElementById('dragArea');
-        if (!list.items || list.items.length === 0) { dragArea.innerHTML = `<p style="padding:1rem; text-align:center;">No hay canciones agregadas.</p>`; return; }
-        dragArea.innerHTML = list.items.map((item, idx) => {
-            const song = songs.find(s => s.id === (item.songId || item.song_id));
-            if (!song) return '';
-            let currentTone = item.keyOverride || item.key_override || song.key;
-            return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;" onclick="openCifraViewer('${song.id}')">
-                <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
-                <div style="flex:1"><b style="color:var(--primary-light);">${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm||'--'} BPM</div></div>
-                <div onclick="event.stopPropagation()" style="display:flex; gap:0.3rem;"><button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
-                ${isAdminUser ? `<button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>` : ''}</div>
-            </div>`;
-        }).join('');
-        if (sortableInstance) sortableInstance.destroy();
-        if (isAdminUser) {
-            sortableInstance = new Sortable(dragArea, { handle: '.drag-handle', animation: 200, onEnd: () => { const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); list.items = newOrder; saveList(list); } });
-        }
+    const list = lists.find(l => l.id === selectedListId);
+    if (!list) { 
+        selectedListId = null; 
+        renderLists(); 
+        return; 
     }
+    document.getElementById('actionHeader').innerHTML = `
+        <button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()"><i class="fas fa-arrow-left"></i> Volver</button>
+        <button class="btn btn-primary" onclick="openAddSongToListModal()"><i class="fas fa-plus"></i> Añadir Canción</button>
+        <button class="btn btn-ghost" onclick="printList('${list.id}')"><i class="fas fa-print"></i> Imprimir (12 copias)</button>
+        <button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+        <button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')"><i class="fas fa-file-excel"></i> Excel</button>
+    `;
+    const container = document.getElementById('mainContent');
+    container.innerHTML = `<div class="card" style="margin-bottom:1rem"><h2>${escapeHtml(list.name)}</h2><p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p></div><div id="dragArea"></div>`;
+    const dragArea = document.getElementById('dragArea');
+    if (!list.items || list.items.length === 0) {
+        dragArea.innerHTML = `<p style="padding:1rem; text-align:center;">No hay canciones agregadas.</p>`;
+        return;
+    }
+    dragArea.innerHTML = list.items.map((item, idx) => {
+        const song = songs.find(s => s.id === (item.songId || item.song_id));
+        if (!song) return '';
+        let currentTone = item.keyOverride || item.key_override || song.key;
+        return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;">
+            <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
+            <div style="flex:1"><b style="color:var(--primary-light);">${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm||'--'} BPM</div></div>
+            <div onclick="event.stopPropagation()" style="display:flex; gap:0.3rem;">
+                <button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button>
+                <button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button>
+                <button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
+                ${isAdminUser ? `<button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+    if (sortableInstance) sortableInstance.destroy();
+    if (isAdminUser) {
+        sortableInstance = new Sortable(dragArea, { 
+            handle: '.drag-handle', 
+            animation: 200, 
+            onEnd: () => { 
+                const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); 
+                list.items = newOrder; 
+                saveList(list); 
+            } 
+        });
+    }
+}
     function openAddSongToListModal() {
-        const list = lists.find(l => l.id === selectedListId);
-        if (!list) return;
-        showModal(`<h3>Añadir canción a "${escapeHtml(list.name)}"</h3><input type="text" id="searchSongAdd" class="form-control" placeholder="Buscar..." style="margin-bottom:1rem"><div id="songsAddList" style="max-height:300px;overflow-y:auto"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
-        const renderList = () => {
-            const q = document.getElementById('searchSongAdd')?.value.toLowerCase() || '';
-            const filtered = songs.filter(s => s.title.toLowerCase().includes(q));
-            document.getElementById('songsAddList').innerHTML = filtered.map(s => `<div class="card" style="margin-bottom:0.5rem; cursor:pointer" onclick="addSongToList('${list.id}','${s.id}'); closeModal();"><b>${escapeHtml(s.title)}</b> <span class="card-category">${s.category}</span> <span style="float:right"><b>${s.key}</b></span></div>`).join('');
-        };
-        renderList();
-        document.getElementById('searchSongAdd')?.addEventListener('input', renderList);
+    const list = lists.find(l => l.id === selectedListId);
+    if (!list) return;
+    
+    let songsHtml = '';
+    songs.forEach(song => {
+        const alreadyInList = list.items.some(item => (item.songId || item.song_id) === song.id);
+        songsHtml += `
+            <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; cursor:pointer;">
+                <input type="checkbox" class="song-checkbox" value="${song.id}" ${alreadyInList ? 'disabled' : ''}>
+                <span><b>${escapeHtml(song.title)}</b> (${song.key}) - ${song.category}</span>
+                ${alreadyInList ? '<span style="color:green;"> ✓ Ya está</span>' : ''}
+            </label>
+        `;
+    });
+    
+    showModal(`
+        <h3>Añadir canciones a "${escapeHtml(list.name)}"</h3>
+        <input type="text" id="filterSongsMulti" class="form-control" placeholder="Filtrar canciones..." style="margin-bottom:1rem">
+        <div id="songsMultiList" style="max-height:300px; overflow-y:auto; border:1px solid var(--border); padding:0.5rem; border-radius:8px;">
+            ${songsHtml}
+        </div>
+        <div style="margin-top:1rem; text-align:right;">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="addSelectedSongsToList('${list.id}')">Añadir seleccionadas</button>
+        </div>
+    `);
+    
+    const filterInput = document.getElementById('filterSongsMulti');
+    if (filterInput) {
+        filterInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const labels = document.querySelectorAll('#songsMultiList label');
+            labels.forEach(label => {
+                const text = label.innerText.toLowerCase();
+                label.style.display = text.includes(term) ? 'flex' : 'none';
+            });
+        });
     }
-    async function addSongToList(listId, songId) {
-        const list = lists.find(l => l.id === listId);
-        if (!list.items) list.items = [];
-        if (list.items.some(item => (item.songId || item.song_id) === songId)) return alert("Ya está en la lista.");
+}
+
+async function addSelectedSongsToList(listId) {
+    const list = lists.find(l => l.id === listId);
+    if (!list) return;
+    const checkboxes = document.querySelectorAll('.song-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Selecciona al menos una canción.");
+        return;
+    }
+    for (let cb of checkboxes) {
+        const songId = cb.value;
+        if (list.items.some(item => (item.songId || item.song_id) === songId)) continue;
         list.items.push({ songId: songId, keyOverride: null });
-        await saveList(list);
-        renderListDetail();
     }
+    await saveList(list);
+    closeModal();
+    renderListDetail();
+}
+
     async function removeSongFromList(listId, idx) {
         if(confirm("¿Quitar canción?")) {
             const list = lists.find(l => l.id === listId);
@@ -806,7 +905,7 @@ songs = (s || []).map(song => ({
         for (let i = 0; i < 12; i++) {
             win.document.write(`<div class="print-card"><div class="print-title">${escapeHtml(list.name)}</div>`);
             list.items.forEach(item => { const s = songs.find(s => s.id === (item.songId || item.song_id)); if (s) win.document.write(`<div class="print-song">🎵 ${escapeHtml(s.title)} (${item.keyOverride || item.key_override || s.key})</div>`); });
-            win.document.write(`<div class="print-footer">Praise Engine FZ®</div></div>`);
+            win.document.write(`<div class="print-footer">FZ-Praise®</div></div>`);
         }
         win.document.write('</div></body></html>'); win.document.close(); win.print();
     }
