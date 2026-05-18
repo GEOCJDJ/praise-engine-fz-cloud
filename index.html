@@ -628,9 +628,28 @@ songs = (s || []).map(song => ({
     
     async function deleteList(id) { if (!isAdminUser) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
     async function saveTeam(members) { if (!isAdminUser) return; team = members; await supabaseClient.from('equipo').delete().neq('id', '0'); for (let m of team) { if (!m.id) m.id = generateUniqueId(); await supabaseClient.from('equipo').insert(m); } await loadUserData(); renderCurrentView(); }
-    async function saveAttendance(reg) { if (!isAdminUser) return; attendance = reg; await supabaseClient.from('asistencia').delete().neq('id', '0'); for (let a of attendance) await supabaseClient.from('asistencia').insert(a); await loadUserData(); }
-    async function saveShifts(sh) { if (!isAdminUser) return; shifts = sh; await supabaseClient.from('turnos').delete().neq('id', '0'); for (let s of shifts) await supabaseClient.from('turnos').insert(s); await loadUserData(); }
+    
+    async function saveShifts(shiftsArray) {
+    if (!isAdminUser) return;
+    try {
+        // Usar upsert para evitar eliminar todos los registros
+        const { error } = await supabaseClient.from('turnos').upsert(shiftsArray, { onConflict: 'id' });
+        if (error) throw error;
+        await loadUserData();
+        // No es necesario llamar a renderCurrentView() aquí porque loadUserData ya actualiza las variables
+    } catch(e) { console.error(e); alert("Error guardando turnos: " + e.message); }
+}
 
+async function saveAttendance(attendanceArray) {
+    if (!isAdminUser) return;
+    try {
+        const { error } = await supabaseClient.from('asistencia').upsert(attendanceArray, { onConflict: 'id' });
+        if (error) throw error;
+        await loadUserData();
+    } catch(e) { console.error(e); alert("Error guardando asistencias: " + e.message); }
+}
+    
+    
    // ==================== RENDER PRINCIPAL ====================
 function renderApp() {
     if (!currentUser) { renderLogin(); return; }
@@ -1102,21 +1121,31 @@ async function addSelectedSongsToList(listId) {
         };
         reader.readAsText(file);
     }
-    function openTeamModal() {
-        let content = `<h3>Miembros del Equipo</h3><div class="grid">`;
-        team.forEach(m => {
-            content += `<div class="card team-card" onclick="showMemberProfile('${m.id}')">
-                            <div class="avatar">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
-                            <div class="card-title">${escapeHtml(m.name)}</div>
-                            <div>${escapeHtml(m.role)}</div>
-                        </div>`;
+  function openTeamModal() {
+    let content = `<h3>Miembros del Equipo</h3><div class="grid">`;
+    team.forEach(m => {
+        content += `<div class="card team-card" data-member-id="${m.id}">
+                        <div class="avatar">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
+                        <div class="card-title">${escapeHtml(m.name)}</div>
+                        <div>${escapeHtml(m.role)}</div>
+                    </div>`;
+    });
+    content += `</div>`;
+    if (isAdminUser) content += `<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="adminTeam()">Gestionar Equipo</button></div>`;
+    content += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(content);
+
+    // Event listeners para las tarjetas
+    setTimeout(() => {
+        document.querySelectorAll('.team-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const memberId = card.dataset.memberId;
+                closeModal();  // Cierra la lista de miembros
+                showMemberProfile(memberId, true); // Abre perfil con botón "Volver"
+            });
         });
-        content += `</div>`;
-        if (isAdminUser) content += `<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="adminTeam()">Gestionar Equipo</button></div>`;
-        content += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-        showModal(content);
-    }
-    
+    }, 50);
+}
 async function showMemberProfile(memberId, fromList = false) {
     const member = team.find(m => m.id === memberId);
     if (!member) return;
