@@ -204,59 +204,64 @@
         return result.join('\n');
     }
 
-    function renderChordsOverLyrics(text) {
-        if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
-        let lines = text.split('\n');
-        let html = '';
-        for (let line of lines) {
-            line = line.trim();
-            if (line === '') continue;
-            let parts = [];
-            let chordRegex = /\[([^\]]+)\]/g;
-            let lastIdx = 0;
-            let match;
-            while ((match = chordRegex.exec(line)) !== null) {
-                let textBefore = line.substring(lastIdx, match.index);
-                if (textBefore) parts.push({ type: 'text', content: textBefore });
-                parts.push({ type: 'chord', content: match[1] });
-                lastIdx = match.index + match[0].length;
-            }
-            if (lastIdx < line.length) parts.push({ type: 'text', content: line.substring(lastIdx) });
-            if (parts.length === 0) {
-                html += `<div class="song-line"><div class="chord-line"></div><div class="lyric-line">${escapeHtml(line)}</div></div>`;
-                continue;
-            }
-            html += `<table class="chord-table">`;
-            html += `<tr class="chord-row">`;
-            for (let part of parts) {
-                if (part.type === 'chord') {
-                    html += `<td><span class="chord-word">${escapeHtml(part.content)}</span></td>`;
-                } else {
-                    let words = part.content.split(/(\s+)/);
-                    for (let w of words) {
-                        if (w.trim() === '') html += `<td>&nbsp;</td>`;
-                        else html += `<td>&nbsp;</td>`;
-                    }
-                }
-            }
-            html += `<tr>`;
-            html += `<tr class="lyric-row">`;
-            for (let part of parts) {
-                if (part.type === 'chord') {
-                    html += `<td>&nbsp;</td>`;
-                } else {
-                    let words = part.content.split(/(\s+)/);
-                    for (let w of words) {
-                        if (w.trim() === '') html += `<td>&nbsp;</td>`;
-                        else html += `<td>${escapeHtml(w)}</td>`;
-                    }
-                }
-            }
-            html += `</tr>`;
-            html += `</table>`;
+   function renderChordsOverLyrics(text) {
+    if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
+    let lines = text.split('\n');
+    let html = '';
+    for (let line of lines) {
+        line = line.trim();
+        if (line === '') continue;
+        
+        // Dividir en partes: texto normal y acordes [acorde]
+        let parts = [];
+        let chordRegex = /\[([^\]]+)\]/g;
+        let lastIdx = 0;
+        let match;
+        while ((match = chordRegex.exec(line)) !== null) {
+            let textBefore = line.substring(lastIdx, match.index);
+            if (textBefore) parts.push({ type: 'text', content: textBefore });
+            parts.push({ type: 'chord', content: match[1] });
+            lastIdx = match.index + match[0].length;
         }
-        return html;
+        if (lastIdx < line.length) parts.push({ type: 'text', content: line.substring(lastIdx) });
+        
+        if (parts.length === 0) {
+            // Línea sin acordes
+            html += `<div class="song-line"><div class="chord-line"></div><div class="lyric-line">${escapeHtml(line)}</div></div>`;
+            continue;
+        }
+        
+        // Construir fila de acordes y fila de letra con flex
+        let chordHtml = '<div class="chord-line" style="display:flex; flex-wrap:wrap;">';
+        let lyricHtml = '<div class="lyric-line" style="display:flex; flex-wrap:wrap;">';
+        
+        for (let part of parts) {
+            if (part.type === 'chord') {
+                // Acorde: se muestra en la fila superior
+                chordHtml += `<span class="chord-word" style="display:inline-block; margin-right:0.8rem; font-weight:bold; color:#F59E0B;">${escapeHtml(part.content)}</span>`;
+                lyricHtml += `<span class="lyric-word" style="display:inline-block; margin-right:0.8rem; opacity:0;">&nbsp;</span>`;
+            } else {
+                // Texto: se divide en palabras para mantener el ancho
+                let words = part.content.split(/(\s+)/);
+                for (let w of words) {
+                    if (w.trim() === '') {
+                        chordHtml += `<span style="display:inline-block; margin-right:0.2rem;">&nbsp;</span>`;
+                        lyricHtml += `<span style="display:inline-block; margin-right:0.2rem;">&nbsp;</span>`;
+                    } else {
+                        // Calcular ancho aproximado (cada carácter ocupa ~0.6rem en monospace)
+                        let width = w.length * 0.6 + 'rem';
+                        chordHtml += `<span style="display:inline-block; width:${width};">&nbsp;</span>`;
+                        lyricHtml += `<span class="lyric-word" style="display:inline-block; width:${width};">${escapeHtml(w)}</span>`;
+                    }
+                }
+            }
+        }
+        chordHtml += '</div>';
+        lyricHtml += '</div>';
+        html += `<div class="song-line" style="margin-bottom:0.8rem;">${chordHtml}${lyricHtml}</div>`;
     }
+    return html;
+}
 
     // ==================== AUTENTICACIÓN ====================
     async function login(email, password) {
@@ -862,32 +867,52 @@
 
     // ==================== AULA VIRTUAL ====================
     async function renderMoodle() {
-        const container = document.getElementById('mainContent');
-        document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateCourseModal()"><i class="fas fa-plus"></i> Crear Curso</button>` : '';
-        let html = '';
-        for (let curso of cursos) {
-            let mods = modulosList.filter(m => m.curso_id === curso.id);
-            html += `<div class="card" style="margin-bottom:1rem;"><h3>${escapeHtml(curso.titulo)}</h3><p>${escapeHtml(curso.descripcion || '')}</p>`;
-            for (let mod of mods) {
-                let examenesMod = examenes.filter(e => e.modulo_id === mod.id);
-                html += `<div style="margin-top:1rem; padding-left:1rem; border-left:3px solid var(--primary-light);"><strong>${escapeHtml(mod.titulo)}</strong>`;
-                for (let ex of examenesMod) {
-                    const { data: intento } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
-                    if (intento) {
-                        html += `<div style="margin-top:0.5rem; background:rgba(16,185,129,0.1); padding:0.5rem; border-radius:8px;">✅ Completado - Nota: ${intento.puntaje}/20</div>`;
-                    } else {
-                        html += `<button class="btn btn-primary" style="margin-top:0.5rem;" onclick="startExam('${ex.id}')">Rendir Examen: ${escapeHtml(ex.titulo)}</button>`;
-                    }
-                }
-                html += `</div>`;
+    const container = document.getElementById('mainContent');
+    document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateCourseModal()"><i class="fas fa-plus"></i> Crear Curso</button>` : '';
+    let html = '';
+    for (let curso of cursos) {
+        let mods = modulosList.filter(m => m.curso_id === curso.id);
+        html += `<div class="card" style="margin-bottom:1rem;"><h3>${escapeHtml(curso.titulo)}</h3><p>${escapeHtml(curso.descripcion || '')}</p>`;
+        for (let mod of mods) {
+            let examenesMod = examenes.filter(e => e.modulo_id === mod.id);
+            html += `<div style="margin-top:1rem; padding-left:1rem; border-left:3px solid var(--primary-light);"><strong>${escapeHtml(mod.titulo)}</strong>`;
+            
+            // Botón para ver contenido del módulo (si existe)
+            if (mod.contenido) {
+                html += `<button class="btn btn-secondary" style="margin-left:1rem;" onclick="showModuleContent('${mod.id}')">📖 Ver Contenido del Curso</button>`;
             }
-            if (isAdminUser) {
-                html += `<button class="btn btn-secondary" style="margin-top:1rem;" onclick="openAddModuleModal('${curso.id}')">Añadir Módulo</button>`;
+            
+            for (let ex of examenesMod) {
+                const { data: intento } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
+                if (intento) {
+                    html += `<div style="margin-top:0.5rem; background:rgba(16,185,129,0.1); padding:0.5rem; border-radius:8px;">✅ Completado - Nota: ${intento.puntaje}/20</div>`;
+                } else {
+                    html += `<button class="btn btn-primary" style="margin-top:0.5rem;" onclick="startExam('${ex.id}')">📝 Rendir Examen: ${escapeHtml(ex.titulo)}</button>`;
+                }
             }
             html += `</div>`;
         }
-        container.innerHTML = html || '<p>No hay cursos disponibles.</p>';
+        if (isAdminUser) {
+            html += `<button class="btn btn-secondary" style="margin-top:1rem;" onclick="openAddModuleModal('${curso.id}')">Añadir Módulo</button>`;
+        }
+        html += `</div>`;
     }
+    container.innerHTML = html || '<p>No hay cursos disponibles.</p>';
+}
+
+// Nueva función para mostrar contenido del módulo en un modal
+window.showModuleContent = async (moduleId) => {
+    const mod = modulosList.find(m => m.id === moduleId);
+    if (!mod || !mod.contenido) return;
+    showModal(`
+        <h3>${escapeHtml(mod.titulo)}</h3>
+        <div style="max-height:60vh; overflow-y:auto; margin:1rem 0; padding:0.5rem; border:1px solid var(--border); border-radius:8px;">
+            ${mod.contenido}
+        </div>
+        <button class="btn btn-primary" onclick="closeModal()">Cerrar</button>
+    `);
+};
+    
     function openCreateCourseModal() {
         if (!isAdminUser) return;
         const title = prompt("Nombre del curso:");
