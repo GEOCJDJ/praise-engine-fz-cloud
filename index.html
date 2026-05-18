@@ -336,7 +336,13 @@
     async function loadUserData() {
         if (!currentUser) return;
         try {
-            const { data: s } = await supabaseClient.from('canciones').select('*'); songs = s || [];
+          const { data: s } = await supabaseClient.from('canciones').select('*');
+songs = (s || []).map(song => ({
+    ...song,
+    chordsUrl: song.chords_url,
+    chordsData: song.chords_data
+}));
+            
             const { data: l } = await supabaseClient.from('listas').select('*'); lists = l || [];
             for (let list of lists) {
                 const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
@@ -386,14 +392,36 @@
 
     // ==================== FUNCIONES DE GUARDADO (solo admin) ====================
     async function saveSong(song) {
-        if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return false; }
-        try {
-            if (!song.id) song.id = generateUniqueId();
-            if (song.id && songs.some(s => s.id === song.id)) await supabaseClient.from('canciones').update(song).eq('id', song.id);
-            else await supabaseClient.from('canciones').insert(song);
-            await loadUserData(); renderCurrentView(); return true;
-        } catch (err) { console.error(err); alert("Error al guardar: " + err.message); return false; }
+    if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return false; }
+    try {
+        const cleanSong = {
+            id: song.id || generateUniqueId(),
+            user_id: currentUser.id,          // Agregar el ID del usuario actual
+            title: song.title || "Sin título",
+            category: song.category || "Adoración",
+            key: song.key || "C",
+            bpm: parseInt(song.bpm) || 80,
+            chords_url: song.chordsUrl || "",   // Cambiado
+            chords_data: song.chordsData || "", // Cambiado
+            lyrics: song.lyrics || "",
+            youtube: song.youtube || ""
+        };
+        
+        const { error } = await supabaseClient
+            .from('canciones')
+            .upsert(cleanSong, { onConflict: 'id' });
+            
+        if (error) throw error;
+        
+        await loadUserData();
+        renderCurrentView();
+        return true;
+    } catch (err) { 
+        console.error(err); 
+        alert("Error al guardar: " + err.message); 
+        return false;
     }
+}
     async function deleteSong(id) { if (!isAdminUser) return; await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
     async function saveList(list) {
         if (!isAdminUser) { alert("Solo administrador puede crear/editar listas."); return; }
@@ -500,13 +528,13 @@
         let chordsData = '';
         if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); }
         const song = {
-            id: id || generateUniqueId(),
-            title, category: document.getElementById('mCat').value, key: document.getElementById('mKey').value,
-            bpm: parseInt(document.getElementById('mBpm').value) || 80,
-            chordsUrl: document.getElementById('mChordsUrl').value.trim(),
-            chordsData: chordsData || (id ? songs.find(s=>s.id===id)?.chordsData : ''),
-            lyrics: document.getElementById('mLyrics').value, youtube: ''
-        };
+    id: id || generateUniqueId(),
+    title, category, key: document.getElementById('mKey').value,
+    bpm: parseInt(document.getElementById('mBpm').value) || 80,
+    chordsUrl: document.getElementById('mChordsUrl').value.trim(),   // Esto se convertirá a chords_url en saveSong
+    chordsData: chordsData || (id ? songs.find(s=>s.id===id)?.chordsData : ''),
+    lyrics: document.getElementById('mLyrics').value, youtube: ''
+};
         await saveSong(song);
         closeModal();
     }
