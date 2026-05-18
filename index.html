@@ -179,7 +179,23 @@
         </div>
         <div id="cifraBodyContainer" class="cifra-body"><div id="cifraContentWrapper" class="cifra-content-wrapper"></div></div>
     </div>
-
+<!-- OVERLAY PARA EXÁMENES (FALTANTE) -->
+<div id="examOverlay" class="exam-overlay">
+    <div class="exam-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="examProgressTitle">Pregunta 1 de X</h2>
+            <div style="font-size: 1.2rem;">⏱️ <span id="examTimerDisplay">0s</span></div>
+        </div>
+        <div style="width: 100%; background: #ddd; border-radius: 10px; margin: 10px 0;">
+            <div id="timerBarFill" style="width: 100%; height: 8px; background: var(--primary); border-radius: 10px;"></div>
+        </div>
+        <div id="examQuestionText" style="font-size: 1.2rem; margin: 20px 0;"></div>
+        <div id="examOptionsContainer"></div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button class="btn btn-ghost" onclick="closeExam()">Cancelar</button>
+        </div>
+    </div>
+</div>
 <script>    
     // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
@@ -1224,6 +1240,10 @@ window.showModuleContent = async (moduleId) => {
         document.getElementById('examOverlay').style.display = 'none';
         await loadUserData(); renderMoodle();
     }
+    function closeExam() {
+    if (examTimer) clearInterval(examTimer);
+    document.getElementById('examOverlay').style.display = 'none';
+}
     // ==================== ADMINISTRACIÓN ====================
    function renderAdmin() {
     document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
@@ -1455,7 +1475,7 @@ async function deleteExam(examId) {
 let tempQuestions = []; // array temporal mientras se edita un examen
 
 async function manageQuestions(examId) {
-    // Cargar preguntas actuales
+     currentExamId = examId; 
     const existing = preguntas.filter(p => p.examen_id === examId).sort((a,b)=>a.orden_index - b.orden_index);
     tempQuestions = existing.map(p => ({ ...p }));
     
