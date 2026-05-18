@@ -1817,18 +1817,84 @@ async function saveAllQuestions() {
     closeModal();
     adminExams();
 }
-    function adminTeam() {
-        const render = () => {
-            showModal(`<h3>Gestionar Miembros</h3><div id="teamListAdmin">${team.map((m, idx) => `<div style="display:flex; justify-content:space-between;"><span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMemberAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin miembros</p>'}</div><div class="form-group"><input id="newMemberName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="newMemberRole" class="form-control" placeholder="Rol"></div><button class="btn btn-primary" onclick="addTeamMemberAdmin()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
-            window.addTeamMemberAdmin = async () => {
-                const name = document.getElementById('newMemberName').value.trim();
-                const role = document.getElementById('newMemberRole').value.trim();
-                if (name) { team.push({ id: generateUniqueId(), name, role, user_id: currentUser.id }); await saveTeam(team); render(); }
-            };
-            window.removeTeamMemberAdmin = async (idx) => { if(confirm("¿Eliminar miembro?")) { team.splice(idx,1); await saveTeam(team); render(); } };
+function adminTeam() {
+    const render = () => {
+        // Generar grid de tarjetas
+        let cardsHtml = `<div class="grid" style="margin-bottom: 1.5rem;">`;
+        team.forEach(m => {
+            cardsHtml += `
+                <div class="card team-card" data-member-id="${m.id}" style="cursor: pointer; position: relative;">
+                    <div class="avatar">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
+                    <div class="card-title">${escapeHtml(m.name)}</div>
+                    <div class="card-category" style="background: var(--primary-light);">${escapeHtml(m.role)}</div>
+                    <button class="btn-icon" onclick="event.stopPropagation(); removeTeamMemberAdmin('${m.id}')" style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(0,0,0,0.5); color: white; border-radius: 50%;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+        });
+        cardsHtml += `</div>`;
+
+        // Formulario para agregar
+        const formHtml = `
+            <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-app); border-radius: var(--radius-lg);">
+                <h4>Agregar nuevo miembro</h4>
+                <div class="form-group"><input id="newMemberName" class="form-control" placeholder="Nombre completo"></div>
+                <div class="form-group"><input id="newMemberRole" class="form-control" placeholder="Rol (Ej: Voz, Batería, Bajo)"></div>
+                <button class="btn btn-primary" onclick="addTeamMemberAdmin()">Agregar</button>
+            </div>
+        `;
+
+        showModal(`
+            <h3>Gestionar Miembros</h3>
+            ${cardsHtml}
+            ${formHtml}
+            <div style="margin-top: 1rem; text-align: right;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+            </div>
+        `);
+
+        // Agregar event listeners a las tarjetas después de que existan en el DOM
+        setTimeout(() => {
+            document.querySelectorAll('.team-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('.btn-icon')) return; // evitar eliminar
+                    const memberId = card.dataset.memberId;
+                    showMemberProfile(memberId);
+                });
+            });
+        }, 50);
+    };
+    // Funciones auxiliares internas (ya deben existir en el ámbito global)
+    window.addTeamMemberAdmin = async () => {
+        const name = document.getElementById('newMemberName')?.value.trim();
+        const role = document.getElementById('newMemberRole')?.value.trim();
+        if (!name) return alert("Nombre requerido");
+        const newMember = {
+            id: generateUniqueId(),
+            name,
+            role: role || "Miembro",
+            user_id: currentUser.id
         };
-        render();
-    }
+        team.push(newMember);
+        await saveTeam(team);
+        closeModal();  // cierra el modal actual
+        adminTeam();   // vuelve a abrir el modal actualizado
+    };
+
+    window.removeTeamMemberAdmin = async (memberId) => {
+        if (confirm("¿Eliminar este miembro?")) {
+            const index = team.findIndex(m => m.id === memberId);
+            if (index !== -1) team.splice(index, 1);
+            await saveTeam(team);
+            closeModal();
+            adminTeam();
+        }
+    };
+
+    render();
+}
+
     function adminAttendance() {
         let html = `<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${team.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         showModal(html);
