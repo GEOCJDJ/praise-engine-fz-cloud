@@ -164,6 +164,7 @@
 }
         
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div id="appRoot"></div>
@@ -1292,41 +1293,88 @@ async function addSelectedSongsToList(listId) {
     document.getElementById('examOverlay').style.display = 'none';
 }
 // ==================== PERFIL DE USUARIO ====================
-    function renderUserProfile() {
-        if (!currentProfile) return;
-        const misIntentos = []; // se cargará dinámicamente
-        const loadStats = async () => {
-            const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id);
-            const total = intentos?.length || 0;
-            const promedio = intentos && intentos.length ? (intentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/intentos.length).toFixed(1) : 0;
-            document.getElementById('statExamenes').innerText = total;
-            document.getElementById('statPromedio').innerText = `${promedio}/20`;
-        };
-        const html = `
-            <div class="card" style="max-width: 600px; margin: 0 auto;">
-                <div class="profile-avatar" style="background: var(--primary);">
-                    <i class="fas fa-user fa-3x" style="color: white;"></i>
-                </div>
-                <h2>${escapeHtml(currentProfile.nombre || currentUser.email)}</h2>
-                <p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p>
-                <p><strong>Rol:</strong> ${currentProfile.rol === 'admin' ? 'Administrador' : 'Usuario'}</p>
-                <p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono || 'No especificado')}</p>
-                <p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento || 'No especificada'}</p>
-                <p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion || 'No especificada')}</p>
-                <hr>
-                <h3>📊 Estadísticas de aprendizaje</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
-                    <div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div>
-                    <div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div>
-                </div>
-                <button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button>
-            </div>
-        `;
-        document.getElementById('mainContent').innerHTML = html;
-        document.getElementById('actionHeader').innerHTML = '';
-        loadStats();
-    }
+   // ==================== PERFIL DE USUARIO CON GRÁFICO ====================
+let progressChart = null; // variable global para el gráfico
 
+async function renderUserProfile() {
+    if (!currentProfile) return;
+
+    const html = `
+        <div class="card" style="max-width: 700px; margin: 0 auto;">
+            <div class="profile-avatar" style="background: var(--primary);">
+                <i class="fas fa-user fa-3x" style="color: white;"></i>
+            </div>
+            <h2>${escapeHtml(currentProfile.nombre || currentUser.email)}</h2>
+            <p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p>
+            <p><strong>Rol:</strong> ${currentProfile.rol === 'admin' ? 'Administrador' : 'Usuario'}</p>
+            <p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono || 'No especificado')}</p>
+            <p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento || 'No especificada'}</p>
+            <p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion || 'No especificada')}</p>
+            <hr>
+            <h3>📊 Estadísticas de aprendizaje</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                <div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div>
+                <div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div>
+            </div>
+            <div style="margin: 1rem 0;">
+                <canvas id="progressChartCanvas" style="max-height: 300px; width: 100%;"></canvas>
+            </div>
+            <button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button>
+        </div>
+    `;
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('actionHeader').innerHTML = '';
+
+    // Cargar estadísticas y dibujar gráfico
+    const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).order('fecha', { ascending: true });
+    const total = intentos?.length || 0;
+    const promedio = intentos && intentos.length ? (intentos.reduce((a, b) => a + parseFloat(b.puntaje), 0) / intentos.length).toFixed(1) : 0;
+    document.getElementById('statExamenes').innerText = total;
+    document.getElementById('statPromedio').innerText = `${promedio}/20`;
+
+    // Preparar datos para el gráfico
+    if (intentos && intentos.length > 0) {
+        const fechas = intentos.map(i => new Date(i.fecha).toLocaleDateString());
+        const puntajes = intentos.map(i => parseFloat(i.puntaje));
+        const ctx = document.getElementById('progressChartCanvas').getContext('2d');
+        if (progressChart) progressChart.destroy();
+        progressChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: fechas,
+                datasets: [{
+                    label: 'Puntaje obtenido (sobre 20)',
+                    data: puntajes,
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    tension: 0.2,
+                    fill: true,
+                    pointBackgroundColor: '#1E3A8A'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 20,
+                        title: { display: true, text: 'Puntaje' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Fecha del examen' }
+                    }
+                }
+            }
+        });
+    } else {
+        // Mostrar mensaje si no hay datos
+        const canvasContainer = document.getElementById('progressChartCanvas')?.parentElement;
+        if (canvasContainer) {
+            canvasContainer.innerHTML = '<p class="text-muted" style="text-align:center;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p>';
+        }
+    }
+}
     function editUserProfile() {
         showModal(`
             <h3>Editar perfil</h3>
@@ -1587,51 +1635,103 @@ async function deleteExam(examId) {
 let tempQuestions = []; // array temporal mientras se edita un examen
 
 async function manageQuestions(examId) {
-        currentExamId = examId;
-        const existing = preguntas.filter(p => p.examen_id === examId).sort((a,b)=>a.orden_index - b.orden_index);
-        tempQuestions = existing.map(p => ({ ...p }));
-        renderQuestionBuilder();
-    }
-    function renderQuestionBuilder() {
-        let html = `<h3>Constructor de Preguntas</h3><div id="questionsList">`;
-        tempQuestions.forEach((q, idx) => {
-            html += `<div class="card" style="margin-bottom:0.5rem;"><b>Pregunta ${idx+1}:</b> ${escapeHtml(q.enunciado)}<br>Tipo: ${q.tipo || 'multiple'} | Tiempo: ${q.tiempo_segundos || 15}s
-            <div style="margin-top:0.5rem;"><button class="btn btn-secondary" onclick="editQuestion(${idx})">Editar</button><button class="btn btn-danger" onclick="removeQuestion(${idx})">Eliminar</button></div></div>`;
-        });
-        html += `</div><button class="btn btn-primary" onclick="addQuestion()">➕ Agregar Pregunta</button>
-                 <button class="btn btn-success" onclick="saveAllQuestions()">💾 Guardar todas las preguntas</button>
-                 <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`;
-        showModal(html);
-    }
-        
+    currentExamId = examId;
+    const existing = preguntas.filter(p => p.examen_id === examId).sort((a,b)=>a.orden_index - b.orden_index);
+    tempQuestions = existing.map(p => ({ ...p }));
+    renderQuestionBuilder();
+}
 
+    // ==================== ADMIN EXÁMENES (CONSTRUCTOR UNIFICADO) ====================
 
-function addQuestion() {
-        window.toggleQuestionOptions = () => {
-            const tipo = document.getElementById('qTipo').value;
-            const container = document.getElementById('opcionesContainer');
-            if (tipo === 'multiple') {
-                container.innerHTML = `<div class="form-group"><label>Opción A</label><input id="opA" class="form-control"></div><div class="form-group"><label>Opción B</label><input id="opB" class="form-control"></div><div class="form-group"><label>Opción C</label><input id="opC" class="form-control"></div><div class="form-group"><label>Opción D</label><input id="opD" class="form-control"></div><div class="form-group"><label>Respuesta correcta (letra)</label><select id="respCorrecta" class="form-control"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>`;
-            } else if (tipo === 'vf') {
-                container.innerHTML = `<div class="form-group"><label>Respuesta correcta</label><select id="respCorrectaVF" class="form-control"><option>Verdadero</option><option>Falso</option></select></div>`;
-            } else {
-                container.innerHTML = `<div class="form-group"><label>Respuesta exacta (texto)</label><input id="respCompletar" class="form-control" placeholder="Ej: Shachah"></div>`;
-            }
-        };
-        showModal(`<h3>Nueva Pregunta</h3><div class="form-group"><label>Enunciado</label><textarea id="qEnunciado" rows="2" class="form-control"></textarea></div>
-        <div class="form-group"><label>Tipo</label><select id="qTipo" class="form-control" onchange="toggleQuestionOptions()"><option value="multiple">Múltiple</option><option value="vf">Verdadero/Falso</option><option value="completar">Completar</option></select></div>
-        <div id="opcionesContainer"></div><div class="form-group"><label>Tiempo (segundos)</label><input id="qTiempo" type="number" class="form-control" value="15"></div>
-        <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewQuestion()">Agregar</button></div>`);
-        toggleQuestionOptions();
-    }
-    
+// Variables globales (ya deberían existir)
+// let tempQuestions = [];
+// let currentExamId = null;
 
-function saveNewQuestion() {
+function renderQuestionBuilder() {
+    let html = `<h3>Constructor de Preguntas</h3><div id="questionsList">`;
+    tempQuestions.forEach((q, idx) => {
+        html += `<div class="card" style="margin-bottom:0.5rem;">
+                    <b>Pregunta ${idx+1}:</b> ${escapeHtml(q.enunciado)}<br>
+                    Tipo: ${q.tipo || 'multiple'} | Tiempo: ${q.tiempo_segundos || 15}s
+                    <div style="margin-top:0.5rem;">
+                        <button class="btn btn-secondary" onclick="openQuestionModal(${idx})">✏️ Editar</button>
+                        <button class="btn btn-danger" onclick="removeQuestion(${idx})">🗑️ Eliminar</button>
+                    </div>
+                 </div>`;
+    });
+    html += `</div>
+             <button class="btn btn-primary" onclick="openQuestionModal()">➕ Agregar Pregunta</button>
+             <button class="btn btn-success" onclick="saveAllQuestions()">💾 Guardar todas las preguntas</button>
+             <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`;
+    showModal(html);
+}
+
+// Función unificada: si se pasa index (número) se edita, si no, se crea nueva
+function openQuestionModal(index = null) {
+    const isEditing = (index !== null);
+    const q = isEditing ? tempQuestions[index] : null;
+
+    // Definir la función toggleOptions dentro del ámbito para que onchange la encuentre
+    window.toggleQuestionOptions = () => {
+        const tipo = document.getElementById('qTipo').value;
+        const container = document.getElementById('opcionesContainer');
+        if (tipo === 'multiple') {
+            container.innerHTML = `
+                <div class="form-group"><label>Opción A</label><input id="opA" class="form-control" value="${escapeHtml(q?.opcion_a || '')}"></div>
+                <div class="form-group"><label>Opción B</label><input id="opB" class="form-control" value="${escapeHtml(q?.opcion_b || '')}"></div>
+                <div class="form-group"><label>Opción C</label><input id="opC" class="form-control" value="${escapeHtml(q?.opcion_c || '')}"></div>
+                <div class="form-group"><label>Opción D</label><input id="opD" class="form-control" value="${escapeHtml(q?.opcion_d || '')}"></div>
+                <div class="form-group"><label>Respuesta correcta (letra)</label><select id="respCorrecta" class="form-control">
+                    ${['A','B','C','D'].map(l => `<option ${q?.opcion_correcta === l ? 'selected' : ''}>${l}</option>`).join('')}
+                </select></div>
+            `;
+        } else if (tipo === 'vf') {
+            container.innerHTML = `
+                <div class="form-group"><label>Respuesta correcta</label><select id="respCorrectaVF" class="form-control">
+                    <option ${q?.opcion_correcta === 'V' ? 'selected' : ''}>Verdadero</option>
+                    <option ${q?.opcion_correcta === 'F' ? 'selected' : ''}>Falso</option>
+                </select></div>
+            `;
+        } else { // completar
+            container.innerHTML = `
+                <div class="form-group"><label>Respuesta exacta (texto)</label><input id="respCompletar" class="form-control" value="${escapeHtml(q?.opcion_correcta || '')}" placeholder="Ej: Shachah"></div>
+            `;
+        }
+    };
+
+    const tipoActual = q?.tipo || 'multiple';
+    const tiempoActual = q?.tiempo_segundos || 15;
+    const enunciadoActual = q?.enunciado || '';
+
+    const modalContent = `
+        <h3>${isEditing ? 'Editar' : 'Nueva'} Pregunta</h3>
+        <div class="form-group"><label>Enunciado</label><textarea id="qEnunciado" rows="2" class="form-control">${escapeHtml(enunciadoActual)}</textarea></div>
+        <div class="form-group"><label>Tipo</label>
+            <select id="qTipo" class="form-control" onchange="toggleQuestionOptions()">
+                <option value="multiple" ${tipoActual === 'multiple' ? 'selected' : ''}>Múltiple (A, B, C, D)</option>
+                <option value="vf" ${tipoActual === 'vf' ? 'selected' : ''}>Verdadero / Falso</option>
+                <option value="completar" ${tipoActual === 'completar' ? 'selected' : ''}>Completar (respuesta corta)</option>
+            </select>
+        </div>
+        <div id="opcionesContainer"></div>
+        <div class="form-group"><label>Tiempo para responder (segundos)</label><input id="qTiempo" type="number" class="form-control" value="${tiempoActual}"></div>
+        <div style="text-align:right">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveQuestionFromModal(${isEditing ? index : 'null'})">Guardar</button>
+        </div>
+    `;
+    showModal(modalContent);
+    // Inicializar las opciones según el tipo actual
+    window.toggleQuestionOptions();
+}
+
+function saveQuestionFromModal(index) {
     const enunciado = document.getElementById('qEnunciado').value.trim();
     if (!enunciado) return alert("Enunciado requerido");
     const tipo = document.getElementById('qTipo').value;
     const tiempo = parseInt(document.getElementById('qTiempo').value) || 15;
     let opcion_a = '', opcion_b = '', opcion_c = '', opcion_d = '', opcion_correcta = '';
+
     if (tipo === 'multiple') {
         opcion_a = document.getElementById('opA').value;
         opcion_b = document.getElementById('opB').value;
@@ -1640,84 +1740,66 @@ function saveNewQuestion() {
         opcion_correcta = document.getElementById('respCorrecta').value;
     } else if (tipo === 'vf') {
         opcion_correcta = document.getElementById('respCorrectaVF').value === 'Verdadero' ? 'V' : 'F';
-        // Para mostrar en el examen, podemos poner las opciones como "Verdadero" y "Falso"
         opcion_a = 'Verdadero';
         opcion_b = 'Falso';
-    } else if (tipo === 'completar') {
+    } else { // completar
         opcion_correcta = document.getElementById('respCompletar').value.trim();
     }
-    tempQuestions.push({
+
+    const questionData = {
         id: null,
         enunciado,
         tipo,
         opcion_a, opcion_b, opcion_c, opcion_d,
         opcion_correcta,
         tiempo_segundos: tiempo,
-        orden_index: tempQuestions.length
-    });
+        orden_index: (index !== null) ? tempQuestions[index]?.orden_index : tempQuestions.length
+    };
+
+    if (index !== null) {
+        // Editar
+        tempQuestions[index] = { ...tempQuestions[index], ...questionData };
+    } else {
+        // Agregar
+        tempQuestions.push(questionData);
+    }
     closeModal();
-    renderQuestionBuilder(currentExamId); // necesitamos almacenar examId global
+    renderQuestionBuilder();
 }
 
-function editQuestion(idx) {
-        const q = tempQuestions[idx];
-        // Función para editar: reutilizar addQuestion pero cargando datos
-        window.toggleQuestionOptions = () => {
-            const tipoSelect = document.getElementById('qTipo');
-            const tipo = tipoSelect.value;
-            const container = document.getElementById('opcionesContainer');
-            if (tipo === 'multiple') {
-                container.innerHTML = `<div class="form-group"><label>Opción A</label><input id="opA" class="form-control" value="${escapeHtml(q.opcion_a)}"></div><div class="form-group"><label>Opción B</label><input id="opB" class="form-control" value="${escapeHtml(q.opcion_b)}"></div><div class="form-group"><label>Opción C</label><input id="opC" class="form-control" value="${escapeHtml(q.opcion_c)}"></div><div class="form-group"><label>Opción D</label><input id="opD" class="form-control" value="${escapeHtml(q.opcion_d)}"></div><div class="form-group"><label>Respuesta correcta (letra)</label><select id="respCorrecta" class="form-control">${['A','B','C','D'].map(l => `<option ${q.opcion_correcta===l?'selected':''}>${l}</option>`).join('')}</select></div>`;
-            } else if (tipo === 'vf') {
-                container.innerHTML = `<div class="form-group"><label>Respuesta correcta</label><select id="respCorrectaVF" class="form-control"><option ${q.opcion_correcta==='V'?'selected':''}>Verdadero</option><option ${q.opcion_correcta==='F'?'selected':''}>Falso</option></select></div>`;
-            } else {
-                container.innerHTML = `<div class="form-group"><label>Respuesta exacta (texto)</label><input id="respCompletar" class="form-control" value="${escapeHtml(q.opcion_correcta)}"></div>`;
-            }
-        };
-        showModal(`<h3>Editar Pregunta</h3><div class="form-group"><label>Enunciado</label><textarea id="qEnunciado" rows="2" class="form-control">${escapeHtml(q.enunciado)}</textarea></div>
-        <div class="form-group"><label>Tipo</label><select id="qTipo" class="form-control" onchange="toggleQuestionOptions()"><option value="multiple" ${q.tipo==='multiple'?'selected':''}>Múltiple</option><option value="vf" ${q.tipo==='vf'?'selected':''}>Verdadero/Falso</option><option value="completar" ${q.tipo==='completar'?'selected':''}>Completar</option></select></div>
-        <div id="opcionesContainer"></div><div class="form-group"><label>Tiempo (segundos)</label><input id="qTiempo" type="number" class="form-control" value="${q.tiempo_segundos || 15}"></div>
-        <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="updateExistingQuestion(${idx})">Actualizar</button></div>`);
-        toggleQuestionOptions();
-    }
-    function updateExistingQuestion(idx) {
-        const enunciado = document.getElementById('qEnunciado').value.trim();
-        if (!enunciado) return alert("Enunciado requerido");
-        const tipo = document.getElementById('qTipo').value;
-        const tiempo = parseInt(document.getElementById('qTiempo').value) || 15;
-        let opcion_a='', opcion_b='', opcion_c='', opcion_d='', opcion_correcta='';
-        if (tipo === 'multiple') {
-            opcion_a = document.getElementById('opA').value;
-            opcion_b = document.getElementById('opB').value;
-            opcion_c = document.getElementById('opC').value;
-            opcion_d = document.getElementById('opD').value;
-            opcion_correcta = document.getElementById('respCorrecta').value;
-        } else if (tipo === 'vf') {
-            opcion_correcta = document.getElementById('respCorrectaVF').value === 'Verdadero' ? 'V' : 'F';
-            opcion_a = 'Verdadero'; opcion_b = 'Falso';
-        } else {
-            opcion_correcta = document.getElementById('respCompletar').value.trim();
-        }
-        tempQuestions[idx] = { ...tempQuestions[idx], enunciado, tipo, opcion_a, opcion_b, opcion_c, opcion_d, opcion_correcta, tiempo_segundos: tiempo };
-        closeModal();
+function removeQuestion(idx) {
+    if (confirm("¿Eliminar esta pregunta?")) {
+        tempQuestions.splice(idx, 1);
+        // Reordenar índices
+        tempQuestions.forEach((q, i) => q.orden_index = i);
         renderQuestionBuilder();
     }
+}
 
-function removeQuestion(idx) {
-        if (confirm("¿Eliminar esta pregunta?")) { tempQuestions.splice(idx,1); renderQuestionBuilder(); }
+async function saveAllQuestions() {
+    if (!currentExamId) return alert("No hay examen seleccionado");
+    await supabaseClient.from('preguntas').delete().eq('examen_id', currentExamId);
+    for (let i = 0; i < tempQuestions.length; i++) {
+        const q = tempQuestions[i];
+        await supabaseClient.from('preguntas').insert({
+            id: generateUniqueId(),
+            examen_id: currentExamId,
+            enunciado: q.enunciado,
+            tipo: q.tipo || 'multiple',
+            opcion_a: q.opcion_a || '',
+            opcion_b: q.opcion_b || '',
+            opcion_c: q.opcion_c || '',
+            opcion_d: q.opcion_d || '',
+            opcion_correcta: q.opcion_correcta,
+            tiempo_segundos: q.tiempo_segundos,
+            orden_index: i
+        });
     }
-    async function saveAllQuestions() {
-        await supabaseClient.from('preguntas').delete().eq('examen_id', currentExamId);
-        for (let i=0; i<tempQuestions.length; i++) {
-            const q = tempQuestions[i];
-            await supabaseClient.from('preguntas').insert({ id: generateUniqueId(), examen_id: currentExamId, enunciado: q.enunciado, tipo: q.tipo || 'multiple', opcion_a: q.opcion_a || '', opcion_b: q.opcion_b || '', opcion_c: q.opcion_c || '', opcion_d: q.opcion_d || '', opcion_correcta: q.opcion_correcta, tiempo_segundos: q.tiempo_segundos, orden_index: i });
-        }
-        await loadUserData();
-        alert("Preguntas guardadas");
-        closeModal();
-        adminExams();
-    }
-        
+    await loadUserData();
+    alert("Preguntas guardadas correctamente");
+    closeModal();
+    adminExams();
+}
     function adminTeam() {
         const render = () => {
             showModal(`<h3>Gestionar Miembros</h3><div id="teamListAdmin">${team.map((m, idx) => `<div style="display:flex; justify-content:space-between;"><span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMemberAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin miembros</p>'}</div><div class="form-group"><input id="newMemberName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="newMemberRole" class="form-control" placeholder="Rol"></div><button class="btn btn-primary" onclick="addTeamMemberAdmin()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
