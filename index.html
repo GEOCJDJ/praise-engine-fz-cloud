@@ -72,6 +72,18 @@
         .team-card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); }
         .avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 0.5rem; }
         /* Estilos del visor cifra */
+        .chord-row span, .lyric-row span {
+    display: inline-block;
+    white-space: pre;
+}
+.song-line {
+    margin-bottom: 1.2rem;
+    line-height: 1.4;
+}
+.chord-row {
+    margin-bottom: 0.2rem;
+}
+        
         .cifra-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0F172A; color: #F1F5F9; z-index: 2000; flex-direction: column; }
         .cifra-header { background: #1E293B; padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
         .cifra-title-area h2 { font-size: 1.4rem; font-weight: 800; color: #FFFFFF; }
@@ -206,63 +218,51 @@
 
    function renderChordsOverLyrics(text) {
     if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
+    
     let lines = text.split('\n');
     let html = '';
+    
     for (let line of lines) {
         line = line.trim();
         if (line === '') continue;
         
-        // Dividir en partes: texto normal y acordes [acorde]
+        // Buscar patrones como [Acorde]texto
+        let chordPattern = /\[([^\]]+)\]([^[]*)/g;
         let parts = [];
-        let chordRegex = /\[([^\]]+)\]/g;
-        let lastIdx = 0;
         let match;
-        while ((match = chordRegex.exec(line)) !== null) {
-            let textBefore = line.substring(lastIdx, match.index);
-            if (textBefore) parts.push({ type: 'text', content: textBefore });
-            parts.push({ type: 'chord', content: match[1] });
-            lastIdx = match.index + match[0].length;
+        let lastIndex = 0;
+        
+        while ((match = chordPattern.exec(line)) !== null) {
+            let chord = match[1];
+            let textPart = match[2];
+            parts.push({ chord, text: textPart });
+            lastIndex = match.index + match[0].length;
         }
-        if (lastIdx < line.length) parts.push({ type: 'text', content: line.substring(lastIdx) });
         
         if (parts.length === 0) {
             // Línea sin acordes
-            html += `<div class="song-line"><div class="chord-line"></div><div class="lyric-line">${escapeHtml(line)}</div></div>`;
+            html += `<div class="song-line" style="margin-bottom:1rem;">${escapeHtml(line)}</div>`;
             continue;
         }
         
-        // Construir fila de acordes y fila de letra con flex
-        let chordHtml = '<div class="chord-line" style="display:flex; flex-wrap:wrap;">';
-        let lyricHtml = '<div class="lyric-line" style="display:flex; flex-wrap:wrap;">';
+        // Construir tabla visual: acordes arriba, letra abajo
+        let chordHtml = '<div class="chord-row" style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:0.5rem;">';
+        let lyricHtml = '<div class="lyric-row" style="display:flex; flex-wrap:wrap; gap:0.5rem;">';
         
         for (let part of parts) {
-            if (part.type === 'chord') {
-                // Acorde: se muestra en la fila superior
-                chordHtml += `<span class="chord-word" style="display:inline-block; margin-right:0.8rem; font-weight:bold; color:#F59E0B;">${escapeHtml(part.content)}</span>`;
-                lyricHtml += `<span class="lyric-word" style="display:inline-block; margin-right:0.8rem; opacity:0;">&nbsp;</span>`;
-            } else {
-                // Texto: se divide en palabras para mantener el ancho
-                let words = part.content.split(/(\s+)/);
-                for (let w of words) {
-                    if (w.trim() === '') {
-                        chordHtml += `<span style="display:inline-block; margin-right:0.2rem;">&nbsp;</span>`;
-                        lyricHtml += `<span style="display:inline-block; margin-right:0.2rem;">&nbsp;</span>`;
-                    } else {
-                        // Calcular ancho aproximado (cada carácter ocupa ~0.6rem en monospace)
-                        let width = w.length * 0.6 + 'rem';
-                        chordHtml += `<span style="display:inline-block; width:${width};">&nbsp;</span>`;
-                        lyricHtml += `<span class="lyric-word" style="display:inline-block; width:${width};">${escapeHtml(w)}</span>`;
-                    }
-                }
-            }
+            // Espaciador flexible para que el acorde quede encima de la palabra
+            chordHtml += `<span style="font-weight:bold; color:#F59E0B; font-size:0.85rem; min-width:${Math.max(part.text.length * 0.8, 1)}rem;">${escapeHtml(part.chord)}</span>`;
+            lyricHtml += `<span style="font-size:1rem;">${escapeHtml(part.text)}</span>`;
         }
+        
         chordHtml += '</div>';
         lyricHtml += '</div>';
-        html += `<div class="song-line" style="margin-bottom:0.8rem;">${chordHtml}${lyricHtml}</div>`;
+        
+        html += `<div class="song-line" style="margin-bottom:1rem;">${chordHtml}${lyricHtml}</div>`;
     }
+    
     return html;
 }
-
     // ==================== AUTENTICACIÓN ====================
     async function login(email, password) {
         try {
