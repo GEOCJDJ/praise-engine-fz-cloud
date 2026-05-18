@@ -148,20 +148,28 @@
     </div>
 
 <script>    
- // ==================== CONFIGURACIÓN SUPABASE ====================
+    
+    // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null;
-    let songs = [], lists = [], team = [], attendance = [], shifts = [], cursos = [], modulosList = [], examenes = [], preguntas = [];
+    let songs = [], lists = [], team = [], attendance = [], shifts = [], modules = [], cursos = [], modulosList = [], examenes = [], preguntas = [];
     let currentTab = 'songs', selectedListId = null, listsViewMode = 'grid';
-    let sortableInstance = null, metronomeInterval = null;
+    let sortableInstance = null, metronomeInterval = null, adminVisible = false;
     let isAdminUser = false;
-    let currentProfile = null; // para almacenar perfil del usuario actual
     const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
     const noteMap = { 'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11 };
     const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    let cifraCurrentSong = null, cifraOriginalLyrics = "", cifraSemitonesShift = 0, cifraScrollInterval = null, cifraScrollSpeed = 35, cifraFontSize = 18, cifraMetroInterval = null, cifraMetroRunning = false, currentSongIndex = -1;
+    let cifraCurrentSong = null;
+    let cifraOriginalLyrics = "";
+    let cifraSemitonesShift = 0;
+    let cifraScrollInterval = null;
+    let cifraScrollSpeed = 35;
+    let cifraFontSize = 18;
+    let cifraMetroInterval = null;
+    let cifraMetroRunning = false;
+    let currentSongIndex = -1;
     let examQuestions = [], examCurrentIndex = 0, examScore = 0, examTimer = null, examTimeLeft = 0, currentExamId = null, selectedOption = null;
 
     // ==================== FUNCIONES AUXILIARES ====================
@@ -170,15 +178,6 @@
     function showModal(content) { const div = document.createElement('div'); div.id = 'modal'; div.className = 'modal'; div.style.display = 'flex'; div.innerHTML = `<div class="modal-content">${content}</div>`; document.body.appendChild(div); }
     function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime}); }
     function generateUniqueId() { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
-    async function uploadFileToStorage(file, folder) {
-        if (!file) return null;
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${folder}/${Date.now()}.${fileExt}`;
-        const { data, error } = await supabaseClient.storage.from('lecciones').upload(fileName, file);
-        if (error) throw error;
-        const { data: { publicUrl } } = supabaseClient.storage.from('lecciones').getPublicUrl(fileName);
-        return publicUrl;
-    }
 
     function transposeChord(chord, semitones) {
         const match = chord.match(/^([A-G][#b]?)(.*)$/);
@@ -311,28 +310,16 @@
     return html;
 }
     // ==================== AUTENTICACIÓN ====================
-     async function login(email, password) {
+    async function login(email, password) {
         try {
             const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) throw error;
             currentUser = data.user;
-            await loadProfile();
+            const { data: profile } = await supabaseClient.from('perfiles').select('rol').eq('id', currentUser.id).single();
+            isAdminUser = (profile && profile.rol === 'admin');
             await loadUserData();
             renderApp();
         } catch (err) { alert("Error al iniciar sesión: " + err.message); }
-    }
-    async function loadProfile() {
-        if (!currentUser) return;
-        const { data, error } = await supabaseClient.from('perfiles').select('*').eq('id', currentUser.id).single();
-        if (error && error.code !== 'PGRST116') console.error(error);
-        currentProfile = data || { id: currentUser.id, nombre: currentUser.email, rol: 'user' };
-        isAdminUser = (currentProfile.rol === 'admin');
-    }
-    async function updateProfile(updates) {
-        const { error } = await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id);
-        if (error) throw error;
-        await loadProfile();
-        alert("Perfil actualizado");
     }
     async function resetPassword(email) {
         try {
@@ -377,7 +364,7 @@
             else alert("Error en el registro: " + err.message);
         }
     }
-  function renderLogin() {
+    function renderLogin() {
         document.getElementById('appRoot').innerHTML = `
             <div class="login-container">
                 <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
@@ -395,8 +382,13 @@
     async function loadUserData() {
         if (!currentUser) return;
         try {
-            const { data: s } = await supabaseClient.from('canciones').select('*'); 
-            songs = (s || []).map(song => ({ ...song, chordsUrl: song.chords_url, chordsData: song.chords_data }));
+         const { data: s } = await supabaseClient.from('canciones').select('*'); 
+songs = (s || []).map(song => ({
+    ...song,
+    chordsUrl: song.chords_url,
+    chordsData: song.chords_data
+}));
+            
             const { data: l } = await supabaseClient.from('listas').select('*'); lists = l || [];
             for (let list of lists) {
                 const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
@@ -456,8 +448,8 @@
             category: song.category || "Adoración",
             key: song.key || "C",
             bpm: parseInt(song.bpm) || 80,
-            chords_url: song.chordsUrl || "",   //
-            chords_data: song.chordsData || "", //
+            chords_url: song.chordsUrl || "",   // ← importante: snake_case
+            chords_data: song.chordsData || "", // ← importante: snake_case
             lyrics: song.lyrics || "",
             youtube: song.youtube || ""
         };
@@ -513,19 +505,18 @@
     async function saveAttendance(reg) { if (!isAdminUser) return; attendance = reg; await supabaseClient.from('asistencia').delete().neq('id', '0'); for (let a of attendance) await supabaseClient.from('asistencia').insert(a); await loadUserData(); }
     async function saveShifts(sh) { if (!isAdminUser) return; shifts = sh; await supabaseClient.from('turnos').delete().neq('id', '0'); for (let s of shifts) await supabaseClient.from('turnos').insert(s); await loadUserData(); }
 
- 
+    // ==================== RENDER PRINCIPAL ====================
     function renderApp() {
         if (!currentUser) { renderLogin(); return; }
         document.getElementById('appRoot').innerHTML = `
             <header class="app-header">
                 <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| I.E.C. Fortaleza Sur</small></div>
                 <div class="nav-icons">
-                    <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
-                    <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
-                    <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
-                    <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
-                    <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
-                    ${isAdminUser ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
+                    <div class="nav-item active" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
+                    <div class="nav-item" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+                    <div class="nav-item" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
+                    <div class="nav-item" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
+                    ${isAdminUser ? `<div class="nav-item" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
                     <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
                     <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
                 </div>
@@ -536,9 +527,8 @@
                 <div id="mainContent"></div>
             </div>`;
         document.querySelectorAll('.nav-item[data-tab]').forEach(el => el.addEventListener('click', () => {
-            currentTab = el.dataset.tab;
-            selectedListId = null;
-            renderCurrentView();
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active'); currentTab = el.dataset.tab; selectedListId = null; renderCurrentView();
         }));
         const darkToggle = document.getElementById('darkModeToggle');
         darkToggle.addEventListener('click', () => {
@@ -550,7 +540,7 @@
         renderCurrentView();
         const titleEl = document.getElementById('easterEggTitle');
         let timer = null;
-        titleEl.addEventListener('mousedown', () => timer = setTimeout(() => { /* adminVisible = true; renderApp(); */ }, 5000));
+        titleEl.addEventListener('mousedown', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 5000));
         titleEl.addEventListener('mouseup', () => clearTimeout(timer));
     }
     function renderCurrentView() {
@@ -561,7 +551,7 @@
         else if (currentTab === 'admin' && isAdminUser) renderAdmin();
     }
 
-   // ==================== CANCIONERO ====================
+    // ==================== CANCIONERO ====================
     function renderSongsGrid() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
