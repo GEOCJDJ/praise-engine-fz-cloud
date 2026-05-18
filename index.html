@@ -172,13 +172,21 @@
     let currentSongIndex = -1;
     let examQuestions = [], examCurrentIndex = 0, examScore = 0, examTimer = null, examTimeLeft = 0, currentExamId = null, selectedOption = null;
 
-    // ==================== FUNCIONES AUXILIARES ====================
+   // ==================== FUNCIONES AUXILIARES ====================
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
     function closeModal() { document.getElementById('modal')?.remove(); }
     function showModal(content) { const div = document.createElement('div'); div.id = 'modal'; div.className = 'modal'; div.style.display = 'flex'; div.innerHTML = `<div class="modal-content">${content}</div>`; document.body.appendChild(div); }
     function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime}); }
     function generateUniqueId() { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
-
+    async function uploadFileToStorage(file, folder) {
+        if (!file) return null;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${folder}/${Date.now()}.${fileExt}`;
+        const { data, error } = await supabaseClient.storage.from('lecciones').upload(fileName, file);
+        if (error) throw error;
+        const { data: { publicUrl } } = supabaseClient.storage.from('lecciones').getPublicUrl(fileName);
+        return publicUrl;
+    }
     function transposeChord(chord, semitones) {
         const match = chord.match(/^([A-G][#b]?)(.*)$/);
         if (!match) return chord;
@@ -309,17 +317,29 @@
     }
     return html;
 }
-    // ==================== AUTENTICACIÓN ====================
+    // ==================== AUTENTICACIÓN Y PERFIL ====================
     async function login(email, password) {
         try {
             const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) throw error;
             currentUser = data.user;
-            const { data: profile } = await supabaseClient.from('perfiles').select('rol').eq('id', currentUser.id).single();
-            isAdminUser = (profile && profile.rol === 'admin');
+            await loadProfile();
             await loadUserData();
             renderApp();
         } catch (err) { alert("Error al iniciar sesión: " + err.message); }
+    }
+    async function loadProfile() {
+        if (!currentUser) return;
+        const { data, error } = await supabaseClient.from('perfiles').select('*').eq('id', currentUser.id).single();
+        if (error && error.code !== 'PGRST116') console.error(error);
+        currentProfile = data || { id: currentUser.id, nombre: currentUser.email, rol: 'user' };
+        isAdminUser = (currentProfile.rol === 'admin');
+    }
+    async function updateProfile(updates) {
+        const { error } = await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id);
+        if (error) throw error;
+        await loadProfile();
+        alert("Perfil actualizado");
     }
     async function resetPassword(email) {
         try {
@@ -328,7 +348,7 @@
             alert("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
         } catch(err) { alert("Error: " + err.message); }
     }
-    async function logout() { await supabaseClient.auth.signOut(); currentUser = null; isAdminUser = false; renderLogin(); }
+     async function logout() { await supabaseClient.auth.signOut(); currentUser = null; isAdminUser = false; renderLogin(); }
     function renderRegister() {
         document.getElementById('appRoot').innerHTML = `
             <div class="login-container">
@@ -470,53 +490,42 @@ songs = (s || []).map(song => ({
     }
 }
     async function deleteSong(id) { if (!isAdminUser) return; await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
-    async function saveList(list) {
-    // Permitir a cualquier usuario autenticado crear/editar listas
-    if (!currentUser) { alert("Debes iniciar sesión."); return; }
-    try {
-        if (list.id) {
-            await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id);
-            await supabaseClient.from('lista_items').delete().eq('lista_id', list.id);
-            const itemsToInsert = (list.items || []).map((item, i) => ({
-                lista_id: list.id,
-                song_id: item.songId || item.song_id,
-                key_override: item.keyOverride || item.key_override || null,
-                orden: i
-            }));
-            if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert);
-        } else {
-            const newId = generateUniqueId();
-            await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date });
-            const itemsToInsert = (list.items || []).map((item, i) => ({
-                lista_id: newId,
-                song_id: item.songId || item.song_id,
-                key_override: item.keyOverride || item.key_override || null,
-                orden: i
-            }));
-            if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert);
-        }
-        await loadUserData(); 
-        renderCurrentView();
-    } catch(e) { console.error(e); alert("Error guardando lista."); }
-}
+   async function saveList(list) {
+        if (!currentUser) { alert("Debes iniciar sesión."); return; }
+        try {
+            if (list.id) {
+                await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id);
+                await supabaseClient.from('lista_items').delete().eq('lista_id', list.id);
+                const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i }));
+                if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert);
+            } else {
+                const newId = generateUniqueId();
+                await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date });
+                const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i }));
+                if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert);
+            }
+            await loadUserData(); renderCurrentView();
+        } catch(e) { console.error(e); alert("Error guardando lista."); }
+    }
     
     async function deleteList(id) { if (!isAdminUser) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
     async function saveTeam(members) { if (!isAdminUser) return; team = members; await supabaseClient.from('equipo').delete().neq('id', '0'); for (let m of team) { if (!m.id) m.id = generateUniqueId(); await supabaseClient.from('equipo').insert(m); } await loadUserData(); renderCurrentView(); }
     async function saveAttendance(reg) { if (!isAdminUser) return; attendance = reg; await supabaseClient.from('asistencia').delete().neq('id', '0'); for (let a of attendance) await supabaseClient.from('asistencia').insert(a); await loadUserData(); }
     async function saveShifts(sh) { if (!isAdminUser) return; shifts = sh; await supabaseClient.from('turnos').delete().neq('id', '0'); for (let s of shifts) await supabaseClient.from('turnos').insert(s); await loadUserData(); }
 
-    // ==================== RENDER PRINCIPAL ====================
+   / ==================== RENDER PRINCIPAL ====================
     function renderApp() {
         if (!currentUser) { renderLogin(); return; }
         document.getElementById('appRoot').innerHTML = `
             <header class="app-header">
                 <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| I.E.C. Fortaleza Sur</small></div>
                 <div class="nav-icons">
-                    <div class="nav-item active" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
-                    <div class="nav-item" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
-                    <div class="nav-item" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
-                    <div class="nav-item" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
-                    ${isAdminUser ? `<div class="nav-item" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
+                    <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
+                    <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+                    <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
+                    <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
+                    <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
+                    ${isAdminUser ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
                     <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
                     <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
                 </div>
@@ -527,8 +536,9 @@ songs = (s || []).map(song => ({
                 <div id="mainContent"></div>
             </div>`;
         document.querySelectorAll('.nav-item[data-tab]').forEach(el => el.addEventListener('click', () => {
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            el.classList.add('active'); currentTab = el.dataset.tab; selectedListId = null; renderCurrentView();
+            currentTab = el.dataset.tab;
+            selectedListId = null;
+            renderCurrentView();
         }));
         const darkToggle = document.getElementById('darkModeToggle');
         darkToggle.addEventListener('click', () => {
@@ -548,6 +558,7 @@ songs = (s || []).map(song => ({
         else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
         else if (currentTab === 'resources') renderResources();
         else if (currentTab === 'moodle') renderMoodle();
+        else if (currentTab === 'profile') renderUserProfile();
         else if (currentTab === 'admin' && isAdminUser) renderAdmin();
     }
 
@@ -1074,53 +1085,46 @@ async function addSelectedSongsToList(listId) {
         showModal(html);
     }
 
-    // ==================== AULA VIRTUAL ====================
+ // ==================== AULA VIRTUAL con estadísticas ====================
     async function renderMoodle() {
-    const container = document.getElementById('mainContent');
-    document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateCourseModal()"><i class="fas fa-plus"></i> Crear Curso</button>` : '';
-    let html = '';
-    for (let curso of cursos) {
-        let mods = modulosList.filter(m => m.curso_id === curso.id);
-        html += `<div class="card" style="margin-bottom:1rem;"><h3>${escapeHtml(curso.titulo)}</h3><p>${escapeHtml(curso.descripcion || '')}</p>`;
-        for (let mod of mods) {
-            let examenesMod = examenes.filter(e => e.modulo_id === mod.id);
-            html += `<div style="margin-top:1rem; padding-left:1rem; border-left:3px solid var(--primary-light);"><strong>${escapeHtml(mod.titulo)}</strong>`;
-            
-            // Botón para ver contenido del módulo (si existe)
-            if (mod.contenido) {
-                html += `<button class="btn btn-secondary" style="margin-left:1rem;" onclick="showModuleContent('${mod.id}')">📖 Ver Contenido del Curso</button>`;
-            }
-            
-            for (let ex of examenesMod) {
-                const { data: intento } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
-                if (intento) {
-                    html += `<div style="margin-top:0.5rem; background:rgba(16,185,129,0.1); padding:0.5rem; border-radius:8px;">✅ Completado - Nota: ${intento.puntaje}/20</div>`;
-                } else {
-                    html += `<button class="btn btn-primary" style="margin-top:0.5rem;" onclick="startExam('${ex.id}')">📝 Rendir Examen: ${escapeHtml(ex.titulo)}</button>`;
+        const container = document.getElementById('mainContent');
+        document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateCourseModal()"><i class="fas fa-plus"></i> Crear Curso</button>` : '';
+        let html = '';
+        // Obtener estadísticas del usuario
+        const { data: misIntentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id);
+        const totalExamenes = misIntentos?.length || 0;
+        const puntajePromedio = misIntentos && misIntentos.length ? (misIntentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/misIntentos.length).toFixed(1) : 0;
+        html += `<div class="card" style="margin-bottom:1rem;"><h3>📊 Mi Progreso</h3><p>Exámenes completados: ${totalExamenes}</p><p>Puntaje promedio: ${puntajePromedio} / 20</p></div>`;
+        for (let curso of cursos) {
+            let mods = modulosList.filter(m => m.curso_id === curso.id);
+            html += `<div class="card" style="margin-bottom:1rem;"><h3>${escapeHtml(curso.titulo)}</h3><p>${escapeHtml(curso.descripcion || '')}</p>`;
+            for (let mod of mods) {
+                let examenesMod = examenes.filter(e => e.modulo_id === mod.id);
+                html += `<div style="margin-top:1rem; padding-left:1rem; border-left:3px solid var(--primary-light);"><strong>${escapeHtml(mod.titulo)}</strong>`;
+                if (mod.contenido) html += `<button class="btn btn-secondary" style="margin-left:1rem;" onclick="showModuleContent('${mod.id}')">📖 Ver Contenido del Curso</button>`;
+                for (let ex of examenesMod) {
+                    const intento = misIntentos?.find(i => i.examen_id === ex.id);
+                    if (intento) {
+                        html += `<div style="margin-top:0.5rem; background:rgba(16,185,129,0.1); padding:0.5rem; border-radius:8px;">✅ Completado - Nota: ${intento.puntaje}/20</div>`;
+                    } else {
+                        html += `<button class="btn btn-primary" style="margin-top:0.5rem;" onclick="startExam('${ex.id}')">📝 Rendir Examen: ${escapeHtml(ex.titulo)}</button>`;
+                    }
                 }
+                html += `</div>`;
             }
+            if (isAdminUser) html += `<button class="btn btn-secondary" style="margin-top:1rem;" onclick="openAddModuleModal('${curso.id}')">Añadir Módulo</button>`;
             html += `</div>`;
         }
-        if (isAdminUser) {
-            html += `<button class="btn btn-secondary" style="margin-top:1rem;" onclick="openAddModuleModal('${curso.id}')">Añadir Módulo</button>`;
-        }
-        html += `</div>`;
+        container.innerHTML = html || '<p>No hay cursos disponibles.</p>';
     }
-    container.innerHTML = html || '<p>No hay cursos disponibles.</p>';
-}
 
-// Nueva función para mostrar contenido del módulo en un modal
-window.showModuleContent = async (moduleId) => {
-    const mod = modulosList.find(m => m.id === moduleId);
-    if (!mod || !mod.contenido) return;
-    showModal(`
-        <h3>${escapeHtml(mod.titulo)}</h3>
-        <div style="max-height:60vh; overflow-y:auto; margin:1rem 0; padding:0.5rem; border:1px solid var(--border); border-radius:8px;">
-            ${mod.contenido}
-        </div>
-        <button class="btn btn-primary" onclick="closeModal()">Cerrar</button>
-    `);
-};
+    function showModuleContent(moduleId) {
+        const mod = modulosList.find(m => m.id === moduleId);
+        if (!mod || !mod.contenido) return;
+        showModal(`<h3>${escapeHtml(mod.titulo)}</h3><div style="max-height:60vh; overflow-y:auto;">${mod.contenido}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`);
+    }
+
+        
     
     function openCreateCourseModal() {
         if (!isAdminUser) return;
@@ -1206,6 +1210,68 @@ window.showModuleContent = async (moduleId) => {
     if (examTimer) clearInterval(examTimer);
     document.getElementById('examOverlay').style.display = 'none';
 }
+/ ==================== PERFIL DE USUARIO ====================
+    function renderUserProfile() {
+        if (!currentProfile) return;
+        const misIntentos = []; // se cargará dinámicamente
+        const loadStats = async () => {
+            const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id);
+            const total = intentos?.length || 0;
+            const promedio = intentos && intentos.length ? (intentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/intentos.length).toFixed(1) : 0;
+            document.getElementById('statExamenes').innerText = total;
+            document.getElementById('statPromedio').innerText = `${promedio}/20`;
+        };
+        const html = `
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <div class="profile-avatar" style="background: var(--primary);">
+                    <i class="fas fa-user fa-3x" style="color: white;"></i>
+                </div>
+                <h2>${escapeHtml(currentProfile.nombre || currentUser.email)}</h2>
+                <p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p>
+                <p><strong>Rol:</strong> ${currentProfile.rol === 'admin' ? 'Administrador' : 'Usuario'}</p>
+                <p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono || 'No especificado')}</p>
+                <p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento || 'No especificada'}</p>
+                <p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion || 'No especificada')}</p>
+                <hr>
+                <h3>📊 Estadísticas de aprendizaje</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                    <div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div>
+                    <div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div>
+                </div>
+                <button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button>
+            </div>
+        `;
+        document.getElementById('mainContent').innerHTML = html;
+        document.getElementById('actionHeader').innerHTML = '';
+        loadStats();
+    }
+
+    function editUserProfile() {
+        showModal(`
+            <h3>Editar perfil</h3>
+            <div class="form-group"><label>Nombre completo</label><input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre || '')}"></div>
+            <div class="form-group"><label>Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}"></div>
+            <div class="form-group"><label>Fecha de nacimiento</label><input id="editFecha" class="form-control" type="date" value="${currentProfile.fecha_nacimiento || ''}"></div>
+            <div class="form-group"><label>Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}"></div>
+            <div class="form-group"><label>Foto de perfil (URL)</label><input id="editFoto" class="form-control" value="${escapeHtml(currentProfile.foto_url || '')}"></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUserProfile()">Guardar</button></div>
+        `);
+    }
+
+    async function saveUserProfile() {
+        const updates = {
+            nombre: document.getElementById('editNombre').value,
+            telefono: document.getElementById('editTelefono').value,
+            fecha_nacimiento: document.getElementById('editFecha').value,
+            direccion: document.getElementById('editDireccion').value,
+            foto_url: document.getElementById('editFoto').value
+        };
+        await updateProfile(updates);
+        closeModal();
+        renderUserProfile();
+    }
+
+        
     // ==================== ADMINISTRACIÓN ====================
    function renderAdmin() {
     document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
@@ -1292,59 +1358,62 @@ async function manageModules(cursoId) {
 }
 
 function addModule(cursoId) {
-    showModal(`
-        <h3>Nueva Lección</h3>
-        <div class="form-group"><label>Título</label><input id="modTitle" class="form-control"></div>
-        <div class="form-group"><label>Contenido (HTML o texto con enlaces)</label>
-            <textarea id="modContent" rows="8" class="form-control" placeholder="<h3>Introducción</h3><p>Aquí puedes poner texto, links, incrustar PDFs...</p>"></textarea>
-            <small>Puedes usar HTML básico. Para PDF: <a href='URL_DEL_PDF' target='_blank'>Descargar PDF</a></small>
-        </div>
-        <div class="form-group"><label>Orden</label><input type="number" id="modOrder" class="form-control" value="1"></div>
-        <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveModule('${cursoId}')">Guardar</button></div>
-    `);
-}
-
-async function saveModule(cursoId) {
-    const titulo = document.getElementById('modTitle').value.trim();
-    const contenido = document.getElementById('modContent').value;
-    const orden = parseInt(document.getElementById('modOrder').value) || 1;
-    if (!titulo) return alert("Título requerido");
-    await supabaseClient.from('modulos').insert([{
-        id: generateUniqueId(),
-        curso_id: cursoId,
-        titulo,
-        contenido,
-        orden_index: orden
-    }]);
-    await loadUserData();
-    closeModal();
-    manageModules(cursoId);
-}
-
-async function editModule(modId) {
-    const mod = modulosList.find(m => m.id === modId);
-    if (!mod) return;
-    showModal(`
-        <h3>Editar Lección</h3>
-        <div class="form-group"><label>Título</label><input id="editModTitle" class="form-control" value="${escapeHtml(mod.titulo)}"></div>
-        <div class="form-group"><label>Contenido</label>
-            <textarea id="editModContent" rows="8" class="form-control">${escapeHtml(mod.contenido || '')}</textarea>
-        </div>
-        <div class="form-group"><label>Orden</label><input type="number" id="editModOrder" class="form-control" value="${mod.orden_index || 1}"></div>
-        <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="updateModule('${modId}')">Actualizar</button></div>
-    `);
-}
-
-async function updateModule(modId) {
-    const titulo = document.getElementById('editModTitle').value.trim();
-    const contenido = document.getElementById('editModContent').value;
-    const orden = parseInt(document.getElementById('editModOrder').value) || 1;
-    await supabaseClient.from('modulos').update({ titulo, contenido, orden_index: orden }).eq('id', modId);
-    await loadUserData();
-    closeModal();
-    const cursoId = modulosList.find(m => m.id === modId)?.curso_id;
-    if (cursoId) manageModules(cursoId);
-}
+        showModal(`
+            <h3>Nueva Lección</h3>
+            <div class="form-group"><label>Título</label><input id="modTitle" class="form-control"></div>
+            <div class="form-group"><label>Contenido (HTML o texto con enlaces)</label><textarea id="modContent" rows="6" class="form-control" placeholder="<h3>Introducción</h3><p>Texto...</p>"></textarea></div>
+            <div class="form-group"><label>Subir archivo (PDF, Word, Imagen)</label><input type="file" id="modFile" accept=".pdf,.docx,.jpg,.png,.jpeg"></div>
+            <div class="form-group"><label>Orden</label><input type="number" id="modOrder" class="form-control" value="1"></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveModuleWithFile('${cursoId}')">Guardar</button></div>
+        `);
+    }
+    async function saveModuleWithFile(cursoId) {
+        const titulo = document.getElementById('modTitle').value.trim();
+        let contenido = document.getElementById('modContent').value;
+        const orden = parseInt(document.getElementById('modOrder').value) || 1;
+        const file = document.getElementById('modFile').files[0];
+        if (!titulo) return alert("Título requerido");
+        if (file) {
+            try {
+                const url = await uploadFileToStorage(file, 'lecciones');
+                contenido += `<br><a href="${url}" target="_blank">📎 Descargar material adjunto</a>`;
+            } catch(e) { console.error(e); alert("Error al subir archivo: " + e.message); }
+        }
+        await supabaseClient.from('modulos').insert({ id: generateUniqueId(), curso_id: cursoId, titulo, contenido, orden_index: orden });
+        await loadUserData();
+        closeModal();
+        manageModules(cursoId);
+    }
+    async function editModule(modId) {
+        const mod = modulosList.find(m => m.id === modId);
+        if (!mod) return;
+        showModal(`
+            <h3>Editar Lección</h3>
+            <div class="form-group"><label>Título</label><input id="editModTitle" class="form-control" value="${escapeHtml(mod.titulo)}"></div>
+            <div class="form-group"><label>Contenido</label><textarea id="editModContent" rows="6" class="form-control">${escapeHtml(mod.contenido || '')}</textarea></div>
+            <div class="form-group"><label>Subir nuevo archivo (opcional)</label><input type="file" id="editModFile" accept=".pdf,.docx,.jpg,.png,.jpeg"></div>
+            <div class="form-group"><label>Orden</label><input type="number" id="editModOrder" class="form-control" value="${mod.orden_index || 1}"></div>
+            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="updateModuleWithFile('${modId}')">Actualizar</button></div>
+        `);
+    }
+    async function updateModuleWithFile(modId) {
+        const titulo = document.getElementById('editModTitle').value.trim();
+        let contenido = document.getElementById('editModContent').value;
+        const orden = parseInt(document.getElementById('editModOrder').value) || 1;
+        const file = document.getElementById('editModFile').files[0];
+        if (!titulo) return alert("Título requerido");
+        if (file) {
+            try {
+                const url = await uploadFileToStorage(file, 'lecciones');
+                contenido += `<br><a href="${url}" target="_blank">📎 Material adjunto</a>`;
+            } catch(e) { console.error(e); alert("Error al subir archivo: " + e.message); }
+        }
+        await supabaseClient.from('modulos').update({ titulo, contenido, orden_index: orden }).eq('id', modId);
+        await loadUserData();
+        closeModal();
+        const cursoId = modulosList.find(m => m.id === modId)?.curso_id;
+        if (cursoId) manageModules(cursoId);
+    }
 
 async function deleteModule(modId) {
     if (confirm("¿Eliminar esta lección?")) {
@@ -1437,76 +1506,43 @@ async function deleteExam(examId) {
 let tempQuestions = []; // array temporal mientras se edita un examen
 
 async function manageQuestions(examId) {
-     currentExamId = examId; 
-    const existing = preguntas.filter(p => p.examen_id === examId).sort((a,b)=>a.orden_index - b.orden_index);
-    tempQuestions = existing.map(p => ({ ...p }));
-    
-    renderQuestionBuilder(examId);
-}
-
-function renderQuestionBuilder(examId) {
-    let html = `<h3>Constructor de Preguntas</h3>
-                <div id="questionsList">`;
-    tempQuestions.forEach((q, idx) => {
-        html += `<div class="card" style="margin-bottom:0.5rem;">
-                    <b>Pregunta ${idx+1}:</b> ${escapeHtml(q.enunciado)}<br>
-                    Tipo: ${q.tipo || 'multiple'} | Tiempo: ${q.tiempo_segundos || 15}s
-                    <div style="margin-top:0.5rem;">
-                        <button class="btn btn-secondary" onclick="editQuestion(${idx})">Editar</button>
-                        <button class="btn btn-danger" onclick="removeQuestion(${idx})">Eliminar</button>
-                    </div>
-                 </div>`;
-    });
-    html += `</div>
-             <button class="btn btn-primary" onclick="addQuestion()">➕ Agregar Pregunta</button>
-             <button class="btn btn-success" onclick="saveAllQuestions('${examId}')">💾 Guardar todas las preguntas</button>
-             <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`;
-    showModal(html);
-}
+        currentExamId = examId;
+        const existing = preguntas.filter(p => p.examen_id === examId).sort((a,b)=>a.orden_index - b.orden_index);
+        tempQuestions = existing.map(p => ({ ...p }));
+        renderQuestionBuilder();
+    }
+    function renderQuestionBuilder() {
+        let html = `<h3>Constructor de Preguntas</h3><div id="questionsList">`;
+        tempQuestions.forEach((q, idx) => {
+            html += `<div class="card" style="margin-bottom:0.5rem;"><b>Pregunta ${idx+1}:</b> ${escapeHtml(q.enunciado)}<br>Tipo: ${q.tipo || 'multiple'} | Tiempo: ${q.tiempo_segundos || 15}s
+            <div style="margin-top:0.5rem;"><button class="btn btn-secondary" onclick="editQuestion(${idx})">Editar</button><button class="btn btn-danger" onclick="removeQuestion(${idx})">Eliminar</button></div></div>`;
+        });
+        html += `</div><button class="btn btn-primary" onclick="addQuestion()">➕ Agregar Pregunta</button>
+                 <button class="btn btn-success" onclick="saveAllQuestions()">💾 Guardar todas las preguntas</button>
+                 <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`;
+        showModal(html);
+    }
+        
 
 
 function addQuestion() {
-    // Definir la función primero
-    window.toggleQuestionOptions = () => {
-        const tipo = document.getElementById('qTipo').value;
-        const container = document.getElementById('opcionesContainer');
-        if (tipo === 'multiple') {
-            container.innerHTML = `
-                <div class="form-group"><label>Opción A</label><input id="opA" class="form-control"></div>
-                <div class="form-group"><label>Opción B</label><input id="opB" class="form-control"></div>
-                <div class="form-group"><label>Opción C</label><input id="opC" class="form-control"></div>
-                <div class="form-group"><label>Opción D</label><input id="opD" class="form-control"></div>
-                <div class="form-group"><label>Respuesta correcta (letra)</label><select id="respCorrecta" class="form-control"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
-            `;
-        } else if (tipo === 'vf') {
-            container.innerHTML = `
-                <div class="form-group"><label>Respuesta correcta</label><select id="respCorrectaVF" class="form-control"><option>Verdadero</option><option>Falso</option></select></div>
-            `;
-        } else {
-            container.innerHTML = `
-                <div class="form-group"><label>Respuesta exacta (texto)</label><input id="respCompletar" class="form-control" placeholder="Ej: Shachah"></div>
-            `;
-        }
-    };
-    
-    showModal(`
-        <h3>Nueva Pregunta</h3>
-        <div class="form-group"><label>Enunciado</label><textarea id="qEnunciado" rows="2" class="form-control"></textarea></div>
-        <div class="form-group"><label>Tipo</label>
-            <select id="qTipo" class="form-control" onchange="toggleQuestionOptions()">
-                <option value="multiple">Selección múltiple (A,B,C,D)</option>
-                <option value="vf">Verdadero/Falso</option>
-                <option value="completar">Completar (respuesta corta)</option>
-            </select>
-        </div>
-        <div id="opcionesContainer"></div>
-        <div class="form-group"><label>Tiempo para responder (segundos)</label><input id="qTiempo" type="number" class="form-control" value="15"></div>
-        <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewQuestion()">Agregar</button></div>
-    `);
-    
-    // Ahora llamar a la función después de que el modal existe en el DOM
-    window.toggleQuestionOptions();
-}
+        window.toggleQuestionOptions = () => {
+            const tipo = document.getElementById('qTipo').value;
+            const container = document.getElementById('opcionesContainer');
+            if (tipo === 'multiple') {
+                container.innerHTML = `<div class="form-group"><label>Opción A</label><input id="opA" class="form-control"></div><div class="form-group"><label>Opción B</label><input id="opB" class="form-control"></div><div class="form-group"><label>Opción C</label><input id="opC" class="form-control"></div><div class="form-group"><label>Opción D</label><input id="opD" class="form-control"></div><div class="form-group"><label>Respuesta correcta (letra)</label><select id="respCorrecta" class="form-control"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>`;
+            } else if (tipo === 'vf') {
+                container.innerHTML = `<div class="form-group"><label>Respuesta correcta</label><select id="respCorrectaVF" class="form-control"><option>Verdadero</option><option>Falso</option></select></div>`;
+            } else {
+                container.innerHTML = `<div class="form-group"><label>Respuesta exacta (texto)</label><input id="respCompletar" class="form-control" placeholder="Ej: Shachah"></div>`;
+            }
+        };
+        showModal(`<h3>Nueva Pregunta</h3><div class="form-group"><label>Enunciado</label><textarea id="qEnunciado" rows="2" class="form-control"></textarea></div>
+        <div class="form-group"><label>Tipo</label><select id="qTipo" class="form-control" onchange="toggleQuestionOptions()"><option value="multiple">Múltiple</option><option value="vf">Verdadero/Falso</option><option value="completar">Completar</option></select></div>
+        <div id="opcionesContainer"></div><div class="form-group"><label>Tiempo (segundos)</label><input id="qTiempo" type="number" class="form-control" value="15"></div>
+        <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewQuestion()">Agregar</button></div>`);
+        toggleQuestionOptions();
+    }
     
 
 function saveNewQuestion() {
@@ -1543,45 +1579,64 @@ function saveNewQuestion() {
 }
 
 function editQuestion(idx) {
-    const q = tempQuestions[idx];
-    // Similar a addQuestion pero cargando datos. Por simplicidad, lo omito pero puedes implementarlo si quieres.
-    alert("Edición de preguntas: similar a agregar, cargando datos actuales. ¿Implemento?");
-}
+        const q = tempQuestions[idx];
+        // Función para editar: reutilizar addQuestion pero cargando datos
+        window.toggleQuestionOptions = () => {
+            const tipoSelect = document.getElementById('qTipo');
+            const tipo = tipoSelect.value;
+            const container = document.getElementById('opcionesContainer');
+            if (tipo === 'multiple') {
+                container.innerHTML = `<div class="form-group"><label>Opción A</label><input id="opA" class="form-control" value="${escapeHtml(q.opcion_a)}"></div><div class="form-group"><label>Opción B</label><input id="opB" class="form-control" value="${escapeHtml(q.opcion_b)}"></div><div class="form-group"><label>Opción C</label><input id="opC" class="form-control" value="${escapeHtml(q.opcion_c)}"></div><div class="form-group"><label>Opción D</label><input id="opD" class="form-control" value="${escapeHtml(q.opcion_d)}"></div><div class="form-group"><label>Respuesta correcta (letra)</label><select id="respCorrecta" class="form-control">${['A','B','C','D'].map(l => `<option ${q.opcion_correcta===l?'selected':''}>${l}</option>`).join('')}</select></div>`;
+            } else if (tipo === 'vf') {
+                container.innerHTML = `<div class="form-group"><label>Respuesta correcta</label><select id="respCorrectaVF" class="form-control"><option ${q.opcion_correcta==='V'?'selected':''}>Verdadero</option><option ${q.opcion_correcta==='F'?'selected':''}>Falso</option></select></div>`;
+            } else {
+                container.innerHTML = `<div class="form-group"><label>Respuesta exacta (texto)</label><input id="respCompletar" class="form-control" value="${escapeHtml(q.opcion_correcta)}"></div>`;
+            }
+        };
+        showModal(`<h3>Editar Pregunta</h3><div class="form-group"><label>Enunciado</label><textarea id="qEnunciado" rows="2" class="form-control">${escapeHtml(q.enunciado)}</textarea></div>
+        <div class="form-group"><label>Tipo</label><select id="qTipo" class="form-control" onchange="toggleQuestionOptions()"><option value="multiple" ${q.tipo==='multiple'?'selected':''}>Múltiple</option><option value="vf" ${q.tipo==='vf'?'selected':''}>Verdadero/Falso</option><option value="completar" ${q.tipo==='completar'?'selected':''}>Completar</option></select></div>
+        <div id="opcionesContainer"></div><div class="form-group"><label>Tiempo (segundos)</label><input id="qTiempo" type="number" class="form-control" value="${q.tiempo_segundos || 15}"></div>
+        <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="updateExistingQuestion(${idx})">Actualizar</button></div>`);
+        toggleQuestionOptions();
+    }
+    function updateExistingQuestion(idx) {
+        const enunciado = document.getElementById('qEnunciado').value.trim();
+        if (!enunciado) return alert("Enunciado requerido");
+        const tipo = document.getElementById('qTipo').value;
+        const tiempo = parseInt(document.getElementById('qTiempo').value) || 15;
+        let opcion_a='', opcion_b='', opcion_c='', opcion_d='', opcion_correcta='';
+        if (tipo === 'multiple') {
+            opcion_a = document.getElementById('opA').value;
+            opcion_b = document.getElementById('opB').value;
+            opcion_c = document.getElementById('opC').value;
+            opcion_d = document.getElementById('opD').value;
+            opcion_correcta = document.getElementById('respCorrecta').value;
+        } else if (tipo === 'vf') {
+            opcion_correcta = document.getElementById('respCorrectaVF').value === 'Verdadero' ? 'V' : 'F';
+            opcion_a = 'Verdadero'; opcion_b = 'Falso';
+        } else {
+            opcion_correcta = document.getElementById('respCompletar').value.trim();
+        }
+        tempQuestions[idx] = { ...tempQuestions[idx], enunciado, tipo, opcion_a, opcion_b, opcion_c, opcion_d, opcion_correcta, tiempo_segundos: tiempo };
+        closeModal();
+        renderQuestionBuilder();
+    }
 
 function removeQuestion(idx) {
-    if (confirm("¿Eliminar esta pregunta?")) {
-        tempQuestions.splice(idx,1);
-        renderQuestionBuilder(currentExamId);
+        if (confirm("¿Eliminar esta pregunta?")) { tempQuestions.splice(idx,1); renderQuestionBuilder(); }
     }
-}
-
-async function saveAllQuestions(examId) {
-    currentExamId = examId;
-    // Primero eliminar todas las preguntas actuales de ese examen
-    await supabaseClient.from('preguntas').delete().eq('examen_id', examId);
-    // Insertar las nuevas
-    for (let i=0; i<tempQuestions.length; i++) {
-        const q = tempQuestions[i];
-        await supabaseClient.from('preguntas').insert({
-            id: generateUniqueId(),
-            examen_id: examId,
-            enunciado: q.enunciado,
-            tipo: q.tipo || 'multiple',
-            opcion_a: q.opcion_a || '',
-            opcion_b: q.opcion_b || '',
-            opcion_c: q.opcion_c || '',
-            opcion_d: q.opcion_d || '',
-            opcion_correcta: q.opcion_correcta,
-            tiempo_segundos: q.tiempo_segundos,
-            orden_index: i
-        });
+    async function saveAllQuestions() {
+        await supabaseClient.from('preguntas').delete().eq('examen_id', currentExamId);
+        for (let i=0; i<tempQuestions.length; i++) {
+            const q = tempQuestions[i];
+            await supabaseClient.from('preguntas').insert({ id: generateUniqueId(), examen_id: currentExamId, enunciado: q.enunciado, tipo: q.tipo || 'multiple', opcion_a: q.opcion_a || '', opcion_b: q.opcion_b || '', opcion_c: q.opcion_c || '', opcion_d: q.opcion_d || '', opcion_correcta: q.opcion_correcta, tiempo_segundos: q.tiempo_segundos, orden_index: i });
+        }
+        await loadUserData();
+        alert("Preguntas guardadas");
+        closeModal();
+        adminExams();
     }
-    await loadUserData();
-    alert("Preguntas guardadas");
-    closeModal();
-    adminExams();
-}
-    
+        
     function adminTeam() {
         const render = () => {
             showModal(`<h3>Gestionar Miembros</h3><div id="teamListAdmin">${team.map((m, idx) => `<div style="display:flex; justify-content:space-between;"><span><b>${escapeHtml(m.name)}</b> - ${escapeHtml(m.role)}</span><button class="btn-icon" onclick="removeTeamMemberAdmin(${idx})"><i class="fas fa-trash"></i></button></div>`).join('') || '<p>Sin miembros</p>'}</div><div class="form-group"><input id="newMemberName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="newMemberRole" class="form-control" placeholder="Rol"></div><button class="btn btn-primary" onclick="addTeamMemberAdmin()">Agregar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
@@ -1725,13 +1780,12 @@ async function saveAllQuestions(examId) {
         cifraSemitonesShift = 0;
     }
 
-    // ==================== INICIALIZACIÓN ====================
+   // ==================== INICIALIZACIÓN ====================
     (async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             currentUser = session.user;
-            const { data: profile } = await supabaseClient.from('perfiles').select('rol').eq('id', currentUser.id).single();
-            isAdminUser = (profile && profile.rol === 'admin');
+            await loadProfile();
             await loadUserData();
             renderApp();
         } else { renderLogin(); }
