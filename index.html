@@ -574,33 +574,27 @@ songs = (s || []).map(song => ({
     async function saveShifts(sh) { if (!isAdminUser) return; shifts = sh; await supabaseClient.from('turnos').delete().neq('id', '0'); for (let s of shifts) await supabaseClient.from('turnos').insert(s); await loadUserData(); }
 
    // ==================== RENDER PRINCIPAL ====================
-    function renderApp() {
-        if (!currentUser) { renderLogin(); return; }
-        document.getElementById('appRoot').innerHTML = `
-            <header class="app-header">
-                <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| I.E.C. Fortaleza Sur</small></div>
-                <div class="nav-icons">
-                    <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
-                    <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
-                    <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
-                    <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
-                    <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
-                    ${isAdminUser ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
-                    <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
-                    <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
-                </div>
-            </header>
-            <div class="container">
-                <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div>
-                <div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div>
-                <div id="mainContent"></div>
-            </div>`;
-         document.getElementById('appRoot').innerHTML = `
-        <header class="app-header">...</header>
+function renderApp() {
+    if (!currentUser) { renderLogin(); return; }
+    document.getElementById('appRoot').innerHTML = `
+        <header class="app-header">
+            <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| I.E.C. Fortaleza Sur</small></div>
+            <div class="nav-icons">
+                <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
+                <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+                <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
+                <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
+                <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
+                ${isAdminUser ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
+                <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
+                <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
+            </div>
+        </header>
         <div class="container">
-            ...
+            <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div>
+            <div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div>
+            <div id="mainContent"></div>
         </div>
-        <!-- PIE DE PÁGINA -->
         <footer class="app-footer">
             <div class="footer-content">
                 <div class="footer-logo">
@@ -620,27 +614,26 @@ songs = (s || []).map(song => ({
             </div>
         </footer>
     `;
-        document.querySelectorAll('.nav-item[data-tab]').forEach(el => el.addEventListener('click', () => {
-            currentTab = el.dataset.tab;
-            selectedListId = null;
-            renderCurrentView();
-        }));
-        const darkToggle = document.getElementById('darkModeToggle');
-        darkToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark');
-            localStorage.setItem('iec_darkmode', document.body.classList.contains('dark'));
-            darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro';
-        });
-        if (localStorage.getItem('iec_darkmode') === 'true') { document.body.classList.add('dark'); darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro'; }
+    document.querySelectorAll('.nav-item[data-tab]').forEach(el => el.addEventListener('click', () => {
+        currentTab = el.dataset.tab;
+        selectedListId = null;
         renderCurrentView();
-        const titleEl = document.getElementById('easterEggTitle');
-        let timer = null;
-        titleEl.addEventListener('mousedown', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 5000));
-        titleEl.addEventListener('mouseup', () => clearTimeout(timer));
-        const yearSpan = document.getElementById('currentYear');
+    }));
+    const darkToggle = document.getElementById('darkModeToggle');
+    darkToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+        localStorage.setItem('iec_darkmode', document.body.classList.contains('dark'));
+        darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro';
+    });
+    if (localStorage.getItem('iec_darkmode') === 'true') { document.body.classList.add('dark'); darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro'; }
+    renderCurrentView();
+    const titleEl = document.getElementById('easterEggTitle');
+    let timer = null;
+    titleEl.addEventListener('mousedown', () => timer = setTimeout(() => { adminVisible = true; renderApp(); }, 5000));
+    titleEl.addEventListener('mouseup', () => clearTimeout(timer));
+    const yearSpan = document.getElementById('currentYear');
     if (yearSpan) yearSpan.innerText = new Date().getFullYear();
 }
-    }
     function renderCurrentView() {
         if (currentTab === 'songs') renderSongsGrid();
         else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
