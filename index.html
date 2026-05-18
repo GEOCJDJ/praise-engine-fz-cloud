@@ -519,26 +519,35 @@ songs = (s || []).map(song => ({
 }
     async function deleteSong(id) { if (!isAdminUser) return; await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
     async function saveList(list) {
-        if (!isAdminUser) { alert("Solo administrador puede crear/editar listas."); return; }
-        try {
-            if (list.id) {
-                await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id);
-                await supabaseClient.from('lista_items').delete().eq('lista_id', list.id);
-                for (let i = 0; i < list.items.length; i++) {
-                    const item = list.items[i];
-                    await supabaseClient.from('lista_items').insert({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || item.key_override || null, orden: i });
-                }
-            } else {
-                const newId = generateUniqueId();
-                await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date });
-                for (let i = 0; i < list.items.length; i++) {
-                    const item = list.items[i];
-                    await supabaseClient.from('lista_items').insert({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || item.key_override || null, orden: i });
-                }
-            }
-            await loadUserData(); renderCurrentView();
-        } catch(e) { console.error(e); alert("Error guardando lista."); }
-    }
+    // Permitir a cualquier usuario autenticado crear/editar listas
+    if (!currentUser) { alert("Debes iniciar sesión."); return; }
+    try {
+        if (list.id) {
+            await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id);
+            await supabaseClient.from('lista_items').delete().eq('lista_id', list.id);
+            const itemsToInsert = (list.items || []).map((item, i) => ({
+                lista_id: list.id,
+                song_id: item.songId || item.song_id,
+                key_override: item.keyOverride || item.key_override || null,
+                orden: i
+            }));
+            if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert);
+        } else {
+            const newId = generateUniqueId();
+            await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date });
+            const itemsToInsert = (list.items || []).map((item, i) => ({
+                lista_id: newId,
+                song_id: item.songId || item.song_id,
+                key_override: item.keyOverride || item.key_override || null,
+                orden: i
+            }));
+            if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert);
+        }
+        await loadUserData(); 
+        renderCurrentView();
+    } catch(e) { console.error(e); alert("Error guardando lista."); }
+}
+    
     async function deleteList(id) { if (!isAdminUser) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
     async function saveTeam(members) { if (!isAdminUser) return; team = members; await supabaseClient.from('equipo').delete().neq('id', '0'); for (let m of team) { if (!m.id) m.id = generateUniqueId(); await supabaseClient.from('equipo').insert(m); } await loadUserData(); renderCurrentView(); }
     async function saveAttendance(reg) { if (!isAdminUser) return; attendance = reg; await supabaseClient.from('asistencia').delete().neq('id', '0'); for (let a of attendance) await supabaseClient.from('asistencia').insert(a); await loadUserData(); }
@@ -721,10 +730,11 @@ songs = (s || []).map(song => ({
    function renderLists() {
     const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
     let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
-    document.getElementById('actionHeader').innerHTML = isAdminUser ? `
+    // Mostrar botón "Crear Lista" para cualquier usuario autenticado (no solo admin)
+    document.getElementById('actionHeader').innerHTML = `
         <button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button>
         <button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>
-    ` : `<span class="text-muted">Listas (solo lectura)</span>`;
+    `;
     
     const container = document.getElementById('mainContent');
     if (listsViewMode === 'grid') {
