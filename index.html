@@ -772,6 +772,7 @@ function renderApp() {
 }
     async function renderCurrentView() {
     if (currentTab === 'songs') await renderSongsGrid();
+    else if (currentTab === 'favorites') await renderFavorites();   
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
     else if (currentTab === 'moodle') renderMoodle();
