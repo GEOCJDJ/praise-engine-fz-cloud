@@ -520,7 +520,7 @@
                 const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
                 list.items = items || [];
             }
-            await syncTeamWithProfiles();
+           // await syncTeamWithProfiles();
             const { data: a } = await supabaseClient.from('asistencia').select('*'); attendance = a || [];
             const { data: sh } = await supabaseClient.from('turnos').select('*'); shifts = sh || [];
             const { data: c } = await supabaseClient.from('cursos').select('*'); cursos = c || [];
