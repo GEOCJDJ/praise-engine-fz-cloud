@@ -722,7 +722,7 @@ function renderApp() {
                 <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
                 <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
                 ${isAdminUser ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
-                <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
+                <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
                 <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
             </div>
         </header>
