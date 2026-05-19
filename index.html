@@ -852,7 +852,7 @@ function renderApp() {
     document.getElementById('actionHeader').innerHTML = `<span class="text-muted">Tus canciones favoritas</span>`;
     const container = document.getElementById('mainContent');
     if (filtered.length === 0) {
-        container.innerHTML = '<p>No tienes canciones favoritas. Marca la estrella ⭐ en cualquier canción del CANCIONERO.</p>';
+        container.innerHTML = '<p>Marca la estrella ⭐ en cualquier canción del CANCIONERO - "PROXIMAMENTE"  .</p>';
         return;
     }
     container.innerHTML = `<div class="grid">${filtered.map((s, idx) => `
