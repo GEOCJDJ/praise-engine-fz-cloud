@@ -1170,7 +1170,6 @@ async function addSelectedSongsToList(listId) {
     await saveList(list);
     closeModal();
     renderListDetail();
-    registrarActividad('crear_lista', name);
 }
 
     async function removeSongFromList(listId, idx) {
@@ -1961,10 +1960,7 @@ async function renderUserProfile() {
 
         
     // ==================== ADMINISTRACIÓN ====================
-   function renderAdmin() {
-           document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
-    document.getElementById('mainContent').innerHTML = `
-        <div class="grid">
+ function renderAdmin() {
     document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
     document.getElementById('mainContent').innerHTML = `
         <div class="grid">
