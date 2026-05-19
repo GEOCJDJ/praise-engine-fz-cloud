@@ -454,6 +454,7 @@ async function uploadMemberPhoto(memberId) {
             await loadUserData();
             renderApp();
         } catch (err) { alert("Error al iniciar sesión: " + err.message); }
+          registrarActividad('login', email);
     }
     async function loadProfile() {
         if (!currentUser) return;
@@ -524,7 +525,38 @@ async function uploadMemberPhoto(memberId) {
             </div>`;
         window.showResetPassword = () => { const email = prompt("Introduce tu email:"); if(email) resetPassword(email); };
     }
+async function registrarVistaCancion(songId) {
+    if (!currentUser) return;
+    try {
+        await supabaseClient.from('estadisticas_canciones').insert({
+            song_id: songId,
+            user_id: currentUser.id,
+            ip: '' // Podrías obtener IP desde backend, pero opcional
+        });
+    } catch(e) { console.error("Error registrando vista:", e); }
+}
 
+async function registrarImpresionLista(listaId) {
+    if (!currentUser) return;
+    try {
+        await supabaseClient.from('estadisticas_listas').insert({
+            lista_id: listaId,
+            user_id: currentUser.id
+        });
+    } catch(e) { console.error("Error registrando impresión:", e); }
+}
+
+async function registrarActividad(accion, detalles = '') {
+    if (!currentUser) return;
+    try {
+        await supabaseClient.from('estadisticas_usuarios').insert({
+            user_id: currentUser.id,
+            accion,
+            detalles
+        });
+    } catch(e) { console.error("Error registrando actividad:", e); }
+}
+    
     // ==================== CARGA DE DATOS ====================
     async function loadUserData() {
         if (!currentUser) return;
@@ -666,6 +698,7 @@ function renderApp() {
         <header class="app-header">
             <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| I.E.C. Fortaleza Sur</small></div>
             <div class="nav-icons">
+                <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
                 <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
                 <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
                 <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
@@ -727,37 +760,81 @@ function renderApp() {
     const yearSpan = document.getElementById('currentYear');
     if (yearSpan) yearSpan.innerText = new Date().getFullYear();
 }
-    function renderCurrentView() {
-        if (currentTab === 'songs') renderSongsGrid();
-        else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
-        else if (currentTab === 'resources') renderResources();
-        else if (currentTab === 'moodle') renderMoodle();
-        else if (currentTab === 'profile') renderUserProfile();
-        else if (currentTab === 'admin' && isAdminUser) renderAdmin();
-    }
+    async function renderCurrentView() {
+    if (currentTab === 'songs') await renderSongsGrid();
+    else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
+    else if (currentTab === 'resources') renderResources();
+    else if (currentTab === 'moodle') renderMoodle();
+    else if (currentTab === 'profile') renderUserProfile();
+    else if (currentTab === 'admin' && isAdminUser) renderAdmin();
+}
 
     // ==================== CANCIONERO ====================
-      function renderSongsGrid() {
+      async function renderSongsGrid() {
+    let favs = [];
+    if (currentUser) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('favoritos')
+                .select('song_id')
+                .eq('user_id', currentUser.id);
+            if (!error && data) {
+                favs = data.map(f => f.song_id);
+            }
+        } catch (e) {
+            console.error("Error cargando favoritos:", e);
+        }
+    }
+
     const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
     let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
-    filtered.sort((a,b)=>a.title.localeCompare(b.title));
-    document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button><button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar/Exportar</button>` : `<span class="text-muted">Canciones globales</span>`;
-    
+    filtered.sort((a, b) => a.title.localeCompare(b.title));
+
+    document.getElementById('actionHeader').innerHTML = isAdminUser
+        ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button>
+           <button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar/Exportar</button>`
+        : `<span class="text-muted">Canciones globales</span>`;
+
     const container = document.getElementById('mainContent');
-    container.innerHTML = `<div class="grid">${filtered.map((s, idx) => `
-        <div class="card" onclick="openCifraViewer('${s.id}', ${idx})">
-            <span class="card-category">${s.category}</span>
-            <div class="card-title" style="color:var(--primary-light); font-weight:bold;">${escapeHtml(s.title)}</div>
-            <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div>
-            <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">
-                ${isAdminUser ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}
-                <button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button>
-                <button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button>
-                <button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>
-                ${isAdminUser ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')"><i class="fas fa-trash"></i> Eliminar</button>` : ''}
+    container.innerHTML = `<div class="grid">${filtered.map((s, idx) => {
+        const isFav = favs.includes(s.id);
+        return `
+            <div class="card" onclick="openCifraViewer('${s.id}', ${idx})">
+                <div style="display: flex; justify-content: space-between;">
+                    <span class="card-category">${s.category}</span>
+                    <i class="fas ${isFav ? 'fa-star' : 'fa-star-o'} fav-icon" style="color: gold; cursor: pointer;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')"></i>
+                </div>
+                <div class="card-title">${escapeHtml(s.title)}</div>
+                <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm || '--'} BPM</div>
+                <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">
+                    ${isAdminUser ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}
+                    <button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button>
+                    <button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button>
+                    <button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>
+                    ${isAdminUser ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}
+                </div>
             </div>
-        </div>`).join('')}</div>`;
+        `;
+    }).join('')}</div>`;
 }
+    
+   async function toggleFavorite(songId) {
+    if (!currentUser) return alert("Inicia sesión para marcar favoritos");
+    const { data: exists } = await supabaseClient
+        .from('favoritos')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .eq('song_id', songId)
+        .single();
+    if (exists) {
+        await supabaseClient.from('favoritos').delete().eq('id', exists.id);
+    } else {
+        await supabaseClient.from('favoritos').insert({ user_id: currentUser.id, song_id: songId });
+    }
+    // Refrescar el grid para que cambie el ícono
+    renderSongsGrid();
+}
+    
     async function deleteSongConfirm(id) {
     if (confirm("¿Estás seguro de eliminar esta canción? Esta acción no se puede deshacer.")) {
         await deleteSong(id);
@@ -944,19 +1021,22 @@ function renderApp() {
         const date = document.getElementById('lDate').value;
         await saveList({ id: null, name, date, items: [] });
         closeModal();
+         registrarActividad('crear_lista', name);
     }
     async function editListName(id) {
         const list = lists.find(l => l.id === id);
         const newName = prompt("Nuevo nombre:", list.name);
         if (newName) { list.name = newName; await saveList(list); }
     }
-    function renderListDetail() {
+    async function renderListDetail() {
     const list = lists.find(l => l.id === selectedListId);
-    if (!list) { 
-        selectedListId = null; 
-        renderLists(); 
-        return; 
+    if (!list) {
+        selectedListId = null;
+        renderLists();
+        return;
     }
+
+    // Barra de acciones
     document.getElementById('actionHeader').innerHTML = `
         <button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()"><i class="fas fa-arrow-left"></i> Volver</button>
         <button class="btn btn-primary" onclick="openAddSongToListModal()"><i class="fas fa-plus"></i> Añadir Canción</button>
@@ -964,38 +1044,72 @@ function renderApp() {
         <button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')"><i class="fab fa-whatsapp"></i> WhatsApp</button>
         <button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')"><i class="fas fa-file-excel"></i> Excel</button>
     `;
+
     const container = document.getElementById('mainContent');
-    container.innerHTML = `<div class="card" style="margin-bottom:1rem"><h2>${escapeHtml(list.name)}</h2><p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p></div><div id="dragArea"></div>`;
+    container.innerHTML = `
+        <div class="card" style="margin-bottom:1rem">
+            <h2>${escapeHtml(list.name)}</h2>
+            <p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p>
+        </div>
+        <div id="dragArea"></div>
+    `;
+
     const dragArea = document.getElementById('dragArea');
     if (!list.items || list.items.length === 0) {
         dragArea.innerHTML = `<p style="padding:1rem; text-align:center;">No hay canciones agregadas.</p>`;
-        return;
+    } else {
+        dragArea.innerHTML = list.items.map((item, idx) => {
+            const song = songs.find(s => s.id === (item.songId || item.song_id));
+            if (!song) return '';
+            let currentTone = item.keyOverride || item.key_override || song.key;
+            return `
+                <div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;">
+                    <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
+                    <div style="flex:1">
+                        <b style="color:var(--primary-light);">${escapeHtml(song.title)}</b>
+                        <span class="card-category">${song.category}</span>
+                        <div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm || '--'} BPM</div>
+                    </div>
+                    <div onclick="event.stopPropagation()" style="display:flex; gap:0.3rem;">
+                        <button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button>
+                        <button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
+                        ${isAdminUser ? `
+                            <button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button>
+                            <button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
-    dragArea.innerHTML = list.items.map((item, idx) => {
-        const song = songs.find(s => s.id === (item.songId || item.song_id));
-        if (!song) return '';
-        let currentTone = item.keyOverride || item.key_override || song.key;
-        return `<div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;">
-            <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
-            <div style="flex:1"><b style="color:var(--primary-light);">${escapeHtml(song.title)}</b> <span class="card-category">${song.category}</span><div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm||'--'} BPM</div></div>
-            <div onclick="event.stopPropagation()" style="display:flex; gap:0.3rem;">
-                <button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button>
-                <button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button>
-                <button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
-                ${isAdminUser ? `<button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>` : ''}
-            </div>
-        </div>`;
-    }).join('');
+
+    // ========== SECCIÓN DE COMENTARIOS ==========
+    const commentsSection = document.createElement('div');
+    commentsSection.id = 'commentsSection';
+    commentsSection.style.marginTop = '2rem';
+    commentsSection.innerHTML = `
+        <h3>💬 Comentarios de la lista</h3>
+        <div id="commentsList"></div>
+        <textarea id="newComment" class="form-control" placeholder="Escribe un comentario..." rows="2"></textarea>
+        <button class="btn btn-primary" onclick="addComment('${list.id}')">Comentar</button>
+    `;
+    container.appendChild(commentsSection);
+
+    // Cargar comentarios existentes
+    await loadComments(list.id);
+
+    // ========== SORTABLE (reordenar canciones) ==========
     if (sortableInstance) sortableInstance.destroy();
-    if (isAdminUser) {
-        sortableInstance = new Sortable(dragArea, { 
-            handle: '.drag-handle', 
-            animation: 200, 
-            onEnd: () => { 
-                const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]); 
-                list.items = newOrder; 
-                saveList(list); 
-            } 
+    if (isAdminUser && list.items && list.items.length > 0) {
+        sortableInstance = new Sortable(dragArea, {
+            handle: '.drag-handle',
+            animation: 200,
+            onEnd: () => {
+                const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el => list.items[parseInt(el.dataset.idx)]);
+                list.items = newOrder;
+                saveList(list);
+            }
         });
     }
 }
@@ -1056,6 +1170,7 @@ async function addSelectedSongsToList(listId) {
     await saveList(list);
     closeModal();
     renderListDetail();
+    registrarActividad('crear_lista', name);
 }
 
     async function removeSongFromList(listId, idx) {
@@ -1080,6 +1195,7 @@ async function addSelectedSongsToList(listId) {
         const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Todas_Listas"); XLSX.writeFile(wb, "todas_listas_iec.xlsx");
     }
     function printList(listId) {
+        registrarImpresionLista(listId);
         const list = lists.find(l => l.id === listId);
         if (!list || !list.items || list.items.length === 0) return alert("Lista vacía");
         const win = window.open();
@@ -1104,6 +1220,46 @@ async function addSelectedSongsToList(listId) {
         list.items.forEach((item, i) => { const song = songs.find(s => s.id === (item.songId || item.song_id)); if (song) message += `${i+1}. ${song.title} (${item.keyOverride || item.key_override || song.key})\n`; });
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     }
+
+   async function loadComments(listaId) {
+    const { data: comments } = await supabaseClient
+        .from('comentarios_lista')
+        .select('*, perfiles(nombre)')
+        .eq('lista_id', listaId)
+        .order('fecha', { ascending: false });
+    const container = document.getElementById('commentsList');
+    if (!container) return;
+    container.innerHTML = comments.map(c => `
+        <div style="border-bottom: 1px solid var(--border); padding: 0.5rem; margin-bottom: 0.5rem;">
+            <strong>${escapeHtml(c.perfiles?.nombre || 'Usuario')}</strong>
+            <small>${new Date(c.fecha).toLocaleString()}</small>
+            <p>${escapeHtml(c.contenido)}</p>
+            ${isAdminUser ? `<button class="btn-icon" onclick="deleteComment(${c.id}, '${listaId}')"><i class="fas fa-trash"></i></button>` : ''}
+        </div>
+    `).join('') || '<p>Sin comentarios. Sé el primero en comentar.</p>';
+}
+
+async function addComment(listaId) {
+    const contenido = document.getElementById('newComment').value.trim();
+    if (!contenido) return alert("Escribe un comentario");
+    const { error } = await supabaseClient.from('comentarios_lista').insert({
+        lista_id: listaId,
+        user_id: currentUser.id,
+        contenido
+    });
+    if (error) alert("Error: " + error.message);
+    else {
+        document.getElementById('newComment').value = '';
+        loadComments(listaId);
+    }
+}
+
+async function deleteComment(commentId, listaId) {
+    if (confirm("¿Eliminar comentario?")) {
+        await supabaseClient.from('comentarios_lista').delete().eq('id', commentId);
+        loadComments(listaId);
+    }
+}
 
     // ==================== RECURSOS ====================
     function renderResources() {
@@ -1806,6 +1962,9 @@ async function renderUserProfile() {
         
     // ==================== ADMINISTRACIÓN ====================
    function renderAdmin() {
+           document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
+    document.getElementById('mainContent').innerHTML = `
+        <div class="grid">
     document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
     document.getElementById('mainContent').innerHTML = `
         <div class="grid">
@@ -1814,10 +1973,78 @@ async function renderUserProfile() {
             <div class="card" onclick="adminTeam()"><i class="fas fa-users"></i><h3>Gestionar Equipo</h3><p>Añadir/eliminar miembros</p></div>
             <div class="card" onclick="adminCourses()"><i class="fas fa-chalkboard-user"></i><h3>Gestionar Cursos</h3><p>Crear/editar cursos, lecciones y contenido</p></div>
             <div class="card" onclick="adminExams()"><i class="fas fa-file-alt"></i><h3>Gestionar Exámenes</h3><p>Crear preguntas, tiempos, etc.</p></div>
+            <div class="card" onclick="showEstadisticas()"><i class="fas fa-chart-line"></i><h3>Estadísticas de Uso</h3><p>Visualiza métricas de la app</p></div>
         </div>
     `;
 }
     function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
+async function showEstadisticas() {
+    // Obtener estadísticas de los últimos 30 días
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - 30);
+    const fechaStr = fechaLimite.toISOString();
+    
+    // Canciones más vistas
+    const { data: topSongs } = await supabaseClient
+        .from('estadisticas_canciones')
+        .select('song_id, count', { count: 'exact' })
+        .eq('fecha', '>=', fechaStr)
+        .group('song_id')
+        .order('count', { ascending: false })
+        .limit(5);
+    
+    // Listas más impresas
+    const { data: topLists } = await supabaseClient
+        .from('estadisticas_listas')
+        .select('lista_id, count', { count: 'exact' })
+        .eq('fecha', '>=', fechaStr)
+        .group('lista_id')
+        .order('count', { ascending: false })
+        .limit(5);
+    
+    // Usuarios más activos (por cantidad de acciones)
+    const { data: topUsers } = await supabaseClient
+        .from('estadisticas_usuarios')
+        .select('user_id, count', { count: 'exact' })
+        .eq('fecha', '>=', fechaStr)
+        .group('user_id')
+        .order('count', { ascending: false })
+        .limit(5);
+    
+    // Construir HTML
+    let html = `<h3>📈 Estadísticas de uso (últimos 30 días)</h3>`;
+    
+    html += `<div class="card"><h4>🎵 Canciones más vistas</h4><ul>`;
+    if (topSongs && topSongs.length) {
+        for (let item of topSongs) {
+            const song = songs.find(s => s.id === item.song_id);
+            html += `<li><strong>${song ? escapeHtml(song.title) : 'Desconocida'}</strong> - ${item.count} vistas</li>`;
+        }
+    } else html += `<li>Sin datos aún</li>`;
+    html += `</ul></div>`;
+    
+    html += `<div class="card"><h4>📄 Listas más impresas</h4><ul>`;
+    if (topLists && topLists.length) {
+        for (let item of topLists) {
+            const lista = lists.find(l => l.id === item.lista_id);
+            html += `<li><strong>${lista ? escapeHtml(lista.name) : 'Desconocida'}</strong> - ${item.count} impresiones</li>`;
+        }
+    } else html += `<li>Sin datos aún</li>`;
+    html += `</ul></div>`;
+    
+    html += `<div class="card"><h4>👥 Usuarios más activos</h4><ul>`;
+    if (topUsers && topUsers.length) {
+        for (let item of topUsers) {
+            const { data: profile } = await supabaseClient.from('perfiles').select('nombre').eq('id', item.user_id).single();
+            html += `<li><strong>${profile ? escapeHtml(profile.nombre) : 'Usuario'}</strong> - ${item.count} acciones</li>`;
+        }
+    } else html += `<li>Sin datos aún</li>`;
+    html += `</ul></div>`;
+    
+    html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(html);
+}
+    
     // ==================== ADMIN CURSOS ====================
 async function adminCourses() {
     let html = `<h3>Gestionar Cursos</h3>`;
@@ -2435,7 +2662,8 @@ function adminTeam() {
 
     // ==================== VISOR CIFRA ====================
    function openCifraViewer(songId, index) {
-    currentSongIndex = index;
+   registrarVistaCancion(songId);
+       currentSongIndex = index;
     const song = songs.find(s => s.id === songId);
     if (!song) return;
     cifraCurrentSong = song;
