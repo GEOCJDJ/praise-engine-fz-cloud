@@ -1326,29 +1326,121 @@ if (currentTab === 'profile') renderUserProfile(); else renderMoodle();
 }
 
     // PERFIL DE USUARIO 
-    let progressChart = null;
-    async function renderUserProfile() {
-        if (!currentProfile) return;
-        const html = `<div class="card" style="max-width: 700px; margin: 0 auto;"><div class="profile-avatar" style="background: var(--primary);"><i class="fas fa-user fa-3x" style="color: white;"></i></div><h2>${escapeHtml(currentProfile.nombre || currentUser.email)}</h2><p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p><p><strong>Rol:</strong> ${currentProfile.rol === 'admin' ? 'Administrador' : 'Usuario'}</p><p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono || 'No especificado')}</p><p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento || 'No especificada'}</p><p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion || 'No especificada')}</p><hr><h3>📊 Estadísticas de aprendizaje</h3><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;"><div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div><div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div></div><div style="margin: 1rem 0;"><canvas id="progressChartCanvas" style="max-height: 300px; width: 100%;"></canvas></div><button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button></div>`;
-        document.getElementById('mainContent').innerHTML = html;
-        document.getElementById('actionHeader').innerHTML = '';
-        const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).order('fecha', { ascending: true });
-        console.log("Intentos de examen para", currentUser.id, intentos);
-        const total = intentos?.length || 0;
-        const promedio = intentos && intentos.length ? (intentos.reduce((a, b) => a + parseFloat(b.puntaje), 0) / intentos.length).toFixed(1) : 0;
-        document.getElementById('statExamenes').innerText = total;
-        document.getElementById('statPromedio').innerText = `${promedio}/20`;
-        const { data: miEquipo } = await supabaseClient.from('equipo').select('role').eq('user_id', currentUser.id).single();
-const rolMusical = miEquipo?.role || 'No asignado';
-const subgrupo = currentProfile?.grupo || 'No especificado';
-        if (intentos && intentos.length > 0) {
-            const fechas = intentos.map(i => new Date(i.fecha).toLocaleDateString());
-            const puntajes = intentos.map(i => parseFloat(i.puntaje));
-            const ctx = document.getElementById('progressChartCanvas').getContext('2d');
-            if (progressChart) progressChart.destroy();
-            progressChart = new Chart(ctx, { type: 'line', data: { labels: fechas, datasets: [{ label: 'Puntaje obtenido (sobre 20)', data: puntajes, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.2, fill: true, pointBackgroundColor: '#1E3A8A' }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, max: 20, title: { display: true, text: 'Puntaje' } }, x: { title: { display: true, text: 'Fecha del examen' } } } } });
-        } else { const canvasContainer = document.getElementById('progressChartCanvas')?.parentElement; if (canvasContainer) canvasContainer.innerHTML = '<p class="text-muted" style="text-align:center;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p>'; }
+let progressChart = null;
+async function renderUserProfile() {
+    if (!currentProfile) return;
+
+    // Obtener datos del equipo (rol musical)
+    const { data: miEquipo } = await supabaseClient
+        .from('equipo')
+        .select('role')
+        .eq('user_id', currentUser.id)
+        .single();
+    const rolMusical = miEquipo?.role || 'No asignado';
+    const subgrupo = currentProfile?.grupo || 'No especificado';
+
+    // Construir HTML incluyendo rol musical y subgrupo
+    const html = `
+        <div class="card" style="max-width: 700px; margin: 0 auto;">
+            <div class="profile-avatar" style="background: var(--primary);">
+                <i class="fas fa-user fa-3x" style="color: white;"></i>
+            </div>
+            <h2>${escapeHtml(currentProfile.nombre || currentUser.email)}</h2>
+            <p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p>
+            <p><strong>Rol en la app:</strong> ${currentProfile.rol === 'admin' ? 'Administrador' : 'Usuario'}</p>
+            <p><strong>Rol musical:</strong> ${escapeHtml(rolMusical)}</p>
+            <p><strong>Subgrupo:</strong> ${escapeHtml(subgrupo)}</p>
+            <p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono || 'No especificado')}</p>
+            <p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento || 'No especificada'}</p>
+            <p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion || 'No especificada')}</p>
+            <hr>
+            <h3>📊 Estadísticas de aprendizaje</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                <div class="stat-card">
+                    <div class="stat-number" id="statExamenes">-</div>
+                    <div>Exámenes completados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statPromedio">-</div>
+                    <div>Puntaje promedio</div>
+                </div>
+            </div>
+            <div id="chartContainer" style="margin: 1rem 0;">
+                <canvas id="progressChartCanvas" style="max-height: 300px; width: 100%; display: none;"></canvas>
+                <p id="noExamMessage" class="text-muted" style="text-align:center; display: none;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p>
+            </div>
+            <button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button>
+        </div>
+    `;
+
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('actionHeader').innerHTML = '';
+
+    // Cargar intentos de examen
+    const { data: intentos } = await supabaseClient
+        .from('intentos_examen')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('fecha', { ascending: true });
+
+    console.log("Intentos de examen para", currentUser.id, intentos);
+
+    const total = intentos?.length || 0;
+    const promedio = (intentos && intentos.length) 
+        ? (intentos.reduce((a, b) => a + parseFloat(b.puntaje), 0) / intentos.length).toFixed(1)
+        : 0;
+
+    document.getElementById('statExamenes').innerText = total;
+    document.getElementById('statPromedio').innerText = `${promedio}/20`;
+
+    const chartCanvas = document.getElementById('progressChartCanvas');
+    const noExamMessage = document.getElementById('noExamMessage');
+
+    if (intentos && intentos.length > 0) {
+        // Mostrar gráfico, ocultar mensaje
+        chartCanvas.style.display = 'block';
+        noExamMessage.style.display = 'none';
+
+        const fechas = intentos.map(i => new Date(i.fecha).toLocaleDateString());
+        const puntajes = intentos.map(i => parseFloat(i.puntaje));
+        const ctx = chartCanvas.getContext('2d');
+
+        if (progressChart) progressChart.destroy();
+        progressChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: fechas,
+                datasets: [{
+                    label: 'Puntaje obtenido (sobre 20)',
+                    data: puntajes,
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    tension: 0.2,
+                    fill: true,
+                    pointBackgroundColor: '#1E3A8A'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 20,
+                        title: { display: true, text: 'Puntaje' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Fecha del examen' }
+                    }
+                }
+            }
+        });
+    } else {
+        // Ocultar gráfico, mostrar mensaje
+        chartCanvas.style.display = 'none';
+        noExamMessage.style.display = 'block';
     }
+}
     
      function editUserProfile() {
     showModal(`
