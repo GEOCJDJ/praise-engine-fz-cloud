@@ -14,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* ========== ESTILOS GLOBALES (iguales a tu original) ========== */
+        /* ========== ESTILOS GLOBALES 
         :root {
             --primary: #1E3A8A;
             --primary-light: #3B82F6;
@@ -123,6 +123,31 @@
         .profile-detail-card h4 { border-left: 4px solid var(--primary); padding-left: 0.5rem; margin-bottom: 0.5rem; }
         .profile-detail-card p { margin: 0.3rem 0; }
         .card { position: relative; overflow: visible !important; }
+
+.team-member-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+.team-member-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+    .team-member-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .team-member-info {
+        justify-content: space-between;
+    }
+}
+        
+        
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -358,7 +383,7 @@
         return html;
     }
 
-    // ==================== NUEVAS FUNCIONES DE SINCRONIZACIÓN PERFIL ↔ EQUIPO ====================
+    // FUNCIONES DE SINCRONIZACIÓN PERFIL ↔ EQUIPO 
     async function ensureUserInTeam(userId, userName) {
         const { data: existing, error } = await supabaseClient.from('equipo').select('id').eq('user_id', userId).maybeSingle();
         if (error) console.error(error);
@@ -398,7 +423,7 @@
         }
     }
 
-    // ==================== AUTENTICACIÓN Y PERFIL ====================
+    //  AUTENTICACIÓN Y PERFIL 
     async function login(email, password) {
         try {
             const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -484,7 +509,7 @@
     async function registrarImpresionLista(listaId) { if (!currentUser) return; try { await supabaseClient.from('estadisticas_listas').insert({ lista_id: listaId, user_id: currentUser.id }); } catch(e) { console.error(e); } }
     async function registrarActividad(accion, detalles = '') { if (!currentUser) return; try { await supabaseClient.from('estadisticas_usuarios').insert({ user_id: currentUser.id, accion, detalles }); } catch(e) { console.error(e); } }
     
-    // ==================== CARGA DE DATOS ====================
+    // CARGA DE DATOS 
     async function loadUserData() {
         if (!currentUser) return;
         try {
@@ -511,7 +536,7 @@
         } catch(e) { console.error("Error cargando datos:", e); alert("Error al cargar datos. Recarga la página."); }
     }
 
-    // ==================== FUNCIONES DE GUARDADO ====================
+    //  FUNCIONES DE GUARDADO 
     async function saveSong(song) {
         if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return false; }
         try {
@@ -555,7 +580,7 @@
     async function deleteList(id) { if (!isAdminUser) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
     async function saveTeam(members) { if (!isAdminUser) return; team = members; await supabaseClient.from('equipo').delete().neq('id', '0'); for (let m of team) { if (!m.id) m.id = generateUniqueId(); await supabaseClient.from('equipo').insert(m); } await loadUserData(); renderCurrentView(); }
 
-    // ==================== RENDER PRINCIPAL ====================
+    // RENDER PRINCIPAL 
     function renderApp() {
         if (!currentUser) { renderLogin(); return; }
         document.getElementById('appRoot').innerHTML = `
@@ -621,7 +646,7 @@
         else if (currentTab === 'admin' && isAdminUser) renderAdmin();
     }
 
-    // ==================== CANCIONERO ====================
+    //  CANCIONERO 
     async function renderSongsGrid() {
         let favs = [];
         if (currentUser) {
@@ -788,7 +813,7 @@
         showModal(`<h3>Acordes: ${escapeHtml(song.title)}</h3>${content}<div style="margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`);
     }
 
-    // ==================== LISTAS ====================
+    //  LISTAS
     function renderLists() {
         const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
         let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
@@ -933,7 +958,7 @@
     }
     async function deleteComment(commentId, listaId) { if (confirm("¿Eliminar comentario?")) { await supabaseClient.from('comentarios_lista').delete().eq('id', commentId); loadComments(listaId); } }
 
-    // ==================== RECURSOS ====================
+    //  RECURSOS
     function renderResources() {
         document.getElementById('actionHeader').innerHTML = '';
         document.getElementById('mainContent').innerHTML = `<div class="grid">
@@ -961,28 +986,47 @@
     function createSongObject(index, cancionesTemp) { return { /* ... */ }; }
     async function importBackup() { /* ... */ }
     
-    // ==================== MIEMBROS DEL EQUIPO (MEJORADO) ====================
-    function openTeamModal() {
-        let content = `<h3>Miembros del Equipo</h3><div class="grid">`;
-        team.forEach(m => {
-            const subgrupo = m.subgrupo || 'sin grupo';
-            content += `<div class="card team-card" data-member-id="${m.id}">
-                            <div class="avatar">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
-                            <div class="card-title">${escapeHtml(m.name)}</div>
-                            <div>${escapeHtml(m.role)}</div>
-                            <div class="card-category" style="background: var(--primary-light);">${subgrupo}</div>
-                        </div>`;
-        });
-        content += `</div>`;
-        if (isAdminUser) content += `<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="adminUserManagement()">Gestionar usuarios y roles</button></div>`;
-        content += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-        showModal(content);
-        setTimeout(() => {
-            document.querySelectorAll('.team-card').forEach(card => {
-                card.addEventListener('click', (e) => { const memberId = card.dataset.memberId; closeModal(); showMemberProfile(memberId, true); });
-            });
-        }, 50);
+    //  MIEMBROS DEL EQUIPO 
+   function openTeamModal() {
+    let content = `<h3>🎵 Miembros del Equipo Musical</h3>
+                   <div style="display: flex; flex-direction: column; gap: 1rem;">`;
+    team.forEach(m => {
+        const subgrupo = m.subgrupo || 'sin grupo';
+        content += `
+            <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <div class="avatar" style="width: 50px; height: 50px; font-size: 1.2rem; display: inline-flex; margin-right: 1rem;">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
+                    <strong>${escapeHtml(m.name)}</strong><br>
+                    <span class="card-category" style="background: var(--primary-light);">${escapeHtml(m.role)}</span>
+                    <span class="card-category" style="background: var(--primary);">${subgrupo}</span>
+                </div>
+                ${isAdminUser ? `
+                    <div>
+                        <button class="btn-icon" onclick="deleteTeamMember('${m.id}')" style="color: red;" title="Eliminar del equipo"><i class="fas fa-trash"></i></button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    content += `</div>`;
+    if (isAdminUser) content += `<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="adminUserManagement()">➕ Gestionar usuarios y roles</button></div>`;
+    content += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(content);
+}
+
+    window.deleteTeamMember = async (memberId) => {
+    if (!confirm("¿Quitar a este miembro del equipo? Solo se eliminará su rol musical, no su cuenta de usuario.")) return;
+    try {
+        await supabaseClient.from('equipo').delete().eq('id', memberId);
+        await loadUserData();   // recarga la lista de equipo
+        closeModal();
+        openTeamModal();        // refresca la vista
+    } catch (err) {
+        alert("Error: " + err.message);
     }
+};
+
+    
     async function showMemberProfile(memberId, fromList = false) {
         const member = team.find(m => m.id === memberId);
         if (!member) return;
@@ -1099,7 +1143,7 @@
     }
     
 
-    // ==================== AULA VIRTUAL ====================
+    //  AULA VIRTUAL 
     async function renderMoodle() {
         // (tu código original, sin cambios)
         const container = document.getElementById('mainContent');
@@ -1206,7 +1250,7 @@ function loadExamQuestion() {
     document.getElementById('examOverlay').style.display = 'none';
 }
 
-    // ==================== PERFIL DE USUARIO ====================
+    // PERFIL DE USUARIO 
     let progressChart = null;
     async function renderUserProfile() {
         if (!currentProfile) return;
@@ -1275,7 +1319,7 @@ async function saveUserProfileWithPhoto() {
 }
 
 
-    // ==================== ADMINISTRACIÓN ====================
+    // ADMINISTRACIÓN 
     function renderAdmin() {
         document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
         document.getElementById('mainContent').innerHTML = `
@@ -1358,24 +1402,69 @@ async function saveUserProfileWithPhoto() {
     showModal(html);
 }
     async function adminUserManagement() {
-        const { data: perfiles, error } = await supabaseClient.from('perfiles').select('id, nombre, email, rol, grupo, telefono, fecha_nacimiento');
-        if (error) return alert("Error: " + error.message);
-        let html = `<h3>Gestión de Usuarios Registrados</h3><div style="overflow-x: auto;"><table style="width:100%; border-collapse: collapse;"><thead><tr><th>Nombre</th><th>Email</th><th>Rol (app)</th><th>Subgrupo</th><th>Rol musical</th><th>Acciones</th></tr></thead><tbody>`;
-        for (let p of perfiles) {
-            const equipoMiembro = team.find(m => m.user_id === p.id);
-            const rolMusical = equipoMiembro ? equipoMiembro.role : 'Por asignar';
-            html += `<tr>
-                        <td><input type="text" id="nombre_${p.id}" value="${escapeHtml(p.nombre || '')}" class="form-control" style="min-width:120px;"></td>
-                        <td>${escapeHtml(p.email || '—')}</td>
-                        <td><select id="rol_${p.id}" class="form-control"><option value="user" ${p.rol === 'user' ? 'selected' : ''}>Usuario normal</option><option value="admin" ${p.rol === 'admin' ? 'selected' : ''}>Administrador</option></select></td>
-                        <td><select id="grupo_${p.id}" class="form-control"><option value="Alabanza" ${p.grupo === 'Alabanza' ? 'selected' : ''}>Alabanza</option><option value="Danza" ${p.grupo === 'Danza' ? 'selected' : ''}>Danza</option><option value="Producción" ${p.grupo === 'Producción' ? 'selected' : ''}>Producción</option><option value="Sonido" ${p.grupo === 'Sonido' ? 'selected' : ''}>Sonido</option><option value="Otro" ${p.grupo === 'Otro' ? 'selected' : ''}>Otro</option></select></td>
-                        <td><select id="rolMusical_${p.id}" class="form-control"><option value="Por asignar" ${rolMusical === 'Por asignar' ? 'selected' : ''}>Por asignar</option><option value="Voz" ${rolMusical === 'Voz' ? 'selected' : ''}>Voz</option><option value="Batería" ${rolMusical === 'Batería' ? 'selected' : ''}>Batería</option><option value="Bajo" ${rolMusical === 'Bajo' ? 'selected' : ''}>Bajo</option><option value="Guitarra" ${rolMusical === 'Guitarra' ? 'selected' : ''}>Guitarra</option><option value="Teclado" ${rolMusical === 'Teclado' ? 'selected' : ''}>Teclado</option><option value="Percusión" ${rolMusical === 'Percusión' ? 'selected' : ''}>Percusión</option><option value="Otro" ${rolMusical === 'Otro' ? 'selected' : ''}>Otro</option></select></select></td>
-                        <td><button class="btn btn-primary" onclick="updateUserByAdmin('${p.id}')">Guardar cambios</button></td>
-                    </table>`;
-        }
-        html += `</tbody></table></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-        showModal(html);
+    const { data: perfiles, error } = await supabaseClient
+        .from('perfiles')
+        .select('id, nombre, email, rol, grupo, telefono, fecha_nacimiento');
+    if (error) return alert("Error: " + error.message);
+
+    let html = `<h3>📋 Gestión de Usuarios Registrados</h3>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">`;
+
+    for (let p of perfiles) {
+        const equipoMiembro = team.find(m => m.user_id === p.id);
+        const rolMusical = equipoMiembro ? equipoMiembro.role : 'Por asignar';
+
+        html += `
+            <div class="card" style="padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <strong>${escapeHtml(p.nombre || p.email)}</strong><br>
+                        <small>${escapeHtml(p.email)}</small>
+                    </div>
+                    ${isAdminUser ? `<button class="btn-icon" onclick="deleteUserById('${p.id}')" style="color: red;" title="Eliminar usuario"><i class="fas fa-trash"></i></button>` : ''}
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.8rem; margin-top: 1rem;">
+                    <div class="form-group" style="margin:0;">
+                        <label>Rol en app</label>
+                        <select id="rol_${p.id}" class="form-control">
+                            <option value="user" ${p.rol === 'user' ? 'selected' : ''}>Usuario normal</option>
+                            <option value="admin" ${p.rol === 'admin' ? 'selected' : ''}>Administrador</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label>Subgrupo</label>
+                        <select id="grupo_${p.id}" class="form-control">
+                            <option value="Alabanza" ${p.grupo === 'Alabanza' ? 'selected' : ''}>Alabanza</option>
+                            <option value="Danza" ${p.grupo === 'Danza' ? 'selected' : ''}>Danza</option>
+                            <option value="Producción" ${p.grupo === 'Producción' ? 'selected' : ''}>Producción</option>
+                            <option value="Sonido" ${p.grupo === 'Sonido' ? 'selected' : ''}>Sonido</option>
+                            <option value="Otro" ${p.grupo === 'Otro' ? 'selected' : ''}>Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label>Rol musical</label>
+                        <select id="rolMusical_${p.id}" class="form-control">
+                            <option value="Por asignar" ${rolMusical === 'Por asignar' ? 'selected' : ''}>Por asignar</option>
+                            <option value="Voz" ${rolMusical === 'Voz' ? 'selected' : ''}>Voz</option>
+                            <option value="Batería" ${rolMusical === 'Batería' ? 'selected' : ''}>Batería</option>
+                            <option value="Bajo" ${rolMusical === 'Bajo' ? 'selected' : ''}>Bajo</option>
+                            <option value="Guitarra" ${rolMusical === 'Guitarra' ? 'selected' : ''}>Guitarra</option>
+                            <option value="Teclado" ${rolMusical === 'Teclado' ? 'selected' : ''}>Teclado</option>
+                            <option value="Percusión" ${rolMusical === 'Percusión' ? 'selected' : ''}>Percusión</option>
+                            <option value="Otro" ${rolMusical === 'Otro' ? 'selected' : ''}>Otro</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem; text-align: right;">
+                    <button class="btn btn-primary" onclick="updateUserByAdmin('${p.id}')">Guardar cambios</button>
+                </div>
+            </div>
+        `;
     }
+
+    html += `</div><button class="btn btn-ghost" onclick="closeModal()" style="margin-top:1rem;">Cerrar</button>`;
+    showModal(html);
+}
     window.updateUserByAdmin = async (userId) => {
         const nombre = document.getElementById(`nombre_${userId}`).value;
         const rol = document.getElementById(`rol_${userId}`).value;
@@ -1391,7 +1480,29 @@ async function saveUserProfileWithPhoto() {
         closeModal();
         adminUserManagement();
     };
-      // ==================== ADMIN CURSOS ====================
+    
+    window.deleteUserById = async (userId) => {
+    if (!confirm("⚠️ ¿Eliminar permanentemente este usuario? Se borrarán todos sus datos asociados (favoritos, comentarios, etc.). Esta acción no se puede deshacer.")) return;
+    try {
+        // Eliminar de tablas relacionadas (opcional, pero recomendado)
+        await supabaseClient.from('favoritos').delete().eq('user_id', userId);
+        await supabaseClient.from('comentarios_lista').delete().eq('user_id', userId);
+        await supabaseClient.from('intentos_examen').delete().eq('user_id', userId);
+        await supabaseClient.from('estadisticas_usuarios').delete().eq('user_id', userId);
+        await supabaseClient.from('equipo').delete().eq('user_id', userId);
+        // Finalmente eliminar el perfil (esto elimina también la autenticación si usas triggers, pero Supabase no lo hace automático)
+        await supabaseClient.from('perfiles').delete().eq('id', userId);
+        // Opcional: eliminar el usuario de auth (requiere función de servidor, no se puede desde cliente)
+        alert("Usuario eliminado. Recarga la página.");
+        closeModal();
+        await loadUserData();
+        renderCurrentView();
+    } catch (err) {
+        alert("Error al eliminar: " + err.message);
+    }
+};
+    
+      // ADMIN CURSOS 
 async function adminCourses() {
     let html = `<h3>Gestionar Cursos</h3>`;
     for (let curso of cursos) {
@@ -1529,7 +1640,7 @@ async function deleteModule(modId) {
     }
 }
 
-    // ==================== ADMIN EXÁMENES ====================
+    //  ADMIN EXÁMENES 
 async function adminExams() {
     let html = `<h3>Exámenes</h3>`;
     for (let ex of examenes) {
@@ -1548,7 +1659,6 @@ async function adminExams() {
 }
 
 function createExam() {
-    // Obtener lista de módulos para seleccionar
     let modOptions = modulosList.map(m => `<option value="${m.id}">${escapeHtml(m.titulo)}</option>`).join('');
     showModal(`
         <h3>Nuevo Examen</h3>
@@ -1607,7 +1717,7 @@ async function deleteExam(examId) {
     }
 }
 
-let tempQuestions = []; // array temporal mientras se edita un examen
+let tempQuestions = []; 
 
 async function manageQuestions(examId) {
     currentExamId = examId;
@@ -1807,8 +1917,8 @@ function adminTeam() {
                 card.addEventListener('click', (e) => {
                     if (e.target.closest('.btn-icon')) return;
                     const memberId = card.dataset.memberId;
-                    closeModal();               // Cierra la lista de miembros
-                    showMemberProfile(memberId, true); // Abre el perfil individual
+                    closeModal();              
+                    showMemberProfile(memberId, true); 
                 });
             });
         }, 50);
@@ -1886,7 +1996,6 @@ function adminTeam() {
     renderAttList();
 }
   function adminShifts() {
-    // Mapa de fechas a nombre de miembro para pintar el calendario
     const turnosMap = {};
     shifts.forEach(s => {
         const member = team.find(m => m.id === s.member_id);
@@ -1996,7 +2105,7 @@ function adminTeam() {
     renderShiftList();
 }
 
-    // ==================== VISOR CIFRA ====================
+    // VISOR COMO CIFRA CLUB JAJA
     function openCifraViewer(songId, index) { registrarVistaCancion(songId); currentSongIndex = index; const song = songs.find(s => s.id === songId); if (!song) return; cifraCurrentSong = song; cifraOriginalLyrics = song.lyrics || ""; cifraSemitonesShift = 0; document.getElementById('cifraModalTitle').innerText = song.title; document.getElementById('cifraModalArtist').innerText = song.category; document.getElementById('currentToneDisplay').innerText = song.key; document.getElementById('cifraBpmInput').value = song.bpm || 80; if (cifraScrollInterval) clearInterval(cifraScrollInterval); cifraScrollInterval = null; document.getElementById('btnAutoScrollToggle').innerHTML = `<i class="fa-solid fa-play"></i> Play`; document.getElementById('cifraBodyContainer').scrollTop = 0; if (cifraMetroInterval) clearInterval(cifraMetroInterval); cifraMetroRunning = false; document.getElementById('btnMetronomeToggle').innerHTML = `<i class="fa-solid fa-drum"></i> Iniciar`; document.getElementById('metronomeVisualDot').classList.remove('pulse'); cifraFontSize = 18; document.getElementById('cifraContentWrapper').style.fontSize = cifraFontSize + 'px'; renderCifraContent(); document.getElementById('cifraClubModal').style.display = 'flex'; }
     function closeCifraViewer() { if (cifraScrollInterval) clearInterval(cifraScrollInterval); if (cifraMetroInterval) clearInterval(cifraMetroInterval); document.getElementById('cifraClubModal').style.display = 'none'; }
     function navigateSong(delta) { let newIndex = currentSongIndex + delta; if (newIndex < 0) newIndex = songs.length - 1; if (newIndex >= songs.length) newIndex = 0; const newSong = songs[newIndex]; if (newSong) openCifraViewer(newSong.id, newIndex); }
@@ -2009,7 +2118,7 @@ function adminTeam() {
     function adjustScrollSpeed(delta) { cifraScrollSpeed += delta; if (cifraScrollSpeed < 10) cifraScrollSpeed = 10; if (cifraScrollSpeed > 150) cifraScrollSpeed = 150; if (cifraScrollInterval) { toggleCifraAutoScroll(); toggleCifraAutoScroll(); } }
     function adjustCifraFontSize(delta) { cifraFontSize += delta; if (cifraFontSize < 12) cifraFontSize = 12; if (cifraFontSize > 36) cifraFontSize = 36; document.getElementById('cifraContentWrapper').style.fontSize = cifraFontSize + 'px'; }
     async function saveCifraStateToServer() { if (!cifraCurrentSong) return; if (!isAdminUser) { alert("Solo administrador puede guardar cambios permanentes."); return; } let finalKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift); let finalBpm = parseInt(document.getElementById('cifraBpmInput').value) || 80; cifraCurrentSong.key = finalKey; cifraCurrentSong.bpm = finalBpm; await saveSong(cifraCurrentSong); alert("¡Tono y BPM guardados!"); cifraSemitonesShift = 0; }
-    // ==================== INICIALIZACIÓN ====================
+    //  INICIALIZACIÓN 
     (async () => { const { data: { session } } = await supabaseClient.auth.getSession(); if (session) { currentUser = session.user; await loadProfile(); await loadUserData(); renderApp(); } else { renderLogin(); } })();
 </script>
 </body>
