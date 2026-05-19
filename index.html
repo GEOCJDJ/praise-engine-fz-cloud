@@ -820,7 +820,8 @@ function renderApp() {
             <div class="card" onclick="openCifraViewer('${s.id}', ${idx})">
                 <div style="display: flex; justify-content: space-between;">
                     <span class="card-category">${s.category}</span>
-                    <i class="fas ${isFav ? 'fa-star' : 'fa-star-o'} fav-icon" style="color: gold; cursor: pointer;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')"></i>
+                    <i class="fav-icon" style="color: gold; cursor: pointer; font-size: 1.3rem;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')">${isFav ? '⭐' : '☆'}</i>
+        
                 </div>
                 <div class="card-title">${escapeHtml(s.title)}</div>
                 <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm || '--'} BPM</div>
@@ -859,6 +860,7 @@ function renderApp() {
             <div style="display: flex; justify-content: space-between;">
                 <span class="card-category">${s.category}</span>
                 <i class="fas fa-star fav-icon" style="color: gold; cursor: pointer;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')"></i>
+                
             </div>
             <div class="card-title">${escapeHtml(s.title)}</div>
             <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div>
