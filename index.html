@@ -2054,9 +2054,12 @@ async function saveUserProfileWithPhoto() {
             <div class="card" onclick="adminCourses()"><i class="fas fa-chalkboard-user"></i><h3>Gestionar Cursos</h3><p>Crear/editar cursos, lecciones y contenido</p></div>
             <div class="card" onclick="adminExams()"><i class="fas fa-file-alt"></i><h3>Gestionar Exámenes</h3><p>Crear preguntas, tiempos, etc.</p></div>
             <div class="card" onclick="showEstadisticas()"><i class="fas fa-chart-line"></i><h3>Estadísticas de Uso</h3><p>Visualiza métricas de la app</p></div>
+            <div class="card" onclick="adminUserManagement()"><i class="fas fa-users-cog"></i><h3>Gestionar Usuarios</h3><p>Ver y editar perfiles de usuarios registrados</p></div>
         </div>
     `;
 }
+
+    
     function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
 async function showEstadisticas() {
     // Obtener estadísticas de los últimos 30 días
@@ -2124,6 +2127,61 @@ async function showEstadisticas() {
     html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
     showModal(html);
 }
+    async function adminUserManagement() {
+    const { data: perfiles, error } = await supabaseClient
+        .from('perfiles')
+        .select('id, nombre, email, rol, grupo, telefono, fecha_nacimiento');
+    if (error) return alert("Error: " + error.message);
+    
+    let html = `<h3>Gestión de Usuarios Registrados</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width:100%; border-collapse: collapse;">
+                        <thead>
+                            <tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Grupo</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody>`;
+    for (let p of perfiles) {
+        html += `
+            <tr>
+                <td><input type="text" id="nombre_${p.id}" value="${escapeHtml(p.nombre || '')}" class="form-control" style="min-width:120px;"></td>
+                <td>${escapeHtml(p.email || '—')}</td>
+                <td>
+                    <select id="rol_${p.id}" class="form-control">
+                        <option value="user" ${p.rol === 'user' ? 'selected' : ''}>Usuario normal</option>
+                        <option value="admin" ${p.rol === 'admin' ? 'selected' : ''}>Administrador</option>
+                    </select>
+                 </td>
+                <td>
+                    <select id="grupo_${p.id}" class="form-control">
+                        <option value="sin grupo" ${p.grupo === 'sin grupo' ? 'selected' : ''}>Sin grupo</option>
+                        <option value="alabanza" ${p.grupo === 'alabanza' ? 'selected' : ''}>Alabanza</option>
+                        <option value="danza" ${p.grupo === 'danza' ? 'selected' : ''}>Danza</option>
+                        <option value="produccion" ${p.grupo === 'produccion' ? 'selected' : ''}>Producción</option>
+                        <option value="sonido" ${p.grupo === 'sonido' ? 'selected' : ''}>Sonido</option>
+                    </select>
+                 </td>
+                <td>
+                    <button class="btn btn-primary" onclick="updateUserByAdmin('${p.id}')">Guardar cambios</button>
+                 </td>
+            </tr>
+        `;
+    }
+    html += `</tbody></table></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(html);
+}
+
+window.updateUserByAdmin = async (userId) => {
+    const nombre = document.getElementById(`nombre_${userId}`).value;
+    const rol = document.getElementById(`rol_${userId}`).value;
+    const grupo = document.getElementById(`grupo_${userId}`).value;
+    const { error } = await supabaseClient.from('perfiles').update({ nombre, rol, grupo }).eq('id', userId);
+    if (error) alert("Error: " + error.message);
+    else {
+        alert("Usuario actualizado");
+        closeModal();
+        adminUserManagement();
+    }
+};
     
     // ==================== ADMIN CURSOS ====================
 async function adminCourses() {
