@@ -1238,13 +1238,22 @@ function loadExamQuestion() {
         loadExamQuestion();
     };
 }
-    async function finishExam() {
-        let finalScore = (examScore / examQuestions.length) * 20;
-        await supabaseClient.from('intentos_examen').insert([{ user_id: currentUser.id, examen_id: currentExamId, puntaje: finalScore.toFixed(2) }]);
+   async function finishExam() {
+    let finalScore = (examScore / examQuestions.length) * 20;
+    const { error } = await supabaseClient.from('intentos_examen').insert([{ 
+        user_id: currentUser.id,   // ← debe ser el UUID del usuario autenticado
+        examen_id: currentExamId, 
+        puntaje: finalScore.toFixed(2) 
+    }]);
+    if (error) console.error("Error guardando intento:", error);
+    else {
         alert(`Examen finalizado. Puntaje: ${finalScore.toFixed(2)} / 20`);
-        document.getElementById('examOverlay').style.display = 'none';
-        await loadUserData(); renderMoodle();
     }
+    document.getElementById('examOverlay').style.display = 'none';
+    await loadUserData();
+if (currentTab === 'profile') renderUserProfile(); else renderMoodle(); 
+
+}
     function closeExam() {
     if (examTimer) clearInterval(examTimer);
     document.getElementById('examOverlay').style.display = 'none';
