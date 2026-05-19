@@ -106,6 +106,14 @@
         .stat-card { background: var(--bg-app); padding: 1rem; border-radius: 1rem; text-align: center; }
         .stat-number { font-size: 2rem; font-weight: 800; color: var(--primary); }
 
+        .btn-danger {
+    background: #EF4444;
+    color: white;
+}
+.btn-danger:hover {
+    background: #DC2626;
+}
+        
         /* ========== PIE DE PÁGINA ========== */
 .app-footer {
     background: var(--surface);
@@ -729,14 +737,33 @@ function renderApp() {
     }
 
     // ==================== CANCIONERO ====================
-    function renderSongsGrid() {
-        const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
-        let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
-        filtered.sort((a,b)=>a.title.localeCompare(b.title));
-        document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button><button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar JSON</button>` : `<span class="text-muted">Canciones globales</span>`;
-        const container = document.getElementById('mainContent');
-        container.innerHTML = `<div class="grid">${filtered.map((s, idx) => `<div class="card" onclick="openCifraViewer('${s.id}', ${idx})"><span class="card-category">${s.category}</span><div class="card-title" style="color:var(--primary-light); font-weight:bold;">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${isAdminUser ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button></div></div>`).join('')}</div>`;
+      function renderSongsGrid() {
+    const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
+    let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
+    filtered.sort((a,b)=>a.title.localeCompare(b.title));
+    document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button><button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar/Exportar</button>` : `<span class="text-muted">Canciones globales</span>`;
+    
+    const container = document.getElementById('mainContent');
+    container.innerHTML = `<div class="grid">${filtered.map((s, idx) => `
+        <div class="card" onclick="openCifraViewer('${s.id}', ${idx})">
+            <span class="card-category">${s.category}</span>
+            <div class="card-title" style="color:var(--primary-light); font-weight:bold;">${escapeHtml(s.title)}</div>
+            <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div>
+            <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">
+                ${isAdminUser ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}
+                <button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button>
+                <button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button>
+                <button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>
+                ${isAdminUser ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')"><i class="fas fa-trash"></i> Eliminar</button>` : ''}
+            </div>
+        </div>`).join('')}</div>`;
+}
+    async function deleteSongConfirm(id) {
+    if (confirm("¿Estás seguro de eliminar esta canción? Esta acción no se puede deshacer.")) {
+        await deleteSong(id);
     }
+}
+    
     function openSongModal(id=null) {
         if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return; }
         const s = songs.find(s => s.id === id) || { title: '', category: 'Adoración', key: 'C', bpm: 80, chordsUrl: '', chordsData: '', lyrics: '' };
@@ -1230,43 +1257,101 @@ function showImportEditModal(cancionesTemp) {
     });
 }
 
-window.saveSelectedSongs = async (cancionesTemp) => {
+    window.saveSelectedSongs = async (cancionesTemp) => {
     if (!isAdminUser) return alert("Solo administrador puede importar canciones.");
+    
+    // Mostrar modal de progreso
+    const progressModal = document.createElement('div');
+    progressModal.id = 'importProgress';
+    progressModal.className = 'modal';
+    progressModal.style.display = 'flex';
+    progressModal.innerHTML = `
+        <div class="modal-content" style="text-align: center;">
+            <h3>Importando canciones...</h3>
+            <div style="width: 100%; background: #ddd; border-radius: 10px; margin: 1rem 0;">
+                <div id="progressBarFill" style="width: 0%; height: 20px; background: var(--primary); border-radius: 10px;"></div>
+            </div>
+            <p id="progressStatus">Preparando...</p>
+        </div>
+    `;
+    document.body.appendChild(progressModal);
+    
     let saved = 0;
     let errors = 0;
+    let skipped = 0;
+    const totalToSave = cancionesTemp.filter((_, i) => document.getElementById(`chk_${i}`)?.checked).length;
+    
     for (let i = 0; i < cancionesTemp.length; i++) {
         const chk = document.getElementById(`chk_${i}`);
         if (!chk || !chk.checked) continue;
+        
         const title = document.getElementById(`title_${i}`).value.trim();
         if (!title) {
-            alert(`La canción "${cancionesTemp[i].title}" no tiene título y no se importará.`);
             errors++;
             continue;
         }
-        const category = document.getElementById(`cat_${i}`).value;
-        const key = document.getElementById(`key_${i}`).value;
-        const bpm = parseInt(document.getElementById(`bpm_${i}`).value) || 80;
-        const lyrics = document.getElementById(`lyrics_${i}`).value;
         
-        const song = {
-            id: generateUniqueId(),
-            title,
-            category,
-            key,
-            bpm,
-            lyrics,
-            chordsUrl: '',
-            chordsData: '',
-            youtube: ''
-        };
-        const success = await saveSong(song);
-        if (success) saved++;
-        else errors++;
+        // Verificar si ya existe una canción con el mismo título (case insensitive)
+        const exists = songs.some(s => s.title.toLowerCase() === title.toLowerCase());
+        if (exists) {
+            if (confirm(`La canción "${title}" ya existe. ¿Deseas sobrescribirla?`)) {
+                // Buscar la canción existente y actualizarla
+                const existingSong = songs.find(s => s.title.toLowerCase() === title.toLowerCase());
+                if (existingSong) {
+                    const category = document.getElementById(`cat_${i}`).value;
+                    const key = document.getElementById(`key_${i}`).value;
+                    const bpm = parseInt(document.getElementById(`bpm_${i}`).value) || 80;
+                    const lyrics = document.getElementById(`lyrics_${i}`).value;
+                    existingSong.title = title;
+                    existingSong.category = category;
+                    existingSong.key = key;
+                    existingSong.bpm = bpm;
+                    existingSong.lyrics = lyrics;
+                    await saveSong(existingSong);
+                    saved++;
+                } else {
+                    // Si no se encuentra (caso raro), crear nueva
+                    const success = await saveSong(createSongObject(i, cancionesTemp));
+                    if (success) saved++;
+                    else errors++;
+                }
+            } else {
+                skipped++;
+            }
+        } else {
+            const success = await saveSong(createSongObject(i, cancionesTemp));
+            if (success) saved++;
+            else errors++;
+        }
+        
+        // Actualizar barra de progreso
+        const completed = saved + errors + skipped;
+        const percent = (completed / totalToSave) * 100;
+        document.getElementById('progressBarFill').style.width = `${percent}%`;
+        document.getElementById('progressStatus').innerText = `Procesando: ${completed} de ${totalToSave} (${saved} guardadas, ${errors} errores, ${skipped} omitidas)`;
     }
-    alert(`Importación completada: ${saved} canciones guardadas, ${errors} errores.`);
-    closeModal();
-    renderCurrentView(); // refresca el cancionero
+    
+    setTimeout(() => {
+        progressModal.remove();
+        alert(`Importación finalizada:\n✅ Guardadas: ${saved}\n❌ Errores: ${errors}\n⏭️ Omitidas: ${skipped}`);
+        closeModal(); // cierra el modal de edición
+        renderCurrentView(); // refresca cancionero
+    }, 500);
 };
+
+function createSongObject(index, cancionesTemp) {
+    return {
+        id: generateUniqueId(),
+        title: document.getElementById(`title_${index}`).value.trim(),
+        category: document.getElementById(`cat_${index}`).value,
+        key: document.getElementById(`key_${index}`).value,
+        bpm: parseInt(document.getElementById(`bpm_${index}`).value) || 80,
+        lyrics: document.getElementById(`lyrics_${index}`).value,
+        chordsUrl: '',
+        chordsData: '',
+        youtube: ''
+    };
+}
     
     async function importBackup() {
         const file = document.getElementById('restoreFile').files[0];
