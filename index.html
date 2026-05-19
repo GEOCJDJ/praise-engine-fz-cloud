@@ -520,7 +520,7 @@ async function uploadMemberPhoto(memberId) {
             const { data, error } = await supabaseClient.auth.signUp({ email, password });
             if (error) throw error;
             if (data.user) {
-                await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, fecha_nacimiento: fecha, rol: 'user' }]);
+                await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, email: email,  fecha_nacimiento: fecha, rol: 'user' }]);
                 alert("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión.");
                 renderLogin();
             }
@@ -1994,30 +1994,53 @@ async function renderUserProfile() {
         }
     }
 }
-    function editUserProfile() {
-        showModal(`
-            <h3>Editar perfil</h3>
-            <div class="form-group"><label>Nombre completo</label><input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre || '')}"></div>
-            <div class="form-group"><label>Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}"></div>
-            <div class="form-group"><label>Fecha de nacimiento</label><input id="editFecha" class="form-control" type="date" value="${currentProfile.fecha_nacimiento || ''}"></div>
-            <div class="form-group"><label>Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}"></div>
-            <div class="form-group"><label>Foto de perfil (URL)</label><input id="editFoto" class="form-control" value="${escapeHtml(currentProfile.foto_url || '')}"></div>
-            <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUserProfile()">Guardar</button></div>
-        `);
-    }
+   function editUserProfile() {
+    showModal(`
+        <h3>Editar perfil</h3>
+        <div class="form-group"><label>Nombre completo</label><input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre || '')}"></div>
+        <div class="form-group"><label>Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}"></div>
+        <div class="form-group"><label>Fecha de nacimiento</label><input id="editFecha" class="form-control" type="date" value="${currentProfile.fecha_nacimiento || ''}"></div>
+        <div class="form-group"><label>Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}"></div>
+        <div class="form-group"><label>Foto de perfil</label><input type="file" id="editFotoFile" accept="image/jpeg,image/png,image/jpg" class="form-control"></div>
+        <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUserProfileWithPhoto()">Guardar</button></div>
+    `);
+}
 
-    async function saveUserProfile() {
-        const updates = {
-            nombre: document.getElementById('editNombre').value,
-            telefono: document.getElementById('editTelefono').value,
-            fecha_nacimiento: document.getElementById('editFecha').value,
-            direccion: document.getElementById('editDireccion').value,
-            foto_url: document.getElementById('editFoto').value
-        };
-        await updateProfile(updates);
+async function saveUserProfileWithPhoto() {
+    const nombre = document.getElementById('editNombre').value;
+    const telefono = document.getElementById('editTelefono').value;
+    const fecha_nacimiento = document.getElementById('editFecha').value;
+    const direccion = document.getElementById('editDireccion').value;
+    const file = document.getElementById('editFotoFile').files[0];
+    
+    let foto_url = currentProfile.foto_url || '';
+    if (file) {
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `avatars/${currentUser.id}/${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabaseClient.storage.from('perfiles').upload(fileName, file);
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabaseClient.storage.from('perfiles').getPublicUrl(fileName);
+            foto_url = publicUrl;
+        } catch (err) {
+            alert("Error al subir la foto: " + err.message);
+            return;
+        }
+    }
+    
+    const updates = { nombre, telefono, fecha_nacimiento, direccion, foto_url };
+    const { error } = await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id);
+    if (error) alert("Error: " + error.message);
+    else {
+        alert("Perfil actualizado");
+        await loadProfile();
         closeModal();
         renderUserProfile();
+        // Actualizar nombre en cabecera sin recargar toda la app
+        const userNameSpan = document.querySelector('.user-info i + span');
+        if (userNameSpan) userNameSpan.innerText = currentProfile.nombre || currentUser.email;
     }
+}
 
         
     // ==================== ADMINISTRACIÓN ====================
