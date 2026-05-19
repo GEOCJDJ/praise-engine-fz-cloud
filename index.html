@@ -1333,10 +1333,14 @@ if (currentTab === 'profile') renderUserProfile(); else renderMoodle();
         document.getElementById('mainContent').innerHTML = html;
         document.getElementById('actionHeader').innerHTML = '';
         const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).order('fecha', { ascending: true });
+        console.log("Intentos de examen para", currentUser.id, intentos);
         const total = intentos?.length || 0;
         const promedio = intentos && intentos.length ? (intentos.reduce((a, b) => a + parseFloat(b.puntaje), 0) / intentos.length).toFixed(1) : 0;
         document.getElementById('statExamenes').innerText = total;
         document.getElementById('statPromedio').innerText = `${promedio}/20`;
+        const { data: miEquipo } = await supabaseClient.from('equipo').select('role').eq('user_id', currentUser.id).single();
+const rolMusical = miEquipo?.role || 'No asignado';
+const subgrupo = currentProfile?.grupo || 'No especificado';
         if (intentos && intentos.length > 0) {
             const fechas = intentos.map(i => new Date(i.fecha).toLocaleDateString());
             const puntajes = intentos.map(i => parseFloat(i.puntaje));
@@ -1345,6 +1349,7 @@ if (currentTab === 'profile') renderUserProfile(); else renderMoodle();
             progressChart = new Chart(ctx, { type: 'line', data: { labels: fechas, datasets: [{ label: 'Puntaje obtenido (sobre 20)', data: puntajes, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.2, fill: true, pointBackgroundColor: '#1E3A8A' }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, max: 20, title: { display: true, text: 'Puntaje' } }, x: { title: { display: true, text: 'Fecha del examen' } } } } });
         } else { const canvasContainer = document.getElementById('progressChartCanvas')?.parentElement; if (canvasContainer) canvasContainer.innerHTML = '<p class="text-muted" style="text-align:center;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p>'; }
     }
+    
      function editUserProfile() {
     showModal(`
         <h3>Editar perfil</h3>
@@ -1401,7 +1406,7 @@ async function saveUserProfileWithPhoto() {
             <div class="grid">
                 <div class="card" onclick="adminAttendance()"><i class="fas fa-user-check"></i><h3>Control de Asistencia</h3><p>Registrar puntualidad</p></div>
                 <div class="card" onclick="adminShifts()"><i class="fas fa-calendar-week"></i><h3>Gestión de Turnos</h3><p>Asignar fechas</p></div>
-                <div class="card" onclick="openTeamModal()"><i class="fas fa-users"></i><h3>Ver Miembros del Equipo</h3><p>Lista completa y perfiles</p></div>
+                <div class="card" onclick="openEquiposView()"><i class="fas fa-users"></i><h3>Equipos</h3></div>
                 <div class="card" onclick="adminCourses()"><i class="fas fa-chalkboard-user"></i><h3>Gestionar Cursos</h3><p>Crear/editar cursos, lecciones y contenido</p></div>
                 <div class="card" onclick="adminExams()"><i class="fas fa-file-alt"></i><h3>Gestionar Exámenes</h3><p>Crear preguntas, tiempos, etc.</p></div>
                 <div class="card" onclick="showEstadisticas()"><i class="fas fa-chart-line"></i><h3>Estadísticas de Uso</h3><p>Visualiza métricas de la app</p></div>
