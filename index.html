@@ -191,6 +191,16 @@
 .profile-detail-card p {
     margin: 0.3rem 0;
 }
+
+        .card {
+    position: relative;
+    overflow: visible !important;
+}
+.fav-icon {
+    font-size: 1.3rem;
+    z-index: 10;
+}
+        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -817,8 +827,45 @@ function renderApp() {
         `;
     }).join('')}</div>`;
 }
+    async function renderFavorites() {
+    if (!currentUser) {
+        document.getElementById('mainContent').innerHTML = '<p>Inicia sesión para ver tus canciones favoritas.</p>';
+        return;
+    }
+    const { data: favoritos } = await supabaseClient
+        .from('favoritos')
+        .select('song_id')
+        .eq('user_id', currentUser.id);
+    const favIds = favoritos.map(f => f.song_id);
+    const filtered = songs.filter(s => favIds.includes(s.id));
+    filtered.sort((a,b) => a.title.localeCompare(b.title));
     
-   async function toggleFavorite(songId) {
+    document.getElementById('actionHeader').innerHTML = `<span class="text-muted">Tus canciones favoritas</span>`;
+    const container = document.getElementById('mainContent');
+    if (filtered.length === 0) {
+        container.innerHTML = '<p>No tienes canciones favoritas. Marca la estrella ⭐ en cualquier canción del CANCIONERO.</p>';
+        return;
+    }
+    container.innerHTML = `<div class="grid">${filtered.map((s, idx) => `
+        <div class="card" onclick="openCifraViewer('${s.id}', ${idx})">
+            <div style="display: flex; justify-content: space-between;">
+                <span class="card-category">${s.category}</span>
+                <i class="fas fa-star fav-icon" style="color: gold; cursor: pointer;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')"></i>
+            </div>
+            <div class="card-title">${escapeHtml(s.title)}</div>
+            <div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div>
+            <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">
+                ${isAdminUser ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}
+                <button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button>
+                <button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button>
+                <button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>
+                ${isAdminUser ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+    
+  async function toggleFavorite(songId) {
     if (!currentUser) return alert("Inicia sesión para marcar favoritos");
     const { data: exists } = await supabaseClient
         .from('favoritos')
@@ -831,8 +878,12 @@ function renderApp() {
     } else {
         await supabaseClient.from('favoritos').insert({ user_id: currentUser.id, song_id: songId });
     }
-    // Refrescar el grid para que cambie el ícono
-    renderSongsGrid();
+    // Refrescar la vista actual
+    if (currentTab === 'favorites') {
+        await renderFavorites();
+    } else if (currentTab === 'songs') {
+        await renderSongsGrid();
+    }
 }
     
     async function deleteSongConfirm(id) {
