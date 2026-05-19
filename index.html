@@ -146,6 +146,13 @@
         justify-content: space-between;
     }
 }
+    .team-member-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.team-member-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
         
         
     </style>
@@ -416,7 +423,7 @@
         }
         const { data: equipoActualizado } = await supabaseClient.from('equipo').select('*');
         team = equipoActualizado || [];
-        // Enriquecer cada miembro con el subgrupo desde perfiles
+        
         for (let member of team) {
             const { data: perfil } = await supabaseClient.from('perfiles').select('grupo').eq('id', member.user_id).single();
             member.subgrupo = perfil?.grupo || 'sin grupo';
@@ -964,12 +971,71 @@
         document.getElementById('mainContent').innerHTML = `<div class="grid">
             <div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll"></i><h3>Teleprompter</h3></div>
             <div class="card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Respaldo JSON</h3></div>
-            <div class="card" onclick="openTeamModal()"><i class="fas fa-users"></i><h3>Miembros del Equipo</h3></div>
+            <div class="card" onclick="openEquiposView()"><i class="fas fa-users"></i><h3>Equipos</h3></div>
             <div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3></div>
             <div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3></div>
             <div class="card" onclick="viewShiftsCalendar()"><i class="fas fa-calendar-alt"></i><h3>Turnos</h3></div>
         </div>`;
     }
+    async function openEquiposView() {
+    // Obtener todos los miembros con sus subgrupos y roles
+    const { data: miembrosConPerfil } = await supabaseClient
+        .from('equipo')
+        .select('*, perfiles(grupo)')
+        .eq('user_id', 'not.null'); // solo los vinculados a usuarios
+
+    // Agrupar por subgrupo (tomando el grupo de perfiles)
+    const grupos = {
+        'Alabanza': [],
+        'Danza': [],
+        'Producción': [],
+        'Limpieza': [],
+        'Otro': []
+    };
+
+    for (let m of miembrosConPerfil) {
+        let grupo = m.perfiles?.grupo || 'Otro';
+        if (!grupos[grupo]) grupos[grupo] = [];
+        grupos[grupo].push(m);
+    }
+
+    let html = `<h3>🎭 Equipos de la Iglesia</h3>
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">`;
+
+    for (let [nombreGrupo, miembros] of Object.entries(grupos)) {
+        if (miembros.length === 0 && !isAdminUser) continue; // si está vacío, solo admin lo ve
+        html += `
+            <div class="card" style="padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin:0;">🎵 ${nombreGrupo}</h4>
+                    ${isAdminUser ? `<button class="btn-icon" onclick="editSubgrupoUsuarios('${nombreGrupo}')" title="Gestionar miembros"><i class="fas fa-users-cog"></i></button>` : ''}
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        `;
+        for (let member of miembros) {
+            html += `
+                <div class="team-member-card" style="background: var(--bg-app); border-radius: var(--radius-sm); padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem; cursor: pointer;" onclick="showMemberProfile('${member.id}', true)">
+                    <div class="avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">${escapeHtml(member.name.charAt(0).toUpperCase())}</div>
+                    <div style="flex:1;">
+                        <strong>${escapeHtml(member.name)}</strong><br>
+                        <span class="card-category" style="background: var(--primary-light);">${escapeHtml(member.role)}</span>
+                    </div>
+                    ${isAdminUser ? `<button class="btn-icon" onclick="event.stopPropagation(); deleteTeamMember('${member.id}')" style="color: red;"><i class="fas fa-trash"></i></button>` : ''}
+                </div>
+            `;
+        }
+        html += `</div></div>`;
+    }
+
+    if (isAdminUser) {
+        html += `<div style="text-align: center; margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="adminUserManagement()">➕ Gestionar usuarios y roles</button>
+                </div>`;
+    }
+    html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(html);
+}
+    
     function openTeleprompter() {
         const selectSongs = songs.map(s => `<option value="${s.id}">${escapeHtml(s.title)}</option>`).join('');
         showModal(`<h3>Teleprompter</h3><select id="teleSongSelect" class="form-control"><option value="">Selecciona...</option>${selectSongs}</select><div id="teleLyricsDisplay" class="teleprompter-screen" style="margin-top:1rem;" onclick="advanceLyrics()">Selecciona una canción</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
@@ -1511,6 +1577,51 @@ async function saveUserProfileWithPhoto() {
         renderCurrentView();
     } catch (err) {
         alert("Error al eliminar: " + err.message);
+    }
+};
+    window.editSubgrupoUsuarios = async (grupoActual) => {
+    const { data: usuariosEnGrupo } = await supabaseClient
+        .from('perfiles')
+        .select('id, nombre, email, grupo')
+        .eq('grupo', grupoActual);
+    
+    if (!usuariosEnGrupo || usuariosEnGrupo.length === 0) {
+        alert("No hay usuarios en este grupo.");
+        return;
+    }
+
+    let options = usuariosEnGrupo.map(u => `<option value="${u.id}">${escapeHtml(u.nombre || u.email)} (actual: ${u.grupo})</option>`).join('');
+    showModal(`
+        <h3>Mover usuarios del grupo "${grupoActual}"</h3>
+        <div class="form-group">
+            <label>Seleccionar usuario</label>
+            <select id="userToMove" class="form-control">${options}</select>
+        </div>
+        <div class="form-group">
+            <label>Nuevo subgrupo</label>
+            <select id="newSubgrupo" class="form-control">
+                <option value="Alabanza">Alabanza</option>
+                <option value="Danza">Danza</option>
+                <option value="Producción">Producción</option>
+                <option value="Limpieza">Limpieza</option>
+                <option value="Otro">Otro</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" onclick="moverUsuarioSubgrupo()">Mover</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    `);
+};
+
+window.moverUsuarioSubgrupo = async () => {
+    const userId = document.getElementById('userToMove').value;
+    const nuevoGrupo = document.getElementById('newSubgrupo').value;
+    const { error } = await supabaseClient.from('perfiles').update({ grupo: nuevoGrupo }).eq('id', userId);
+    if (error) alert("Error: " + error.message);
+    else {
+        alert("Usuario movido correctamente");
+        closeModal();
+        await loadUserData();
+        openEquiposView(); // refrescar vista
     }
 };
     
