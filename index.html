@@ -2038,7 +2038,7 @@ async function saveUserProfileWithPhoto() {
         renderUserProfile();
         // Actualizar nombre en cabecera sin recargar toda la app
         const userNameSpan = document.querySelector('.user-info i + span');
-        if (userNameSpan) userNameSpan.innerText = currentProfile.nombre || currentUser.email;
+        renderApp();
     }
 }
 
