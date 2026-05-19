@@ -1418,9 +1418,12 @@ async function saveUserProfileWithPhoto() {
             <div class="card" style="padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
-                        <strong>${escapeHtml(p.nombre || p.email)}</strong><br>
-                        <small>${escapeHtml(p.email)}</small>
-                    </div>
+    <div class="form-group" style="margin:0;">
+        <label>Nombre completo</label>
+        <input type="text" id="nombre_${p.id}" class="form-control" value="${escapeHtml(p.nombre || '')}" placeholder="Nombre del usuario">
+    </div>
+    <small>${escapeHtml(p.email)}</small>
+</div>
                     ${isAdminUser ? `<button class="btn-icon" onclick="deleteUserById('${p.id}')" style="color: red;" title="Eliminar usuario"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.8rem; margin-top: 1rem;">
