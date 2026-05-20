@@ -267,18 +267,19 @@
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
     function closeModal() { document.getElementById('modal')?.remove(); }
     function showModal(content) {
-        const div = document.createElement('div');
-        div.id = 'modal';
-        div.className = 'modal';
-        div.style.display = 'flex';
-        div.innerHTML = `
-            <div class="modal-content" style="position: relative;">
-                <button onclick="closeModal()" style="position: absolute; top: 0.8rem; right: 1rem; background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); z-index: 10;">&times;</button>
-                ${content}
-            </div>
-        `;
-        document.body.appendChild(div);
-    }
+    closeModal(); // Cierra cualquier modal abierto antes de crear uno nuevo
+    const div = document.createElement('div');
+    div.id = 'modal';
+    div.className = 'modal';
+    div.style.display = 'flex';
+    div.innerHTML = `
+        <div class="modal-content" style="position: relative;">
+            <button onclick="closeModal()" style="position: absolute; top: 0.8rem; right: 1rem; background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); z-index: 10;">&times;</button>
+            ${content}
+        </div>
+    `;
+    document.body.appendChild(div);
+}
     function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime}); }
     function generateUniqueId() { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
     async function uploadFileToStorage(file, folder) {
@@ -2487,45 +2488,88 @@ function adminTeam() {
     });
 }
 
-    async function viewMyShifts() {
-    // Obtener el member_id del usuario actual desde equipo
+   async function viewMyShifts() {
+    // Obtener el miembro del usuario actual
     const miembro = team.find(m => m.user_id === currentUser.id);
     if (!miembro) {
         alert("No tienes un rol asignado en el equipo. Contacta al administrador.");
         return;
     }
     const memberId = miembro.id;
-
-    // Obtener turnos del usuario
     const misTurnos = shifts.filter(s => s.member_id === memberId);
     
-    // Agrupar por fecha
+    // Ordenar por fecha ascendente
+    misTurnos.sort((a,b) => {
+        const da = a.fecha.split('/').reverse().join('-');
+        const db = b.fecha.split('/').reverse().join('-');
+        return new Date(da) - new Date(db);
+    });
+    
     const turnosPorFecha = {};
     misTurnos.forEach(t => { turnosPorFecha[t.fecha] = true; });
-
-    // Construir modal con calendario y lista
+    
+    // Próximos turnos (fechas igual o posteriores a hoy)
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+    const proximosTurnos = misTurnos.filter(t => {
+        const [dia, mes, anio] = t.fecha.split('/');
+        const fechaTurno = new Date(anio, mes-1, dia);
+        return fechaTurno >= hoy;
+    });
+    
+    // Días libres sugeridos: domingos de este mes y próximo mes sin turno
+    const hoyDate = new Date();
+    const currentYear = hoyDate.getFullYear();
+    const currentMonth = hoyDate.getMonth();
+    const fechasLibres = [];
+    for (let i = 0; i <= 1; i++) {
+        const year = currentYear;
+        const month = currentMonth + i;
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month+1, 0);
+        for (let d = 1; d <= lastDay.getDate(); d++) {
+            const fecha = new Date(year, month, d);
+            if (fecha.getDay() === 0) { // domingo
+                const diaStr = String(d).padStart(2,'0');
+                const mesStr = String(month+1).padStart(2,'0');
+                const fechaStr = `${diaStr}/${mesStr}/${year}`;
+                if (!turnosPorFecha[fechaStr] && fecha >= hoyDate) {
+                    fechasLibres.push(fechaStr);
+                }
+            }
+        }
+    }
+    const proximosLibres = fechasLibres.slice(0,10);
+    
+    // Layout con dos columnas
     let html = `
         <h3>📅 Mis Turnos</h3>
-        <p>Las fechas con turno aparecen marcadas en azul. Haz clic en una fecha para ver detalles.</p>
-        <div class="form-group">
-            <input type="text" id="myShiftCalendar" class="form-control" placeholder="Selecciona una fecha">
-        </div>
-        <div id="myShiftDetail" style="margin-top: 1rem; display: none;">
-            <div class="card" style="padding: 1rem;">
-                <h4 id="selectedDateTitle"></h4>
-                <div id="selectedDateInfo"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div>
+                <p>Las fechas con turno aparecen marcadas en <strong style="color: #F59E0B;">amarillo</strong>. Haz clic en una fecha para ver detalles.</p>
+                <div class="form-group">
+                    <input type="text" id="myShiftCalendar" class="form-control" placeholder="Selecciona una fecha">
+                </div>
+                <div id="myShiftDetail" style="margin-top: 1rem; display: none;">
+                    <div class="card" style="padding: 1rem;">
+                        <h4 id="selectedDateTitle"></h4>
+                        <div id="selectedDateInfo"></div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div style="margin-top: 1rem;">
-            <h4>📋 Resumen de tus turnos</h4>
-            <div style="max-height: 300px; overflow-y: auto;">
-                ${misTurnos.length === 0 ? '<p class="text-muted">No tienes turnos asignados aún.</p>' : 
-                    misTurnos.sort((a,b) => new Date(a.fecha.split('/').reverse().join('-')) - new Date(b.fecha.split('/').reverse().join('-'))).map(t => `
-                        <div class="card" style="margin-bottom: 0.5rem; cursor: pointer;" onclick="showTurnoDetail('${t.fecha}', '${memberId}')">
-                            <strong>📅 ${t.fecha}</strong>
-                        </div>
-                    `).join('')
-                }
+            <div>
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h4>📌 Próximos turnos</h4>
+                    ${proximosTurnos.length === 0 ? '<p class="text-muted">No tienes turnos próximos.</p>' : 
+                        `<ul style="margin: 0; padding-left: 1.2rem;">${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`
+                    }
+                </div>
+                <div class="card">
+                    <h4>🌿 Días libres sugeridos</h4>
+                    ${proximosLibres.length === 0 ? '<p class="text-muted">No hay días libres próximos.</p>' : 
+                        `<ul style="margin: 0; padding-left: 1.2rem;">${proximosLibres.map(f => `<li>${f}</li>`).join('')}</ul>`
+                    }
+                </div>
             </div>
         </div>
         <div style="text-align: right; margin-top: 1rem;">
@@ -2533,8 +2577,8 @@ function adminTeam() {
         </div>
     `;
     showModal(html);
-
-    // Inicializar calendario
+    
+    // Inicializar calendario con color amarillo para días con turno
     flatpickr("#myShiftCalendar", {
         locale: "es",
         dateFormat: "d/m/Y",
@@ -2545,34 +2589,26 @@ function adminTeam() {
             const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
             const dateStr = `${day}/${month}/${year}`;
             if (turnosPorFecha[dateStr]) {
-                dayElem.style.backgroundColor = '#3B82F6';
+                dayElem.style.backgroundColor = '#F59E0B'; // amarillo
                 dayElem.style.color = 'white';
                 dayElem.style.borderRadius = '50%';
                 dayElem.title = `Tienes turno este día`;
             }
         },
         onChange: (selectedDates, dateStr) => {
-            if (dateStr && turnosPorFecha[dateStr]) {
+            if (dateStr) {
                 document.getElementById('myShiftDetail').style.display = 'block';
                 document.getElementById('selectedDateTitle').innerText = `Turno del ${dateStr}`;
-                document.getElementById('selectedDateInfo').innerHTML = `<p>✅ Tienes turno asignado en esta fecha.</p>`;
-            } else if (dateStr) {
-                document.getElementById('myShiftDetail').style.display = 'block';
-                document.getElementById('selectedDateTitle').innerText = `Turno del ${dateStr}`;
-                document.getElementById('selectedDateInfo').innerHTML = `<p>❌ No tienes turno asignado en esta fecha. ¡Disfruta tu descanso!</p>`;
+                if (turnosPorFecha[dateStr]) {
+                    document.getElementById('selectedDateInfo').innerHTML = `<p>✅ Tienes turno asignado en esta fecha.</p>`;
+                } else {
+                    document.getElementById('selectedDateInfo').innerHTML = `<p>❌ No tienes turno asignado. ¡Disfruta tu descanso!</p>`;
+                }
             } else {
                 document.getElementById('myShiftDetail').style.display = 'none';
             }
         }
     });
-
-    // Función auxiliar para mostrar detalle de turno desde la lista
-    window.showTurnoDetail = (fecha, memberId) => {
-        // Cerrar modal actual y abrir detalle simple (opcional)
-        closeModal();
-        alert(`Tienes turno el ${fecha}.`);
-        // También podrías mostrar un modal pequeño, pero con el alert es suficiente.
-    };
 }
     
     // VISOR COMO CIFRA CLUB JAJA
