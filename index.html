@@ -1030,7 +1030,7 @@
             <div class="card" onclick="openEquiposView()"><i class="fas fa-users"></i><h3>Equipos</h3></div>
             <div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3></div>
             <div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3></div>
-            <div class="card" onclick="viewShiftsCalendar()"><i class="fas fa-calendar-alt"></i><h3>Turnos</h3></div>
+           <div class="card" onclick="viewMyShifts()"><i class="fas fa-calendar-alt"></i><h3>Mis Turnos</h3></div>
         </div>`;
     }
    async function openEquiposView() {
@@ -2437,16 +2437,27 @@ function adminTeam() {
             <input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha">
         </div>
         <div style="margin-top: 1rem;">
-            <h4>📋 Resumen de turnos asignados</h4>
-            <div id="shiftsSummaryContainer" style="max-height: 300px; overflow-y: auto;">
+    <h4>📋 Resumen de turnos asignados</h4>
+    <div style="max-height: 300px; overflow-y: auto; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="position: sticky; top: 0; background: var(--surface);">
+                <tr>
+                    <th style="padding: 0.5rem; text-align: left;">Fecha</th>
+                    <th style="padding: 0.5rem; text-align: left;">Miembros (rol)</th>
+                </tr>
+            </thead>
+            <tbody>
                 ${Object.entries(turnosMap).map(([fecha, miembros]) => `
-                    <div class="card" style="margin-bottom: 0.5rem; cursor: pointer;" onclick="showDateManagement('${fecha}')">
-                        <strong>${fecha}</strong>
-                        <div>${miembros.map(m => `${m.name} (${m.role})`).join(', ')}</div>
-                    </div>
-                `).join('') || '<p class="text-muted">No hay turnos asignados aún.</p>'}
-            </div>
-        </div>
+                    <tr style="border-top: 1px solid var(--border); cursor: pointer;" onclick="showDateManagement('${fecha}')">
+                        <td style="padding: 0.5rem;"><strong>${fecha}</strong></td>
+                        <td style="padding: 0.5rem;">${miembros.map(m => `${m.name} (${m.role})`).join(', ')}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="2" style="padding: 1rem; text-align: center;">No hay turnos asignados aún.</td></tr>'}
+            </tbody>
+        </table>
+    </div>
+</div>
+        
         <div style="text-align: right; margin-top: 1rem;">
             <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
         </div>
@@ -2476,6 +2487,94 @@ function adminTeam() {
     });
 }
 
+    async function viewMyShifts() {
+    // Obtener el member_id del usuario actual desde equipo
+    const miembro = team.find(m => m.user_id === currentUser.id);
+    if (!miembro) {
+        alert("No tienes un rol asignado en el equipo. Contacta al administrador.");
+        return;
+    }
+    const memberId = miembro.id;
+
+    // Obtener turnos del usuario
+    const misTurnos = shifts.filter(s => s.member_id === memberId);
+    
+    // Agrupar por fecha
+    const turnosPorFecha = {};
+    misTurnos.forEach(t => { turnosPorFecha[t.fecha] = true; });
+
+    // Construir modal con calendario y lista
+    let html = `
+        <h3>📅 Mis Turnos</h3>
+        <p>Las fechas con turno aparecen marcadas en azul. Haz clic en una fecha para ver detalles.</p>
+        <div class="form-group">
+            <input type="text" id="myShiftCalendar" class="form-control" placeholder="Selecciona una fecha">
+        </div>
+        <div id="myShiftDetail" style="margin-top: 1rem; display: none;">
+            <div class="card" style="padding: 1rem;">
+                <h4 id="selectedDateTitle"></h4>
+                <div id="selectedDateInfo"></div>
+            </div>
+        </div>
+        <div style="margin-top: 1rem;">
+            <h4>📋 Resumen de tus turnos</h4>
+            <div style="max-height: 300px; overflow-y: auto;">
+                ${misTurnos.length === 0 ? '<p class="text-muted">No tienes turnos asignados aún.</p>' : 
+                    misTurnos.sort((a,b) => new Date(a.fecha.split('/').reverse().join('-')) - new Date(b.fecha.split('/').reverse().join('-'))).map(t => `
+                        <div class="card" style="margin-bottom: 0.5rem; cursor: pointer;" onclick="showTurnoDetail('${t.fecha}', '${memberId}')">
+                            <strong>📅 ${t.fecha}</strong>
+                        </div>
+                    `).join('')
+                }
+            </div>
+        </div>
+        <div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+        </div>
+    `;
+    showModal(html);
+
+    // Inicializar calendario
+    flatpickr("#myShiftCalendar", {
+        locale: "es",
+        dateFormat: "d/m/Y",
+        inline: true,
+        onDayCreate: (dObj, dStr, fp, dayElem) => {
+            const year = dayElem.dateObj.getFullYear();
+            const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
+            const dateStr = `${day}/${month}/${year}`;
+            if (turnosPorFecha[dateStr]) {
+                dayElem.style.backgroundColor = '#3B82F6';
+                dayElem.style.color = 'white';
+                dayElem.style.borderRadius = '50%';
+                dayElem.title = `Tienes turno este día`;
+            }
+        },
+        onChange: (selectedDates, dateStr) => {
+            if (dateStr && turnosPorFecha[dateStr]) {
+                document.getElementById('myShiftDetail').style.display = 'block';
+                document.getElementById('selectedDateTitle').innerText = `Turno del ${dateStr}`;
+                document.getElementById('selectedDateInfo').innerHTML = `<p>✅ Tienes turno asignado en esta fecha.</p>`;
+            } else if (dateStr) {
+                document.getElementById('myShiftDetail').style.display = 'block';
+                document.getElementById('selectedDateTitle').innerText = `Turno del ${dateStr}`;
+                document.getElementById('selectedDateInfo').innerHTML = `<p>❌ No tienes turno asignado en esta fecha. ¡Disfruta tu descanso!</p>`;
+            } else {
+                document.getElementById('myShiftDetail').style.display = 'none';
+            }
+        }
+    });
+
+    // Función auxiliar para mostrar detalle de turno desde la lista
+    window.showTurnoDetail = (fecha, memberId) => {
+        // Cerrar modal actual y abrir detalle simple (opcional)
+        closeModal();
+        alert(`Tienes turno el ${fecha}.`);
+        // También podrías mostrar un modal pequeño, pero con el alert es suficiente.
+    };
+}
+    
     // VISOR COMO CIFRA CLUB JAJA
     function openCifraViewer(songId, index) { registrarVistaCancion(songId); currentSongIndex = index; const song = songs.find(s => s.id === songId); if (!song) return; cifraCurrentSong = song; cifraOriginalLyrics = song.lyrics || ""; cifraSemitonesShift = 0; document.getElementById('cifraModalTitle').innerText = song.title; document.getElementById('cifraModalArtist').innerText = song.category; document.getElementById('currentToneDisplay').innerText = song.key; document.getElementById('cifraBpmInput').value = song.bpm || 80; if (cifraScrollInterval) clearInterval(cifraScrollInterval); cifraScrollInterval = null; document.getElementById('btnAutoScrollToggle').innerHTML = `<i class="fa-solid fa-play"></i> Play`; document.getElementById('cifraBodyContainer').scrollTop = 0; if (cifraMetroInterval) clearInterval(cifraMetroInterval); cifraMetroRunning = false; document.getElementById('btnMetronomeToggle').innerHTML = `<i class="fa-solid fa-drum"></i> Iniciar`; document.getElementById('metronomeVisualDot').classList.remove('pulse'); cifraFontSize = 18; document.getElementById('cifraContentWrapper').style.fontSize = cifraFontSize + 'px'; renderCifraContent(); document.getElementById('cifraClubModal').style.display = 'flex'; }
     function closeCifraViewer() { if (cifraScrollInterval) clearInterval(cifraScrollInterval); if (cifraMetroInterval) clearInterval(cifraMetroInterval); document.getElementById('cifraClubModal').style.display = 'none'; }
