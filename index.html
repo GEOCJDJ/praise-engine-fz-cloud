@@ -563,7 +563,7 @@
         const { data: s } = await supabaseClient.from('canciones').select('*'); 
         songs = (s || []).map(song => ({ ...song, chordsUrl: song.chords_url, chordsData: song.chords_data }));
 
-        // Cargar equipo (miembros)
+        // Cargar equipo jaja
         const { data: equipoData } = await supabaseClient.from('equipo').select('*');
         team = equipoData || [];
 
@@ -574,7 +574,7 @@
             list.items = items || [];
         }
 
-        // await syncTeamWithProfiles(); // Comentado para evitar recreación automática
+        
 
         const { data: a } = await supabaseClient.from('asistencia').select('*');
         attendance = a || [];
@@ -593,7 +593,33 @@
             await supabaseClient.from('cursos').insert([{ id: 'curso_worship', titulo: 'Introducción a la Adoración Cristiana', descripcion: 'Curso completo' }]);
             await supabaseClient.from('modulos').insert([{ id: 'mod_worship', curso_id: 'curso_worship', titulo: 'Módulo Único', orden_index: 1 }]);
             await supabaseClient.from('examenes').insert([{ id: 'exam_worship', modulo_id: 'mod_worship', titulo: 'Evaluación Final', tiempo_por_pregunta: 15 }]);
-            // Aquí se insertarían las 20 preguntas de ejemplo
+            const preg = [
+                    { examen_id: 'exam_worship', enunciado: '¿Cuál es la raíz etimológica del AT para "adorar"?', opcion_a: 'Abad', opcion_b: 'Shachah', opcion_c: 'Latreia', opcion_d: 'Proskuneo', opcion_correcta: 'B', orden_index: 1 },
+                    { examen_id: 'exam_worship', enunciado: 'En el NT, "Proskuneo" evoca:', opcion_a: 'Ofrecer holocaustos', opcion_b: 'Cantar salmos', opcion_c: 'Besar la mano en reverencia', opcion_d: 'Edificar altares', opcion_correcta: 'C', orden_index: 2 },
+                    { examen_id: 'exam_worship', enunciado: 'Romanos 12:1, el "culto racional" es:', opcion_a: 'Asistir puntualmente', opcion_b: 'Presentar el cuerpo como sacrificio vivo', opcion_c: 'Cantar himnos', opcion_d: 'Diezmar', opcion_correcta: 'B', orden_index: 3 },
+                    { examen_id: 'exam_worship', enunciado: 'Dimensión que describe la comunión entre creyentes:', opcion_a: 'Vertical', opcion_b: 'Horizontal', opcion_c: 'Intelectual', opcion_d: 'Emocional', opcion_correcta: 'B', orden_index: 4 },
+                    { examen_id: 'exam_worship', enunciado: 'Principio regulador de Calvino:', opcion_a: 'Se puede usar cualquier arte', opcion_b: 'Limitarse a lo ordenado en la Biblia', opcion_c: 'Libertad absoluta', opcion_d: 'Solo música instrumental', opcion_correcta: 'B', orden_index: 5 },
+                    { examen_id: 'exam_worship', enunciado: 'Lutero sostenía el principio normativo:', opcion_a: 'Eliminar tradiciones', opcion_b: 'Mantener prácticas no contradictorias', opcion_c: 'Prohibir la música', opcion_d: 'Los laicos no cantan', opcion_correcta: 'B', orden_index: 6 },
+                    { examen_id: 'exam_worship', enunciado: 'Poner manos sobre el animal sacrificado simbolizaba:', opcion_a: 'Bendición', opcion_b: 'Transferencia de culpa', opcion_c: 'Propiedad', opcion_d: 'Purificación', opcion_correcta: 'B', orden_index: 7 },
+                    { examen_id: 'exam_worship', enunciado: 'Juan 4, los verdaderos adoradores adoran en:', opcion_a: 'Jerusalén', opcion_b: 'Espíritu y verdad', opcion_c: 'Templos', opcion_d: 'Silencio', opcion_correcta: 'B', orden_index: 8 },
+                    { examen_id: 'exam_worship', enunciado: 'Rol de los músicos en la iglesia:', opcion_a: 'Exhibir virtuosismo', opcion_b: 'Ser servidores invisibles', opcion_c: 'Reemplazar la predicación', opcion_d: 'Competir', opcion_correcta: 'B', orden_index: 9 },
+                    { examen_id: 'exam_worship', enunciado: 'La palabra "Latreia" se traduce como:', opcion_a: 'Canto coral', opcion_b: 'Servicio sagrado', opcion_c: 'Éxtasis', opcion_d: 'Ofrenda', opcion_correcta: 'B', orden_index: 10 },
+                    { examen_id: 'exam_worship', enunciado: 'La adoración celestial es:', opcion_a: 'Cesará', opcion_b: 'Eterna y continua', opcion_c: 'Temporal', opcion_d: 'Solo domingos', opcion_correcta: 'B', orden_index: 11 },
+                    { examen_id: 'exam_worship', enunciado: 'El sincretismo litúrgico es peligroso porque:', opcion_a: 'Requiere tecnología', opcion_b: 'Mezcla ídolos con la fe', opcion_c: 'Divide generaciones', opcion_d: 'Exige muchos ensayos', opcion_correcta: 'B', orden_index: 12 },
+                    { examen_id: 'exam_worship', enunciado: 'Expresión de adoración ordenada en Salmos:', opcion_a: 'Permanecer inmóvil', opcion_b: 'Batir las manos', opcion_c: 'Danzar de espaldas', opcion_d: 'Vestir túnicas', opcion_correcta: 'B', orden_index: 13 },
+                    { examen_id: 'exam_worship', enunciado: 'Las misiones existen porque:', opcion_a: 'Extender influencia', opcion_b: 'La adoración aún no existe en esos pueblos', opcion_c: 'Establecer centros', opcion_d: 'Requisito', opcion_correcta: 'B', orden_index: 14 },
+                    { examen_id: 'exam_worship', enunciado: 'Koinonía se asocia a:', opcion_a: 'Liderazgo', opcion_b: 'Comunión fraterna', opcion_c: 'Teoría musical', opcion_d: 'Orden litúrgico', opcion_correcta: 'B', orden_index: 15 },
+                    { examen_id: 'exam_worship', enunciado: 'Evento central que transformó la adoración del AT al NT:', opcion_a: 'Templo de Herodes', opcion_b: 'El sacrificio de Cristo', opcion_c: 'Traducción de la Biblia', opcion_d: 'Invención de himnarios', opcion_correcta: 'B', orden_index: 16 },
+                    { examen_id: 'exam_worship', enunciado: 'Adorar "en verdad" significa:', opcion_a: 'Opiniones personales', opcion_b: 'Conformidad con la Palabra y sinceridad', opcion_c: 'Canciones históricas', opcion_d: 'Evitar instrumentos', opcion_correcta: 'B', orden_index: 17 },
+                    { examen_id: 'exam_worship', enunciado: 'Motivación para la excelencia técnica:', opcion_a: 'Lograr aplauso', opcion_b: 'Dar lo mejor a Dios', opcion_c: 'Demostrar superioridad', opcion_d: 'Grabar producciones', opcion_correcta: 'B', orden_index: 18 },
+                    { examen_id: 'exam_worship', enunciado: 'Peligro del legalismo litúrgico:', opcion_a: 'Fomentar avivamiento', opcion_b: 'Priorizar formas sobre el corazón', opcion_c: 'Invertir tiempo en pobres', opcion_d: 'Participación activa', opcion_correcta: 'B', orden_index: 19 },
+                    { examen_id: 'exam_worship', enunciado: 'Virtud distintiva de un líder de alabanza:', opcion_a: 'Rango vocal', opcion_b: 'Corazón de siervo', opcion_c: 'Carisma', opcion_d: 'Control autocrático', opcion_correcta: 'B', orden_index: 20 }
+                ];
+                for (let q of preg) await supabaseClient.from('preguntas').insert(q);
+                const { data: newC } = await supabaseClient.from('cursos').select('*'); cursos = newC || [];
+                const { data: newM } = await supabaseClient.from('modulos').select('*'); modulosList = newM || [];
+                const { data: newE } = await supabaseClient.from('examenes').select('*'); examenes = newE || [];
+                const { data: newP } = await supabaseClient.from('preguntas').select('*'); preguntas = newP || [];
         }
     } catch(e) {
         console.error("Error cargando datos:", e);
@@ -1171,7 +1197,7 @@
     }
    async function openEquiposView() {
     console.log("Abriendo vista Equipos...");
-    // Si team está vacío, intenta cargarlo de nuevo
+    
     if (!team || team.length === 0) {
         console.log("team está vacío, recargando desde Supabase");
         const { data: equipoData, error } = await supabaseClient.from('equipo').select('*');
@@ -1181,14 +1207,14 @@
             return;
         }
         team = equipoData || [];
-        // Enriquecer con subgrupo desde perfiles
+        
         for (let member of team) {
             const { data: perfil } = await supabaseClient.from('perfiles').select('grupo').eq('id', member.user_id).single();
             member.subgrupo = perfil?.grupo || 'sin grupo';
         }
     }
 
-    // Agrupar por subgrupo
+    // AEsto es pa agrupar por subgrupo jajaj suena chistoso jajaj
     const grupos = {
         'Alabanza': [],
         'Danza': [],
@@ -1250,12 +1276,237 @@
     }
     function openBackupModal() { showModal(`<h3>Importar/Exportar datos</h3><button class="btn btn-primary" style="margin: 0.5rem;" onclick="exportBackup()"><i class="fas fa-download"></i> Exportar respaldo JSON</button><button class="btn btn-primary" style="margin: 0.5rem;" onclick="importSongBookZip()"><i class="fas fa-file-archive"></i> Importar desde ZIP (.cho)</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`); }
     function exportBackup() { const data = { songs, lists, team, attendance, shifts, cursos, modulosList, examenes, preguntas }; const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `praise_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); }
-    async function importSongBookZip() { /* ... mantén tu implementación original ... */ }
-    function parseChoFile(content, filename) { /* ... */ }
-    function showImportEditModal(cancionesTemp) { /* ... */ }
-    window.saveSelectedSongs = async (cancionesTemp) => { /* ... */ };
-    function createSongObject(index, cancionesTemp) { return { /* ... */ }; }
-    async function importBackup() { /* ... */ }
+ async function importSongBookZip() {
+    
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.zip';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            const zip = await JSZip.loadAsync(file);
+            const files = Object.values(zip.files).filter(f => !f.dir && f.name.toLowerCase().endsWith('.cho'));
+            if (files.length === 0) throw new Error("No se encontraron archivos .cho en el ZIP");
+            
+            // Procesar cada archivo .cho
+            const cancionesTemp = [];
+            for (let zipFile of files) {
+                const content = await zipFile.async('text');
+                const songData = parseChoFile(content, zipFile.name);
+                cancionesTemp.push(songData);
+            }
+            
+           
+            showImportEditModal(cancionesTemp);
+        } catch (err) {
+            alert("Error al procesar el ZIP: " + err.message);
+        }
+    };
+    input.click();
+}
+
+    
+    function parseChoFile(content, filename) {
+    const lines = content.split(/\r?\n/);
+    let metadata = {};
+    let lyrics = [];
+    let inLyrics = false;
+    
+    for (let line of lines) {
+        
+        const metaMatch = line.match(/^\{(t|st|key|tempo):(.*)\}$/i);
+        if (metaMatch) {
+            const key = metaMatch[1].toLowerCase();
+            let value = metaMatch[2].trim();
+            if (key === 'tempo') value = parseInt(value) || 80;
+            metadata[key] = value;
+            continue;
+        }
+        
+        let cleanLine = line.replace(/\{[^}]*\}/g, '').trim();
+        if (cleanLine !== '' || line.trim() !== '') {
+            lyrics.push(cleanLine !== '' ? cleanLine : line.trim());
+        }
+    }
+    
+    return {
+        selected: true,
+        title: metadata.t || filename.replace(/\.cho$/i, ''),
+        category: 'Adoración',  // por defecto, el usuario puede cambiar
+        key: metadata.key || 'C',
+        bpm: metadata.tempo || 80,
+        lyrics: lyrics.join('\n'),
+        chordsData: '',
+        chordsUrl: '',
+        originalFilename: filename
+    };
+}
+
+function showImportEditModal(cancionesTemp) {
+    let html = `<h3>Revisar canciones a importar (${cancionesTemp.length})</h3>
+                <div style="max-height: 60vh; overflow-y: auto; margin-bottom: 1rem;">`;
+    
+    cancionesTemp.forEach((c, idx) => {
+        html += `
+            <div class="card" style="margin-bottom: 1rem; cursor: pointer;" onclick="toggleSongSelection(${idx})">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" id="chk_${idx}" ${c.selected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSongSelection(${idx})">
+                    <strong>${escapeHtml(c.title)}</strong> (${c.key}) - ${c.bpm} BPM
+                </div>
+                <div id="edit_${idx}" style="display: none; margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
+                    <div class="form-group"><label>Título</label><input id="title_${idx}" class="form-control" value="${escapeHtml(c.title)}"></div>
+                    <div class="form-group"><label>Categoría</label><select id="cat_${idx}" class="form-control">
+                        <option ${c.category === 'Adoración' ? 'selected' : ''}>Adoración</option>
+                        <option ${c.category === 'Exaltación' ? 'selected' : ''}>Exaltación</option>
+                        <option ${c.category === 'Júbilo' ? 'selected' : ''}>Júbilo</option>
+                    </select></div>
+                    <div class="form-group"><label>Tonalidad</label><select id="key_${idx}" class="form-control">${keys.map(k => `<option ${c.key === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>BPM</label><input id="bpm_${idx}" type="number" class="form-control" value="${c.bpm}"></div>
+                    <div class="form-group"><label>Letra (con acordes [Acorde])</label><textarea id="lyrics_${idx}" rows="4" class="form-control">${escapeHtml(c.lyrics)}</textarea></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `</div>
+             <button class="btn btn-primary" onclick="saveSelectedSongs(${JSON.stringify(cancionesTemp).replace(/"/g, '&quot;')})">Guardar seleccionadas</button>
+             <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`;
+    showModal(html);
+    
+    
+    window.toggleSongSelection = (idx) => {
+        const chk = document.getElementById(`chk_${idx}`);
+        const editDiv = document.getElementById(`edit_${idx}`);
+        chk.checked = !chk.checked;
+        if (editDiv) editDiv.style.display = chk.checked ? 'block' : 'none';
+    };
+    
+    cancionesTemp.forEach((_, idx) => {
+        const card = document.querySelector(`.card:has(#chk_${idx})`);
+        if (card) {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.form-control') || e.target.closest('select')) return;
+                toggleSongSelection(idx);
+            });
+        }
+    });
+}
+
+    window.saveSelectedSongs = async (cancionesTemp) => {
+    if (!isAdminUser) return alert("Solo administrador puede importar canciones.");
+    
+   
+    const progressModal = document.createElement('div');
+    progressModal.id = 'importProgress';
+    progressModal.className = 'modal';
+    progressModal.style.display = 'flex';
+    progressModal.innerHTML = `
+        <div class="modal-content" style="text-align: center;">
+            <h3>Importando canciones...</h3>
+            <div style="width: 100%; background: #ddd; border-radius: 10px; margin: 1rem 0;">
+                <div id="progressBarFill" style="width: 0%; height: 20px; background: var(--primary); border-radius: 10px;"></div>
+            </div>
+            <p id="progressStatus">Preparando...</p>
+        </div>
+    `;
+    document.body.appendChild(progressModal);
+    
+    let saved = 0;
+    let errors = 0;
+    let skipped = 0;
+    const totalToSave = cancionesTemp.filter((_, i) => document.getElementById(`chk_${i}`)?.checked).length;
+    
+    for (let i = 0; i < cancionesTemp.length; i++) {
+        const chk = document.getElementById(`chk_${i}`);
+        if (!chk || !chk.checked) continue;
+        
+        const title = document.getElementById(`title_${i}`).value.trim();
+        if (!title) {
+            errors++;
+            continue;
+        }
+        
+        
+        const exists = songs.some(s => s.title.toLowerCase() === title.toLowerCase());
+        if (exists) {
+            if (confirm(`La canción "${title}" ya existe. ¿Deseas sobrescribirla?`)) {
+               
+                const existingSong = songs.find(s => s.title.toLowerCase() === title.toLowerCase());
+                if (existingSong) {
+                    const category = document.getElementById(`cat_${i}`).value;
+                    const key = document.getElementById(`key_${i}`).value;
+                    const bpm = parseInt(document.getElementById(`bpm_${i}`).value) || 80;
+                    const lyrics = document.getElementById(`lyrics_${i}`).value;
+                    existingSong.title = title;
+                    existingSong.category = category;
+                    existingSong.key = key;
+                    existingSong.bpm = bpm;
+                    existingSong.lyrics = lyrics;
+                    await saveSong(existingSong);
+                    saved++;
+                } else {
+                    // Si no se encuentra (caso raro), crear nueva
+                    const success = await saveSong(createSongObject(i, cancionesTemp));
+                    if (success) saved++;
+                    else errors++;
+                }
+            } else {
+                skipped++;
+            }
+        } else {
+            const success = await saveSong(createSongObject(i, cancionesTemp));
+            if (success) saved++;
+            else errors++;
+        }
+        
+        // Actualizar barra de progreso
+        const completed = saved + errors + skipped;
+        const percent = (completed / totalToSave) * 100;
+        document.getElementById('progressBarFill').style.width = `${percent}%`;
+        document.getElementById('progressStatus').innerText = `Procesando: ${completed} de ${totalToSave} (${saved} guardadas, ${errors} errores, ${skipped} omitidas)`;
+    }
+    
+    setTimeout(() => {
+        progressModal.remove();
+        alert(`Importación finalizada:\n✅ Guardadas: ${saved}\n❌ Errores: ${errors}\n⏭️ Omitidas: ${skipped}`);
+        closeModal(); // cierra el modal de edición
+        renderCurrentView(); // refresca cancionero
+    }, 500);
+};
+
+function createSongObject(index, cancionesTemp) {
+    return {
+        id: generateUniqueId(),
+        title: document.getElementById(`title_${index}`).value.trim(),
+        category: document.getElementById(`cat_${index}`).value,
+        key: document.getElementById(`key_${index}`).value,
+        bpm: parseInt(document.getElementById(`bpm_${index}`).value) || 80,
+        lyrics: document.getElementById(`lyrics_${index}`).value,
+        chordsUrl: '',
+        chordsData: '',
+        youtube: ''
+    };
+}
+    
+    async function importBackup() {
+        const file = document.getElementById('restoreFile').files[0];
+        if (!file) return alert("Selecciona un archivo JSON");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.songs) for (let s of data.songs) await supabaseClient.from('canciones').upsert(s);
+                if (data.lists) for (let l of data.lists) await supabaseClient.from('listas').upsert(l);
+                if (data.team) for (let t of data.team) await supabaseClient.from('equipo').upsert(t);
+                alert("Importación completada");
+                await loadUserData(); renderCurrentView();
+            } catch(err) { alert("Archivo inválido"); }
+            closeModal();
+        };
+        reader.readAsText(file);
+    }
     
     //  MIEMBROS DEL EQUIPO 
    function openTeamModal() {
@@ -1416,7 +1667,6 @@
 
     //  AULA VIRTUAL 
     async function renderMoodle() {
-        // (tu código original, sin cambios)
         const container = document.getElementById('mainContent');
         document.getElementById('actionHeader').innerHTML = isAdminUser ? `<button class="btn btn-primary" onclick="openCreateCourseModal()"><i class="fas fa-plus"></i> Crear Curso</button>` : '';
         let html = '';
@@ -1460,7 +1710,6 @@ function loadExamQuestion() {
     const q = examQuestions[examCurrentIndex];
     document.getElementById('examProgressTitle').innerText = `Pregunta ${examCurrentIndex+1} de ${examQuestions.length}`;
     document.getElementById('examQuestionText').innerText = q.enunciado;
-    // Determinar opciones según tipo
     let optionsHtml = '';
     if (q.tipo === 'vf') {
         optionsHtml = `
@@ -1530,7 +1779,6 @@ function loadExamQuestion() {
     document.getElementById('examOverlay').style.display = 'none';
 }
 
-    // PERFIL DE USUARIO 
 // PERFIL DE USUARIO 
 let progressChart = null;
 async function renderUserProfile() {
@@ -1875,15 +2123,12 @@ async function saveUserProfileWithPhoto() {
     window.deleteUserById = async (userId) => {
     if (!confirm("⚠️ ¿Eliminar permanentemente este usuario? Se borrarán todos sus datos asociados (favoritos, comentarios, etc.). Esta acción no se puede deshacer.")) return;
     try {
-        // Eliminar de tablas relacionadas (opcional, pero recomendado)
         await supabaseClient.from('favoritos').delete().eq('user_id', userId);
         await supabaseClient.from('comentarios_lista').delete().eq('user_id', userId);
         await supabaseClient.from('intentos_examen').delete().eq('user_id', userId);
         await supabaseClient.from('estadisticas_usuarios').delete().eq('user_id', userId);
         await supabaseClient.from('equipo').delete().eq('user_id', userId);
-        // Finalmente eliminar el perfil (esto elimina también la autenticación si usas triggers, pero Supabase no lo hace automático)
         await supabaseClient.from('perfiles').delete().eq('id', userId);
-        // Opcional: eliminar el usuario de auth (requiere función de servidor, no se puede desde cliente)
         alert("Usuario eliminado. Recarga la página.");
         closeModal();
         await loadUserData();
@@ -1934,12 +2179,11 @@ window.moverUsuarioSubgrupo = async () => {
         alert("Usuario movido correctamente");
         closeModal();
         await loadUserData();
-        openEquiposView(); // refrescar vista
+        openEquiposView(); 
     }
 };
 
     async function adminActividades() {
-    // Cargar actividades existentes
     const { data: actividades, error } = await supabaseClient
         .from('actividades')
         .select('*')
@@ -1977,7 +2221,6 @@ window.moverUsuarioSubgrupo = async () => {
     html += `</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
     showModal(html);
 
-    // Funciones auxiliares (se definen una sola vez, pero las declaramos globales)
     window.showActividadForm = (id = null) => {
         const actividad = id ? actividades.find(a => a.id === id) : null;
         showModal(`
@@ -2373,7 +2616,7 @@ function saveQuestionFromModal(index) {
 function removeQuestion(idx) {
     if (confirm("¿Eliminar esta pregunta?")) {
         tempQuestions.splice(idx, 1);
-        // Reordenar índices
+        
         tempQuestions.forEach((q, i) => q.orden_index = i);
         renderQuestionBuilder();
     }
@@ -2522,10 +2765,9 @@ function adminTeam() {
     renderAttList();
 }
   function adminShifts() {
-    let currentDate = null; // fecha seleccionada actualmente
-    let turnosEnFecha = [];  // turnos para la fecha actual
+    let currentDate = null; 
+    let turnosEnFecha = [];  
 
-    // Función para cargar turnos de una fecha específica
     async function loadTurnosForDate(dateStr) {
         const { data, error } = await supabaseClient
             .from('turnos')
@@ -2538,12 +2780,10 @@ function adminTeam() {
         return data;
     }
 
-    // Función para renderizar el modal de gestión de una fecha
     async function showDateManagement(dateStr) {
         currentDate = dateStr;
         const turnos = await loadTurnosForDate(dateStr);
         
-        // Agrupar por subgrupo (enriqueciendo con el subgrupo desde perfiles)
         const miembrosConSubgrupo = {};
         for (let turno of turnos) {
             const memberId = turno.member_id;
@@ -2579,7 +2819,7 @@ function adminTeam() {
         showModal(html);
     }
 
-    // Función para mostrar formulario de agregar miembro
+   
     window.showAddMemberForm = async (dateStr) => {
         // Obtener miembros que NO tienen turno en esta fecha
         const turnosExistentes = await loadTurnosForDate(dateStr);
@@ -2593,7 +2833,7 @@ function adminTeam() {
             return;
         }
 
-        // Agrupar disponibles por subgrupo para mejor visualización
+    
         const porSubgrupo = {};
         for (let m of miembrosDisponibles) {
             const { data: perfil } = await supabaseClient.from('perfiles').select('grupo').eq('id', m.user_id).single();
@@ -2646,7 +2886,7 @@ function adminTeam() {
         }
     };
 
-    // Construir mapa de días con turnos para el calendario
+   
     const turnosMap = {};
     shifts.forEach(s => {
         const member = team.find(m => m.id === s.member_id);
@@ -2656,7 +2896,7 @@ function adminTeam() {
         }
     });
 
-    // Modal principal con calendario y resumen
+   
     const modalHtml = `
         <h3>📅 Gestión de Turnos por Día</h3>
         <p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p>
@@ -2691,7 +2931,7 @@ function adminTeam() {
     `;
     showModal(modalHtml);
 
-    // Inicializar calendario
+  
     flatpickr("#shiftCalendar", {
         locale: "es",
         dateFormat: "d/m/Y",
@@ -2730,7 +2970,7 @@ function adminTeam() {
     const turnosPorFecha = {};
     misTurnos.forEach(t => { turnosPorFecha[t.fecha] = true; });
 
-    // Cargar actividades
+
     const { data: actividades, error } = await supabaseClient
         .from('actividades')
         .select('*')
@@ -2747,14 +2987,14 @@ function adminTeam() {
         if (fechaAct >= hoy) proximasActividades.push(act);
     });
 
-    // Próximos turnos (desde hoy)
+    
     const proximosTurnos = misTurnos.filter(t => {
         const [dia, mes, anio] = t.fecha.split('/');
         const fechaTurno = new Date(anio, mes-1, dia);
         return fechaTurno >= hoy;
     });
 
-    // Layout con dos columnas
+ 
     let html = `
         <style>
             .custom-calendar {
@@ -2820,7 +3060,7 @@ function adminTeam() {
     `;
     showModal(html);
 
-    // Inicializar calendario con dos colores: amarillo para turnos, verde para actividades
+    
     flatpickr("#myShiftCalendar", {
         locale: "es",
         dateFormat: "d/m/Y",
