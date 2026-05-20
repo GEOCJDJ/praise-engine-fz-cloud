@@ -245,7 +245,7 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null;
     let songs = [], lists = [], team = [], attendance = [], shifts = [], modules = [], cursos = [], modulosList = [], examenes = [], preguntas = [];
-    let currentTab = 'songs', selectedListId = null, listsViewMode = 'grid';
+    let currentTab = 'home', selectedListId = null, listsViewMode = 'grid';
     let sortableInstance = null, metronomeInterval = null, adminVisible = false;
     let isAdminUser = false;
     let currentProfile = null;
@@ -645,12 +645,146 @@
     async function saveTeam(members) { if (!isAdminUser) return; team = members; await supabaseClient.from('equipo').delete().neq('id', '0'); for (let m of team) { if (!m.id) m.id = generateUniqueId(); await supabaseClient.from('equipo').insert(m); } await loadUserData(); renderCurrentView(); }
 
     // RENDER PRINCIPAL 
+    async function renderHome() {
+    // Asegurar que currentProfile esté cargado
+    if (!currentProfile) return;
+
+    // 1. Obtener el miembro del equipo actual
+    const miembro = team.find(m => m.user_id === currentUser.id);
+    const memberId = miembro?.id;
+
+    // 2. Turnos del usuario (próximos 3)
+    let proximosTurnos = [];
+    if (memberId) {
+        const misTurnos = shifts.filter(s => s.member_id === memberId);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        proximosTurnos = misTurnos
+            .filter(t => {
+                const [d,m,a] = t.fecha.split('/');
+                const fechaTurno = new Date(a, m-1, d);
+                return fechaTurno >= hoy;
+            })
+            .sort((a,b) => {
+                const da = a.fecha.split('/').reverse().join('-');
+                const db = b.fecha.split('/').reverse().join('-');
+                return new Date(da) - new Date(db);
+            })
+            .slice(0,3);
+    }
+
+    // 3. Eventos especiales próximos (actividades)
+    const { data: actividades, error: actError } = await supabaseClient
+        .from('actividades')
+        .select('*')
+        .order('fecha', { ascending: true });
+    if (actError) console.error(actError);
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+    const proximasActividades = (actividades || [])
+        .filter(a => {
+            const [d,m,año] = a.fecha.split('/');
+            const fechaAct = new Date(año, m-1, d);
+            return fechaAct >= hoy;
+        })
+        .slice(0,4);
+
+    // 4. Canción sugerida (aleatoria del cancionero)
+    let cancionSugerida = null;
+    if (songs.length > 0) {
+        const randomIndex = Math.floor(Math.random() * songs.length);
+        cancionSugerida = songs[randomIndex];
+    }
+
+    // 5. Versículo del día (array fijo, se puede ampliar)
+    const versiculos = [
+        { texto: "Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos", referencia: "Salmo 68:4" },
+        { texto: "Servid a Jehová con alegría; venid ante su presencia con regocijo", referencia: "Salmo 100:2" },
+        { texto: "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna", referencia: "Juan 3:16" },
+        { texto: "Pero la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad; porque también el Padre tales adoradores busca que le adoren", referencia: "Juan 4:23" },
+        { texto: "Así que, hermanos míos amados, estad firmes y constantes, creciendo en la obra del Señor siempre, sabiendo que vuestro trabajo en el Señor no es en vano", referencia: "1 Corintios 15:58" },
+        { texto: "Porque somos hechura suya, creados en Cristo Jesús para buenas obras, las cuales Dios preparó de antemano para que anduviésemos en ellas", referencia: "Efesios 2:10" },
+        { texto: "Y todo lo que hacéis, hacedlo de corazón, como para el Señor y no para los hombres", referencia: "Colosenses 3:23" },
+        { texto: "Alabad a Dios en su santuario; alabadle en la expansión de su poder", referencia: "Salmo 150:1" },
+        { texto: "El Señor es mi pastor; nada me faltará", referencia: "Salmo 23:1" },
+        { texto: "Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas", referencia: "Mateo 6:33" }
+    ];
+    const indexVersiculo = Math.floor(Math.random() * versiculos.length);
+    const versiculo = versiculos[indexVersiculo];
+
+    // Generar HTML del tablero
+    const html = `
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <!-- Tarjeta de bienvenida -->
+            <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div class="profile-avatar" style="background: rgba(255,255,255,0.2); width: 80px; height: 80px; margin: 0;">
+                        ${currentProfile.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<i class="fas fa-user fa-3x"></i>`}
+                    </div>
+                    <div>
+                        <h2>¡Bienvenido, ${escapeHtml(currentProfile.nombre || currentUser.email)}!</h2>
+                        <p>${new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p><strong>Rol musical:</strong> ${escapeHtml(miembro?.role || 'No asignado')} | <strong>Subgrupo:</strong> ${escapeHtml(currentProfile.grupo || 'No especificado')}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de dos columnas -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <!-- Columna izquierda: turnos y eventos -->
+                <div>
+                    <div class="card">
+                        <h3><i class="fas fa-calendar-alt"></i> Próximos turnos</h3>
+                        ${proximosTurnos.length === 0 ? '<p class="text-muted">No tienes turnos próximos. ¡Disfruta tu descanso!</p>' : 
+                            `<ul style="margin:0; padding-left:1.2rem;">${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong> ${actividades?.find(a => a.fecha === t.fecha) ? `🎉 ${escapeHtml(actividades.find(a=>a.fecha===t.fecha).titulo)}` : ''}</li>`).join('')}</ul>`
+                        }
+                    </div>
+                    <div class="card" style="margin-top: 1rem;">
+                        <h3><i class="fas fa-star-of-life"></i> Eventos especiales</h3>
+                        ${proximasActividades.length === 0 ? '<p class="text-muted">No hay actividades próximas.</p>' : 
+                            `<ul style="margin:0; padding-left:1.2rem;">${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`
+                        }
+                    </div>
+                </div>
+
+                <!-- Columna derecha: canción sugerida y versículo -->
+                <div>
+                    <div class="card">
+                        <h3><i class="fas fa-music"></i> Canción sugerida</h3>
+                        ${cancionSugerida ? `
+                            <p><strong>${escapeHtml(cancionSugerida.title)}</strong> (${cancionSugerida.key})</p>
+                            <button class="btn btn-primary" onclick="openCifraViewer('${cancionSugerida.id}', songs.findIndex(s=>s.id==='${cancionSugerida.id}'))">Ver letra/acordes</button>
+                        ` : '<p class="text-muted">No hay canciones en el cancionero aún.</p>'}
+                    </div>
+                    <div class="card" style="margin-top: 1rem; background: rgba(59,130,246,0.1);">
+                        <h3><i class="fas fa-bible"></i> Versículo del día</h3>
+                        <p style="font-style: italic; font-size: 1.1rem;">“${versiculo.texto}”</p>
+                        <p style="text-align: right;">— ${versiculo.referencia}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accesos rápidos -->
+            <div class="grid" style="margin-top: 1.5rem;">
+                <div class="card" onclick="currentTab='profile'; renderCurrentView()"><i class="fas fa-user"></i><h3>Mi perfil</h3></div>
+                <div class="card" onclick="viewMyShifts()"><i class="fas fa-calendar-alt"></i><h3>Mis turnos</h3></div>
+                <div class="card" onclick="currentTab='songs'; renderCurrentView()"><i class="fas fa-music"></i><h3>Cancionero</h3></div>
+                <div class="card" onclick="currentTab='resources'; renderCurrentView()"><i class="fas fa-tools"></i><h3>Recursos</h3></div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('actionHeader').innerHTML = ''; // sin botones extra
+}
+    
     function renderApp() {
         if (!currentUser) { renderLogin(); return; }
         document.getElementById('appRoot').innerHTML = `
             <header class="app-header">
                 <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| I.E.C. Fortaleza Sur</small></div>
                 <div class="nav-icons">
+                <div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
                     <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
                     <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
                     <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
@@ -702,6 +836,7 @@
     }
     async function renderCurrentView() {
         if (currentTab === 'songs') await renderSongsGrid();
+            else if (currentTab === 'home') renderHome();
         else if (currentTab === 'favorites') await renderFavorites();   
         else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
         else if (currentTab === 'resources') renderResources();
