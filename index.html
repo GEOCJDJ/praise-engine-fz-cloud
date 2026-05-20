@@ -517,35 +517,49 @@
     async function registrarActividad(accion, detalles = '') { if (!currentUser) return; try { await supabaseClient.from('estadisticas_usuarios').insert({ user_id: currentUser.id, accion, detalles }); } catch(e) { console.error(e); } }
     
     // CARGA DE DATOS 
-    async function loadUserData() {
-        if (!currentUser) return;
-        try {
-            const { data: s } = await supabaseClient.from('canciones').select('*'); 
-            songs = (s || []).map(song => ({ ...song, chordsUrl: song.chords_url, chordsData: song.chords_data }));
-            const { data: l } = await supabaseClient.from('listas').select('*'); lists = l || [];
-            for (let list of lists) {
-                const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
-                list.items = items || [];
-            }
-            
-           // await syncTeamWithProfiles();
-            const { data: a } = await supabaseClient.from('asistencia').select('*'); attendance = a || [];
-            const { data: sh } = await supabaseClient.from('turnos').select('*'); shifts = sh || [];
-            const { data: c } = await supabaseClient.from('cursos').select('*'); cursos = c || [];
-            const { data: m } = await supabaseClient.from('modulos').select('*'); modulosList = m || [];
-            const { data: e } = await supabaseClient.from('examenes').select('*'); examenes = e || [];
-            const { data: p } = await supabaseClient.from('preguntas').select('*'); preguntas = p || [];
-            const { data: equipoData } = await supabaseClient.from('equipo').select('*');
-team = equipoData || [];
-            if (cursos.length === 0 && isAdminUser) {
-                await supabaseClient.from('cursos').insert([{ id: 'curso_worship', titulo: 'Introducción a la Adoración Cristiana', descripcion: 'Curso completo' }]);
-                await supabaseClient.from('modulos').insert([{ id: 'mod_worship', curso_id: 'curso_worship', titulo: 'Módulo Único', orden_index: 1 }]);
-                await supabaseClient.from('examenes').insert([{ id: 'exam_worship', modulo_id: 'mod_worship', titulo: 'Evaluación Final', tiempo_por_pregunta: 15 }]);
-                // Aquí se insertarían las 20 preguntas de ejemplo; por brevedad no las repito, pero se mantienen igual que en tu original.
-            }
-        } catch(e) { console.error("Error cargando datos:", e); alert("Error al cargar datos. Recarga la página."); }
-    }
+   async function loadUserData() {
+    if (!currentUser) return;
+    try {
+        const { data: s } = await supabaseClient.from('canciones').select('*'); 
+        songs = (s || []).map(song => ({ ...song, chordsUrl: song.chords_url, chordsData: song.chords_data }));
 
+        // Cargar equipo (miembros)
+        const { data: equipoData } = await supabaseClient.from('equipo').select('*');
+        team = equipoData || [];
+
+        const { data: l } = await supabaseClient.from('listas').select('*');
+        lists = l || [];
+        for (let list of lists) {
+            const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
+            list.items = items || [];
+        }
+
+        // await syncTeamWithProfiles(); // Comentado para evitar recreación automática
+
+        const { data: a } = await supabaseClient.from('asistencia').select('*');
+        attendance = a || [];
+        const { data: sh } = await supabaseClient.from('turnos').select('*');
+        shifts = sh || [];
+        const { data: c } = await supabaseClient.from('cursos').select('*');
+        cursos = c || [];
+        const { data: m } = await supabaseClient.from('modulos').select('*');
+        modulosList = m || [];
+        const { data: e } = await supabaseClient.from('examenes').select('*');
+        examenes = e || [];
+        const { data: p } = await supabaseClient.from('preguntas').select('*');
+        preguntas = p || [];
+
+        if (cursos.length === 0 && isAdminUser) {
+            await supabaseClient.from('cursos').insert([{ id: 'curso_worship', titulo: 'Introducción a la Adoración Cristiana', descripcion: 'Curso completo' }]);
+            await supabaseClient.from('modulos').insert([{ id: 'mod_worship', curso_id: 'curso_worship', titulo: 'Módulo Único', orden_index: 1 }]);
+            await supabaseClient.from('examenes').insert([{ id: 'exam_worship', modulo_id: 'mod_worship', titulo: 'Evaluación Final', tiempo_por_pregunta: 15 }]);
+            // Aquí se insertarían las 20 preguntas de ejemplo
+        }
+    } catch(e) {
+        console.error("Error cargando datos:", e);
+        alert("Error al cargar datos. Recarga la página.");
+    }
+}
     //  FUNCIONES DE GUARDADO 
     async function saveSong(song) {
         if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return false; }
