@@ -239,6 +239,36 @@
     </div>
 
 <script>    
+    function applyTheme(tema) {
+    const root = document.documentElement;
+    switch(tema) {
+        case 'verde':
+            root.style.setProperty('--primary', '#059669');
+            root.style.setProperty('--primary-light', '#10B981');
+            root.style.setProperty('--primary-rgb', '5, 150, 105');
+            break;
+        case 'morado':
+            root.style.setProperty('--primary', '#6D28D9');
+            root.style.setProperty('--primary-light', '#8B5CF6');
+            root.style.setProperty('--primary-rgb', '109, 40, 217');
+            break;
+        case 'rosa':
+            root.style.setProperty('--primary', '#DB2777');
+            root.style.setProperty('--primary-light', '#F472B6');
+            root.style.setProperty('--primary-rgb', '219, 39, 119');
+            break;
+        case 'naranja':
+            root.style.setProperty('--primary', '#EA580C');
+            root.style.setProperty('--primary-light', '#F97316');
+            root.style.setProperty('--primary-rgb', '234, 88, 12');
+            break;
+        default:
+            root.style.setProperty('--primary', '#1E3A8A');
+            root.style.setProperty('--primary-light', '#3B82F6');
+            root.style.setProperty('--primary-rgb', '30, 58, 138');
+    }
+}
+    
     // ==================== CONFIGURACIÓN SUPABASE ====================
     const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
@@ -488,7 +518,8 @@
         if (error && error.code !== 'PGRST116') console.error(error);
         currentProfile = data || { id: currentUser.id, nombre: currentUser.email, rol: 'user', grupo: 'Otro' };
         isAdminUser = (currentProfile.rol === 'admin');
-    }
+        applyTheme(currentProfile.tema || 'default');  
+}
     async function updateProfile(updates) {
         const { error } = await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id);
         if (error) throw error;
@@ -672,136 +703,156 @@
 
     // RENDER PRINCIPAL 
     async function renderHome() {
-    // Asegurar que currentProfile esté cargado
     if (!currentProfile) return;
 
-    // 1. Obtener el miembro del equipo actual
     const miembro = team.find(m => m.user_id === currentUser.id);
     const memberId = miembro?.id;
 
-    // 2. Turnos del usuario (próximos 3)
+    // Próximos turnos (misma lógica)
     let proximosTurnos = [];
     if (memberId) {
         const misTurnos = shifts.filter(s => s.member_id === memberId);
         const hoy = new Date();
         hoy.setHours(0,0,0,0);
-        proximosTurnos = misTurnos
-            .filter(t => {
-                const [d,m,a] = t.fecha.split('/');
-                const fechaTurno = new Date(a, m-1, d);
-                return fechaTurno >= hoy;
-            })
-            .sort((a,b) => {
-                const da = a.fecha.split('/').reverse().join('-');
-                const db = b.fecha.split('/').reverse().join('-');
-                return new Date(da) - new Date(db);
-            })
-            .slice(0,3);
+        proximosTurnos = misTurnos.filter(t => {
+            const [d,m,a] = t.fecha.split('/');
+            const fechaTurno = new Date(a, m-1, d);
+            return fechaTurno >= hoy;
+        }).sort((a,b) => {
+            const da = a.fecha.split('/').reverse().join('-');
+            const db = b.fecha.split('/').reverse().join('-');
+            return new Date(da) - new Date(db);
+        }).slice(0,3);
     }
 
-    // 3. Eventos especiales próximos (actividades)
-    const { data: actividades, error: actError } = await supabaseClient
-        .from('actividades')
-        .select('*')
-        .order('fecha', { ascending: true });
-    if (actError) console.error(actError);
-    const hoy = new Date();
-    hoy.setHours(0,0,0,0);
-    const proximasActividades = (actividades || [])
-        .filter(a => {
-            const [d,m,año] = a.fecha.split('/');
-            const fechaAct = new Date(año, m-1, d);
-            return fechaAct >= hoy;
-        })
-        .slice(0,4);
+    // Actividades
+    const { data: actividades } = await supabaseClient.from('actividades').select('*').order('fecha');
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const proximasActividades = (actividades || []).filter(a => {
+        const [d,m,año] = a.fecha.split('/');
+        const fechaAct = new Date(año, m-1, d);
+        return fechaAct >= hoy;
+    }).slice(0,4);
 
-    // 4. Canción sugerida (aleatoria del cancionero)
-    let cancionSugerida = null;
-    if (songs.length > 0) {
-        const randomIndex = Math.floor(Math.random() * songs.length);
-        cancionSugerida = songs[randomIndex];
-    }
+    // Canción aleatoria
+    let cancionSugerida = songs.length ? songs[Math.floor(Math.random() * songs.length)] : null;
 
-    // 5. Versículo del día (array fijo, se puede ampliar)
+    // Versículos (los mismos)
     const versiculos = [
-        { texto: "Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos", referencia: "Salmo 68:4" },
-        { texto: "Servid a Jehová con alegría; venid ante su presencia con regocijo", referencia: "Salmo 100:2" },
-        { texto: "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna", referencia: "Juan 3:16" },
-        { texto: "Pero la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad; porque también el Padre tales adoradores busca que le adoren", referencia: "Juan 4:23" },
-        { texto: "Así que, hermanos míos amados, estad firmes y constantes, creciendo en la obra del Señor siempre, sabiendo que vuestro trabajo en el Señor no es en vano", referencia: "1 Corintios 15:58" },
-        { texto: "Porque somos hechura suya, creados en Cristo Jesús para buenas obras, las cuales Dios preparó de antemano para que anduviésemos en ellas", referencia: "Efesios 2:10" },
-        { texto: "Y todo lo que hacéis, hacedlo de corazón, como para el Señor y no para los hombres", referencia: "Colosenses 3:23" },
-        { texto: "Alabad a Dios en su santuario; alabadle en la expansión de su poder", referencia: "Salmo 150:1" },
-        { texto: "El Señor es mi pastor; nada me faltará", referencia: "Salmo 23:1" },
-        { texto: "Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas", referencia: "Mateo 6:33" }
+        { texto: "Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos", ref: "Salmo 68:4" },
+        { texto: "Servid a Jehová con alegría; venid ante su presencia con regocijo", ref: "Salmo 100:2" },
+        { texto: "Porque de tal manera amó Dios al mundo...", ref: "Juan 3:16" },
+        { texto: "Los verdaderos adoradores adorarán al Padre en espíritu y en verdad", ref: "Juan 4:23" },
+        { texto: "Vuestro trabajo en el Señor no es en vano", ref: "1 Corintios 15:58" },
+        { texto: "Somos hechura suya, creados para buenas obras", ref: "Efesios 2:10" },
+        { texto: "Hacedlo de corazón, como para el Señor", ref: "Colosenses 3:23" },
+        { texto: "Alabad a Dios en su santuario", ref: "Salmo 150:1" },
+        { texto: "El Señor es mi pastor; nada me faltará", ref: "Salmo 23:1" },
+        { texto: "Buscad primeramente el reino de Dios", ref: "Mateo 6:33" }
     ];
-    const indexVersiculo = Math.floor(Math.random() * versiculos.length);
-    const versiculo = versiculos[indexVersiculo];
+    const versiculo = versiculos[Math.floor(Math.random() * versiculos.length)];
 
-    // Generar HTML del tablero
     const html = `
+        <style>
+            .home-card {
+                transition: transform 0.2s, box-shadow 0.2s;
+                border-radius: 1.5rem !important;
+                overflow: hidden;
+            }
+            .home-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 20px 25px -12px rgba(0,0,0,0.2);
+            }
+            .gradient-welcome {
+                background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+            }
+            .gradient-turnos {
+                background: linear-gradient(135deg, #F59E0B 0%, #FCD34D 100%);
+            }
+            .gradient-eventos {
+                background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+            }
+            .gradient-cancion {
+                background: linear-gradient(135deg, #EC4899 0%, #F472B6 100%);
+            }
+            .gradient-versiculo {
+                background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+            }
+            .quick-access-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                text-align: center;
+                cursor: pointer;
+            }
+            .quick-access-card i {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+                display: inline-block;
+            }
+        </style>
+
         <div style="max-width: 1200px; margin: 0 auto;">
-            <!-- Tarjeta de bienvenida -->
-            <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
-                <div style="display: flex; align-items: center; gap: 1rem;">
+            <!-- Tarjeta de bienvenida con gradiente -->
+            <div class="card home-card gradient-welcome" style="margin-bottom: 1.5rem; color: white;">
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                     <div class="profile-avatar" style="background: rgba(255,255,255,0.2); width: 80px; height: 80px; margin: 0;">
                         ${currentProfile.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<i class="fas fa-user fa-3x"></i>`}
                     </div>
                     <div>
-                        <h2>¡Bienvenido, ${escapeHtml(currentProfile.nombre || currentUser.email)}!</h2>
-                        <p>${new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        <p><strong>Rol musical:</strong> ${escapeHtml(miembro?.role || 'No asignado')} | <strong>Subgrupo:</strong> ${escapeHtml(currentProfile.grupo || 'No especificado')}</p>
+                        <h2 style="margin:0;">¡Bienvenido, ${escapeHtml(currentProfile.nombre || currentUser.email)}!</h2>
+                        <p style="margin:0.2rem 0;">${new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p style="margin:0;"><i class="fas fa-guitar"></i> ${escapeHtml(miembro?.role || 'No asignado')} | <i class="fas fa-users"></i> ${escapeHtml(currentProfile.grupo || 'No especificado')}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Grid de dos columnas -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-                <!-- Columna izquierda: turnos y eventos -->
-                <div>
-                    <div class="card">
-                        <h3><i class="fas fa-calendar-alt"></i> Próximos turnos</h3>
-                        ${proximosTurnos.length === 0 ? '<p class="text-muted">No tienes turnos próximos. ¡Disfruta tu descanso!</p>' : 
-                            `<ul style="margin:0; padding-left:1.2rem;">${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong> ${actividades?.find(a => a.fecha === t.fecha) ? `🎉 ${escapeHtml(actividades.find(a=>a.fecha===t.fecha).titulo)}` : ''}</li>`).join('')}</ul>`
-                        }
-                    </div>
-                    <div class="card" style="margin-top: 1rem;">
-                        <h3><i class="fas fa-star-of-life"></i> Eventos especiales</h3>
-                        ${proximasActividades.length === 0 ? '<p class="text-muted">No hay actividades próximas.</p>' : 
-                            `<ul style="margin:0; padding-left:1.2rem;">${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`
-                        }
-                    </div>
+                <!-- Turnos -->
+                <div class="card home-card gradient-turnos" style="color: white;">
+                    <h3><i class="fas fa-calendar-alt"></i> 📆 Próximos turnos</h3>
+                    ${proximosTurnos.length === 0 ? '<p>✨ Sin turnos próximos. ¡Disfruta!</p>' : 
+                        `<ul style="margin:0; padding-left:1.2rem;">${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong> ${actividades?.find(a => a.fecha === t.fecha) ? `🎉 ${escapeHtml(actividades.find(a=>a.fecha===t.fecha).titulo)}` : ''}</li>`).join('')}</ul>`
+                    }
                 </div>
 
-                <!-- Columna derecha: canción sugerida y versículo -->
-                <div>
-                    <div class="card">
-                        <h3><i class="fas fa-music"></i> Canción sugerida</h3>
-                        ${cancionSugerida ? `
-                            <p><strong>${escapeHtml(cancionSugerida.title)}</strong> (${cancionSugerida.key})</p>
-                            <button class="btn btn-primary" onclick="openCifraViewer('${cancionSugerida.id}', songs.findIndex(s=>s.id==='${cancionSugerida.id}'))">Ver letra/acordes</button>
-                        ` : '<p class="text-muted">No hay canciones en el cancionero aún.</p>'}
-                    </div>
-                    <div class="card" style="margin-top: 1rem; background: rgba(59,130,246,0.1);">
-                        <h3><i class="fas fa-bible"></i> Versículo del día</h3>
-                        <p style="font-style: italic; font-size: 1.1rem;">“${versiculo.texto}”</p>
-                        <p style="text-align: right;">— ${versiculo.referencia}</p>
-                    </div>
+                <!-- Eventos -->
+                <div class="card home-card gradient-eventos" style="color: white;">
+                    <h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>
+                    ${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : 
+                        `<ul style="margin:0; padding-left:1.2rem;">${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`
+                    }
+                </div>
+
+                <!-- Canción sugerida -->
+                <div class="card home-card gradient-cancion" style="color: white;">
+                    <h3><i class="fas fa-music"></i> 🎵 Canción sugerida</h3>
+                    ${cancionSugerida ? `
+                        <p><strong>${escapeHtml(cancionSugerida.title)}</strong> (${cancionSugerida.key})</p>
+                        <button class="btn btn-primary" style="background: white; color: #EC4899; border: none;" onclick="openCifraViewer('${cancionSugerida.id}', songs.findIndex(s=>s.id==='${cancionSugerida.id}'))">Ver letra/acordes</button>
+                    ` : '<p>No hay canciones aún.</p>'}
+                </div>
+
+                <!-- Versículo -->
+                <div class="card home-card gradient-versiculo" style="color: white;">
+                    <h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3>
+                    <p style="font-style: italic; font-size: 1.1rem;">“${versiculo.texto}”</p>
+                    <p style="text-align: right;">— ${versiculo.ref}</p>
                 </div>
             </div>
 
-            <!-- Accesos rápidos -->
+            <!-- Accesos rápidos (ahora actualizan el navbar) -->
             <div class="grid" style="margin-top: 1.5rem;">
-                <div class="card" onclick="currentTab='profile'; renderCurrentView()"><i class="fas fa-user"></i><h3>Mi perfil</h3></div>
-                <div class="card" onclick="viewMyShifts()"><i class="fas fa-calendar-alt"></i><h3>Mis turnos</h3></div>
-                <div class="card" onclick="currentTab='songs'; renderCurrentView()"><i class="fas fa-music"></i><h3>Cancionero</h3></div>
-                <div class="card" onclick="currentTab='resources'; renderCurrentView()"><i class="fas fa-tools"></i><h3>Recursos</h3></div>
+                <div class="card quick-access-card" onclick="navigateTo('profile')"><i class="fas fa-user" style="color: var(--primary);"></i><h3>Mi perfil</h3></div>
+                <div class="card quick-access-card" onclick="navigateTo('myShifts')"><i class="fas fa-calendar-alt" style="color: #F59E0B;"></i><h3>Mis turnos</h3></div>
+                <div class="card quick-access-card" onclick="navigateTo('songs')"><i class="fas fa-music" style="color: #EC4899;"></i><h3>Cancionero</h3></div>
+                <div class="card quick-access-card" onclick="navigateTo('resources')"><i class="fas fa-tools" style="color: #10B981;"></i><h3>Recursos</h3></div>
             </div>
         </div>
     `;
 
     document.getElementById('mainContent').innerHTML = html;
-    document.getElementById('actionHeader').innerHTML = ''; // sin botones extra
+    document.getElementById('actionHeader').innerHTML = '';
 }
     
     function renderApp() {
@@ -871,6 +922,21 @@
         else if (currentTab === 'admin' && isAdminUser) renderAdmin();
     }
 
+    function navigateTo(tab) {
+    // Cambiar la pestaña actual
+    currentTab = tab;
+    // Actualizar la clase 'active' en los nav-items
+    document.querySelectorAll('.nav-item[data-tab]').forEach(el => {
+        if (el.dataset.tab === tab) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+    // Renderizar la vista correspondiente
+    renderCurrentView();
+}
+    
     //  CANCIONERO 
     async function renderSongsGrid() {
         let favs = [];
@@ -1890,6 +1956,15 @@ async function renderUserProfile() {
         <div class="form-group"><label>Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}"></div>
         <div class="form-group"><label>Fecha de nacimiento</label><input id="editFecha" class="form-control" type="date" value="${currentProfile.fecha_nacimiento || ''}"></div>
         <div class="form-group"><label>Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}"></div>
+        <div class="form-group"><label>🎨 Tema de color</label>
+            <select id="editTema" class="form-control">
+                <option value="default" ${currentProfile.tema === 'default' ? 'selected' : ''}>Azul (por defecto)</option>
+                <option value="verde" ${currentProfile.tema === 'verde' ? 'selected' : ''}>Verde Esmeralda</option>
+                <option value="morado" ${currentProfile.tema === 'morado' ? 'selected' : ''}>Morado Real</option>
+                <option value="rosa" ${currentProfile.tema === 'rosa' ? 'selected' : ''}>Rosa Passion</option>
+                <option value="naranja" ${currentProfile.tema === 'naranja' ? 'selected' : ''}>Naranja Atardecer</option>
+            </select>
+        </div>
         <div class="form-group"><label>Foto de perfil</label><input type="file" id="editFotoFile" accept="image/jpeg,image/png,image/jpg" class="form-control"></div>
         <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUserProfileWithPhoto()">Guardar</button></div>
     `);
@@ -1900,6 +1975,7 @@ async function saveUserProfileWithPhoto() {
     const telefono = document.getElementById('editTelefono').value;
     const fecha_nacimiento = document.getElementById('editFecha').value;
     const direccion = document.getElementById('editDireccion').value;
+    const tema = document.getElementById('editTema')?.value || 'default';
     const file = document.getElementById('editFotoFile').files[0];
     
     let foto_url = currentProfile.foto_url || '';
@@ -1917,7 +1993,7 @@ async function saveUserProfileWithPhoto() {
         }
     }
     
-    const updates = { nombre, telefono, fecha_nacimiento, direccion, foto_url };
+    const updates = { nombre, telefono, fecha_nacimiento, direccion, foto_url, tema };
     const { error } = await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id);
     if (error) alert("Error: " + error.message);
     else {
@@ -1925,8 +2001,6 @@ async function saveUserProfileWithPhoto() {
         await loadProfile();
         closeModal();
         renderUserProfile();
-        // Actualizar nombre en cabecera sin recargar toda la app
-        const userNameSpan = document.querySelector('.user-info i + span');
         renderApp();
     }
 }
