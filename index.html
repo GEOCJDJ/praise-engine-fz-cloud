@@ -1307,18 +1307,18 @@ function loadExamQuestion() {
    async function finishExam() {
     let finalScore = (examScore / examQuestions.length) * 20;
     const { error } = await supabaseClient.from('intentos_examen').insert([{ 
-        user_id: currentProfile.id,   // ← debe ser el UUID del usuario autenticado
+        user_id: currentProfile.id,   // 🔴 CAMBIO: usar currentProfile.id
         examen_id: currentExamId, 
         puntaje: finalScore.toFixed(2) 
     }]);
-    if (error) console.error("Error guardando intento:", error);
-    else {
+    if (error) {
+        alert("Error al guardar el examen: " + error.message);
+    } else {
         alert(`Examen finalizado. Puntaje: ${finalScore.toFixed(2)} / 20`);
     }
     document.getElementById('examOverlay').style.display = 'none';
     await loadUserData();
-if (currentTab === 'profile') renderUserProfile(); else renderMoodle(); 
-
+    if (currentTab === 'profile') renderUserProfile(); else renderMoodle();
 }
     function closeExam() {
     if (examTimer) clearInterval(examTimer);
@@ -1330,16 +1330,15 @@ let progressChart = null;
 async function renderUserProfile() {
     if (!currentProfile) return;
 
-    // Obtener datos del equipo (rol musical)
+    // Obtener rol musical desde equipo usando currentProfile.id
     const { data: miEquipo } = await supabaseClient
         .from('equipo')
         .select('role')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', currentProfile.id)
         .single();
     const rolMusical = miEquipo?.role || 'No asignado';
     const subgrupo = currentProfile?.grupo || 'No especificado';
 
-    // Construir HTML incluyendo rol musical y subgrupo
     const html = `
         <div class="card" style="max-width: 700px; margin: 0 auto;">
             <div class="profile-avatar" style="background: var(--primary);">
@@ -1376,14 +1375,12 @@ async function renderUserProfile() {
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('actionHeader').innerHTML = '';
 
-    // Cargar intentos de examen
-    const { data: intentos } = await supabaseClient
-    .from('intentos_examen')
-    .select('*')
-    .eq('user_id', currentProfile.id)
-    .order('fecha', { ascending: true });
-
-    console.log("Intentos de examen para", currentUser.id, intentos);
+    // 🔴 CAMBIO IMPORTANTE: usar currentProfile.id en lugar de currentUser.id
+    const { data: intentos, error } = await supabaseClient
+        .from('intentos_examen')
+        .select('*')
+        .eq('user_id', currentProfile.id)
+        .order('fecha', { ascending: true });
 
     const total = intentos?.length || 0;
     const promedio = (intentos && intentos.length) 
@@ -1397,9 +1394,22 @@ async function renderUserProfile() {
     const noExamMessage = document.getElementById('noExamMessage');
 
     if (intentos && intentos.length > 0) {
-        // Mostrar gráfico, ocultar mensaje
         chartCanvas.style.display = 'block';
         noExamMessage.style.display = 'none';
+        const fechas = intentos.map(i => new Date(i.fecha).toLocaleDateString());
+        const puntajes = intentos.map(i => parseFloat(i.puntaje));
+        const ctx = chartCanvas.getContext('2d');
+        if (progressChart) progressChart.destroy();
+        progressChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: fechas, datasets: [{ label: 'Puntaje obtenido (sobre 20)', data: puntajes, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.2, fill: true, pointBackgroundColor: '#1E3A8A' }] },
+            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, max: 20, title: { display: true, text: 'Puntaje' } }, x: { title: { display: true, text: 'Fecha del examen' } } } }
+        });
+    } else {
+        chartCanvas.style.display = 'none';
+        noExamMessage.style.display = 'block';
+    }
+}
 
         const fechas = intentos.map(i => new Date(i.fecha).toLocaleDateString());
         const puntajes = intentos.map(i => parseFloat(i.puntaje));
@@ -1640,21 +1650,43 @@ async function saveUserProfileWithPhoto() {
     html += `</div><button class="btn btn-ghost" onclick="closeModal()" style="margin-top:1rem;">Cerrar</button>`;
     showModal(html);
 }
-    window.updateUserByAdmin = async (userId) => {
-        const nombre = document.getElementById(`nombre_${userId}`).value;
-        const rol = document.getElementById(`rol_${userId}`).value;
-        const grupo = document.getElementById(`grupo_${userId}`).value;
-        const rolMusical = document.getElementById(`rolMusical_${userId}`).value;
-        const { error: perror } = await supabaseClient.from('perfiles').update({ nombre, rol, grupo }).eq('id', userId);
-        if (perror) alert("Error actualizando perfil: " + perror.message);
-        const equipoActual = team.find(m => m.user_id === userId);
-        if (equipoActual) await supabaseClient.from('equipo').update({ name: nombre, role: rolMusical }).eq('id', equipoActual.id);
-        else await ensureUserInTeam(userId, nombre);
-        await loadUserData();
-        alert("Usuario actualizado correctamente");
-        closeModal();
-        adminUserManagement();
-    };
+   window.updateUserByAdmin = async (userId) => {
+    const nombre = document.getElementById(`nombre_${userId}`).value;
+    const rol = document.getElementById(`rol_${userId}`).value;
+    const grupo = document.getElementById(`grupo_${userId}`).value;
+    const rolMusical = document.getElementById(`rolMusical_${userId}`).value;
+      const { error: perror } = await supabaseClient
+        .from('perfiles')
+        .update({ nombre, rol, grupo })
+        .eq('id', userId);
+    if (perror) alert("Error actualizando perfil: " + perror.message);
+       
+      const equipoActual = team.find(m => m.user_id === userId);
+    if (equipoActual) {
+        await supabaseClient.from('equipo').update({ name: nombre, role: rolMusical }).eq('id', equipoActual.id);
+    } else {
+        await supabaseClient.from('equipo').insert({
+            id: generateUniqueId(),
+            user_id: userId,
+            name: nombre,
+            role: rolMusical,
+            celular: '',
+            red_social: '',
+            fecha_nacimiento: '',
+            pelicula_favorita: '',
+            musica_favorita: '',
+            cantante_favorito: '',
+            grupo_favorito: '',
+            expectativas: '',
+            mejoras: '',
+            foto_url: ''
+        });
+    }
+    await loadUserData();
+    alert("Usuario actualizado correctamente");
+    closeModal();
+    adminUserManagement();
+};
     
     window.deleteUserById = async (userId) => {
     if (!confirm("⚠️ ¿Eliminar permanentemente este usuario? Se borrarán todos sus datos asociados (favoritos, comentarios, etc.). Esta acción no se puede deshacer.")) return;
