@@ -527,6 +527,7 @@
                 const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
                 list.items = items || [];
             }
+            
            // await syncTeamWithProfiles();
             const { data: a } = await supabaseClient.from('asistencia').select('*'); attendance = a || [];
             const { data: sh } = await supabaseClient.from('turnos').select('*'); shifts = sh || [];
@@ -534,6 +535,8 @@
             const { data: m } = await supabaseClient.from('modulos').select('*'); modulosList = m || [];
             const { data: e } = await supabaseClient.from('examenes').select('*'); examenes = e || [];
             const { data: p } = await supabaseClient.from('preguntas').select('*'); preguntas = p || [];
+            const { data: equipoData } = await supabaseClient.from('equipo').select('*');
+team = equipoData || [];
             if (cursos.length === 0 && isAdminUser) {
                 await supabaseClient.from('cursos').insert([{ id: 'curso_worship', titulo: 'Introducción a la Adoración Cristiana', descripcion: 'Curso completo' }]);
                 await supabaseClient.from('modulos').insert([{ id: 'mod_worship', curso_id: 'curso_worship', titulo: 'Módulo Único', orden_index: 1 }]);
