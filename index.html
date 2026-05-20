@@ -980,24 +980,37 @@ team = equipoData || [];
             <div class="card" onclick="viewShiftsCalendar()"><i class="fas fa-calendar-alt"></i><h3>Turnos</h3></div>
         </div>`;
     }
-    async function openEquiposView() {
-    // Obtener todos los miembros con sus subgrupos y roles
-    const { data: miembrosConPerfil } = await supabaseClient
-        .from('equipo')
-        .select('*, perfiles(grupo)')
-        .eq('user_id', 'not.null'); // solo los vinculados a usuarios
+   async function openEquiposView() {
+    console.log("Abriendo vista Equipos...");
+    // Si team está vacío, intenta cargarlo de nuevo
+    if (!team || team.length === 0) {
+        console.log("team está vacío, recargando desde Supabase");
+        const { data: equipoData, error } = await supabaseClient.from('equipo').select('*');
+        if (error) {
+            console.error("Error cargando equipo:", error);
+            alert("Error al cargar los equipos: " + error.message);
+            return;
+        }
+        team = equipoData || [];
+        // Enriquecer con subgrupo desde perfiles
+        for (let member of team) {
+            const { data: perfil } = await supabaseClient.from('perfiles').select('grupo').eq('id', member.user_id).single();
+            member.subgrupo = perfil?.grupo || 'sin grupo';
+        }
+    }
 
-    // Agrupar por subgrupo (tomando el grupo de perfiles)
+    // Agrupar por subgrupo
     const grupos = {
         'Alabanza': [],
         'Danza': [],
         'Producción': [],
         'Limpieza': [],
+        'Sonido': [],
         'Otro': []
     };
 
-    for (let m of miembrosConPerfil) {
-        let grupo = m.perfiles?.grupo || 'Otro';
+    for (let m of team) {
+        let grupo = m.subgrupo || 'Otro';
         if (!grupos[grupo]) grupos[grupo] = [];
         grupos[grupo].push(m);
     }
@@ -1006,7 +1019,7 @@ team = equipoData || [];
                 <div style="display: flex; flex-direction: column; gap: 1.5rem;">`;
 
     for (let [nombreGrupo, miembros] of Object.entries(grupos)) {
-        if (miembros.length === 0 && !isAdminUser) continue; // si está vacío, solo admin lo ve
+        if (miembros.length === 0 && !isAdminUser) continue;
         html += `
             <div class="card" style="padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
