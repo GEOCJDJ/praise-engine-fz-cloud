@@ -2295,50 +2295,157 @@ function adminTeam() {
     renderAttList();
 }
   function adminShifts() {
-    // Mapa de fechas a nombre de miembro para pintar el calendario
+    let currentDate = null; // fecha seleccionada actualmente
+    let turnosEnFecha = [];  // turnos para la fecha actual
+
+    // Función para cargar turnos de una fecha específica
+    async function loadTurnosForDate(dateStr) {
+        const { data, error } = await supabaseClient
+            .from('turnos')
+            .select('*, equipo(name, role, user_id)')
+            .eq('fecha', dateStr);
+        if (error) {
+            console.error(error);
+            return [];
+        }
+        return data;
+    }
+
+    // Función para renderizar el modal de gestión de una fecha
+    async function showDateManagement(dateStr) {
+        currentDate = dateStr;
+        const turnos = await loadTurnosForDate(dateStr);
+        
+        // Agrupar por subgrupo (enriqueciendo con el subgrupo desde perfiles)
+        const miembrosConSubgrupo = {};
+        for (let turno of turnos) {
+            const memberId = turno.member_id;
+            const member = team.find(m => m.id === memberId);
+            if (!member) continue;
+            // Obtener subgrupo del perfil asociado
+            const { data: perfil } = await supabaseClient.from('perfiles').select('grupo').eq('id', member.user_id).single();
+            const subgrupo = perfil?.grupo || 'Otro';
+            if (!miembrosConSubgrupo[subgrupo]) miembrosConSubgrupo[subgrupo] = [];
+            miembrosConSubgrupo[subgrupo].push({ ...turno, memberName: member.name, memberRole: member.role });
+        }
+
+        let html = `<h3>📅 Turnos del ${dateStr}</h3>`;
+        html += `<div style="margin-bottom: 1rem;">`;
+        for (let [subgrupo, lista] of Object.entries(miembrosConSubgrupo)) {
+            if (lista.length === 0) continue;
+            html += `<div class="card" style="margin-bottom: 1rem; padding: 0.8rem;">
+                        <h4>${subgrupo}</h4>`;
+            for (let item of lista) {
+                html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <div>
+                                <strong>${escapeHtml(item.memberName)}</strong> (${escapeHtml(item.memberRole)})
+                            </div>
+                            <button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}', '${dateStr}')" style="color: red;"><i class="fas fa-trash"></i></button>
+                        </div>`;
+            }
+            html += `</div>`;
+        }
+        html += `<div style="margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button>
+                    <button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button>
+                 </div>`;
+        showModal(html);
+    }
+
+    // Función para mostrar formulario de agregar miembro
+    window.showAddMemberForm = async (dateStr) => {
+        // Obtener miembros que NO tienen turno en esta fecha
+        const turnosExistentes = await loadTurnosForDate(dateStr);
+        const miembrosOcupados = turnosExistentes.map(t => t.member_id);
+        const miembrosDisponibles = team.filter(m => !miembrosOcupados.includes(m.id));
+        
+        if (miembrosDisponibles.length === 0) {
+            alert("Todos los miembros ya tienen turno asignado en esta fecha.");
+            closeModal();
+            adminShifts();
+            return;
+        }
+
+        // Agrupar disponibles por subgrupo para mejor visualización
+        const porSubgrupo = {};
+        for (let m of miembrosDisponibles) {
+            const { data: perfil } = await supabaseClient.from('perfiles').select('grupo').eq('id', m.user_id).single();
+            const subgrupo = perfil?.grupo || 'Otro';
+            if (!porSubgrupo[subgrupo]) porSubgrupo[subgrupo] = [];
+            porSubgrupo[subgrupo].push(m);
+        }
+
+        let formHtml = `<h3>Agregar miembro al turno del ${dateStr}</h3>`;
+        for (let [subgrupo, miembros] of Object.entries(porSubgrupo)) {
+            formHtml += `<div class="card" style="margin-bottom: 1rem;">
+                            <h4>${subgrupo}</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem;">`;
+            for (let m of miembros) {
+                formHtml += `
+                    <div class="team-member-card" style="cursor: pointer; padding: 0.5rem; display: flex; align-items: center; gap: 0.5rem;" onclick="confirmAddTurno('${dateStr}', '${m.id}', '${m.user_id}', '${escapeHtml(m.name)}', '${escapeHtml(m.role)}')">
+                        <div class="avatar" style="width: 40px; height: 40px; font-size: 1rem;">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
+                        <div><strong>${escapeHtml(m.name)}</strong><br><span class="card-category">${escapeHtml(m.role)}</span></div>
+                    </div>
+                `;
+            }
+            formHtml += `</div></div>`;
+        }
+        formHtml += `<div style="margin-top: 1rem; text-align: right;">
+                        <button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button>
+                    </div>`;
+        showModal(formHtml);
+    };
+
+    window.confirmAddTurno = async (dateStr, memberId, userId, memberName, memberRole) => {
+        if (confirm(`¿Asignar turno el ${dateStr} a ${memberName} (${memberRole})?`)) {
+            const { error } = await supabaseClient.from('turnos').insert([{ fecha: dateStr, member_id: memberId, user_id: userId }]);
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("Turno asignado correctamente");
+                showDateManagement(dateStr); // refrescar la vista de esa fecha
+            }
+        }
+    };
+
+    window.deleteTurnoFromDate = async (turnoId, dateStr) => {
+        if (confirm("¿Eliminar este turno?")) {
+            const { error } = await supabaseClient.from('turnos').delete().eq('id', turnoId);
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                showDateManagement(dateStr);
+            }
+        }
+    };
+
+    // Construir mapa de días con turnos para el calendario
     const turnosMap = {};
     shifts.forEach(s => {
         const member = team.find(m => m.id === s.member_id);
-        turnosMap[s.fecha] = member ? { name: member.name, role: member.role, id: member.id } : null;
+        if (member) {
+            if (!turnosMap[s.fecha]) turnosMap[s.fecha] = [];
+            turnosMap[s.fecha].push({ name: member.name, role: member.role });
+        }
     });
 
-    // Función para renderizar la lista de turnos asignados
-    const renderShiftList = () => {
-        const listContainer = document.getElementById('shiftsListContainer');
-        if (!listContainer) return;
-        if (shifts.length === 0) {
-            listContainer.innerHTML = '<p class="text-muted">No hay turnos asignados.</p>';
-            return;
-        }
-        listContainer.innerHTML = `
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.8rem;">
-                ${shifts.map(s => {
-                    const member = team.find(m => m.id === s.member_id);
-                    return `
-                        <div class="card" style="padding: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong>${escapeHtml(s.fecha)}</strong><br>
-                                <span class="card-category">${member ? escapeHtml(member.name) : 'Desconocido'}</span>
-                                <span class="card-category" style="background: var(--primary-light);">${member ? escapeHtml(member.role) : ''}</span>
-                            </div>
-                            <button class="btn-icon" onclick="deleteShiftById(${s.id})" style="color: red;"><i class="fas fa-trash"></i></button>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-    };
-
-    // Modal principal con calendario y lista de turnos
+    // Modal principal con calendario y resumen
     const modalHtml = `
-        <h3>📅 Gestión de Turnos</h3>
+        <h3>📅 Gestión de Turnos por Día</h3>
+        <p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p>
         <div class="form-group">
-            <label>Selecciona una fecha en el calendario. Los días con turno aparecen marcados en azul.</label>
             <input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha">
         </div>
-        <div style="margin-top: 1.5rem;">
-            <h4>📋 Turnos asignados</h4>
-            <div id="shiftsListContainer"></div>
+        <div style="margin-top: 1rem;">
+            <h4>📋 Resumen de turnos asignados</h4>
+            <div id="shiftsSummaryContainer" style="max-height: 300px; overflow-y: auto;">
+                ${Object.entries(turnosMap).map(([fecha, miembros]) => `
+                    <div class="card" style="margin-bottom: 0.5rem; cursor: pointer;" onclick="showDateManagement('${fecha}')">
+                        <strong>${fecha}</strong>
+                        <div>${miembros.map(m => `${m.name} (${m.role})`).join(', ')}</div>
+                    </div>
+                `).join('') || '<p class="text-muted">No hay turnos asignados aún.</p>'}
+            </div>
         </div>
         <div style="text-align: right; margin-top: 1rem;">
             <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
@@ -2360,93 +2467,13 @@ function adminTeam() {
                 dayElem.style.backgroundColor = '#3B82F6';
                 dayElem.style.color = 'white';
                 dayElem.style.borderRadius = '50%';
-                dayElem.title = `Turno: ${turnosMap[dateStr].name} (${turnosMap[dateStr].role})`;
+                dayElem.title = `Turnos: ${turnosMap[dateStr].map(m => m.name).join(', ')}`;
             }
         },
-        onChange: async (selectedDates, dateStr) => {
-            if (!dateStr) return;
-            // Verificar si ya hay turno en esa fecha
-            if (turnosMap[dateStr]) {
-                if (confirm(`Ya existe un turno para ${dateStr} (${turnosMap[dateStr].name}). ¿Deseas eliminarlo?`)) {
-                    const shiftToDelete = shifts.find(s => s.fecha === dateStr);
-                    if (shiftToDelete) await deleteShiftById(shiftToDelete.id);
-                }
-                return;
-            }
-
-            // Mostrar tarjetas de miembros para asignar turno
-            if (!team || team.length === 0) {
-                alert("No hay miembros registrados. Primero agrega miembros en 'Equipos' o 'Gestión de Usuarios'.");
-                return;
-            }
-
-            // Generar tarjetas de miembros
-            let miembrosHtml = `<h4>Selecciona un miembro para el turno del <strong>${dateStr}</strong></h4>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">`;
-            team.forEach(m => {
-               miembrosHtml += `
-    <div class="card team-member-card" style="cursor: pointer; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem;" onclick="confirmAssignShiftWithMember('${dateStr}', '${m.id}', '${m.user_id}', '${escapeHtml(m.name)}', '${escapeHtml(m.role)}')">
-     <div class="avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
-                        <div>
-                            <strong>${escapeHtml(m.name)}</strong><br>
-                            <span class="card-category" style="background: var(--primary-light);">${escapeHtml(m.role)}</span>
-                        </div>
-                    </div>
-                `;
-            });
-                 
-            miembrosHtml += `</div>
-                            <div style="margin-top: 1rem; text-align: right;">
-                                <button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cancelar</button>
-                            </div>`;
-
-            // Reemplazar contenido del modal con la selección de miembros
-            const modalContent = document.querySelector('#modal .modal-content');
-            if (modalContent) {
-                modalContent.innerHTML = miembrosHtml;
-                modalContent.style.maxHeight = '85vh';
-                modalContent.style.overflowY = 'auto';
-            }
+        onChange: (selectedDates, dateStr) => {
+            if (dateStr) showDateManagement(dateStr);
         }
     });
-
-    renderShiftList();
-
-    // Función global para confirmar asignación (desde las tarjetas)
-    window.confirmAssignShiftWithMember = async (dateStr, memberId, userId, memberName, memberRole) => {
-    if (confirm(`¿Asignar turno el ${dateStr} a ${memberName} (${memberRole})?`)) {
-        const { error } = await supabaseClient.from('turnos').insert([{ 
-            fecha: dateStr, 
-            member_id: memberId, 
-            user_id: userId 
-        }]);
-        if (error) {
-            alert("Error al asignar turno: " + error.message);
-        } else {
-            alert("Turno asignado correctamente");
-            closeModal();
-            await loadUserData();
-            adminShifts();
-        }
-    } else {
-        closeModal();
-        adminShifts();
-    }
-};
-
-    // Función para eliminar turno (ya existente, pero la reforzamos)
-    window.deleteShiftById = async (shiftId) => {
-        if (confirm("¿Eliminar este turno?")) {
-            const { error } = await supabaseClient.from('turnos').delete().eq('id', shiftId);
-            if (error) {
-                alert("Error: " + error.message);
-            } else {
-                await loadUserData();
-                closeModal();
-                adminShifts();
-            }
-        }
-    };
 }
 
     // VISOR COMO CIFRA CLUB JAJA
