@@ -2365,7 +2365,7 @@ function adminTeam() {
                                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">`;
             team.forEach(m => {
                 miembrosHtml += `
-                    <div class="card team-member-card" style="cursor: pointer; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem;" onclick="confirmAssignShiftWithMember('${dateStr}', '${m.id}', '${escapeHtml(m.name)}', '${escapeHtml(m.role)}')">
+                    <div class="card team-member-card" style="cursor: pointer; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem; max-width: 250px; width: 100%;" onclick="confirmAssignShiftWithMember('${dateStr}', '${m.id}', '${escapeHtml(m.name)}', '${escapeHtml(m.role)}')">
                         <div class="avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
                         <div>
                             <strong>${escapeHtml(m.name)}</strong><br>
@@ -2374,6 +2374,7 @@ function adminTeam() {
                     </div>
                 `;
             });
+                 
             miembrosHtml += `</div>
                             <div style="margin-top: 1rem; text-align: right;">
                                 <button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cancelar</button>
@@ -2393,21 +2394,21 @@ function adminTeam() {
 
     // Función global para confirmar asignación (desde las tarjetas)
     window.confirmAssignShiftWithMember = async (dateStr, memberId, memberName, memberRole) => {
-        if (confirm(`¿Asignar turno el ${dateStr} a ${memberName} (${memberRole})?`)) {
-            const { error } = await supabaseClient.from('turnos').insert([{ fecha: dateStr, member_id: memberId }]);
-            if (error) {
-                alert("Error al asignar turno: " + error.message);
-            } else {
-                alert("Turno asignado correctamente");
-                closeModal();
-                await loadUserData();
-                adminShifts(); // recargar la vista de turnos
-            }
+    if (confirm(`¿Asignar turno el ${dateStr} a ${memberName} (${memberRole})?`)) {
+        const { error } = await supabaseClient.from('turnos').insert([{ fecha: dateStr, member_id: memberId }]);
+        if (error) {
+            alert("Error al asignar turno: " + error.message);
         } else {
+            alert("Turno asignado correctamente");
             closeModal();
-            adminShifts();
+            await loadUserData();
+            adminShifts(); // recargar la vista de turnos
         }
-    };
+    } else {
+        closeModal();
+        adminShifts();
+    }
+};
 
     // Función para eliminar turno (ya existente, pero la reforzamos)
     window.deleteShiftById = async (shiftId) => {
