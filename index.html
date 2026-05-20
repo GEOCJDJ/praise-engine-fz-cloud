@@ -154,6 +154,26 @@
     box-shadow: 0 8px 16px rgba(0,0,0,0.1);
 }
 
+        /* Evita desbordamiento de texto en todas las tarjetas */
+.card, .team-member-card, .profile-detail-card {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+/* Para los nombres largos */
+.card-title, .team-member-card strong, .profile-detail-card p {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
+/* Para los selects y opciones */
+.option-btn, .btn, .form-control {
+    white-space: normal;
+    word-break: break-word;
+}
+        
         /* Para todas las tarjetas en general */
 .card, .team-member-card {
     word-break: break-word;
@@ -2364,9 +2384,9 @@ function adminTeam() {
             let miembrosHtml = `<h4>Selecciona un miembro para el turno del <strong>${dateStr}</strong></h4>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">`;
             team.forEach(m => {
-                miembrosHtml += `
-                    <div class="card team-member-card" style="cursor: pointer; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem; max-width: 250px; width: 100%;" onclick="confirmAssignShiftWithMember('${dateStr}', '${m.id}', '${escapeHtml(m.name)}', '${escapeHtml(m.role)}')">
-                        <div class="avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
+               miembrosHtml += `
+    <div class="card team-member-card" style="cursor: pointer; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem;" onclick="confirmAssignShiftWithMember('${dateStr}', '${m.id}', '${m.user_id}', '${escapeHtml(m.name)}', '${escapeHtml(m.role)}')">
+     <div class="avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
                         <div>
                             <strong>${escapeHtml(m.name)}</strong><br>
                             <span class="card-category" style="background: var(--primary-light);">${escapeHtml(m.role)}</span>
@@ -2393,16 +2413,20 @@ function adminTeam() {
     renderShiftList();
 
     // Función global para confirmar asignación (desde las tarjetas)
-    window.confirmAssignShiftWithMember = async (dateStr, memberId, memberName, memberRole) => {
+    window.confirmAssignShiftWithMember = async (dateStr, memberId, userId, memberName, memberRole) => {
     if (confirm(`¿Asignar turno el ${dateStr} a ${memberName} (${memberRole})?`)) {
-        const { error } = await supabaseClient.from('turnos').insert([{ fecha: dateStr, member_id: memberId }]);
+        const { error } = await supabaseClient.from('turnos').insert([{ 
+            fecha: dateStr, 
+            member_id: memberId, 
+            user_id: userId 
+        }]);
         if (error) {
             alert("Error al asignar turno: " + error.message);
         } else {
             alert("Turno asignado correctamente");
             closeModal();
             await loadUserData();
-            adminShifts(); // recargar la vista de turnos
+            adminShifts();
         }
     } else {
         closeModal();
