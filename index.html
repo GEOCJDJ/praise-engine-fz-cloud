@@ -2242,35 +2242,50 @@ function adminTeam() {
     renderAttList();
 }
   function adminShifts() {
+    // Mapa de fechas a nombre de miembro para pintar el calendario
     const turnosMap = {};
     shifts.forEach(s => {
         const member = team.find(m => m.id === s.member_id);
-        turnosMap[s.fecha] = member ? member.name : 'Desconocido';
+        turnosMap[s.fecha] = member ? { name: member.name, role: member.role, id: member.id } : null;
     });
 
+    // Función para renderizar la lista de turnos asignados
     const renderShiftList = () => {
-        const listContainer = document.getElementById('shiftsListUl');
-        if (listContainer) {
-            listContainer.innerHTML = shifts.map(s => {
-                const member = team.find(m => m.id === s.member_id);
-                return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} 
-                        <button class="btn-icon" onclick="deleteShiftById(${s.id})"><i class="fas fa-trash"></i></button></li>`;
-            }).join('') || '<li>No hay turnos asignados.</li>';
+        const listContainer = document.getElementById('shiftsListContainer');
+        if (!listContainer) return;
+        if (shifts.length === 0) {
+            listContainer.innerHTML = '<p class="text-muted">No hay turnos asignados.</p>';
+            return;
         }
+        listContainer.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.8rem;">
+                ${shifts.map(s => {
+                    const member = team.find(m => m.id === s.member_id);
+                    return `
+                        <div class="card" style="padding: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${escapeHtml(s.fecha)}</strong><br>
+                                <span class="card-category">${member ? escapeHtml(member.name) : 'Desconocido'}</span>
+                                <span class="card-category" style="background: var(--primary-light);">${member ? escapeHtml(member.role) : ''}</span>
+                            </div>
+                            <button class="btn-icon" onclick="deleteShiftById(${s.id})" style="color: red;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
     };
 
+    // Modal principal con calendario y lista de turnos
     const modalHtml = `
-        <h3>Gestión de Turnos</h3>
+        <h3>📅 Gestión de Turnos</h3>
         <div class="form-group">
-            <label>📅 Calendario – Los días con turno aparecen marcados. Haz clic en una fecha para gestionar.</label>
+            <label>Selecciona una fecha en el calendario. Los días con turno aparecen marcados en azul.</label>
             <input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha">
         </div>
-        <div style="margin-top: 1rem;">
-            <h4>Turnos asignados</h4>
-            <ul id="shiftsListUl">${shifts.map(s => {
-                const member = team.find(m => m.id === s.member_id);
-                return `<li>${s.fecha} - ${member ? escapeHtml(member.name) : 'Desconocido'} <button class="btn-icon" onclick="deleteShiftById(${s.id})"><i class="fas fa-trash"></i></button></li>`;
-            }).join('') || '<li>No hay turnos asignados.</li>'}</ul>
+        <div style="margin-top: 1.5rem;">
+            <h4>📋 Turnos asignados</h4>
+            <div id="shiftsListContainer"></div>
         </div>
         <div style="text-align: right; margin-top: 1rem;">
             <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
@@ -2278,6 +2293,7 @@ function adminTeam() {
     `;
     showModal(modalHtml);
 
+    // Inicializar calendario
     flatpickr("#shiftCalendar", {
         locale: "es",
         dateFormat: "d/m/Y",
@@ -2291,64 +2307,88 @@ function adminTeam() {
                 dayElem.style.backgroundColor = '#3B82F6';
                 dayElem.style.color = 'white';
                 dayElem.style.borderRadius = '50%';
-                dayElem.title = `Turno: ${turnosMap[dateStr]}`;
+                dayElem.title = `Turno: ${turnosMap[dateStr].name} (${turnosMap[dateStr].role})`;
             }
         },
-        onChange: (selectedDates, dateStr) => {
+        onChange: async (selectedDates, dateStr) => {
+            if (!dateStr) return;
+            // Verificar si ya hay turno en esa fecha
             if (turnosMap[dateStr]) {
-                if (confirm(`Ya existe un turno para ${dateStr} (${turnosMap[dateStr]}). ¿Deseas eliminarlo?`)) {
+                if (confirm(`Ya existe un turno para ${dateStr} (${turnosMap[dateStr].name}). ¿Deseas eliminarlo?`)) {
                     const shiftToDelete = shifts.find(s => s.fecha === dateStr);
-                    if (shiftToDelete) deleteShiftById(shiftToDelete.id);
+                    if (shiftToDelete) await deleteShiftById(shiftToDelete.id);
                 }
-            } else {
-                const memberOptions = team.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.role)})</option>`).join('');
-                const confirmHtml = `
-                    <div>
-                        <p>Asignar turno para el <strong>${dateStr}</strong></p>
-                        <select id="shiftMemberSelect" class="form-control">${memberOptions}</select>
-                        <div style="margin-top: 1rem; text-align: right;">
-                            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                            <button class="btn btn-primary" onclick="confirmAssignShift('${dateStr}')">Asignar</button>
+                return;
+            }
+
+            // Mostrar tarjetas de miembros para asignar turno
+            if (!team || team.length === 0) {
+                alert("No hay miembros registrados. Primero agrega miembros en 'Equipos' o 'Gestión de Usuarios'.");
+                return;
+            }
+
+            // Generar tarjetas de miembros
+            let miembrosHtml = `<h4>Selecciona un miembro para el turno del <strong>${dateStr}</strong></h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">`;
+            team.forEach(m => {
+                miembrosHtml += `
+                    <div class="card team-member-card" style="cursor: pointer; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem;" onclick="confirmAssignShiftWithMember('${dateStr}', '${m.id}', '${escapeHtml(m.name)}', '${escapeHtml(m.role)}')">
+                        <div class="avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
+                        <div>
+                            <strong>${escapeHtml(m.name)}</strong><br>
+                            <span class="card-category" style="background: var(--primary-light);">${escapeHtml(m.role)}</span>
                         </div>
                     </div>
                 `;
-                const modalContent = document.querySelector('#modal .modal-content');
-                if (modalContent) {
-                    modalContent.innerHTML = confirmHtml;
-                    modalContent.style.maxHeight = '85vh';
-                    modalContent.style.overflowY = 'auto';
-                }
+            });
+            miembrosHtml += `</div>
+                            <div style="margin-top: 1rem; text-align: right;">
+                                <button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cancelar</button>
+                            </div>`;
+
+            // Reemplazar contenido del modal con la selección de miembros
+            const modalContent = document.querySelector('#modal .modal-content');
+            if (modalContent) {
+                modalContent.innerHTML = miembrosHtml;
+                modalContent.style.maxHeight = '85vh';
+                modalContent.style.overflowY = 'auto';
             }
         }
     });
 
-    window.confirmAssignShift = async (dateStr) => {
-        const memberId = document.getElementById('shiftMemberSelect')?.value;
-        if (!memberId) return alert("Selecciona un miembro");
-        if (shifts.some(s => s.fecha === dateStr)) {
-            alert("Ya hay un turno en esa fecha. Elimínalo primero.");
+    renderShiftList();
+
+    // Función global para confirmar asignación (desde las tarjetas)
+    window.confirmAssignShiftWithMember = async (dateStr, memberId, memberName, memberRole) => {
+        if (confirm(`¿Asignar turno el ${dateStr} a ${memberName} (${memberRole})?`)) {
+            const { error } = await supabaseClient.from('turnos').insert([{ fecha: dateStr, member_id: memberId }]);
+            if (error) {
+                alert("Error al asignar turno: " + error.message);
+            } else {
+                alert("Turno asignado correctamente");
+                closeModal();
+                await loadUserData();
+                adminShifts(); // recargar la vista de turnos
+            }
+        } else {
             closeModal();
             adminShifts();
-            return;
         }
-        const { error } = await supabaseClient.from('turnos').insert([{ fecha: dateStr, member_id: memberId }]);
-        if (error) return alert("Error: " + error.message);
-        await loadUserData();
-        closeModal();
-        adminShifts();
     };
 
+    // Función para eliminar turno (ya existente, pero la reforzamos)
     window.deleteShiftById = async (shiftId) => {
         if (confirm("¿Eliminar este turno?")) {
             const { error } = await supabaseClient.from('turnos').delete().eq('id', shiftId);
-            if (error) return alert("Error: " + error.message);
-            await loadUserData();
-            closeModal();
-            adminShifts();
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                await loadUserData();
+                closeModal();
+                adminShifts();
+            }
         }
     };
-
-    renderShiftList();
 }
 
     // VISOR COMO CIFRA CLUB JAJA
