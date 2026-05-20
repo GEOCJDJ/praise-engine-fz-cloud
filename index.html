@@ -1326,6 +1326,7 @@ function loadExamQuestion() {
 }
 
     // PERFIL DE USUARIO 
+// PERFIL DE USUARIO 
 let progressChart = null;
 async function renderUserProfile() {
     if (!currentProfile) return;
@@ -1375,7 +1376,6 @@ async function renderUserProfile() {
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('actionHeader').innerHTML = '';
 
-    // 🔴 CAMBIO IMPORTANTE: usar currentProfile.id en lugar de currentUser.id
     const { data: intentos, error } = await supabaseClient
         .from('intentos_examen')
         .select('*')
@@ -1402,8 +1402,26 @@ async function renderUserProfile() {
         if (progressChart) progressChart.destroy();
         progressChart = new Chart(ctx, {
             type: 'line',
-            data: { labels: fechas, datasets: [{ label: 'Puntaje obtenido (sobre 20)', data: puntajes, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.2, fill: true, pointBackgroundColor: '#1E3A8A' }] },
-            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, max: 20, title: { display: true, text: 'Puntaje' } }, x: { title: { display: true, text: 'Fecha del examen' } } } }
+            data: {
+                labels: fechas,
+                datasets: [{
+                    label: 'Puntaje obtenido (sobre 20)',
+                    data: puntajes,
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    tension: 0.2,
+                    fill: true,
+                    pointBackgroundColor: '#1E3A8A'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: { beginAtZero: true, max: 20, title: { display: true, text: 'Puntaje' } },
+                    x: { title: { display: true, text: 'Fecha del examen' } }
+                }
+            }
         });
     } else {
         chartCanvas.style.display = 'none';
@@ -1438,7 +1456,7 @@ async function saveUserProfileWithPhoto() {
             const fileName = `avatars/${currentUser.id}/${Date.now()}.${fileExt}`;
             const { error: uploadError } = await supabaseClient.storage.from('PERFILES').upload(fileName, file);
             if (uploadError) throw uploadError;
-            const { data: { publicUrl } } = supabaseClient.storage.from('perfiles').getPublicUrl(fileName);
+            const { data: { publicUrl } } = supabaseClient.storage.from('PERFILES').getPublicUrl(fileName);
             foto_url = publicUrl;
         } catch (err) {
             alert("Error al subir la foto: " + err.message);
