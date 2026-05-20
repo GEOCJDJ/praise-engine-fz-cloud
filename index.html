@@ -153,6 +153,25 @@
     transform: translateY(-3px);
     box-shadow: 0 8px 16px rgba(0,0,0,0.1);
 }
+
+        /* Para todas las tarjetas en general */
+.card, .team-member-card {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+/* Para los nombres largos dentro de las tarjetas */
+.card-title, .team-member-card strong, .profile-detail-card p {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Para los selects y opciones de turnos (si es necesario) */
+.option-btn, .btn, .form-control {
+    white-space: normal;
+    word-break: break-word;
+}
         
         
     </style>
