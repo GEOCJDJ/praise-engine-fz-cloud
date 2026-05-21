@@ -554,75 +554,81 @@ window.changeAdminIglesia = async () => {
 function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
 
 async function showEstadisticas() {
-    const fechaLimite = new Date();
-    fechaLimite.setDate(fechaLimite.getDate() - 30);
-    const fechaStr = fechaLimite.toISOString();
-    
-    // Canciones más vistas
-    const { data: topSongs, error: songsError } = await supabaseClient
-        .from('estadisticas_canciones')
-        .select('song_id, count')
-        .eq('fecha', '>=', fechaStr)
-        .eq('iglesia_id', currentIglesiaId)
-        .group('song_id')
-        .order('count', { ascending: false })
-        .limit(5);
-    
-    // Listas más impresas
-    const { data: topLists, error: listsError } = await supabaseClient
-        .from('estadisticas_listas')
-        .select('lista_id, count')
-        .eq('fecha', '>=', fechaStr)
-        .eq('iglesia_id', currentIglesiaId)
-        .group('lista_id')
-        .order('count', { ascending: false })
-        .limit(5);
-    
-    // Usuarios más activos
-    const { data: topUsers, error: usersError } = await supabaseClient
-        .from('estadisticas_usuarios')
-        .select('user_id, count')
-        .eq('fecha', '>=', fechaStr)
-        .eq('iglesia_id', currentIglesiaId)
-        .group('user_id')
-        .order('count', { ascending: false })
-        .limit(5);
-    
-    let html = `<h3>📈 Estadísticas de uso (últimos 30 días)</h3>
-                <div class="card"><h4>🎵 Canciones más vistas</h4><ul>`;
-    if (topSongs && topSongs.length) {
-        for (let item of topSongs) {
-            const song = songs.find(s => s.id === item.song_id);
-            html += `<li><strong>${song ? escapeHtml(song.title) : 'Desconocida'}</strong> - ${item.count} vistas</li>`;
+    try {
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() - 30);
+        const fechaStr = fechaLimite.toISOString();
+        
+        // Canciones más vistas
+        const { data: topSongs, error: songsError } = await supabaseClient
+            .from('estadisticas_canciones')
+            .select('song_id, count')
+            .eq('fecha', '>=', fechaStr)
+            .eq('iglesia_id', currentIglesiaId)
+            .group('song_id')
+            .order('count', { ascending: false })
+            .limit(5);
+        
+        // Listas más impresas
+        const { data: topLists, error: listsError } = await supabaseClient
+            .from('estadisticas_listas')
+            .select('lista_id, count')
+            .eq('fecha', '>=', fechaStr)
+            .eq('iglesia_id', currentIglesiaId)
+            .group('lista_id')
+            .order('count', { ascending: false })
+            .limit(5);
+        
+        // Usuarios más activos
+        const { data: topUsers, error: usersError } = await supabaseClient
+            .from('estadisticas_usuarios')
+            .select('user_id, count')
+            .eq('fecha', '>=', fechaStr)
+            .eq('iglesia_id', currentIglesiaId)
+            .group('user_id')
+            .order('count', { ascending: false })
+            .limit(5);
+        
+        let html = `<h3>📈 Estadísticas de uso (últimos 30 días)</h3>`;
+        html += `<div class="card"><h4>🎵 Canciones más vistas</h4><ul>`;
+        if (topSongs && topSongs.length) {
+            for (let item of topSongs) {
+                const song = songs.find(s => s.id === item.song_id);
+                html += `<li><strong>${song ? escapeHtml(song.title) : 'Desconocida'}</strong> - ${item.count} vistas</li>`;
+            }
+        } else {
+            html += `<li>Sin datos aún</li>`;
         }
-    } else {
-        html += `<li>Sin datos aún</li>`;
-    }
-    html += `</ul></div>
-             <div class="card"><h4>📄 Listas más impresas</h4><ul>`;
-    if (topLists && topLists.length) {
-        for (let item of topLists) {
-            const lista = lists.find(l => l.id === item.lista_id);
-            html += `<li><strong>${lista ? escapeHtml(lista.name) : 'Desconocida'}</strong> - ${item.count} impresiones</li>`;
+        html += `</ul></div>`;
+        html += `<div class="card"><h4>📄 Listas más impresas</h4><ul>`;
+        if (topLists && topLists.length) {
+            for (let item of topLists) {
+                const lista = lists.find(l => l.id === item.lista_id);
+                html += `<li><strong>${lista ? escapeHtml(lista.name) : 'Desconocida'}</strong> - ${item.count} impresiones</li>`;
+            }
+        } else {
+            html += `<li>Sin datos aún</li>`;
         }
-    } else {
-        html += `<li>Sin datos aún</li>`;
-    }
-    html += `</ul></div>
-             <div class="card"><h4>👥 Usuarios más activos</h4><ul>`;
-    if (topUsers && topUsers.length) {
-        for (let item of topUsers) {
-            const { data: profile } = await supabaseClient.from('perfiles').select('nombre').eq('id', item.user_id).single();
-            html += `<li><strong>${profile ? escapeHtml(profile.nombre) : 'Usuario'}</strong> - ${item.count} acciones</li>`;
+        html += `</ul></div>`;
+        html += `<div class="card"><h4>👥 Usuarios más activos</h4><ul>`;
+        if (topUsers && topUsers.length) {
+            for (let item of topUsers) {
+                const { data: profile } = await supabaseClient.from('perfiles').select('nombre').eq('id', item.user_id).single();
+                html += `<li><strong>${profile ? escapeHtml(profile.nombre) : 'Usuario'}</strong> - ${item.count} acciones</li>`;
+            }
+        } else {
+            html += `<li>Sin datos aún</li>`;
         }
-    } else {
-        html += `<li>Sin datos aún</li>`;
+        html += `</ul></div>`;
+        html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        
+        showModal(html);
+    } catch (error) {
+        console.error("Error en estadísticas:", error);
+        alert("Error al cargar estadísticas: " + error.message);
     }
-    html += `</ul></div>
-             <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
-    showModal(html);
 }
-    
+    window.showEstadisticas = showEstadisticas;
     
 // NUEVA FUNCIÓN: adminUserManagement con selector jerárquico (departamento padre + equipo hijo)
 async function adminUserManagement() {
