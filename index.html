@@ -321,86 +321,148 @@ async function showEstadisticas() { const fechaLimite=new Date(); fechaLimite.se
 
 // NUEVA FUNCIÓN: adminUserManagement con selector jerárquico (departamento padre + equipo hijo)
 async function adminUserManagement() {
-      window.adminUserManagement = adminUserManagement;  
-    // Obtener solo los usuarios de la iglesia actual
+    if (!currentIglesiaId) {
+        alert("Primero selecciona una iglesia en el panel de administración.");
+        return;
+    }
+
+    // Obtener usuarios de la iglesia actual
     const { data: miembrosData, error } = await supabaseClient
         .from('usuarios_iglesia')
         .select('*, perfiles(nombre, email, rol)')
         .eq('iglesia_id', currentIglesiaId);
-    if (error) return alert("Error: "+error.message);
-    // miembrosData ya tiene los perfiles anidados.
-    // Estructurar departamentos jerárquicos (padres e hijos)
-    const padres = departamentos.filter(d => d.padre_id === null && d.nombre !== 'GENERAL'); // excluir GENERAL si es solo visual
-    const hijos = departamentos.filter(d => d.padre_id !== null);
-    // Mapa padre -> lista de hijos
-    const hijosPorPadre = {};
-    hijos.forEach(h => { if (!hijosPorPadre[h.padre_id]) hijosPorPadre[h.padre_id] = []; hijosPorPadre[h.padre_id].push(h); });
-    
-    let html = `<h3>📋 Gestión de Usuarios Registrados (${currentIglesiaData?.nombre})</h3><div style="display:flex;flex-direction:column;gap:1rem;">`;
+    if (error) return alert("Error: " + error.message);
+
+    // Obtener el ID del departamento GENERAL
+    const generalDepto = departamentos.find(d => d.nombre === 'GENERAL' && d.padre_id === null);
+    if (!generalDepto) {
+        alert("No se encontró el departamento GENERAL. Crea los departamentos primero.");
+        return;
+    }
+    const generalId = generalDepto.id;
+
+    // Áreas = departamentos cuyo padre_id es GENERAL (excluyendo al propio GENERAL)
+    const areas = departamentos.filter(d => d.padre_id === generalId);
+    // Equipos = departamentos que tienen padre_id distinto de null y distinto de generalId
+    const equipos = departamentos.filter(d => d.padre_id !== null && d.padre_id !== generalId);
+    // Mapa de equipos por área
+    const equiposPorArea = {};
+    equipos.forEach(e => {
+        if (!equiposPorArea[e.padre_id]) equiposPorArea[e.padre_id] = [];
+        equiposPorArea[e.padre_id].push(e);
+    });
+
+    let html = `<h3>📋 Gestión de Usuarios Registrados (${currentIglesiaData?.nombre})</h3>
+                <div style="display:flex; flex-direction:column; gap:1rem;">`;
+
     for (let m of miembrosData) {
         const perfil = m.perfiles;
         const rolMusical = m.rol_musical || 'Por asignar';
         const deptoActual = m.departamento_id || '';
-        // Determinar si el departamento actual es padre o hijo
+        // Determinar si el depto actual es un área o un equipo
         const deptoActualObj = departamentos.find(d => d.id === deptoActual);
-        const esHijo = deptoActualObj && deptoActualObj.padre_id !== null;
-        const padreActual = esHijo ? deptoActualObj.padre_id : '';
-        const hijoActual = esHijo ? deptoActualObj.id : '';
+        const esArea = deptoActualObj && deptoActualObj.padre_id === generalId;
+        const esEquipo = deptoActualObj && deptoActualObj.padre_id !== null && deptoActualObj.padre_id !== generalId;
+        const areaActual = esEquipo ? deptoActualObj.padre_id : (esArea ? deptoActual : '');
+        const equipoActual = esEquipo ? deptoActual : '';
         const esAdminIglesia = m.es_admin_iglesia || false;
         const esAdminDepto = m.es_admin_departamento || false;
+
         html += `<div class="card" style="padding:1rem;">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
                 <div style="flex:1;">
-                    <div class="form-group" style="margin:0;"><label>Nombre completo</label><input type="text" id="nombre_${m.id}" class="form-control" value="${escapeHtml(perfil?.nombre||'')}" placeholder="Nombre del usuario"></div>
+                    <div class="form-group" style="margin:0;">
+                        <label>Nombre completo</label>
+                        <input type="text" id="nombre_${m.id}" class="form-control" value="${escapeHtml(perfil?.nombre || '')}" placeholder="Nombre del usuario">
+                    </div>
                     <small>${escapeHtml(perfil?.email)}</small>
                 </div>
-                ${isAdminUser?`<button class="btn-icon" onclick="deleteUserById('${m.user_id}')" style="color:red;" title="Eliminar usuario"><i class="fas fa-trash"></i></button>`:''}
+                ${isAdminUser ? `<button class="btn-icon" onclick="deleteUserById('${m.user_id}')" style="color:red;" title="Eliminar usuario"><i class="fas fa-trash"></i></button>` : ''}
             </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.8rem;margin-top:1rem;">
-                <div class="form-group"><label>Rol en app</label><select id="rol_${m.id}" class="form-control"><option value="user" ${perfil?.rol==='user'?'selected':''}>Usuario normal</option><option value="admin" ${perfil?.rol==='admin'?'selected':''}>Administrador (global)</option></select></div>
-                <div class="form-group"><label>Departamento (Área)</label>
-                    <select id="padre_${m.id}" class="form-control" onchange="cargarHijosDepto('${m.id}')">
-                        <option value="">Sin departamento</option>
-                        ${padres.map(p => `<option value="${p.id}" ${padreActual === p.id ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('')}
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:0.8rem; margin-top:1rem;">
+                <div class="form-group">
+                    <label>Rol en app</label>
+                    <select id="rol_${m.id}" class="form-control">
+                        <option value="user" ${perfil?.rol === 'user' ? 'selected' : ''}>Usuario normal</option>
+                        <option value="admin" ${perfil?.rol === 'admin' ? 'selected' : ''}>Administrador (global)</option>
                     </select>
                 </div>
-                <div class="form-group"><label>Equipo (Subdepartamento)</label>
-                    <select id="hijo_${m.id}" class="form-control">
+                <div class="form-group">
+                    <label>Departamento (Área)</label>
+                    <select id="area_${m.id}" class="form-control" onchange="cargarEquipos('${m.id}')">
+                        <option value="">Sin área</option>
+                        ${areas.map(a => `<option value="${a.id}" ${areaActual === a.id ? 'selected' : ''}>${escapeHtml(a.nombre)}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Equipo (Subdepartamento)</label>
+                    <select id="equipo_${m.id}" class="form-control">
                         <option value="">Selecciona un equipo</option>
-                        ${padreActual && hijosPorPadre[padreActual] ? hijosPorPadre[padreActual].map(h => `<option value="${h.id}" ${hijoActual === h.id ? 'selected' : ''}>${escapeHtml(h.nombre)}</option>`).join('') : ''}
+                        ${areaActual && equiposPorArea[areaActual] ? equiposPorArea[areaActual].map(e => `<option value="${e.id}" ${equipoActual === e.id ? 'selected' : ''}>${escapeHtml(e.nombre)}</option>`).join('') : ''}
                     </select>
                 </div>
-                <div class="form-group"><label>Rol musical</label><select id="rolMusical_${m.id}" class="form-control"><option value="">Sin rol</option><option value="Voz" ${rolMusical==='Voz'?'selected':''}>Voz</option><option value="Batería" ${rolMusical==='Batería'?'selected':''}>Batería</option><option value="Bajo" ${rolMusical==='Bajo'?'selected':''}>Bajo</option><option value="Guitarra" ${rolMusical==='Guitarra'?'selected':''}>Guitarra</option><option value="Teclado" ${rolMusical==='Teclado'?'selected':''}>Teclado</option><option value="Percusión" ${rolMusical==='Percusión'?'selected':''}>Percusión</option><option value="Otro" ${rolMusical==='Otro'?'selected':''}>Otro</option></select></div>
-                <div class="form-group"><label><input type="checkbox" id="adminIglesia_${m.id}" ${esAdminIglesia?'checked':''}> Administrador de iglesia</label></div>
-                <div class="form-group"><label><input type="checkbox" id="adminDepto_${m.id}" ${esAdminDepto?'checked':''}> Administrador de departamento</label></div>
+                <div class="form-group">
+                    <label>Rol musical</label>
+                    <select id="rolMusical_${m.id}" class="form-control">
+                        <option value="">Sin rol</option>
+                        <option value="Voz" ${rolMusical === 'Voz' ? 'selected' : ''}>Voz</option>
+                        <option value="Batería" ${rolMusical === 'Batería' ? 'selected' : ''}>Batería</option>
+                        <option value="Bajo" ${rolMusical === 'Bajo' ? 'selected' : ''}>Bajo</option>
+                        <option value="Guitarra" ${rolMusical === 'Guitarra' ? 'selected' : ''}>Guitarra</option>
+                        <option value="Teclado" ${rolMusical === 'Teclado' ? 'selected' : ''}>Teclado</option>
+                        <option value="Percusión" ${rolMusical === 'Percusión' ? 'selected' : ''}>Percusión</option>
+                        <option value="Otro" ${rolMusical === 'Otro' ? 'selected' : ''}>Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="adminIglesia_${m.id}" ${esAdminIglesia ? 'checked' : ''}> Administrador de iglesia</label>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="adminDepto_${m.id}" ${esAdminDepto ? 'checked' : ''}> Administrador de departamento</label>
+                </div>
             </div>
-            <div style="margin-top:1rem;text-align:right;"><button class="btn btn-primary" onclick="updateUserByAdminNuevo('${m.id}', '${m.user_id}')">Guardar cambios</button></div>
+            <div style="margin-top:1rem; text-align:right;">
+                <button class="btn btn-primary" onclick="updateUserByAdminNuevo('${m.id}', '${m.user_id}')">Guardar cambios</button>
+            </div>
         </div>`;
-        // Registrar función global para cargar hijos
-        window[`cargarHijosDepto_${m.id}`] = function(selectId) {
-            const padreId = document.getElementById(`padre_${m.id}`).value;
-            const hijoSelect = document.getElementById(`hijo_${m.id}`);
-            if (!padreId) { hijoSelect.innerHTML = '<option value="">Selecciona un equipo</option>'; return; }
-            const hijos = (hijosPorPadre[padreId] || []);
-            hijoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + hijos.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)}</option>`).join('');
+
+        // Registrar función global para cargar equipos según el área seleccionada
+        window[`cargarEquipos_${m.id}`] = function() {
+            const areaId = document.getElementById(`area_${m.id}`).value;
+            const equipoSelect = document.getElementById(`equipo_${m.id}`);
+            if (!areaId) {
+                equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>';
+                return;
+            }
+            const equiposLista = equiposPorArea[areaId] || [];
+            equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' +
+                equiposLista.map(e => `<option value="${e.id}">${escapeHtml(e.nombre)}</option>`).join('');
         };
     }
     html += `</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
     showModal(html);
-    // Adjuntar eventos dinámicamente
+
+    // Adjuntar eventos onchange a los selectores de área
     for (let m of miembrosData) {
-        const padreSelect = document.getElementById(`padre_${m.id}`);
-        if (padreSelect) padreSelect.onchange = () => { const fn = window[`cargarHijosDepto_${m.id}`]; if (fn) fn(); };
+        const areaSelect = document.getElementById(`area_${m.id}`);
+        if (areaSelect) {
+            areaSelect.onchange = () => {
+                const fn = window[`cargarEquipos_${m.id}`];
+                if (fn) fn();
+            };
+        }
     }
-    
 }
-    window.adminUserManagement = adminUserManagement;
+
+// Asegurar que la función sea global
+window.adminUserManagement = adminUserManagement;
+    
 // Función global para actualizar usuario con departamento jerárquico
 window.updateUserByAdminNuevo = async (miembroId, userId) => {
     const nombre = document.getElementById(`nombre_${miembroId}`).value;
     const rol = document.getElementById(`rol_${miembroId}`).value;
-    const hijoId = document.getElementById(`hijo_${miembroId}`).value;
-    const departamentoId = hijoId || null; // si no seleccionó hijo, se queda null
+    const equipoId = document.getElementById(`equipo_${miembroId}`).value;
+    const departamentoId = equipoId || null; // si no seleccionó equipo, se asigna null
     const rolMusical = document.getElementById(`rolMusical_${miembroId}`).value || null;
     const esAdminIglesia = document.getElementById(`adminIglesia_${miembroId}`).checked;
     const esAdminDepto = document.getElementById(`adminDepto_${miembroId}`).checked;
