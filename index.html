@@ -269,8 +269,175 @@ function createSongObject(index,cancionesTemp) { return { id:generateUniqueId(),
 // ========== ASISTENCIA Y TURNOS ==========
 function viewAttendanceReport() { let html = `<h3>Reporte de Asistencia</h3><table style="width:100%;border-collapse:collapse;"><thead><tr><th>Fecha</th><th>Miembro</th><th>Estado</th></tr></thead><tbody>`; attendance.forEach(reg=>{ const miembro = usuariosIglesia.find(u=>u.id===reg.usuario_iglesia_id); html += `<tr><td>${reg.fecha}</td><td>${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'}</td><td>${reg.estado==='puntual'?'✅ Puntual':'⚠️ Tarde'}</td></tr>`; }); html += `</tbody></table><button class="btn btn-primary" onclick="exportAttendanceExcel()">Exportar Excel</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
 function exportAttendanceExcel() { const data = [["Fecha","Miembro","Estado"]]; attendance.forEach(reg=>{ const miembro = usuariosIglesia.find(u=>u.id===reg.usuario_iglesia_id); data.push([reg.fecha, miembro?miembro.perfiles?.nombre:'Desconocido', reg.estado]); }); const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Asistencia"); XLSX.writeFile(wb, `asistencia_${new Date().toISOString().slice(0,10)}.xlsx`); }
-async function viewMyShifts() { const miembro = usuariosIglesia.find(m=>m.user_id===currentUser.id); if(!miembro) { alert("No tienes un rol asignado en el equipo. Contacta al administrador."); return; } const misTurnos = shifts.filter(s=>s.usuario_iglesia_id===miembro.id); misTurnos.sort((a,b)=>{ const da=a.fecha.split('/').reverse().join('-'); const db=b.fecha.split('/').reverse().join('-'); return new Date(da)-new Date(db); }); const turnosPorFecha={}; misTurnos.forEach(t=>{ turnosPorFecha[t.fecha]=true; }); const { data: actividades } = await supabaseClient.from('actividades').select('*').eq('iglesia_id',currentIglesiaId).order('fecha'); const actividadesPorFecha={}; const proximasActividades=[]; const hoy=new Date(); hoy.setHours(0,0,0,0); (actividades||[]).forEach(act=>{ actividadesPorFecha[act.fecha]=true; const [dia,mes,anio]=act.fecha.split('/'); const fechaAct=new Date(anio,mes-1,dia); if(fechaAct>=hoy) proximasActividades.push(act); }); const proximosTurnos = misTurnos.filter(t=>{ const [dia,mes,anio]=t.fecha.split('/'); const fechaTurno=new Date(anio,mes-1,dia); return fechaTurno>=hoy; }); let html = `<style>.flatpickr-calendar{width:100%!important;box-shadow:none!important;border:1px solid var(--border)!important;border-radius:var(--radius-lg)!important;background:var(--surface)!important;}</style><h3>📅 Mis Turnos y Actividades</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;"><div><p><span style="background:#F59E0B;display:inline-block;width:12px;height:12px;border-radius:50%;"></span> Día con turno &nbsp;&nbsp; <span style="background:#10B981;display:inline-block;width:12px;height:12px;border-radius:50%;"></span> Día con actividad especial</p><div class="form-group"><input type="text" id="myShiftCalendar" class="form-control" placeholder="Selecciona una fecha"></div><div id="myShiftDetail" style="margin-top:1rem;display:none;"><div class="card" style="padding:1rem;"><h4 id="selectedDateTitle"></h4><div id="selectedDateInfo"></div></div></div></div><div><div class="card" style="margin-bottom:1rem;"><h4>📌 Próximos turnos</h4>${proximosTurnos.length===0?'<p class="text-muted">No tienes turnos próximos.</p>':`<ul>${proximosTurnos.map(t=>`<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`}</div><div class="card"><h4>🎉 Eventos e invitaciones próximas</h4>${proximasActividades.length===0?'<p class="text-muted">No hay actividades especiales próximas.</p>':`<ul>${proximasActividades.map(a=>`<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`}</div></div></div><div style="text-align:right;margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`; showModal(html); flatpickr("#myShiftCalendar",{locale:"es",dateFormat:"d/m/Y",inline:true,onDayCreate:(dObj,dStr,fp,dayElem)=>{ const year=dayElem.dateObj.getFullYear(); const month=String(dayElem.dateObj.getMonth()+1).padStart(2,'0'); const day=String(dayElem.dateObj.getDate()).padStart(2,'0'); const dateStr=`${day}/${month}/${year}`; if(turnosPorFecha[dateStr]){ dayElem.style.backgroundColor='#F59E0B'; dayElem.style.color='white'; dayElem.style.borderRadius='50%'; dayElem.title='Tienes turno este día'; } else if(actividadesPorFecha[dateStr]){ dayElem.style.backgroundColor='#10B981'; dayElem.style.color='white'; dayElem.style.borderRadius='50%'; dayElem.title='Hay una actividad especial este día'; } }, onChange:(selectedDates,dateStr)=>{ if(dateStr){ document.getElementById('myShiftDetail').style.display='block'; document.getElementById('selectedDateTitle').innerText=`Detalles del ${dateStr}`; let info=''; if(turnosPorFecha[dateStr]) info+='<p>✅ Tienes turno asignado.</p>'; else info+='<p>❌ No tienes turno. ¡Disfruta tu descanso!</p>'; const actividad = actividades?.find(a=>a.fecha===dateStr); if(actividad) info+=`<div style="margin-top:0.5rem;padding:0.5rem;background:rgba(16,185,129,0.1);border-radius:0.5rem;"><strong>🎉 Actividad especial:</strong> ${escapeHtml(actividad.titulo)}<br>${actividad.descripcion?escapeHtml(actividad.descripcion):''}</div>`; document.getElementById('selectedDateInfo').innerHTML=info; } else document.getElementById('myShiftDetail').style.display='none'; } }); }
-function openTuner() { showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const noteElem=document.getElementById('tunerNote'), needleElem=document.getElementById('tunerNeedle'); if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ noteElem.innerText="Sin micrófono"; return; } navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{ const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const source=audioCtx.createMediaStreamSource(stream); const analyser=audioCtx.createAnalyser(); analyser.fftSize=2048; source.connect(analyser); const bufferLength=analyser.frequencyBinCount; const dataArray=new Float32Array(bufferLength); const detectPitch=()=>{ if(!document.getElementById('tunerNote')) return; analyser.getFloatTimeDomainData(dataArray); let maxSample=0; for(let i=0;i<bufferLength;i++) if(Math.abs(dataArray[i])>maxSample) maxSample=Math.abs(dataArray[i]); if(maxSample<0.01){ requestAnimationFrame(detectPitch); return; } let autocorr=new Array(bufferLength); for(let lag=0;lag<bufferLength;lag++){ let sum=0; for(let i=0;i<bufferLength-lag;i++) sum+=dataArray[i]*dataArray[i+lag]; autocorr[lag]=sum; } let maxVal=-1, maxLag=0; for(let lag=20;lag<bufferLength/2;lag++) if(autocorr[lag]>maxVal){ maxVal=autocorr[lag]; maxLag=lag; } let freq=audioCtx.sampleRate/maxLag; let noteNum=12*Math.log2(freq/440)+69; let roundedNote=Math.round(noteNum); let cents=Math.round((noteNum-roundedNote)*100); let note=noteNames[roundedNote%12]; if(freq>50&&freq<600){ noteElem.innerText=`${note} (${cents>0?'+':''}${cents}¢)`; let percent=Math.min(100,Math.max(0,50+(cents/50)*50)); needleElem.style.width=`${percent}%`; needleElem.style.background=Math.abs(cents)<5?"#10B981":"#F59E0B"; } else { noteElem.innerText="--"; needleElem.style.width="0%"; } requestAnimationFrame(detectPitch); }; detectPitch(); }).catch(()=>{ if(noteElem) noteElem.innerText="Permiso denegado"; }); }
+async function viewMyShifts() {
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
+    if (!miembro) {
+        alert("No tienes un rol asignado en el equipo. Contacta al administrador.");
+        return;
+    }
+    const misTurnos = shifts.filter(s => s.usuario_iglesia_id === miembro.id);
+    misTurnos.sort((a,b) => {
+        const da = a.fecha.split('/').reverse().join('-');
+        const db = b.fecha.split('/').reverse().join('-');
+        return new Date(da) - new Date(db);
+    });
+    const turnosPorFecha = {};
+    misTurnos.forEach(t => { turnosPorFecha[t.fecha] = true; });
+
+    const { data: actividades } = await supabaseClient
+        .from('actividades')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('fecha');
+    const actividadesPorFecha = {};
+    const proximasActividades = [];
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+    (actividades || []).forEach(act => {
+        actividadesPorFecha[act.fecha] = true;
+        const [dia, mes, anio] = act.fecha.split('/');
+        const fechaAct = new Date(anio, mes-1, dia);
+        if (fechaAct >= hoy) proximasActividades.push(act);
+    });
+
+    const proximosTurnos = misTurnos.filter(t => {
+        const [dia, mes, anio] = t.fecha.split('/');
+        const fechaTurno = new Date(anio, mes-1, dia);
+        return fechaTurno >= hoy;
+    });
+
+    // Estilos mejorados para el modal
+    const modalStyles = `
+        <style>
+            .flatpickr-calendar {
+                width: 100% !important;
+                max-width: 350px !important;
+                margin: 0 auto !important;
+                background: var(--surface) !important;
+                border: 1px solid var(--border) !important;
+                border-radius: var(--radius-lg) !important;
+                box-shadow: none !important;
+            }
+            .flatpickr-days {
+                width: 100% !important;
+            }
+            .flatpickr-day {
+                border-radius: 50% !important;
+                margin: 2px !important;
+                width: 36px !important;
+                line-height: 36px !important;
+            }
+            @media (max-width: 600px) {
+                .flatpickr-day { width: 32px !important; line-height: 32px !important; }
+                .shift-grid {
+                    grid-template-columns: 1fr !important;
+                    gap: 1rem !important;
+                }
+            }
+            .shift-card {
+                background: var(--bg-app);
+                border-radius: var(--radius-sm);
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            .shift-list {
+                max-height: 200px;
+                overflow-y: auto;
+            }
+        </style>
+    `;
+
+    let html = modalStyles + `
+        <h3>📅 Mis Turnos y Actividades</h3>
+        <div class="shift-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Columna izquierda: Calendario y detalle -->
+            <div>
+                <p><span style="background:#F59E0B; display:inline-block; width:12px; height:12px; border-radius:50%;"></span> Día con turno &nbsp;&nbsp; 
+                   <span style="background:#10B981; display:inline-block; width:12px; height:12px; border-radius:50%;"></span> Día con actividad especial</p>
+                <div class="form-group">
+                    <input type="text" id="myShiftCalendar" class="form-control" placeholder="Selecciona una fecha">
+                </div>
+                <div id="myShiftDetail" style="margin-top: 1rem; display: none;">
+                    <div class="shift-card">
+                        <h4 id="selectedDateTitle"></h4>
+                        <div id="selectedDateInfo"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Columna derecha: Listas de próximos turnos y eventos -->
+            <div>
+                <div class="shift-card">
+                    <h4>📌 Próximos turnos</h4>
+                    <div class="shift-list">
+                        ${proximosTurnos.length === 0 ? '<p class="text-muted">No tienes turnos próximos.</p>' : 
+                            `<ul style="margin:0; padding-left:1.2rem;">${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`
+                        }
+                    </div>
+                </div>
+                <div class="shift-card">
+                    <h4>🎉 Eventos e invitaciones próximas</h4>
+                    <div class="shift-list">
+                        ${proximasActividades.length === 0 ? '<p class="text-muted">No hay actividades especiales próximas.</p>' : 
+                            `<ul style="margin:0; padding-left:1.2rem;">${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+        </div>
+    `;
+    showModal(html);
+
+    // Inicializar flatpickr con las opciones mejoradas
+    flatpickr("#myShiftCalendar", {
+        locale: "es",
+        dateFormat: "d/m/Y",
+        inline: true,
+        onDayCreate: (dObj, dStr, fp, dayElem) => {
+            const year = dayElem.dateObj.getFullYear();
+            const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
+            const dateStr = `${day}/${month}/${year}`;
+            if (turnosPorFecha[dateStr]) {
+                dayElem.style.backgroundColor = '#F59E0B';
+                dayElem.style.color = 'white';
+                dayElem.style.borderRadius = '50%';
+                dayElem.title = 'Tienes turno este día';
+            } else if (actividadesPorFecha[dateStr]) {
+                dayElem.style.backgroundColor = '#10B981';
+                dayElem.style.color = 'white';
+                dayElem.style.borderRadius = '50%';
+                dayElem.title = 'Hay una actividad especial este día';
+            }
+        },
+        onChange: (selectedDates, dateStr) => {
+            if (dateStr) {
+                document.getElementById('myShiftDetail').style.display = 'block';
+                document.getElementById('selectedDateTitle').innerText = `Detalles del ${dateStr}`;
+                let info = '';
+                if (turnosPorFecha[dateStr]) {
+                    info += '<p>✅ Tienes turno asignado.</p>';
+                } else {
+                    info += '<p>❌ No tienes turno. ¡Disfruta tu descanso!</p>';
+                }
+                const actividad = actividades?.find(a => a.fecha === dateStr);
+                if (actividad) {
+                    info += `<div style="margin-top:0.5rem; padding:0.5rem; background:rgba(16,185,129,0.1); border-radius:0.5rem;">
+                                <strong>🎉 Actividad especial:</strong> ${escapeHtml(actividad.titulo)}<br>
+                                ${actividad.descripcion ? escapeHtml(actividad.descripcion) : ''}
+                             </div>`;
+                }
+                document.getElementById('selectedDateInfo').innerHTML = info;
+            } else {
+                document.getElementById('myShiftDetail').style.display = 'none';
+            }
+        }
+    });
+}
+    
+    function openTuner() { showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const noteElem=document.getElementById('tunerNote'), needleElem=document.getElementById('tunerNeedle'); if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ noteElem.innerText="Sin micrófono"; return; } navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{ const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const source=audioCtx.createMediaStreamSource(stream); const analyser=audioCtx.createAnalyser(); analyser.fftSize=2048; source.connect(analyser); const bufferLength=analyser.frequencyBinCount; const dataArray=new Float32Array(bufferLength); const detectPitch=()=>{ if(!document.getElementById('tunerNote')) return; analyser.getFloatTimeDomainData(dataArray); let maxSample=0; for(let i=0;i<bufferLength;i++) if(Math.abs(dataArray[i])>maxSample) maxSample=Math.abs(dataArray[i]); if(maxSample<0.01){ requestAnimationFrame(detectPitch); return; } let autocorr=new Array(bufferLength); for(let lag=0;lag<bufferLength;lag++){ let sum=0; for(let i=0;i<bufferLength-lag;i++) sum+=dataArray[i]*dataArray[i+lag]; autocorr[lag]=sum; } let maxVal=-1, maxLag=0; for(let lag=20;lag<bufferLength/2;lag++) if(autocorr[lag]>maxVal){ maxVal=autocorr[lag]; maxLag=lag; } let freq=audioCtx.sampleRate/maxLag; let noteNum=12*Math.log2(freq/440)+69; let roundedNote=Math.round(noteNum); let cents=Math.round((noteNum-roundedNote)*100); let note=noteNames[roundedNote%12]; if(freq>50&&freq<600){ noteElem.innerText=`${note} (${cents>0?'+':''}${cents}¢)`; let percent=Math.min(100,Math.max(0,50+(cents/50)*50)); needleElem.style.width=`${percent}%`; needleElem.style.background=Math.abs(cents)<5?"#10B981":"#F59E0B"; } else { noteElem.innerText="--"; needleElem.style.width="0%"; } requestAnimationFrame(detectPitch); }; detectPitch(); }).catch(()=>{ if(noteElem) noteElem.innerText="Permiso denegado"; }); }
 
 // ========== AULA VIRTUAL ==========
 async function renderMoodle() { const container = document.getElementById('mainContent'); document.getElementById('actionHeader').innerHTML = (isAdminUser||isIglesiaAdmin) ? `<button class="btn btn-primary" onclick="openCreateCourseModal()"><i class="fas fa-plus"></i> Crear Curso</button>` : ''; let html = ''; const { data: misIntentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id); const totalExamenes = misIntentos?.length||0; const puntajePromedio = misIntentos&&misIntentos.length ? (misIntentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/misIntentos.length).toFixed(1) : 0; html += `<div class="card" style="margin-bottom:1rem;"><h3>📊 Mi Progreso</h3><p>Exámenes completados: ${totalExamenes}</p><p>Puntaje promedio: ${puntajePromedio} / 20</p></div>`; for(let curso of cursos){ let mods = modulosList.filter(m=>m.curso_id===curso.id); html += `<div class="card" style="margin-bottom:1rem;"><h3>${escapeHtml(curso.titulo)}</h3><p>${escapeHtml(curso.descripcion||'')}</p>`; for(let mod of mods){ let examenesMod = examenes.filter(e=>e.modulo_id===mod.id); html += `<div style="margin-top:1rem;padding-left:1rem;border-left:3px solid var(--primary-light);"><strong>${escapeHtml(mod.titulo)}</strong>`; if(mod.contenido) html += `<button class="btn btn-secondary" style="margin-left:1rem;" onclick="showModuleContent('${mod.id}')">📖 Ver Contenido del Curso</button>`; for(let ex of examenesMod){ const intento = misIntentos?.find(i=>i.examen_id===ex.id); if(intento) html += `<div style="margin-top:0.5rem;background:rgba(16,185,129,0.1);padding:0.5rem;border-radius:8px;">✅ Completado - Nota: ${intento.puntaje}/20</div>`; else html += `<button class="btn btn-primary" style="margin-top:0.5rem;" onclick="startExam('${ex.id}')">📝 Rendir Examen: ${escapeHtml(ex.titulo)}</button>`; } html += `</div>`; } if(isAdminUser||isIglesiaAdmin) html += `<button class="btn btn-secondary" style="margin-top:1rem;" onclick="openAddModuleModal('${curso.id}')">Añadir Módulo</button>`; html += `</div>`; } container.innerHTML = html||'<p>No hay cursos disponibles.</p>'; }
