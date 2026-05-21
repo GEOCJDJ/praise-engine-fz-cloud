@@ -286,8 +286,186 @@ function closeExam() { if(examTimer) clearInterval(examTimer); document.getEleme
 let progressChart = null;
 async function renderUserProfile() { if(!currentProfile) return; const miembro = usuariosIglesia.find(m=>m.user_id===currentUser.id); const rolMusical = miembro?.rol_musical || 'No asignado'; let deptoNombre = ''; if(miembro?.departamento_id) { const depto = departamentos.find(d=>d.id===miembro.departamento_id); deptoNombre = depto ? depto.nombre : 'No especificado'; } const html = `<div class="card" style="max-width:700px;margin:0 auto;"><div class="profile-avatar" style="background:var(--primary);"><i class="fas fa-user fa-3x" style="color:white;"></i></div><h2>${escapeHtml(currentProfile.nombre||currentUser.email)}</h2><p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p><p><strong>Rol en la app:</strong> ${currentProfile.rol==='admin'?'Administrador':'Usuario'}</p><p><strong>Rol musical:</strong> ${escapeHtml(rolMusical)}</p><p><strong>Departamento/Equipo:</strong> ${escapeHtml(deptoNombre)}</p><p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono||'No especificado')}</p><p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento||'No especificada'}</p><p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion||'No especificada')}</p><hr><h3>📊 Estadísticas de aprendizaje</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;"><div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div><div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div></div><div id="chartContainer" style="margin:1rem 0;"><canvas id="progressChartCanvas" style="max-height:300px;width:100%;display:none;"></canvas><p id="noExamMessage" class="text-muted" style="text-align:center;display:none;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p></div><button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button></div>`; document.getElementById('mainContent').innerHTML=html; document.getElementById('actionHeader').innerHTML=''; const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).order('fecha',{ascending:true}); const total=intentos?.length||0; const promedio=(intentos&&intentos.length)?(intentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/intentos.length).toFixed(1):0; document.getElementById('statExamenes').innerText=total; document.getElementById('statPromedio').innerText=`${promedio}/20`; const chartCanvas=document.getElementById('progressChartCanvas'); const noExamMessage=document.getElementById('noExamMessage'); if(intentos&&intentos.length>0){ chartCanvas.style.display='block'; noExamMessage.style.display='none'; const fechas=intentos.map(i=>new Date(i.fecha).toLocaleDateString()); const puntajes=intentos.map(i=>parseFloat(i.puntaje)); const ctx=chartCanvas.getContext('2d'); if(progressChart) progressChart.destroy(); progressChart=new Chart(ctx,{type:'line',data:{labels:fechas,datasets:[{label:'Puntaje obtenido (sobre 20)',data:puntajes,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.2,fill:true,pointBackgroundColor:'#1E3A8A'}]},options:{responsive:true,maintainAspectRatio:true,scales:{y:{beginAtZero:true,max:20,title:{display:true,text:'Puntaje'}},x:{title:{display:true,text:'Fecha del examen'}}}} }); } else { chartCanvas.style.display='none'; noExamMessage.style.display='block'; } }
 function editUserProfile() { showModal(`<h3>Editar perfil</h3><div class="form-group"><label>Nombre completo</label><input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre||'')}"></div><div class="form-group"><label>Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono||'')}"></div><div class="form-group"><label>Fecha de nacimiento</label><input id="editFecha" class="form-control" type="date" value="${currentProfile.fecha_nacimiento||''}"></div><div class="form-group"><label>Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion||'')}"></div><div class="form-group"><label>🎨 Tema de color</label><select id="editTema" class="form-control"><option value="default" ${currentProfile.tema==='default'?'selected':''}>Azul (por defecto)</option><option value="verde" ${currentProfile.tema==='verde'?'selected':''}>Verde Esmeralda</option><option value="morado" ${currentProfile.tema==='morado'?'selected':''}>Morado Real</option><option value="rosa" ${currentProfile.tema==='rosa'?'selected':''}>Rosa Passion</option><option value="naranja" ${currentProfile.tema==='naranja'?'selected':''}>Naranja Atardecer</option></select></div><div class="form-group"><label>Foto de perfil</label><input type="file" id="editFotoFile" accept="image/jpeg,image/png,image/jpg" class="form-control"></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUserProfileWithPhoto()">Guardar</button></div>`); }
-async function saveUserProfileWithPhoto() { const nombre=document.getElementById('editNombre').value; const telefono=document.getElementById('editTelefono').value; const fecha_nacimiento=document.getElementById('editFecha').value; const direccion=document.getElementById('editDireccion').value; const tema=document.getElementById('editTema')?.value||'default'; const file=document.getElementById('editFotoFile').files[0]; let foto_url=currentProfile.foto_url||''; if(file){ try{ const fileExt=file.name.split('.').pop(); const fileName=`avatars/${currentUser.id}/${Date.now()}.${fileExt}`; const {error:uploadError}=await supabaseClient.storage.from('PERFILES').upload(fileName,file); if(uploadError) throw uploadError; const {data:{publicUrl}}=supabaseClient.storage.from('PERFILES').getPublicUrl(fileName); foto_url=publicUrl; } catch(err){ alert("Error al subir la foto: "+err.message); return; } } const updates={ nombre, telefono, fecha_nacimiento, direccion, foto_url, tema }; const {error}=await supabaseClient.from('perfiles').update(updates).eq('id',currentUser.id); if(error) alert("Error: "+error.message); else{ alert("Perfil actualizado"); await loadProfile(); closeModal(); renderUserProfile(); renderApp(); } }
+async function adminUserManagement() {
+    // Hace que la función sea accesible de forma global por los botones HTML
+    window.adminUserManagement = adminUserManagement;
 
+    if (!currentUser) return;
+    showLoading();
+
+    try {
+        // 1. Obtener todos los perfiles de la base de datos
+        const { data: profiles, error: profError } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .order('full_name', { ascending: true });
+
+        if (profError) throw profError;
+
+        // 2. Obtener departamentos musicales para la asignación
+        const { data: deptos, error: deptError } = await supabaseClient
+            .from('departamentos')
+            .select('*')
+            .order('nombre', { ascending: true });
+
+        if (deptError) throw deptError;
+
+        // Construir la interfaz del Panel de Gestión de Usuarios
+        let html = `
+            <div class="p-4 max-w-7xl mx-auto animate-fade-in">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-primary"></i> Gestión de Usuarios
+                        </h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Administra los roles, departamentos e iglesias asignadas al equipo musical.</p>
+                    </div>
+                    <button class="btn btn-secondary flex items-center gap-2" onclick="renderAdminPanel()">
+                        <i class="fa-solid fa-arrow-left"></i> Volver al Panel
+                    </button>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase track-wider">
+                                    <th class="p-4">Usuario</th>
+                                    <th class="p-4">Contacto</th>
+                                    <th class="p-4">Rol en la App</th>
+                                    <th class="p-4">Departamento / Instrumento</th>
+                                    <th class="p-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
+        `;
+
+        if (!profiles || profiles.length === 0) {
+            html += `
+                <tr>
+                    <td colspan="5" class="p-8 text-center text-slate-400 dark:text-slate-500">
+                        <i class="fa-solid fa-user-slash text-3xl mb-2 block"></i> No hay usuarios registrados.
+                    </td>
+                </tr>
+            `;
+        } else {
+            profiles.forEach(p => {
+                // Obtener URL de avatar de forma segura usando la sintaxis corregida de la V2
+                let avatarUrl = 'https://via.placeholder.com/150';
+                if (p.avatar_url) {
+                    if (p.avatar_url.startsWith('http')) {
+                        avatarUrl = p.avatar_url;
+                    } else {
+                        const { data: urlData } = supabaseClient.storage.from('PERFILES').getPublicUrl(p.avatar_url);
+                        if (urlData && urlData.publicUrl) {
+                            avatarUrl = urlData.publicUrl;
+                        }
+                    }
+                }
+
+                html += `
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors">
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <img src="${avatarUrl}" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-600">
+                                <div>
+                                    <div class="font-semibold text-slate-800 dark:text-white">${p.full_name || 'Sin Nombre'}</div>
+                                    <div class="text-xs text-slate-400 dark:text-slate-500">ID: ${p.id.substring(0,8)}...</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <div class="text-slate-600 dark:text-slate-300 flex flex-col gap-0.5">
+                                <span class="flex items-center gap-1.5"><i class="fa-regular fa-envelope text-xs opacity-70"></i> ${p.email || 'N/A'}</span>
+                                <span class="flex items-center gap-1.5"><i class="fa-solid fa-phone text-xs opacity-70"></i> ${p.phone || 'N/A'}</span>
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <select id="role_${p.id}" class="select select-sm w-full max-w-[150px]" onchange="updateUserRoleInDB('${p.id}')">
+                                <option value="user" ${p.role === 'user' ? 'selected' : ''}>Usuario / Músico</option>
+                                <option value="leader" ${p.role === 'leader' ? 'selected' : ''}>Líder Departamento</option>
+                                <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Administrador G-Praise</option>
+                            </select>
+                        </td>
+                        <td class="p-4">
+                            <div class="flex flex-col gap-2">
+                                <select id="depto_${p.id}" class="select select-sm w-full" onchange="window['cargarHijosDepto_${p.id}'](this.value)">
+                                    <option value="">-- Seleccionar Área --</option>
+                                    ${deptos.map(d => `<option value="${d.id}" ${p.departamento_id == d.id ? 'selected' : ''}>${d.nombre}</option>`).join('')}
+                                </select>
+                                <select id="subdepto_${p.id}" class="select select-sm w-full ${p.departamento_id ? '' : 'hidden'}">
+                                    <option value="">-- Seleccionar Instrumento --</option>
+                                </select>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <button class="btn btn-primary btn-sm flex items-center gap-1 mx-auto" onclick="saveUserManagementChanges('${p.id}')">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+                // Inyectar la función dinámica de subdepartamentos en el objeto global de forma segura
+                window[`cargarHijosDepto_${p.id}`] = async function(deptoId) {
+                    const subSelect = document.getElementById(`subdepto_${p.id}`);
+                    if (!deptoId) {
+                        subSelect.classList.add('hidden');
+                        subSelect.innerHTML = '<option value="">-- Seleccionar Instrumento --</option>';
+                        return;
+                    }
+                    try {
+                        const { data: subdeptos } = await supabaseClient
+                            .from('subdepartamentos')
+                            .select('*')
+                            .eq('departamento_id', deptoId)
+                            .order('nombre', { ascending: true });
+
+                        subSelect.innerHTML = '<option value="">-- Seleccionar Instrumento --</option>';
+                        if (subdeptos && subdeptos.length > 0) {
+                            subdeptos.forEach(sd => {
+                                const selected = p.subdepartamento_id == sd.id ? 'selected' : '';
+                                subSelect.innerHTML += `<option value="${sd.id}" ${selected}>${sd.nombre}</option>`;
+                            });
+                            subSelect.classList.remove('hidden');
+                        } else {
+                            subSelect.classList.add('hidden');
+                        }
+                    } catch (err) {
+                        console.error("Error al cargar instrumentos:", err);
+                    }
+                };
+
+                // Auto-ejecutar la carga del instrumento asignado si ya tiene un departamento configurado
+                setTimeout(() => {
+                    if (p.departamento_id) {
+                        window[`cargarHijosDepto_${p.id}`](p.departamento_id);
+                    }
+                }, 50);
+            });
+        }
+
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('mainContent').innerHTML = html;
+
+    } catch (error) {
+        console.error("Error en Gestión de Usuarios:", error);
+        alert("No se pudo cargar el panel de usuarios: " + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// Vincula inmediatamente la función al objeto Window al compilar el script
+window.adminUserManagement = adminUserManagement;
+    
 // ========== ADMINISTRACIÓN CON SELECTOR DE IGLESIAS Y DEPARTAMENTO JERÁRQUICO ==========
 function renderAdmin() {
     if (!isAdminUser && !isIglesiaAdmin) { document.getElementById('mainContent').innerHTML = '<p>No tienes permisos de administrador.</p>'; return; }
