@@ -268,36 +268,30 @@
             root.style.setProperty('--primary-rgb', '30, 58, 138');
     }
 }
+    
     // ==================== CONFIGURACIÓN SUPABASE ====================
-const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUser = null;
-let currentIglesiaId = null;          // NUEVO: id de la iglesia del usuario
-let currentIglesiaData = null;        // NUEVO: datos de la iglesia
-let currentUserIglesia = null;        // NUEVO: registro en usuarios_iglesia
-let songs = [], lists = [], attendance = [], shifts = [], modules = [], cursos = [], modulosList = [], examenes = [], preguntas = [];
-let departamentos = [];               // NUEVO: lista de departamentos de la iglesia
-let usuariosIglesia = [];             // NUEVO: miembros con su rol y departamento
-let currentTab = 'home', selectedListId = null, listsViewMode = 'grid';
-let sortableInstance = null, metronomeInterval = null, adminVisible = false;
-let isAdminUser = false;               // admin general (email emilychuncha@gmail.com)
-let isIglesiaAdmin = false;            // NUEVO: admin de la iglesia
-let isDeptAdmin = false;               // NUEVO: admin de algún departamento
-let currentProfile = null;
-const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
-const noteMap = { 'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11 };
-const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-let cifraCurrentSong = null;
-let cifraOriginalLyrics = "";
-let cifraSemitonesShift = 0;
-let cifraScrollInterval = null;
-let cifraScrollSpeed = 35;
-let cifraFontSize = 18;
-let cifraMetroInterval = null;
-let cifraMetroRunning = false;
-let currentSongIndex = -1;
-let examQuestions = [], examCurrentIndex = 0, examScore = 0, examTimer = null, examTimeLeft = 0, currentExamId = null, selectedOption = null;
+    const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let currentUser = null;
+    let songs = [], lists = [], team = [], attendance = [], shifts = [], modules = [], cursos = [], modulosList = [], examenes = [], preguntas = [];
+    let currentTab = 'home', selectedListId = null, listsViewMode = 'grid';
+    let sortableInstance = null, metronomeInterval = null, adminVisible = false;
+    let isAdminUser = false;
+    let currentProfile = null;
+    const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
+    const noteMap = { 'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11 };
+    const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    let cifraCurrentSong = null;
+    let cifraOriginalLyrics = "";
+    let cifraSemitonesShift = 0;
+    let cifraScrollInterval = null;
+    let cifraScrollSpeed = 35;
+    let cifraFontSize = 18;
+    let cifraMetroInterval = null;
+    let cifraMetroRunning = false;
+    let currentSongIndex = -1;
+    let examQuestions = [], examCurrentIndex = 0, examScore = 0, examTimer = null, examTimeLeft = 0, currentExamId = null, selectedOption = null;
 
     // ==================== FUNCIONES AUXILIARES ====================
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
@@ -506,77 +500,41 @@ let examQuestions = [], examCurrentIndex = 0, examScore = 0, examTimer = null, e
         }
     }
 
-   // ==================== AUTENTICACIÓN Y PERFIL (MODIFICADO) ====================
-async function login(email, password) {
-    try {
-        const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        currentUser = data.user;
-        await loadProfile();
-        await loadUserIglesia();     // NUEVO: carga la iglesia del usuario
-        await loadUserData();
-        renderApp();
+    //  AUTENTICACIÓN Y PERFIL 
+    async function login(email, password) {
+        try {
+            const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            currentUser = data.user;
+            await loadProfile();
+            await loadUserData();
+            renderApp();
+        } catch (err) { alert("Error al iniciar sesión: " + err.message); }
         registrarActividad('login', email);
-    } catch (err) { alert("Error al iniciar sesión: " + err.message); }
-}
-
-async function loadProfile() {
-    if (!currentUser) return;
-    const { data, error } = await supabaseClient.from('perfiles').select('*').eq('id', currentUser.id).single();
-    if (error && error.code !== 'PGRST116') console.error(error);
-    currentProfile = data || { id: currentUser.id, nombre: currentUser.email, rol: 'user' };
-    // Determinar si es admin general (hardcodeado)
-    isAdminUser = (currentUser.email === 'emilychuncha@gmail.com');
-}
-
-async function loadUserIglesia() {
-    // Obtener el registro en usuarios_iglesia para este usuario (asumimos que pertenece a una sola iglesia, la primera)
-    const { data, error } = await supabaseClient
-        .from('usuarios_iglesia')
-        .select('*, iglesias(*)')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
-    if (error) {
-        console.error(error);
-        currentIglesiaId = null;
-        currentUserIglesia = null;
-        return;
     }
-    currentUserIglesia = data;
-    if (data) {
-        currentIglesiaId = data.iglesia_id;
-        currentIglesiaData = data.iglesias;
-        isIglesiaAdmin = data.es_admin_iglesia || false;
-        isDeptAdmin = data.es_admin_departamento || false;
-    } else {
-        // Si no tiene iglesia asignada (ej. admin general), se le permite seleccionar después
-        currentIglesiaId = null;
-        isIglesiaAdmin = false;
-        isDeptAdmin = false;
-    }
+    async function loadProfile() {
+        if (!currentUser) return;
+        const { data, error } = await supabaseClient.from('perfiles').select('*').eq('id', currentUser.id).single();
+        if (error && error.code !== 'PGRST116') console.error(error);
+        currentProfile = data || { id: currentUser.id, nombre: currentUser.email, rol: 'user', grupo: 'Otro' };
+        isAdminUser = (currentProfile.rol === 'admin');
+        applyTheme(currentProfile.tema || 'default');  
 }
-
-async function updateProfile(updates) {
-    const { error } = await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id);
-    if (error) throw error;
-    await loadProfile();
-    alert("Perfil actualizado");
-}
-async function resetPassword(email) {
-    try {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+    async function updateProfile(updates) {
+        const { error } = await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id);
         if (error) throw error;
-        alert("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
-    } catch(err) { alert("Error: " + err.message); }
-}
-async function logout() { await supabaseClient.auth.signOut(); currentUser = null; renderLogin(); }
-
-function renderRegister() {
-    // NUEVO: cargar iglesias para el selector
-    (async () => {
-        const { data: iglesiasList, error } = await supabaseClient.from('iglesias').select('id, nombre');
-        if (error) console.error(error);
-        const options = (iglesiasList || []).map(ig => `<option value="${ig.id}">${escapeHtml(ig.nombre)}</option>`).join('');
+        await loadProfile();
+        alert("Perfil actualizado");
+    }
+    async function resetPassword(email) {
+        try {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+            if (error) throw error;
+            alert("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
+        } catch(err) { alert("Error: " + err.message); }
+    }
+    async function logout() { await supabaseClient.auth.signOut(); currentUser = null; isAdminUser = false; renderLogin(); }
+    function renderRegister() {
         document.getElementById('appRoot').innerHTML = `
             <div class="login-container">
                 <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
@@ -584,104 +542,76 @@ function renderRegister() {
                 <div class="form-group"><input type="text" id="regName" class="form-control" placeholder="Nombre completo *" required></div>
                 <div class="form-group"><input type="email" id="regEmail" class="form-control" placeholder="Correo electrónico *" required></div>
                 <div class="form-group"><input type="date" id="regFecha" class="form-control" required></div>
-                <div class="form-group">
-                    <label>Iglesia a la que perteneces *</label>
-                    <select id="regIglesia" class="form-control" required>${options}</select>
-                </div>
                 <div class="form-group"><input type="password" id="regPass" class="form-control" placeholder="Contraseña *" required></div>
                 <div class="form-group"><input type="password" id="regConfirmPass" class="form-control" placeholder="Confirmar contraseña *" required></div>
                 <button class="btn btn-primary w-100 mb-2" onclick="registerUser()">Registrarme</button>
                 <button class="btn btn-ghost w-100" onclick="renderLogin()">Volver al inicio</button>
             </div>`;
-    })();
-}
-
-async function registerUser() {
-    const name = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const fecha = document.getElementById('regFecha').value;
-    const password = document.getElementById('regPass').value;
-    const confirm = document.getElementById('regConfirmPass').value;
-    const iglesiaId = document.getElementById('regIglesia').value;
-    if (!name || !email || !fecha || !password || !iglesiaId) { alert("Completa todos los campos"); return; }
-    if (password !== confirm) { alert("Las contraseñas no coinciden"); return; }
-    try {
-        const { data, error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) throw error;
-        if (data.user) {
-            // Crear perfil
-            await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, email: email, fecha_nacimiento: fecha, rol: 'user' }]);
-            // Asociar a la iglesia seleccionada (sin departamento por defecto)
-            await supabaseClient.from('usuarios_iglesia').insert([{
-                user_id: data.user.id,
-                iglesia_id: iglesiaId,
-                departamento_id: null,
-                es_admin_iglesia: false,
-                es_admin_departamento: false,
-                rol_musical: null
-            }]);
-            alert("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión.");
-            renderLogin();
-        }
-    } catch (err) {
-        if (err.message.includes("User already registered")) alert("Este correo ya está registrado.");
-        else alert("Error en el registro: " + err.message);
     }
-}
-
-function renderLogin() {
-    document.getElementById('appRoot').innerHTML = `
-        <div class="login-container">
-            <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
-            <h2>FZ-Praise® Cloud</h2>
-            <div class="form-group"><input type="email" id="loginEmail" class="form-control" placeholder="Email"></div>
-            <div class="form-group"><input type="password" id="loginPass" class="form-control" placeholder="Contraseña"></div>
-            <button class="btn btn-primary w-100 mb-2" onclick="login(loginEmail.value, loginPass.value)">Iniciar Sesión</button>
-            <button class="btn btn-ghost w-100 mb-2" onclick="renderRegister()">Registrarse</button>
-            <div style="text-align: center; margin-top: 10px;"><a href="#" onclick="showResetPassword()" class="text-accent small">¿Olvidaste tu contraseña?</a></div>
-        </div>`;
-    window.showResetPassword = () => { const email = prompt("Introduce tu email:"); if(email) resetPassword(email); };
-}
-
-async function registrarVistaCancion(songId) { if (!currentUser) return; try { await supabaseClient.from('estadisticas_canciones').insert({ song_id: songId, user_id: currentUser.id, iglesia_id: currentIglesiaId }); } catch(e) { console.error(e); } }
-async function registrarImpresionLista(listaId) { if (!currentUser) return; try { await supabaseClient.from('estadisticas_listas').insert({ lista_id: listaId, user_id: currentUser.id, iglesia_id: currentIglesiaId }); } catch(e) { console.error(e); } }
-async function registrarActividad(accion, detalles = '') { if (!currentUser) return; try { await supabaseClient.from('estadisticas_usuarios').insert({ user_id: currentUser.id, accion, detalles, iglesia_id: currentIglesiaId }); } catch(e) { console.error(e); } }
-   
-    // ==================== CARGA DE DATOS (FILTRADA POR IGLESIA) ====================
-async function loadUserData() {
-    if (!currentUser || !currentIglesiaId) return;
+    async function registerUser() {
+        const name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const fecha = document.getElementById('regFecha').value;
+        const password = document.getElementById('regPass').value;
+        const confirm = document.getElementById('regConfirmPass').value;
+        if (!name || !email || !fecha || !password) { alert("Completa todos los campos"); return; }
+        if (password !== confirm) { alert("Las contraseñas no coinciden"); return; }
+        try {
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) throw error;
+            if (data.user) {
+                await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, email: email, fecha_nacimiento: fecha, rol: 'user', grupo: 'Otro' }]);
+                await ensureUserInTeam(data.user.id, name);
+                alert("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión.");
+                renderLogin();
+            }
+        } catch (err) {
+            if (err.message.includes("User already registered")) alert("Este correo ya está registrado.");
+            else alert("Error en el registro: " + err.message);
+        }
+    }
+    function renderLogin() {
+        document.getElementById('appRoot').innerHTML = `
+            <div class="login-container">
+                <i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i>
+                <h2>FZ-Praise® Cloud</h2>
+                <div class="form-group"><input type="email" id="loginEmail" class="form-control" placeholder="Email"></div>
+                <div class="form-group"><input type="password" id="loginPass" class="form-control" placeholder="Contraseña"></div>
+                <button class="btn btn-primary w-100 mb-2" onclick="login(loginEmail.value, loginPass.value)">Iniciar Sesión</button>
+                <button class="btn btn-ghost w-100 mb-2" onclick="renderRegister()">Registrarse</button>
+                <div style="text-align: center; margin-top: 10px;"><a href="#" onclick="showResetPassword()" class="text-accent small">¿Olvidaste tu contraseña?</a></div>
+            </div>`;
+        window.showResetPassword = () => { const email = prompt("Introduce tu email:"); if(email) resetPassword(email); };
+    }
+    async function registrarVistaCancion(songId) { if (!currentUser) return; try { await supabaseClient.from('estadisticas_canciones').insert({ song_id: songId, user_id: currentUser.id, ip: '' }); } catch(e) { console.error(e); } }
+    async function registrarImpresionLista(listaId) { if (!currentUser) return; try { await supabaseClient.from('estadisticas_listas').insert({ lista_id: listaId, user_id: currentUser.id }); } catch(e) { console.error(e); } }
+    async function registrarActividad(accion, detalles = '') { if (!currentUser) return; try { await supabaseClient.from('estadisticas_usuarios').insert({ user_id: currentUser.id, accion, detalles }); } catch(e) { console.error(e); } }
+    
+    // CARGA DE DATOS 
+   async function loadUserData() {
+    if (!currentUser) return;
     try {
-        // Canciones de la iglesia actual
-        const { data: s } = await supabaseClient.from('canciones').select('*').eq('iglesia_id', currentIglesiaId);
+        const { data: s } = await supabaseClient.from('canciones').select('*'); 
         songs = (s || []).map(song => ({ ...song, chordsUrl: song.chords_url, chordsData: song.chords_data }));
 
-        // Departamentos de la iglesia (con toda la jerarquía)
-        const { data: deptos } = await supabaseClient.from('departamentos').select('*').eq('iglesia_id', currentIglesiaId);
-        departamentos = deptos || [];
+        // Cargar equipo jaja
+        const { data: equipoData } = await supabaseClient.from('equipo').select('*');
+        team = equipoData || [];
 
-        // Usuarios_iglesia (miembros) con sus datos de perfil
-        const { data: miembros } = await supabaseClient
-            .from('usuarios_iglesia')
-            .select('*, perfiles(nombre, email, foto_url)')
-            .eq('iglesia_id', currentIglesiaId);
-        usuariosIglesia = miembros || [];
-
-        // Listas de la iglesia
-        const { data: l } = await supabaseClient.from('listas').select('*').eq('iglesia_id', currentIglesiaId);
+        const { data: l } = await supabaseClient.from('listas').select('*');
         lists = l || [];
         for (let list of lists) {
             const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
             list.items = items || [];
         }
 
-        // Asistencia y turnos (usando usuario_iglesia_id)
-        const { data: a } = await supabaseClient.from('asistencia').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId);
-        attendance = a || [];
-        const { data: sh } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId);
-        shifts = sh || [];
+        
 
-        // Cursos, módulos, exámenes (filtrados por entidad: iglesia o departamento)
-        const { data: c } = await supabaseClient.from('cursos').select('*').or(`entidad_tipo.eq.iglesia,and(entidad_tipo.eq.departamento,entidad_id.in.(${departamentos.map(d=>d.id).join(',') || 'null'})`);
+        const { data: a } = await supabaseClient.from('asistencia').select('*');
+        attendance = a || [];
+        const { data: sh } = await supabaseClient.from('turnos').select('*');
+        shifts = sh || [];
+        const { data: c } = await supabaseClient.from('cursos').select('*');
         cursos = c || [];
         const { data: m } = await supabaseClient.from('modulos').select('*');
         modulosList = m || [];
@@ -690,35 +620,67 @@ async function loadUserData() {
         const { data: p } = await supabaseClient.from('preguntas').select('*');
         preguntas = p || [];
 
-    } catch(e) { console.error("Error cargando datos:", e); alert("Error al cargar datos. Recarga la página."); }
+        if (cursos.length === 0 && isAdminUser) {
+            await supabaseClient.from('cursos').insert([{ id: 'curso_worship', titulo: 'Introducción a la Adoración Cristiana', descripcion: 'Curso completo' }]);
+            await supabaseClient.from('modulos').insert([{ id: 'mod_worship', curso_id: 'curso_worship', titulo: 'Módulo Único', orden_index: 1 }]);
+            await supabaseClient.from('examenes').insert([{ id: 'exam_worship', modulo_id: 'mod_worship', titulo: 'Evaluación Final', tiempo_por_pregunta: 15 }]);
+            const preg = [
+                    { examen_id: 'exam_worship', enunciado: '¿Cuál es la raíz etimológica del AT para "adorar"?', opcion_a: 'Abad', opcion_b: 'Shachah', opcion_c: 'Latreia', opcion_d: 'Proskuneo', opcion_correcta: 'B', orden_index: 1 },
+                    { examen_id: 'exam_worship', enunciado: 'En el NT, "Proskuneo" evoca:', opcion_a: 'Ofrecer holocaustos', opcion_b: 'Cantar salmos', opcion_c: 'Besar la mano en reverencia', opcion_d: 'Edificar altares', opcion_correcta: 'C', orden_index: 2 },
+                    { examen_id: 'exam_worship', enunciado: 'Romanos 12:1, el "culto racional" es:', opcion_a: 'Asistir puntualmente', opcion_b: 'Presentar el cuerpo como sacrificio vivo', opcion_c: 'Cantar himnos', opcion_d: 'Diezmar', opcion_correcta: 'B', orden_index: 3 },
+                    { examen_id: 'exam_worship', enunciado: 'Dimensión que describe la comunión entre creyentes:', opcion_a: 'Vertical', opcion_b: 'Horizontal', opcion_c: 'Intelectual', opcion_d: 'Emocional', opcion_correcta: 'B', orden_index: 4 },
+                    { examen_id: 'exam_worship', enunciado: 'Principio regulador de Calvino:', opcion_a: 'Se puede usar cualquier arte', opcion_b: 'Limitarse a lo ordenado en la Biblia', opcion_c: 'Libertad absoluta', opcion_d: 'Solo música instrumental', opcion_correcta: 'B', orden_index: 5 },
+                    { examen_id: 'exam_worship', enunciado: 'Lutero sostenía el principio normativo:', opcion_a: 'Eliminar tradiciones', opcion_b: 'Mantener prácticas no contradictorias', opcion_c: 'Prohibir la música', opcion_d: 'Los laicos no cantan', opcion_correcta: 'B', orden_index: 6 },
+                    { examen_id: 'exam_worship', enunciado: 'Poner manos sobre el animal sacrificado simbolizaba:', opcion_a: 'Bendición', opcion_b: 'Transferencia de culpa', opcion_c: 'Propiedad', opcion_d: 'Purificación', opcion_correcta: 'B', orden_index: 7 },
+                    { examen_id: 'exam_worship', enunciado: 'Juan 4, los verdaderos adoradores adoran en:', opcion_a: 'Jerusalén', opcion_b: 'Espíritu y verdad', opcion_c: 'Templos', opcion_d: 'Silencio', opcion_correcta: 'B', orden_index: 8 },
+                    { examen_id: 'exam_worship', enunciado: 'Rol de los músicos en la iglesia:', opcion_a: 'Exhibir virtuosismo', opcion_b: 'Ser servidores invisibles', opcion_c: 'Reemplazar la predicación', opcion_d: 'Competir', opcion_correcta: 'B', orden_index: 9 },
+                    { examen_id: 'exam_worship', enunciado: 'La palabra "Latreia" se traduce como:', opcion_a: 'Canto coral', opcion_b: 'Servicio sagrado', opcion_c: 'Éxtasis', opcion_d: 'Ofrenda', opcion_correcta: 'B', orden_index: 10 },
+                    { examen_id: 'exam_worship', enunciado: 'La adoración celestial es:', opcion_a: 'Cesará', opcion_b: 'Eterna y continua', opcion_c: 'Temporal', opcion_d: 'Solo domingos', opcion_correcta: 'B', orden_index: 11 },
+                    { examen_id: 'exam_worship', enunciado: 'El sincretismo litúrgico es peligroso porque:', opcion_a: 'Requiere tecnología', opcion_b: 'Mezcla ídolos con la fe', opcion_c: 'Divide generaciones', opcion_d: 'Exige muchos ensayos', opcion_correcta: 'B', orden_index: 12 },
+                    { examen_id: 'exam_worship', enunciado: 'Expresión de adoración ordenada en Salmos:', opcion_a: 'Permanecer inmóvil', opcion_b: 'Batir las manos', opcion_c: 'Danzar de espaldas', opcion_d: 'Vestir túnicas', opcion_correcta: 'B', orden_index: 13 },
+                    { examen_id: 'exam_worship', enunciado: 'Las misiones existen porque:', opcion_a: 'Extender influencia', opcion_b: 'La adoración aún no existe en esos pueblos', opcion_c: 'Establecer centros', opcion_d: 'Requisito', opcion_correcta: 'B', orden_index: 14 },
+                    { examen_id: 'exam_worship', enunciado: 'Koinonía se asocia a:', opcion_a: 'Liderazgo', opcion_b: 'Comunión fraterna', opcion_c: 'Teoría musical', opcion_d: 'Orden litúrgico', opcion_correcta: 'B', orden_index: 15 },
+                    { examen_id: 'exam_worship', enunciado: 'Evento central que transformó la adoración del AT al NT:', opcion_a: 'Templo de Herodes', opcion_b: 'El sacrificio de Cristo', opcion_c: 'Traducción de la Biblia', opcion_d: 'Invención de himnarios', opcion_correcta: 'B', orden_index: 16 },
+                    { examen_id: 'exam_worship', enunciado: 'Adorar "en verdad" significa:', opcion_a: 'Opiniones personales', opcion_b: 'Conformidad con la Palabra y sinceridad', opcion_c: 'Canciones históricas', opcion_d: 'Evitar instrumentos', opcion_correcta: 'B', orden_index: 17 },
+                    { examen_id: 'exam_worship', enunciado: 'Motivación para la excelencia técnica:', opcion_a: 'Lograr aplauso', opcion_b: 'Dar lo mejor a Dios', opcion_c: 'Demostrar superioridad', opcion_d: 'Grabar producciones', opcion_correcta: 'B', orden_index: 18 },
+                    { examen_id: 'exam_worship', enunciado: 'Peligro del legalismo litúrgico:', opcion_a: 'Fomentar avivamiento', opcion_b: 'Priorizar formas sobre el corazón', opcion_c: 'Invertir tiempo en pobres', opcion_d: 'Participación activa', opcion_correcta: 'B', orden_index: 19 },
+                    { examen_id: 'exam_worship', enunciado: 'Virtud distintiva de un líder de alabanza:', opcion_a: 'Rango vocal', opcion_b: 'Corazón de siervo', opcion_c: 'Carisma', opcion_d: 'Control autocrático', opcion_correcta: 'B', orden_index: 20 }
+                ];
+                for (let q of preg) await supabaseClient.from('preguntas').insert(q);
+                const { data: newC } = await supabaseClient.from('cursos').select('*'); cursos = newC || [];
+                const { data: newM } = await supabaseClient.from('modulos').select('*'); modulosList = newM || [];
+                const { data: newE } = await supabaseClient.from('examenes').select('*'); examenes = newE || [];
+                const { data: newP } = await supabaseClient.from('preguntas').select('*'); preguntas = newP || [];
+        }
+    } catch(e) {
+        console.error("Error cargando datos:", e);
+        alert("Error al cargar datos. Recarga la página.");
+    }
 }
-
-// ==================== GUARDADO (con iglesia_id) ====================
-async function saveSong(song) {
-    if (!isAdminUser && !isIglesiaAdmin) { alert("No tienes permiso para editar canciones."); return false; }
-    try {
-        const cleanSong = {
-            id: song.id || generateUniqueId(),
-            user_id: currentUser.id,
-            title: song.title || "Sin título",
-            category: song.category || "Adoración",
-            key: song.key || "C",
-            bpm: parseInt(song.bpm) || 80,
-            chords_url: song.chordsUrl || "",
-            chords_data: song.chordsData || "",
-            lyrics: song.lyrics || "",
-            youtube: song.youtube || "",
-            iglesia_id: currentIglesiaId
-        };
-        const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' });
-        if (error) throw error;
-        await loadUserData();
-        renderCurrentView();
-        return true;
-    } catch (err) { console.error(err); alert("Error al guardar: " + err.message); return false; }
-}
-async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('canciones').delete().eq('id', id).eq('iglesia_id', currentIglesiaId); await loadUserData(); renderCurrentView(); }
-    
+    //  FUNCIONES DE GUARDADO 
+    async function saveSong(song) {
+        if (!isAdminUser) { alert("Solo administrador puede editar canciones."); return false; }
+        try {
+            const cleanSong = {
+                id: song.id || generateUniqueId(),
+                user_id: currentUser.id,
+                title: song.title || "Sin título",
+                category: song.category || "Adoración",
+                key: song.key || "C",
+                bpm: parseInt(song.bpm) || 80,
+                chords_url: song.chordsUrl || "",
+                chords_data: song.chordsData || "",
+                lyrics: song.lyrics || "",
+                youtube: song.youtube || ""
+            };
+            const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' });
+            if (error) throw error;
+            await loadUserData();
+            renderCurrentView();
+            return true;
+        } catch (err) { console.error(err); alert("Error al guardar: " + err.message); return false; }
+    }
+    async function deleteSong(id) { if (!isAdminUser) return; await supabaseClient.from('canciones').delete().eq('id', id); await loadUserData(); renderCurrentView(); }
     async function saveList(list) {
         if (!currentUser) { alert("Debes iniciar sesión."); return; }
         try {
@@ -740,22 +702,39 @@ async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; awa
     async function saveTeam(members) { if (!isAdminUser) return; team = members; await supabaseClient.from('equipo').delete().neq('id', '0'); for (let m of team) { if (!m.id) m.id = generateUniqueId(); await supabaseClient.from('equipo').insert(m); } await loadUserData(); renderCurrentView(); }
 
     // RENDER PRINCIPAL 
-  async function renderHome() {
-    // Obtener datos del miembro actual (usuarios_iglesia)
-    const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
-    const miembroId = miembro?.id;
-    // Próximos turnos usando shifts (relacionado con usuario_iglesia_id)
+    async function renderHome() {
+    if (!currentProfile) return;
+
+    const miembro = team.find(m => m.user_id === currentUser.id);
+    const memberId = miembro?.id;
+
+    // Próximos turnos (misma lógica)
     let proximosTurnos = [];
-    if (miembroId) {
-        const misTurnos = shifts.filter(s => s.usuario_iglesia_id === miembroId);
-        const hoy = new Date(); hoy.setHours(0,0,0,0);
-        proximosTurnos = misTurnos.filter(t => new Date(t.fecha.split('/').reverse().join('-')) >= hoy).slice(0,3);
+    if (memberId) {
+        const misTurnos = shifts.filter(s => s.member_id === memberId);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        proximosTurnos = misTurnos.filter(t => {
+            const [d,m,a] = t.fecha.split('/');
+            const fechaTurno = new Date(a, m-1, d);
+            return fechaTurno >= hoy;
+        }).sort((a,b) => {
+            const da = a.fecha.split('/').reverse().join('-');
+            const db = b.fecha.split('/').reverse().join('-');
+            return new Date(da) - new Date(db);
+        }).slice(0,3);
     }
-    // Actividades (eventos) de la iglesia
-    const { data: actividades } = await supabaseClient.from('actividades').select('*').eq('iglesia_id', currentIglesiaId).order('fecha');
+
+    // Actividades
+    const { data: actividades } = await supabaseClient.from('actividades').select('*').order('fecha');
     const hoy = new Date(); hoy.setHours(0,0,0,0);
-    const proximasActividades = (actividades || []).filter(a => new Date(a.fecha.split('/').reverse().join('-')) >= hoy).slice(0,4);
-    // Canción sugerida
+    const proximasActividades = (actividades || []).filter(a => {
+        const [d,m,año] = a.fecha.split('/');
+        const fechaAct = new Date(año, m-1, d);
+        return fechaAct >= hoy;
+    }).slice(0,4);
+
+    // Canción aleatoria
     let cancionSugerida = songs.length ? songs[Math.floor(Math.random() * songs.length)] : null;
 
     // Versículos (los mismos)
@@ -812,23 +791,53 @@ async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; awa
             }
         </style>
 
-        let deptoNombre = '';
-    if (miembro && miembro.departamento_id) {
-        const depto = departamentos.find(d => d.id === miembro.departamento_id);
-        deptoNombre = depto ? depto.nombre : 'No asignado';
-    }
-    const html = `
         <div style="max-width: 1200px; margin: 0 auto;">
+            <!-- Tarjeta de bienvenida con gradiente -->
             <div class="card home-card gradient-welcome" style="margin-bottom: 1.5rem; color: white;">
                 <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                     <div class="profile-avatar" style="background: rgba(255,255,255,0.2); width: 80px; height: 80px; margin: 0;">
-                        ${currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<i class="fas fa-user fa-3x"></i>`}
+                        ${currentProfile.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<i class="fas fa-user fa-3x"></i>`}
                     </div>
                     <div>
-                        <h2 style="margin:0;">¡Bienvenido, ${escapeHtml(currentProfile?.nombre || currentUser.email)}!</h2>
+                        <h2 style="margin:0;">¡Bienvenido, ${escapeHtml(currentProfile.nombre || currentUser.email)}!</h2>
                         <p style="margin:0.2rem 0;">${new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        <p style="margin:0;"><i class="fas fa-guitar"></i> ${escapeHtml(miembro?.rol_musical || 'No asignado')} | <i class="fas fa-users"></i> ${escapeHtml(deptoNombre)}</p>
+                        <p style="margin:0;"><i class="fas fa-guitar"></i> ${escapeHtml(miembro?.role || 'No asignado')} | <i class="fas fa-users"></i> ${escapeHtml(currentProfile.grupo || 'No especificado')}</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Grid de dos columnas -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <!-- Turnos -->
+                <div class="card home-card gradient-turnos" style="color: white;">
+                    <h3><i class="fas fa-calendar-alt"></i> 📆 Próximos turnos</h3>
+                    ${proximosTurnos.length === 0 ? '<p>✨ Sin turnos próximos. ¡Disfruta!</p>' : 
+                        `<ul style="margin:0; padding-left:1.2rem;">${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong> ${actividades?.find(a => a.fecha === t.fecha) ? `🎉 ${escapeHtml(actividades.find(a=>a.fecha===t.fecha).titulo)}` : ''}</li>`).join('')}</ul>`
+                    }
+                </div>
+
+                <!-- Eventos -->
+                <div class="card home-card gradient-eventos" style="color: white;">
+                    <h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>
+                    ${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : 
+                        `<ul style="margin:0; padding-left:1.2rem;">${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`
+                    }
+                </div>
+
+                <!-- Canción sugerida -->
+                <div class="card home-card gradient-cancion" style="color: white;">
+                    <h3><i class="fas fa-music"></i> 🎵 Canción sugerida</h3>
+                    ${cancionSugerida ? `
+                        <p><strong>${escapeHtml(cancionSugerida.title)}</strong> (${cancionSugerida.key})</p>
+                        <button class="btn btn-primary" style="background: white; color: #EC4899; border: none;" onclick="openCifraViewer('${cancionSugerida.id}', songs.findIndex(s=>s.id==='${cancionSugerida.id}'))">Ver letra/acordes</button>
+                    ` : '<p>No hay canciones aún.</p>'}
+                </div>
+
+                <!-- Versículo -->
+                <div class="card home-card gradient-versiculo" style="color: white;">
+                    <h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3>
+                    <p style="font-style: italic; font-size: 1.1rem;">“${versiculo.texto}”</p>
+                    <p style="text-align: right;">— ${versiculo.ref}</p>
                 </div>
             </div>
 
@@ -841,15 +850,16 @@ async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; awa
             </div>
         </div>
     `;
+
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('actionHeader').innerHTML = '';
 }
     
     function renderApp() {
-    if (!currentUser || !currentIglesiaId) { renderLogin(); return; }
-    document.getElementById('appRoot').innerHTML = `
-        <header class="app-header">
-            <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small></div>
+        if (!currentUser) { renderLogin(); return; }
+        document.getElementById('appRoot').innerHTML = `
+            <header class="app-header">
+                <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> FZ-Praise®Cloud <small>| I.E.C. Fortaleza Sur</small></div>
                 <div class="nav-icons">
                 <div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
                     <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
@@ -1251,80 +1261,76 @@ async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; awa
            <div class="card" onclick="viewMyShifts()"><i class="fas fa-calendar-alt"></i><h3>Mis Turnos</h3></div>
         </div>`;
     }
-   // ==================== VISTA EQUIPOS (jerarquía GENERAL) ====================
-async function openEquiposView() {
-    // Construir árbol de departamentos
-    const tree = buildDepartmentTree(departamentos);
-    let html = `<h3>🎭 Equipos de la Iglesia - ${currentIglesiaData?.nombre}</h3>`;
-    html += renderDepartmentTree(tree, 0);
+   async function openEquiposView() {
+    console.log("Abriendo vista Equipos...");
+    
+    if (!team || team.length === 0) {
+        console.log("team está vacío, recargando desde Supabase");
+        const { data: equipoData, error } = await supabaseClient.from('equipo').select('*');
+        if (error) {
+            console.error("Error cargando equipo:", error);
+            alert("Error al cargar los equipos: " + error.message);
+            return;
+        }
+        team = equipoData || [];
+        
+        for (let member of team) {
+            const { data: perfil } = await supabaseClient.from('perfiles').select('grupo').eq('id', member.user_id).single();
+            member.subgrupo = perfil?.grupo || 'sin grupo';
+        }
+    }
+
+    // AEsto es pa agrupar por subgrupo jajaj suena chistoso jajaj
+    const grupos = {
+        'Alabanza': [],
+        'Danza': [],
+        'Producción': [],
+        'Limpieza': [],
+        'Sonido': [],
+        'Otro': []
+    };
+
+    for (let m of team) {
+        let grupo = m.subgrupo || 'Otro';
+        if (!grupos[grupo]) grupos[grupo] = [];
+        grupos[grupo].push(m);
+    }
+
+    let html = `<h3>🎭 Equipos de la Iglesia</h3>
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">`;
+
+    for (let [nombreGrupo, miembros] of Object.entries(grupos)) {
+        if (miembros.length === 0 && !isAdminUser) continue;
+        html += `
+            <div class="card" style="padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin:0;">🎵 ${nombreGrupo}</h4>
+                    ${isAdminUser ? `<button class="btn-icon" onclick="editSubgrupoUsuarios('${nombreGrupo}')" title="Gestionar miembros"><i class="fas fa-users-cog"></i></button>` : ''}
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        `;
+        for (let member of miembros) {
+            html += `
+                <div class="team-member-card" style="background: var(--bg-app); border-radius: var(--radius-sm); padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem; cursor: pointer;" onclick="showMemberProfile('${member.id}', true)">
+                    <div class="avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">${escapeHtml(member.name.charAt(0).toUpperCase())}</div>
+                    <div style="flex:1;">
+                        <strong>${escapeHtml(member.name)}</strong><br>
+                        <span class="card-category" style="background: var(--primary-light);">${escapeHtml(member.role)}</span>
+                    </div>
+                    ${isAdminUser ? `<button class="btn-icon" onclick="event.stopPropagation(); deleteTeamMember('${member.id}')" style="color: red;"><i class="fas fa-trash"></i></button>` : ''}
+                </div>
+            `;
+        }
+        html += `</div></div>`;
+    }
+
+    if (isAdminUser) {
+        html += `<div style="text-align: center; margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="adminUserManagement()">➕ Gestionar usuarios y roles</button>
+                </div>`;
+    }
     html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
     showModal(html);
-}
-
-function buildDepartmentTree(deptos) {
-    const map = new Map();
-    const roots = [];
-    deptos.forEach(d => {
-        map.set(d.id, { ...d, children: [] });
-    });
-    deptos.forEach(d => {
-        if (d.padre_id) {
-            const parent = map.get(d.padre_id);
-            if (parent) parent.children.push(map.get(d.id));
-        } else {
-            roots.push(map.get(d.id));
-        }
-    });
-    return roots;
-}
-
-function renderDepartmentTree(nodes, level) {
-    let html = '';
-    nodes.forEach(node => {
-        const margin = level * 20;
-        html += `<div style="margin-left: ${margin}px; margin-bottom: 1rem;">
-                    <div class="card" style="padding: 0.8rem; background: var(--bg-app);">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong>${escapeHtml(node.nombre)}</strong>
-                            ${(isIglesiaAdmin || (currentUserIglesia?.es_admin_departamento && currentUserIglesia.departamento_id === node.id)) ? 
-                                `<button class="btn-icon" onclick="manageDepartmentMembers('${node.id}')"><i class="fas fa-users-cog"></i></button>` : ''}
-                        </div>
-                        <div style="margin-top: 0.5rem;">
-                            ${usuariosIglesia.filter(u => u.departamento_id === node.id).map(u => `
-                                <div class="team-member-card" style="display: inline-block; margin: 0.2rem; padding: 0.2rem 0.5rem; background: var(--surface); border-radius: 1rem;">
-                                    <i class="fas fa-user"></i> ${escapeHtml(u.perfiles?.nombre || 'Usuario')} 
-                                    ${u.rol_musical ? `<span class="card-category">${escapeHtml(u.rol_musical)}</span>` : ''}
-                                </div>
-                            `).join('') || '<span class="text-muted">Sin miembros</span>'}
-                        </div>
-                    </div>
-                </div>`;
-        if (node.children.length) html += renderDepartmentTree(node.children, level + 1);
-    });
-    return html;
-}
-
-async function manageDepartmentMembers(deptId) {
-    // Mostrar miembros actuales y opciones para asignar/remover (solo admins)
-    const miembrosEnDepto = usuariosIglesia.filter(u => u.departamento_id === deptId);
-    const miembrosOtros = usuariosIglesia.filter(u => u.departamento_id !== deptId && u.user_id !== currentUser.id);
-    let html = `<h3>Gestionar miembros del departamento ${departamentos.find(d=>d.id===deptId)?.nombre}</h3>
-                <div><strong>Miembros actuales:</strong><ul>${miembrosEnDepto.map(m => `<li>${escapeHtml(m.perfiles?.nombre)} (${m.rol_musical || 'Sin rol'}) <button onclick="removeFromDept('${m.id}')">Quitar</button></li>`).join('') || '<li>Ninguno</li>'}</ul></div>
-                <div><strong>Agregar miembro:</strong><select id="addMemberSelect">${miembrosOtros.map(m => `<option value="${m.id}">${escapeHtml(m.perfiles?.nombre)} (actual: ${departamentos.find(d=>d.id===m.departamento_id)?.nombre || 'Sin depto'})</option>`).join('')}</select>
-                <button onclick="assignToDept('${deptId}')">Asignar</button></div>
-                <button class="btn btn-ghost" onclick="closeModal(); openEquiposView();">Cerrar</button>`;
-    showModal(html);
-    window.assignToDept = async (deptId) => {
-        const userId = document.getElementById('addMemberSelect').value;
-        await supabaseClient.from('usuarios_iglesia').update({ departamento_id: deptId }).eq('id', userId);
-        await loadUserData();
-        manageDepartmentMembers(deptId);
-    };
-    window.removeFromDept = async (userId) => {
-        await supabaseClient.from('usuarios_iglesia').update({ departamento_id: null }).eq('id', userId);
-        await loadUserData();
-        manageDepartmentMembers(deptId);
-    };
 }
     
     function openTeleprompter() {
