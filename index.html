@@ -295,8 +295,8 @@ async function adminUserManagement() {
 
     try {
         // 1. Obtener todos los perfiles de la base de datos
-        const { data: profiles, error: profError } = await supabaseClient
-            .from('profiles')
+        const { data: perfiles, error: profError } = await supabaseClient
+            .from('perfiles')
             .select('*')
             .order('full_name', { ascending: true });
 
@@ -340,7 +340,7 @@ async function adminUserManagement() {
                             <tbody class="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
         `;
 
-        if (!profiles || profiles.length === 0) {
+        if (!perfiles || perfiles.length === 0) {
             html += `
                 <tr>
                     <td colspan="5" class="p-8 text-center text-slate-400 dark:text-slate-500">
@@ -349,7 +349,7 @@ async function adminUserManagement() {
                 </tr>
             `;
         } else {
-            profiles.forEach(p => {
+            perfiles.forEach(p => {
                 // Obtener URL de avatar de forma segura usando la sintaxis corregida de la V2
                 let avatarUrl = 'https://via.placeholder.com/150';
                 if (p.avatar_url) {
