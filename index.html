@@ -100,6 +100,32 @@
         .card, .team-member-card, .profile-detail-card { word-break: break-word; overflow-wrap: break-word; white-space: normal; }
         .card-title, .team-member-card strong, .profile-detail-card p { word-break: break-word; overflow-wrap: break-word; max-width: 100%; }
         .option-btn, .btn, .form-control { white-space: normal; word-break: break-word; }
+
+        /* Mejoras para el visor de cifras */
+.cifra-content-wrapper {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 16px;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.chord-line, .lyric-line {
+    white-space: normal;
+    word-break: break-word;
+}
+.chord-item {
+    color: #F59E0B;
+    font-weight: bold;
+}
+@media (max-width: 768px) {
+    .cifra-content-wrapper {
+        font-size: 14px;
+    }
+    .chord-item, .lyric-item {
+        min-width: 3rem !important;
+    }
+}
+
+        
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -161,8 +187,50 @@ async function uploadFileToStorage(file, folder) { if (!file) return null; const
 function transposeChord(chord, semitones) { const match = chord.match(/^([A-G][#b]?)(.*)$/); if (!match) return chord; let base = match[1], suffix = match[2]; let idx = noteMap[base]; if (idx === undefined) return chord; let newIdx = (idx + semitones + 12) % 12; return noteNames[newIdx] + suffix; }
 function transposeLyrics(text, fromKey, toKey) { if (!text || !fromKey || !toKey || fromKey === toKey) return text; const fromBase = fromKey.replace(/m$/, ''), toBase = toKey.replace(/m$/, ''); let semitones = (noteMap[toBase] - noteMap[fromBase] + 12) % 12; if (fromKey.endsWith('m')) semitones = (semitones + 12) % 12; if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12; return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`); }
 function convertSpacedChordsToBrackets(text) { const lines = text.split('\n'); const result = []; let i = 0; while (i < lines.length) { let line = lines[i]; if (line.trim() === '') { result.push(line); i++; continue; } if (/^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line) && i+1 < lines.length) { const chords = line.trim().split(/\s+/); const lyricLine = lines[i+1]; const words = lyricLine.split(/(\s+)/); let newLine = ''; let chordIndex = 0; for (let word of words) { if (word.trim() !== '' && chordIndex < chords.length) { newLine += `[${chords[chordIndex]}]${word}`; chordIndex++; } else { newLine += word; } } result.push(newLine); i += 2; } else { result.push(line); i++; } } return result.join('\n'); }
-function renderChordsOverLyrics(text) { if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>'; const lines = text.split('\n'); let html = ''; let i = 0; while (i < lines.length) { let line = lines[i]; if (line.trim() === '') { i++; continue; } const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line); if (isChordLine && i + 1 < lines.length) { const chordLine = line.trim().split(/\s+/); const lyricLine = lines[i+1].trim(); const words = lyricLine.split(/(\s+)/); let chordHtml = '<div class="chord-line">'; let lyricHtml = '<div class="lyric-line">'; let wordIndex = 0; for (let chord of chordLine) { if (wordIndex >= words.length) break; let word = words[wordIndex]; chordHtml += `<span class="chord-item" style="min-width: ${Math.max(word.length * 0.8, 2)}rem;">${escapeHtml(chord)}</span>`; lyricHtml += `<span class="lyric-item" style="min-width: ${Math.max(word.length * 0.8, 2)}rem;">${escapeHtml(word)}</span>`; wordIndex++; } while (wordIndex < words.length) { lyricHtml += `<span class="lyric-item">${escapeHtml(words[wordIndex])}</span>`; chordHtml += `<span class="chord-item" style="visibility:hidden;">&nbsp;</span>`; wordIndex++; } chordHtml += '</div>'; lyricHtml += '</div>'; html += `<div class="song-line">${chordHtml}${lyricHtml}</div>`; i += 2; } else { const parts = []; const regex = /\[([^\]]+)\]([^[]*)/g; let match; let lastIndex = 0; let hasChord = false; while ((match = regex.exec(line)) !== null) { hasChord = true; parts.push({ chord: match[1], text: match[2] }); lastIndex = match.index + match[0].length; } if (!hasChord) { html += `<div class="song-line"><div class="lyric-line">${escapeHtml(line)}</div></div>`; i++; continue; } let chordHtml = '<div class="chord-line">'; let lyricHtml = '<div class="lyric-line">'; for (let part of parts) { let textLen = part.text.length; let width = Math.max(textLen * 0.8, 1) + 'rem'; chordHtml += `<span class="chord-item" style="min-width:${width};">${escapeHtml(part.chord)}</span>`; lyricHtml += `<span class="lyric-item" style="min-width:${width};">${escapeHtml(part.text)}</span>`; } chordHtml += '</div>'; lyricHtml += '</div>'; html += `<div class="song-line">${chordHtml}${lyricHtml}</div>`; i++; } } return html; }
-
+function renderChordsOverLyrics(text) {
+    if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
+    const lines = text.split('\n');
+    let html = '';
+    let i = 0;
+    while (i < lines.length) {
+        let line = lines[i];
+        if (line.trim() === '') { i++; continue; }
+        // Detectar si es línea de acordes (solo letras, números, #, b, / y espacios, sin vocales acentuadas)
+        const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line);
+        if (isChordLine && i + 1 < lines.length) {
+            const chordLine = line.trim().split(/\s+/);
+            const lyricLine = lines[i+1].trim();
+            const words = lyricLine.split(/(\s+)/);
+            let chordHtml = '<div class="chord-line" style="display: flex; flex-wrap: wrap; margin-bottom: 0.25rem;">';
+            let lyricHtml = '<div class="lyric-line" style="display: flex; flex-wrap: wrap; margin-bottom: 1rem;">';
+            let wordIndex = 0;
+            for (let chord of chordLine) {
+                if (wordIndex >= words.length) break;
+                let word = words[wordIndex];
+                // Calcular ancho mínimo basado en la longitud de la palabra (aproximado)
+                let width = Math.max(word.length * 1.2, chord.length * 0.9) + 'rem';
+                chordHtml += `<span class="chord-item" style="min-width: ${width}; display: inline-block; font-weight: bold; color: #F59E0B; margin-right: 0.5rem;">${escapeHtml(chord)}</span>`;
+                lyricHtml += `<span class="lyric-item" style="min-width: ${width}; display: inline-block; margin-right: 0.5rem;">${escapeHtml(word)}</span>`;
+                wordIndex++;
+            }
+            while (wordIndex < words.length) {
+                lyricHtml += `<span class="lyric-item" style="display: inline-block; margin-right: 0.5rem;">${escapeHtml(words[wordIndex])}</span>`;
+                chordHtml += `<span class="chord-item" style="visibility:hidden; min-width: 2rem; display: inline-block;">&nbsp;</span>`;
+                wordIndex++;
+            }
+            chordHtml += '</div>';
+            lyricHtml += '</div>';
+            html += `<div class="song-line" style="margin-bottom: 1rem;">${chordHtml}${lyricHtml}</div>`;
+            i += 2;
+        } else {
+            // Línea normal sin acordes
+            html += `<div class="song-line" style="margin-bottom: 1rem;"><div class="lyric-line">${escapeHtml(line)}</div></div>`;
+            i++;
+        }
+    }
+    return html;
+}
+    
 // ========== AUTENTICACIÓN Y PERFIL ==========
 async function login(email, password) { try { const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; currentUser = data.user; await loadProfile(); await loadUserIglesia(); await loadUserData(); renderApp(); registrarActividad('login', email); } catch (err) { alert("Error al iniciar sesión: " + err.message); } }
 async function loadProfile() { if (!currentUser) return; const { data, error } = await supabaseClient.from('perfiles').select('*').eq('id', currentUser.id).single(); if (error && error.code !== 'PGRST116') console.error(error); currentProfile = data || { id: currentUser.id, nombre: currentUser.email, rol: 'user' }; isAdminUser = (currentUser.email === 'emilychuncha@gmail.com'); }
@@ -484,8 +552,78 @@ window.changeAdminIglesia = async () => {
     }
 };
 function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
-async function showEstadisticas() { const fechaLimite=new Date(); fechaLimite.setDate(fechaLimite.getDate()-30); const fechaStr=fechaLimite.toISOString(); const { data: topSongs } = await supabaseClient.from('estadisticas_canciones').select('song_id, count',{count:'exact'}).eq('fecha','>=',fechaStr).group('song_id').order('count',{ascending:false}).limit(5); const { data: topLists } = await supabaseClient.from('estadisticas_listas').select('lista_id, count',{count:'exact'}).eq('fecha','>=',fechaStr).group('lista_id').order('count',{ascending:false}).limit(5); const { data: topUsers } = await supabaseClient.from('estadisticas_usuarios').select('user_id, count',{count:'exact'}).eq('fecha','>=',fechaStr).group('user_id').order('count',{ascending:false}).limit(5); let html=`<h3>📈 Estadísticas de uso (últimos 30 días)</h3><div class="card"><h4>🎵 Canciones más vistas</h4><ul>`; if(topSongs&&topSongs.length){ for(let item of topSongs){ const song=songs.find(s=>s.id===item.song_id); html+=`<li><strong>${song?escapeHtml(song.title):'Desconocida'}</strong> - ${item.count} vistas</li>`; } } else html+=`<li>Sin datos aún</li>`; html+=`</ul></div><div class="card"><h4>📄 Listas más impresas</h4><ul>`; if(topLists&&topLists.length){ for(let item of topLists){ const lista=lists.find(l=>l.id===item.lista_id); html+=`<li><strong>${lista?escapeHtml(lista.name):'Desconocida'}</strong> - ${item.count} impresiones</li>`; } } else html+=`<li>Sin datos aún</li>`; html+=`</ul></div><div class="card"><h4>👥 Usuarios más activos</h4><ul>`; if(topUsers&&topUsers.length){ for(let item of topUsers){ const { data: profile } = await supabaseClient.from('perfiles').select('nombre').eq('id',item.user_id).single(); html+=`<li><strong>${profile?escapeHtml(profile.nombre):'Usuario'}</strong> - ${item.count} acciones</li>`; } } else html+=`<li>Sin datos aún</li>`; html+=`</ul></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
 
+async function showEstadisticas() {
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - 30);
+    const fechaStr = fechaLimite.toISOString();
+    
+    // Canciones más vistas
+    const { data: topSongs, error: songsError } = await supabaseClient
+        .from('estadisticas_canciones')
+        .select('song_id, count')
+        .eq('fecha', '>=', fechaStr)
+        .eq('iglesia_id', currentIglesiaId)
+        .group('song_id')
+        .order('count', { ascending: false })
+        .limit(5);
+    
+    // Listas más impresas
+    const { data: topLists, error: listsError } = await supabaseClient
+        .from('estadisticas_listas')
+        .select('lista_id, count')
+        .eq('fecha', '>=', fechaStr)
+        .eq('iglesia_id', currentIglesiaId)
+        .group('lista_id')
+        .order('count', { ascending: false })
+        .limit(5);
+    
+    // Usuarios más activos
+    const { data: topUsers, error: usersError } = await supabaseClient
+        .from('estadisticas_usuarios')
+        .select('user_id, count')
+        .eq('fecha', '>=', fechaStr)
+        .eq('iglesia_id', currentIglesiaId)
+        .group('user_id')
+        .order('count', { ascending: false })
+        .limit(5);
+    
+    let html = `<h3>📈 Estadísticas de uso (últimos 30 días)</h3>
+                <div class="card"><h4>🎵 Canciones más vistas</h4><ul>`;
+    if (topSongs && topSongs.length) {
+        for (let item of topSongs) {
+            const song = songs.find(s => s.id === item.song_id);
+            html += `<li><strong>${song ? escapeHtml(song.title) : 'Desconocida'}</strong> - ${item.count} vistas</li>`;
+        }
+    } else {
+        html += `<li>Sin datos aún</li>`;
+    }
+    html += `</ul></div>
+             <div class="card"><h4>📄 Listas más impresas</h4><ul>`;
+    if (topLists && topLists.length) {
+        for (let item of topLists) {
+            const lista = lists.find(l => l.id === item.lista_id);
+            html += `<li><strong>${lista ? escapeHtml(lista.name) : 'Desconocida'}</strong> - ${item.count} impresiones</li>`;
+        }
+    } else {
+        html += `<li>Sin datos aún</li>`;
+    }
+    html += `</ul></div>
+             <div class="card"><h4>👥 Usuarios más activos</h4><ul>`;
+    if (topUsers && topUsers.length) {
+        for (let item of topUsers) {
+            const { data: profile } = await supabaseClient.from('perfiles').select('nombre').eq('id', item.user_id).single();
+            html += `<li><strong>${profile ? escapeHtml(profile.nombre) : 'Usuario'}</strong> - ${item.count} acciones</li>`;
+        }
+    } else {
+        html += `<li>Sin datos aún</li>`;
+    }
+    html += `</ul></div>
+             <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(html);
+}
+    
+    
 // NUEVA FUNCIÓN: adminUserManagement con selector jerárquico (departamento padre + equipo hijo)
 async function adminUserManagement() {
     if (!currentIglesiaId) {
