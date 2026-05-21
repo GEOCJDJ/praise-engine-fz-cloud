@@ -559,39 +559,64 @@ async function showEstadisticas() {
         fechaLimite.setDate(fechaLimite.getDate() - 30);
         const fechaStr = fechaLimite.toISOString();
         
-        // Canciones más vistas
-        const { data: topSongs, error: songsError } = await supabaseClient
+        // Canciones más vistas (sin usar .group)
+        const { data: cancionesData, error: songsError } = await supabaseClient
             .from('estadisticas_canciones')
-            .select('song_id, count')
+            .select('song_id')
             .eq('fecha', '>=', fechaStr)
-            .eq('iglesia_id', currentIglesiaId)
-            .group('song_id')
-            .order('count', { ascending: false })
-            .limit(5);
+            .eq('iglesia_id', currentIglesiaId);
+        
+        // Contar manualmente
+        const songCounts = {};
+        if (cancionesData && !songsError) {
+            cancionesData.forEach(item => {
+                const songId = item.song_id;
+                songCounts[songId] = (songCounts[songId] || 0) + 1;
+            });
+        }
+        let topSongs = Object.entries(songCounts).map(([id, count]) => ({ song_id: id, count }));
+        topSongs.sort((a,b) => b.count - a.count);
+        topSongs = topSongs.slice(0, 5);
         
         // Listas más impresas
-        const { data: topLists, error: listsError } = await supabaseClient
+        const { data: listasData, error: listsError } = await supabaseClient
             .from('estadisticas_listas')
-            .select('lista_id, count')
+            .select('lista_id')
             .eq('fecha', '>=', fechaStr)
-            .eq('iglesia_id', currentIglesiaId)
-            .group('lista_id')
-            .order('count', { ascending: false })
-            .limit(5);
+            .eq('iglesia_id', currentIglesiaId);
+        
+        const listCounts = {};
+        if (listasData && !listsError) {
+            listasData.forEach(item => {
+                const listaId = item.lista_id;
+                listCounts[listaId] = (listCounts[listaId] || 0) + 1;
+            });
+        }
+        let topLists = Object.entries(listCounts).map(([id, count]) => ({ lista_id: id, count }));
+        topLists.sort((a,b) => b.count - a.count);
+        topLists = topLists.slice(0, 5);
         
         // Usuarios más activos
-        const { data: topUsers, error: usersError } = await supabaseClient
+        const { data: usuariosData, error: usersError } = await supabaseClient
             .from('estadisticas_usuarios')
-            .select('user_id, count')
+            .select('user_id')
             .eq('fecha', '>=', fechaStr)
-            .eq('iglesia_id', currentIglesiaId)
-            .group('user_id')
-            .order('count', { ascending: false })
-            .limit(5);
+            .eq('iglesia_id', currentIglesiaId);
         
-        let html = `<h3>📈 Estadísticas de uso (últimos 30 días)</h3>`;
-        html += `<div class="card"><h4>🎵 Canciones más vistas</h4><ul>`;
-        if (topSongs && topSongs.length) {
+        const userCounts = {};
+        if (usuariosData && !usersError) {
+            usuariosData.forEach(item => {
+                const userId = item.user_id;
+                userCounts[userId] = (userCounts[userId] || 0) + 1;
+            });
+        }
+        let topUsers = Object.entries(userCounts).map(([id, count]) => ({ user_id: id, count }));
+        topUsers.sort((a,b) => b.count - a.count);
+        topUsers = topUsers.slice(0, 5);
+        
+        let html = `<h3>📈 Estadísticas de uso (últimos 30 días)</h3>
+                    <div class="card"><h4>🎵 Canciones más vistas</h4><ul>`;
+        if (topSongs.length) {
             for (let item of topSongs) {
                 const song = songs.find(s => s.id === item.song_id);
                 html += `<li><strong>${song ? escapeHtml(song.title) : 'Desconocida'}</strong> - ${item.count} vistas</li>`;
@@ -599,9 +624,9 @@ async function showEstadisticas() {
         } else {
             html += `<li>Sin datos aún</li>`;
         }
-        html += `</ul></div>`;
-        html += `<div class="card"><h4>📄 Listas más impresas</h4><ul>`;
-        if (topLists && topLists.length) {
+        html += `</ul></div>
+                 <div class="card"><h4>📄 Listas más impresas</h4><ul>`;
+        if (topLists.length) {
             for (let item of topLists) {
                 const lista = lists.find(l => l.id === item.lista_id);
                 html += `<li><strong>${lista ? escapeHtml(lista.name) : 'Desconocida'}</strong> - ${item.count} impresiones</li>`;
@@ -609,9 +634,9 @@ async function showEstadisticas() {
         } else {
             html += `<li>Sin datos aún</li>`;
         }
-        html += `</ul></div>`;
-        html += `<div class="card"><h4>👥 Usuarios más activos</h4><ul>`;
-        if (topUsers && topUsers.length) {
+        html += `</ul></div>
+                 <div class="card"><h4>👥 Usuarios más activos</h4><ul>`;
+        if (topUsers.length) {
             for (let item of topUsers) {
                 const { data: profile } = await supabaseClient.from('perfiles').select('nombre').eq('id', item.user_id).single();
                 html += `<li><strong>${profile ? escapeHtml(profile.nombre) : 'Usuario'}</strong> - ${item.count} acciones</li>`;
@@ -619,8 +644,8 @@ async function showEstadisticas() {
         } else {
             html += `<li>Sin datos aún</li>`;
         }
-        html += `</ul></div>`;
-        html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        html += `</ul></div>
+                 <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
         
         showModal(html);
     } catch (error) {
@@ -628,7 +653,9 @@ async function showEstadisticas() {
         alert("Error al cargar estadísticas: " + error.message);
     }
 }
-    window.showEstadisticas = showEstadisticas;
+
+// Asegurar que la función sea global
+window.showEstadisticas = showEstadisticas;
     
 // NUEVA FUNCIÓN: adminUserManagement con selector jerárquico (departamento padre + equipo hijo)
 async function adminUserManagement() {
