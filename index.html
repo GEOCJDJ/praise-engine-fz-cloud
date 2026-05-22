@@ -411,12 +411,12 @@ function openCifraViewer(songId, index) {
     cifraOriginalLyrics = song.lyrics || "";
     cifraSemitonesShift = 0;
     // Aplicar tamaño de letra guardado (si existe)
-let savedFontSize = localStorage.getItem('cifraFontSize');
-if (savedFontSize) {
-    document.getElementById('cifraContentWrapper').style.fontSize = savedFontSize + 'px';
-} else {
-    document.getElementById('cifraContentWrapper').style.fontSize = '16px';
-}
+let savedSize = localStorage.getItem('cifraFontSize');
+    if (savedSize) {
+        document.getElementById('cifraContentWrapper').style.fontSize = savedSize + 'px';
+    } else {
+        document.getElementById('cifraContentWrapper').style.fontSize = '16px';
+    }
     document.getElementById('cifraModalTitle').innerText = song.title;
     document.getElementById('cifraModalArtist').innerText = song.category;
     document.getElementById('currentToneDisplay').innerText = song.key;
@@ -438,20 +438,55 @@ function closeCifraViewer() {
 
 function renderCifraContent() {
     let lyrics = cifraOriginalLyrics;
-    // Ya no es necesario volver a transponer porque cifraOriginalLyrics ya está transpuesta
+    if (cifraSemitonesShift !== 0) {
+        let targetKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+        lyrics = transposeLyricsCompleto(lyrics, cifraCurrentSong.key, targetKey);
+    }
     const htmlContent = renderChordsOverLyrics(lyrics);
     const wrapper = document.getElementById('cifraContentWrapper');
-    wrapper.style.cssText = "font-family: 'Courier New', Courier, monospace !important; text-align: left !important; white-space: pre-wrap !important; font-size: 16px; line-height: 1.6;";
+    // NO sobreescribimos todo el style, solo cambiamos el innerHTML
     wrapper.innerHTML = htmlContent;
+    // Restauramos el tamaño de letra guardado (si existe)
+    let savedSize = localStorage.getItem('cifraFontSize');
+    if (savedSize) {
+        wrapper.style.fontSize = savedSize + 'px';
+    } else {
+        wrapper.style.fontSize = '16px';
+    }
 }
-
+function transposeLyricsCompleto(text, fromKey, toKey) {
+    if (!text || fromKey === toKey) return text;
+    
+    const lines = text.split('\n');
+    const semitones = (noteMap[toKey.replace(/m$/, '')] - noteMap[fromKey.replace(/m$/, '')] + 12) % 12;
+    // Ajuste por menor/mayor si es necesario (muy simple, asume que la calidad no cambia)
+    
+    const chordRegex = /\b([A-G][#b]?(?:m|maj|min|dim|sus|aug|add)?\d*(?:\/[A-G][#b]?)?)\b/gi;
+    
+    const transposedLines = lines.map(line => {
+        // Si la línea solo contiene acordes, letras y espacios (sin vocales) -> línea de acordes
+        const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line);
+        if (isChordLine && line.trim().length > 0) {
+            // Transponer cada acorde en la línea
+            return line.replace(chordRegex, (match) => transposeChord(match, semitones));
+        } else {
+            // Línea normal: transponer acordes dentro de [corchetes]
+            return line.replace(/\[([^\]]+)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`);
+        }
+    });
+    return transposedLines.join('\n');
+}
+    
 function transposeCifra(steps) {
     cifraSemitonesShift += steps;
-    let targetKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
-    // Transponer la letra original y guardarla en cifraOriginalLyrics
-    cifraOriginalLyrics = transposeLyrics(cifraCurrentSong.lyrics, cifraCurrentSong.key, targetKey);
-    // También actualizamos la tonalidad mostrada
-    document.getElementById('currentToneDisplay').innerText = targetKey;
+    let newKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+    document.getElementById('currentToneDisplay').innerText = newKey;
+    
+    // Transponer la letra original y guardarla como la nueva letra temporal
+    let transposedLyrics = transposeLyricsCompleto(cifraOriginalLyrics, cifraCurrentSong.key, newKey);
+    cifraOriginalLyrics = transposedLyrics;
+    
+    // Actualizar el visor
     renderCifraContent();
 }
 
@@ -519,9 +554,6 @@ function changeFontSizeCifra(delta) {
     if (newSize > 36) newSize = 36;
     el.style.fontSize = newSize + 'px';
     localStorage.setItem('cifraFontSize', newSize);
-    // Forzar que el pre herede el tamaño (por si acaso)
-    let pre = el.querySelector('pre');
-    if (pre) pre.style.fontSize = 'inherit';
 }
 
 function toggleColumnsCifra() {
