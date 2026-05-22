@@ -103,29 +103,6 @@
 
         /* Mejoras para el visor de cifras */
 
-        /* Forzar que el visor respete espacios y use fuente monoespaciada */
-.cifra-content-wrapper {
-    font-family: 'Courier New', Courier, monospace !important;
-    white-space: pre-wrap !important;
-    font-size: 16px;
-    line-height: 1.6;
-}
-
-.chord {
-    color: #dc2626 !important;
-    font-weight: bold !important;
-    display: inline-block;
-}
-
-body.dark .chord {
-    color: #60a5fa !important;
-}
-
-.chord-line, .lyric-line {
-    margin-bottom: 0.2rem;
-    white-space: pre-wrap;
-}
-
         
 .chord {
     color: #dc2626;
@@ -268,6 +245,39 @@ body.dark .chord { color: #60a5fa; }
 .bpm-indicator { width: 12px; height: 12px; border-radius: 50%; background-color: var(--border); display: inline-block; margin-left: 8px; }
 .bpm-indicator.beat { background-color: #dc2626; box-shadow: 0 0 8px #dc2626; }
 body.dark .bpm-indicator.beat { background-color: #60a5fa; }
+
+        /* ========== ESTILOS BLINDADOS PARA EL VISOR DE CANCIONES ========== */
+/* Forzar fuente monoespaciada en el contenedor y todos sus hijos */
+.cifra-content-wrapper,
+.cifra-content-wrapper div,
+.cifra-content-wrapper span {
+    font-family: 'Courier New', Courier, monospace !important;
+}
+
+.cifra-content-wrapper {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+}
+
+/* Estilo de los acordes (rojo/azul) */
+.chord {
+    color: #dc2626 !important;
+    font-weight: bold !important;
+    display: inline-block;
+}
+
+body.dark .chord {
+    color: #60a5fa !important;
+}
+
+/* Líneas de acordes y letras */
+.chord-line, .lyric-line {
+    margin-bottom: 0.2rem;
+    white-space: pre-wrap;
+}
+        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -659,36 +669,30 @@ function convertSpacedChordsToBrackets(text) { const lines = text.split('\n'); c
 function renderChordsOverLyrics(text) {
     if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
     
-    // Limpiar caracteres invisibles y normalizar espacios
+    // Limpieza de caracteres invisibles
     let cleanText = text
-        .replace(/\r/g, '')            // eliminar retornos de carro
-        .replace(/&nbsp;/g, ' ')       // reemplazar &nbsp; por espacio normal
-        .replace(/\s+/g, ' ')          // múltiples espacios por uno solo
+        .replace(/\r/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ')
         .trim();
     
     const lines = cleanText.split('\n');
     let html = '';
-    
-    // Expresión regular para acordes (con/sin barra, con/simbolos)
     const chordRegex = /([A-G][#b]?(m|maj|min|dim|sus|aug|add|M)?(\d*)(\/[A-G][#b]?)?)/gi;
     
     for (let line of lines) {
-        // Detectar si es una línea de acordes (solo acordes, espacios y números, sin vocales acentuadas)
-        // Más tolerante: permite números, espacios, /, #, b, y la primera letra en mayúscula o minúscula
         const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line);
-        
         if (isChordLine && line.trim().length > 0) {
-            // Línea de acordes: colorear cada acorde
             let chordLine = line.replace(chordRegex, (match) => `<span class="chord">${match}</span>`);
             html += `<div class="chord-line">${chordLine}</div>`;
         } else {
-            // Línea normal: si tiene corchetes [Acorde], los coloreamos; si no, se muestra tal cual
             let processedLine = line.replace(/\[([^\]]+)\]/g, '<span class="chord">$1</span>');
             html += `<div class="lyric-line">${processedLine || ' '}</div>`;
         }
     }
     return html;
 }
+    
     
 // ========== AUTENTICACIÓN Y PERFIL ==========
 async function login(email, password) { try { const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; currentUser = data.user; await loadProfile(); await loadUserIglesia(); await loadUserData(); renderApp(); registrarActividad('login', email); } catch (err) { alert("Error al iniciar sesión: " + err.message); } }
