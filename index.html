@@ -437,18 +437,24 @@ function closeCifraViewer() {
 }
 
 function renderCifraContent() {
-    let lyrics = cifraOriginalLyrics;
-    if (cifraSemitonesShift !== 0) {
-        let targetKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
-        lyrics = transposeLyricsCompleto(lyrics, cifraCurrentSong.key, targetKey);
-    }
-    const htmlContent = renderChordsOverLyrics(lyrics);
+    // Ya no transponemos aquí; simplemente mostramos lo que haya en cifraOriginalLyrics
+    const htmlContent = renderChordsOverLyrics(cifraOriginalLyrics);
     const wrapper = document.getElementById('cifraContentWrapper');
     wrapper.innerHTML = htmlContent;
-    // No cambiamos el font-size aquí, solo respetamos el que ya tiene
+    
+    // Restaurar el tamaño de letra guardado
+    let savedSize = localStorage.getItem('cifraFontSize');
+    if (savedSize) {
+        wrapper.style.fontSize = savedSize + 'px';
+    } else {
+        wrapper.style.fontSize = '16px';
+    }
+    // Forzar que el <pre> herede el tamaño
+    let pre = wrapper.querySelector('pre');
+    if (pre) pre.style.fontSize = 'inherit';
 }
 
-function changeFontSizeCifra(delta) {
+    function changeFontSizeCifra(delta) {
     let wrapper = document.getElementById('cifraContentWrapper');
     let cur = parseInt(getComputedStyle(wrapper).fontSize);
     let newSize = cur + delta;
@@ -456,10 +462,10 @@ function changeFontSizeCifra(delta) {
     if (newSize > 36) newSize = 36;
     wrapper.style.fontSize = newSize + 'px';
     localStorage.setItem('cifraFontSize', newSize);
-    // Aseguramos que el pre herede el tamaño
     let pre = wrapper.querySelector('pre');
     if (pre) pre.style.fontSize = 'inherit';
 }
+    
     
 function transposeLyricsCompleto(text, fromKey, toKey) {
     if (!text || fromKey === toKey) return text;
@@ -467,37 +473,41 @@ function transposeLyricsCompleto(text, fromKey, toKey) {
     const lines = text.split('\n');
     const semitones = (noteMap[toKey.replace(/m$/, '')] - noteMap[fromKey.replace(/m$/, '')] + 12) % 12;
     
-    // Expresión regular que captura acordes como Dm, C#, F#m, C/E, Eb, G#m7, etc.
     const chordRegex = /\b([A-G][#b]?(?:m|maj|min|dim|sus|aug|add)?\d*(?:\/[A-G][#b]?)?)\b/gi;
     
     const transposedLines = lines.map(line => {
-        // Detectar si la línea contiene solo acordes, espacios y números (sin vocales)
         const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line);
         if (isChordLine && line.trim().length > 0) {
-            // Línea de solo acordes: transponer cada acorde
             return line.replace(chordRegex, (match) => transposeChord(match, semitones));
         } else {
-            // Línea de letra: buscar acordes sueltos (sin corchetes) y transponerlos
-            // Primero, evitar reemplazar palabras normales, pero como solo buscamos patrones de acordes, es seguro.
+            // Línea de letra: también transponer acordes sueltos
             return line.replace(chordRegex, (match) => transposeChord(match, semitones));
         }
     });
     return transposedLines.join('\n');
 }
-    
 function transposeCifra(steps) {
+    // Actualizar el contador de semitonos acumulado
     cifraSemitonesShift += steps;
-    let newKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
-    document.getElementById('currentToneDisplay').innerText = newKey;
     
-    // Transponer la letra original y guardarla como la nueva temporal
-    let transposedLyrics = transposeLyricsCompleto(cifraOriginalLyrics, cifraCurrentSong.key, newKey);
+    // Obtener la tonalidad actual que se muestra (la que tiene la canción en este momento)
+    let currentDisplayKey = document.getElementById('currentToneDisplay').innerText;
+    // O la original: cifraCurrentSong.key, pero lo correcto es usar la actual (puede que ya esté transpuesta)
+    // Mejor: usar la clave real de la canción más el desplazamiento acumulado
+    let newKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+    
+    // Transponer el texto actual (cifraOriginalLyrics) desde la clave actual (la que se muestra) hacia la nueva
+    let transposedLyrics = transposeLyricsCompleto(cifraOriginalLyrics, currentDisplayKey, newKey);
+    
+    // Guardar el texto transpuesto
     cifraOriginalLyrics = transposedLyrics;
     
-    // Actualizar el visor
+    // Actualizar la visualización de la tonalidad
+    document.getElementById('currentToneDisplay').innerText = newKey;
+    
+    // Volver a renderizar el visor
     renderCifraContent();
 }
-
 function updateSongBpm() {
     if (cifraCurrentSong) {
         cifraCurrentSong.bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
@@ -578,7 +588,8 @@ function getShiftedKey(origKey, shift) {
     let idx = noteMap[base];
     if (idx === undefined) return origKey;
     let newIdx = (idx + shift + 12) % 12;
-    return noteNames[newIdx] + (isMinor ? 'm' : '');
+    let newBase = noteNames[newIdx];
+    return newBase + (isMinor ? 'm' : '');
 }
 
 async function saveCifraStateToServer() {
@@ -778,13 +789,16 @@ function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = a
 function generateUniqueId() { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
 async function uploadFileToStorage(file, folder) { if (!file) return null; const fileExt = file.name.split('.').pop(); const fileName = `${folder}/${Date.now()}.${fileExt}`; const { data, error } = await supabaseClient.storage.from('lecciones').upload(fileName, file); if (error) throw error; const { data: { publicUrl } } = supabaseClient.storage.from('lecciones').getPublicUrl(fileName); return publicUrl; }
 function transposeChord(chord, semitones) {
+    // Separa la raíz (ej. C, C#, F) del resto (m, 7, maj7, /E, etc.)
     const match = chord.match(/^([A-G][#b]?)(.*)$/);
     if (!match) return chord;
-    let base = match[1], suffix = match[2];
+    let base = match[1];
+    let suffix = match[2];
     let idx = noteMap[base];
     if (idx === undefined) return chord;
     let newIdx = (idx + semitones + 12) % 12;
-    return noteNames[newIdx] + suffix;
+    let newBase = noteNames[newIdx];
+    return newBase + suffix;
 }
     function transposeLyrics(text, fromKey, toKey) { if (!text || !fromKey || !toKey || fromKey === toKey) return text; const fromBase = fromKey.replace(/m$/, ''), toBase = toKey.replace(/m$/, ''); let semitones = (noteMap[toBase] - noteMap[fromBase] + 12) % 12; if (fromKey.endsWith('m')) semitones = (semitones + 12) % 12; if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12; return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`); }
 function convertSpacedChordsToBrackets(text) { const lines = text.split('\n'); const result = []; let i = 0; while (i < lines.length) { let line = lines[i]; if (line.trim() === '') { result.push(line); i++; continue; } if (/^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line) && i+1 < lines.length) { const chords = line.trim().split(/\s+/); const lyricLine = lines[i+1]; const words = lyricLine.split(/(\s+)/); let newLine = ''; let chordIndex = 0; for (let word of words) { if (word.trim() !== '' && chordIndex < chords.length) { newLine += `[${chords[chordIndex]}]${word}`; chordIndex++; } else { newLine += word; } } result.push(newLine); i += 2; } else { result.push(line); i++; } } return result.join('\n'); }
