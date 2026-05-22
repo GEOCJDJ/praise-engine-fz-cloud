@@ -641,7 +641,7 @@ function renderChordsOverLyrics(text) {
     const lines = text.split('\n');
     let html = '';
     // Expresión regular para acordes (incluye los que tienen barra como C/E)
-    const chordRegex = /[A-G][#b]?(m|maj|min|dim|sus|aug|add|M)?(\d*)(\/[A-G][#b]?)?/gi[\.\,]?\s*)+$/;;
+    const chordRegex = /[A-G][#b]?(m|maj|min|dim|sus|aug|add|M)?(\d*)(\/[A-G][#b]?)?/gi[\.\,]?\s*+$/;
             
     
     for (let line of lines) {
