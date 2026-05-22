@@ -102,6 +102,29 @@
         .option-btn, .btn, .form-control { white-space: normal; word-break: break-word; }
 
         /* Mejoras para el visor de cifras */
+
+        /* Estilos para el nuevo formato de acordes */
+.chord {
+    color: #dc2626;
+    font-weight: bold;
+    display: inline-block;
+}
+body.dark .chord {
+    color: #60a5fa;
+}
+.chord-line, .lyric-line {
+    white-space: pre-wrap;
+    font-family: 'Courier New', Courier, monospace;
+    margin-bottom: 0.2rem;
+}
+.song-line {
+    margin-bottom: 1rem;
+}
+/* Suavizar el cambio de tamaño de letra */
+.cifra-content-wrapper {
+    transition: font-size 0.2s ease-out;
+}
+        
 .cifra-content-wrapper {
     font-family: 'Courier New', Courier, monospace;
     font-size: 16px;
@@ -143,6 +166,21 @@ body.dark .chord-item {
         
 
         /* ========== NUEVOS ESTILOS PARA VISOR Y EDITOR (del ejemplo) ========== */
+
+
+#songModal .modal-content {
+    max-width: 800px;
+    width: 90%;
+}
+.row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.row input, .row select {
+    flex: 1;
+}
+        
 .chord {
     color: #dc2626;
     font-weight: bold;
@@ -198,6 +236,15 @@ body.dark .bpm-indicator.beat {
     background: #475569;
 }
         
+        .chord { color: #dc2626; font-weight: bold; display: inline-block; }
+body.dark .chord { color: #60a5fa; }
+.chord-line, .lyric-line { white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; margin-bottom: 0.2rem; }
+.two-columns { column-count: 2; column-gap: 2rem; }
+@media (max-width: 768px) { .two-columns { column-count: 1; } }
+.cifra-content-wrapper { transition: font-size 0.2s ease-out; }
+.bpm-indicator { width: 12px; height: 12px; border-radius: 50%; background-color: var(--border); display: inline-block; margin-left: 8px; }
+.bpm-indicator.beat { background-color: #dc2626; box-shadow: 0 0 8px #dc2626; }
+body.dark .bpm-indicator.beat { background-color: #60a5fa; }
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -227,7 +274,7 @@ body.dark .bpm-indicator.beat {
         <div style="flex-grow:1;"></div>
         <button onclick="window.print()"><i class="fa-solid fa-print"></i> Imprimir</button>
         <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
-        <button class="cifra-btn" onclick="openLyricsEditor(cifraCurrentSong.id)" style="background:#3b82f6;"><i class="fa-solid fa-pen"></i> Editar</button>
+        <button class="cifra-btn" onclick="openLyricsEditor(cifraCurrentSong ? cifraCurrentSong.id : songs[currentSongIndex]?.id)" style="background:#3b82f6;"><i class="fa-solid fa-pen"></i> Editar</button>
         <div class="tool-group" style="margin-left:auto;">
             <button class="cifra-btn" id="prevSongBtn" onclick="navigateSong(-1)">◀ Anterior</button>
             <button class="cifra-btn" id="nextSongBtn" onclick="navigateSong(1)">Siguiente ▶</button>
@@ -452,6 +499,123 @@ async function saveCifraStateToServer() {
     cifraSemitonesShift = 0;
     document.getElementById('currentToneDisplay').innerText = finalKey;
 }
+    async function openLyricsEditor(songId) {
+    const song = songs.find(s => s.id === songId);
+    if (!song) return;
+    let lyrics = song.lyrics || '';
+
+    const modalContent = `
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <h3>Editar Canción: ${escapeHtml(song.title)}</h3>
+            <div class="row">
+                <input type="text" id="editTitle" class="form-control" placeholder="Título" value="${escapeHtml(song.title)}" style="flex:2;">
+                <input type="text" id="editArtist" class="form-control" placeholder="Categoría / Artista" value="${escapeHtml(song.category)}" style="flex:1;">
+            </div>
+            <div class="row">
+                <input type="number" id="editBpm" class="form-control" placeholder="BPM" value="${song.bpm || ''}" style="flex:1;">
+                <input type="text" id="editKey" class="form-control" placeholder="Tonalidad" value="${song.key || 'C'}" style="flex:1;">
+                <input type="text" id="editCapo" class="form-control" placeholder="Capo (ej: 2)" value="${song.capo || ''}" style="flex:1;">
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="convertSpacedChordsInEditor()">Convertir formato (espaciado → [Acorde])</button>
+                <button class="btn btn-secondary" onclick="showPreviewInEditor()">Vista previa</button>
+                <div style="margin-top:0.5rem;">
+                    <label>Transponer:</label>
+                    <button class="btn-icon" onclick="transposeEditor(-1)">-½</button>
+                    <span id="editorCurrentKey">${song.key}</span>
+                    <button class="btn-icon" onclick="transposeEditor(1)">+½</button>
+                    <select id="transposeToKeySelect" class="form-control" style="width:auto; display:inline-block;">
+                        ${keys.map(k => `<option value="${k}">${k}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary" onclick="applyEditorTranspose()">Transponer</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Letra y acordes</label>
+                <textarea id="lyricsEditor" rows="12" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea>
+            </div>
+            <div id="editorPreview" style="background: var(--bg-app); padding: 1rem; border-radius: var(--radius-lg); max-height: 300px; overflow: auto; display: none;">
+                <h4>Vista previa</h4>
+                <div id="previewContent"></div>
+            </div>
+            <div style="text-align: right;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveSongFromEditor('${song.id}')">Guardar</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+
+    // Funciones auxiliares para el editor
+    window.convertSpacedChordsInEditor = () => {
+        const textarea = document.getElementById('lyricsEditor');
+        textarea.value = convertSpacedChordsToBrackets(textarea.value);
+        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
+    };
+    window.showPreviewInEditor = () => {
+        const textarea = document.getElementById('lyricsEditor');
+        const previewDiv = document.getElementById('previewContent');
+        const previewContainer = document.getElementById('editorPreview');
+        previewDiv.innerHTML = renderChordsOverLyrics(textarea.value);
+        previewContainer.style.display = 'block';
+    };
+    window.transposeEditor = (steps) => {
+        const textarea = document.getElementById('lyricsEditor');
+        const currentKeySpan = document.getElementById('editorCurrentKey');
+        let currentKey = currentKeySpan.innerText;
+        let idx = keys.indexOf(currentKey);
+        let newIdx = (idx + steps + keys.length) % keys.length;
+        let newKey = keys[newIdx];
+        textarea.value = transposeLyrics(textarea.value, currentKey, newKey);
+        currentKeySpan.innerText = newKey;
+        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
+    };
+    window.applyEditorTranspose = () => {
+        const textarea = document.getElementById('lyricsEditor');
+        const toKey = document.getElementById('transposeToKeySelect').value;
+        const currentKeySpan = document.getElementById('editorCurrentKey');
+        let currentKey = currentKeySpan.innerText;
+        textarea.value = transposeLyrics(textarea.value, currentKey, toKey);
+        currentKeySpan.innerText = toKey;
+        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
+    };
+    window.saveSongFromEditor = async (id) => {
+        const newTitle = document.getElementById('editTitle').value;
+        const newArtist = document.getElementById('editArtist').value;
+        const newBpm = parseInt(document.getElementById('editBpm').value) || 80;
+        const newKey = document.getElementById('editKey').value;
+        const newCapo = document.getElementById('editCapo').value;
+        const newLyrics = document.getElementById('lyricsEditor').value;
+        const songToUpdate = songs.find(s => s.id === id);
+        if (songToUpdate) {
+            songToUpdate.title = newTitle;
+            songToUpdate.category = newArtist;
+            songToUpdate.bpm = newBpm;
+            songToUpdate.key = newKey;
+            songToUpdate.capo = newCapo;
+            songToUpdate.lyrics = newLyrics;
+            await saveSong(songToUpdate);
+        }
+        closeModal();
+        // Actualizar el visor si está abierto
+        if (cifraCurrentSong && cifraCurrentSong.id === id) {
+            cifraCurrentSong.lyrics = newLyrics;
+            cifraCurrentSong.key = newKey;
+            cifraCurrentSong.bpm = newBpm;
+            cifraCurrentSong.capo = newCapo;
+            renderCifraContent();
+            document.getElementById('cifraBpmInput').value = newBpm;
+            document.getElementById('cifraCapoInput').value = newCapo;
+            startMetronomeVisual(newBpm);
+        }
+        // Refrescar la vista actual (cancionero o favoritos)
+        if (currentTab === 'songs') await renderSongsGrid();
+        else if (currentTab === 'favorites') await renderFavorites();
+    };
+}
+
+window.openLyricsEditor = openLyricsEditor;   // <--- ¡NO OLVIDES ESTA LÍNEA!
+    
 
     
 // ========== AUXILIARES ==========
@@ -461,48 +625,36 @@ function showModal(content) { closeModal(); const div = document.createElement('
 function dataURLtoBlob(dataURL) { const arr = dataURL.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) u8arr[n] = bstr.charCodeAt(n); return new Blob([u8arr], {type: mime}); }
 function generateUniqueId() { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
 async function uploadFileToStorage(file, folder) { if (!file) return null; const fileExt = file.name.split('.').pop(); const fileName = `${folder}/${Date.now()}.${fileExt}`; const { data, error } = await supabaseClient.storage.from('lecciones').upload(fileName, file); if (error) throw error; const { data: { publicUrl } } = supabaseClient.storage.from('lecciones').getPublicUrl(fileName); return publicUrl; }
-function transposeChord(chord, semitones) { const match = chord.match(/^([A-G][#b]?)(.*)$/); if (!match) return chord; let base = match[1], suffix = match[2]; let idx = noteMap[base]; if (idx === undefined) return chord; let newIdx = (idx + semitones + 12) % 12; return noteNames[newIdx] + suffix; }
-function transposeLyrics(text, fromKey, toKey) { if (!text || !fromKey || !toKey || fromKey === toKey) return text; const fromBase = fromKey.replace(/m$/, ''), toBase = toKey.replace(/m$/, ''); let semitones = (noteMap[toBase] - noteMap[fromBase] + 12) % 12; if (fromKey.endsWith('m')) semitones = (semitones + 12) % 12; if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12; return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`); }
+function transposeChord(chord, semitones) {
+    const match = chord.match(/^([A-G][#b]?)(.*)$/);
+    if (!match) return chord;
+    let base = match[1], suffix = match[2];
+    let idx = noteMap[base];
+    if (idx === undefined) return chord;
+    let newIdx = (idx + semitones + 12) % 12;
+    return noteNames[newIdx] + suffix;
+}
+    function transposeLyrics(text, fromKey, toKey) { if (!text || !fromKey || !toKey || fromKey === toKey) return text; const fromBase = fromKey.replace(/m$/, ''), toBase = toKey.replace(/m$/, ''); let semitones = (noteMap[toBase] - noteMap[fromBase] + 12) % 12; if (fromKey.endsWith('m')) semitones = (semitones + 12) % 12; if (toKey.endsWith('m') && !fromKey.endsWith('m')) semitones = (semitones + 12) % 12; return text.replace(/\[([A-G][#b]?[^\]]*)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`); }
 function convertSpacedChordsToBrackets(text) { const lines = text.split('\n'); const result = []; let i = 0; while (i < lines.length) { let line = lines[i]; if (line.trim() === '') { result.push(line); i++; continue; } if (/^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line) && i+1 < lines.length) { const chords = line.trim().split(/\s+/); const lyricLine = lines[i+1]; const words = lyricLine.split(/(\s+)/); let newLine = ''; let chordIndex = 0; for (let word of words) { if (word.trim() !== '' && chordIndex < chords.length) { newLine += `[${chords[chordIndex]}]${word}`; chordIndex++; } else { newLine += word; } } result.push(newLine); i += 2; } else { result.push(line); i++; } } return result.join('\n'); }
 function renderChordsOverLyrics(text) {
     if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
     const lines = text.split('\n');
     let html = '';
-    let i = 0;
-    while (i < lines.length) {
-        let line = lines[i];
-        if (line.trim() === '') { i++; continue; }
-        // Detectar si es línea de acordes (solo letras, números, #, b, / y espacios, sin vocales acentuadas)
+    // Expresión regular para acordes (incluye los que tienen barra como C/E)
+    const chordRegex = /[A-G][#b]?(m|maj|min|dim|sus|aug|add|M)?(\d*)(\/[A-G][#b]?)?/gi[\.\,]?\s*)+$/;;
+            
+    
+    for (let line of lines) {
+        // Detectar si es línea de acordes (solo acordes y espacios, sin vocales)
         const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line);
-        if (isChordLine && i + 1 < lines.length) {
-            const chordLine = line.trim().split(/\s+/);
-            const lyricLine = lines[i+1].trim();
-            const words = lyricLine.split(/(\s+)/);
-            let chordHtml = '<div class="chord-line" style="display: flex; flex-wrap: wrap; margin-bottom: 0.25rem;">';
-            let lyricHtml = '<div class="lyric-line" style="display: flex; flex-wrap: wrap; margin-bottom: 1rem;">';
-            let wordIndex = 0;
-            for (let chord of chordLine) {
-                if (wordIndex >= words.length) break;
-                let word = words[wordIndex];
-                // Calcular ancho mínimo basado en la longitud de la palabra (aproximado)
-                let width = Math.max(word.length * 1.2, chord.length * 0.9) + 'rem';
-                chordHtml += `<span class="chord-item" style="min-width: ${width}; display: inline-block; font-weight: bold; color: #F59E0B; margin-right: 0.5rem;">${escapeHtml(chord)}</span>`;
-                lyricHtml += `<span class="lyric-item" style="min-width: ${width}; display: inline-block; margin-right: 0.5rem;">${escapeHtml(word)}</span>`;
-                wordIndex++;
-            }
-            while (wordIndex < words.length) {
-                lyricHtml += `<span class="lyric-item" style="display: inline-block; margin-right: 0.5rem;">${escapeHtml(words[wordIndex])}</span>`;
-                chordHtml += `<span class="chord-item" style="visibility:hidden; min-width: 2rem; display: inline-block;">&nbsp;</span>`;
-                wordIndex++;
-            }
-            chordHtml += '</div>';
-            lyricHtml += '</div>';
-            html += `<div class="song-line" style="margin-bottom: 1rem;">${chordHtml}${lyricHtml}</div>`;
-            i += 2;
+        if (isChordLine && line.trim().length > 0) {
+            // Envolver cada acorde en <span class="chord">
+            let chordLine = line.replace(chordRegex, (match) => `<span class="chord">${match}</span>`);
+            html += `<div class="chord-line">${chordLine}</div>`;
         } else {
-            // Línea normal sin acordes
-            html += `<div class="song-line" style="margin-bottom: 1rem;"><div class="lyric-line">${escapeHtml(line)}</div></div>`;
-            i++;
+            // Línea normal: reemplazar [Acorde] por <span class="chord">Acorde</span>
+            let processedLine = line.replace(/\[([^\]]+)\]/g, '<span class="chord">$1</span>');
+            html += `<div class="lyric-line">${processedLine || ' '}</div>`;
         }
     }
     return html;
