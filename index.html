@@ -444,34 +444,42 @@ function renderCifraContent() {
     }
     const htmlContent = renderChordsOverLyrics(lyrics);
     const wrapper = document.getElementById('cifraContentWrapper');
-    // NO sobreescribimos todo el style, solo cambiamos el innerHTML
     wrapper.innerHTML = htmlContent;
-    // Restauramos el tamaño de letra guardado (si existe)
-    let savedSize = localStorage.getItem('cifraFontSize');
-    if (savedSize) {
-        wrapper.style.fontSize = savedSize + 'px';
-    } else {
-        wrapper.style.fontSize = '16px';
-    }
+    // No cambiamos el font-size aquí, solo respetamos el que ya tiene
 }
+
+function changeFontSizeCifra(delta) {
+    let wrapper = document.getElementById('cifraContentWrapper');
+    let cur = parseInt(getComputedStyle(wrapper).fontSize);
+    let newSize = cur + delta;
+    if (newSize < 12) newSize = 12;
+    if (newSize > 36) newSize = 36;
+    wrapper.style.fontSize = newSize + 'px';
+    localStorage.setItem('cifraFontSize', newSize);
+    // Aseguramos que el pre herede el tamaño
+    let pre = wrapper.querySelector('pre');
+    if (pre) pre.style.fontSize = 'inherit';
+}
+    
 function transposeLyricsCompleto(text, fromKey, toKey) {
     if (!text || fromKey === toKey) return text;
     
     const lines = text.split('\n');
     const semitones = (noteMap[toKey.replace(/m$/, '')] - noteMap[fromKey.replace(/m$/, '')] + 12) % 12;
-    // Ajuste por menor/mayor si es necesario (muy simple, asume que la calidad no cambia)
     
+    // Expresión regular que captura acordes como Dm, C#, F#m, C/E, Eb, G#m7, etc.
     const chordRegex = /\b([A-G][#b]?(?:m|maj|min|dim|sus|aug|add)?\d*(?:\/[A-G][#b]?)?)\b/gi;
     
     const transposedLines = lines.map(line => {
-        // Si la línea solo contiene acordes, letras y espacios (sin vocales) -> línea de acordes
+        // Detectar si la línea contiene solo acordes, espacios y números (sin vocales)
         const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(line) && !/[aeiouáéíóú]/i.test(line);
         if (isChordLine && line.trim().length > 0) {
-            // Transponer cada acorde en la línea
+            // Línea de solo acordes: transponer cada acorde
             return line.replace(chordRegex, (match) => transposeChord(match, semitones));
         } else {
-            // Línea normal: transponer acordes dentro de [corchetes]
-            return line.replace(/\[([^\]]+)\]/g, (match, chord) => `[${transposeChord(chord, semitones)}]`);
+            // Línea de letra: buscar acordes sueltos (sin corchetes) y transponerlos
+            // Primero, evitar reemplazar palabras normales, pero como solo buscamos patrones de acordes, es seguro.
+            return line.replace(chordRegex, (match) => transposeChord(match, semitones));
         }
     });
     return transposedLines.join('\n');
@@ -482,7 +490,7 @@ function transposeCifra(steps) {
     let newKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
     document.getElementById('currentToneDisplay').innerText = newKey;
     
-    // Transponer la letra original y guardarla como la nueva letra temporal
+    // Transponer la letra original y guardarla como la nueva temporal
     let transposedLyrics = transposeLyricsCompleto(cifraOriginalLyrics, cifraCurrentSong.key, newKey);
     cifraOriginalLyrics = transposedLyrics;
     
@@ -546,15 +554,6 @@ function changeScrollSpeedCifra(delta) {
     }
 }
 
-function changeFontSizeCifra(delta) {
-    let el = document.getElementById('cifraContentWrapper');
-    let cur = parseInt(getComputedStyle(el).fontSize);
-    let newSize = cur + delta;
-    if (newSize < 12) newSize = 12;
-    if (newSize > 36) newSize = 36;
-    el.style.fontSize = newSize + 'px';
-    localStorage.setItem('cifraFontSize', newSize);
-}
 
 function toggleColumnsCifra() {
     document.getElementById('cifraContentWrapper').classList.toggle('two-columns');
