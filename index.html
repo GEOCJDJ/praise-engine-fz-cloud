@@ -650,51 +650,27 @@ function convertSpacedChordsToBrackets(text) { const lines = text.split('\n'); c
 function renderChordsOverLyrics(text) {
     if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
     
-    // Paso 1: Normalizar saltos de línea (convierte \r\n y \r a \n)
-    let cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    // Eliminar &nbsp; y otros entes html
-    cleanText = cleanText.replace(/&nbsp;/gi, ' ');
-    // Eliminar espacios múltiples (opcional, ayuda a limpiar) pero conserva los saltos
-    // cleanText = cleanText.replace(/[ \t]+/g, ' '); // (descomentar si quieres normalizar espacios)
-    
+    // Normalizar saltos de línea y espacios
+    let cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/&nbsp;/g, ' ');
     const lines = cleanText.split('\n');
     
-    // Iniciamos el contenedor <pre> con estilos en línea insuperables
-    let html = `<pre style="font-family: 'Courier New', Courier, monospace !important; white-space: pre-wrap !important; word-break: break-word !important; text-align: left !important; font-size: 16px !important; line-height: 1.6 !important; background: transparent !important; border: none !important; margin: 0 !important; padding: 0 !important; color: inherit;">`;
+    // Expresión regular para acordes (robusta)
+    // Captura: C, C#, Cb, Cm, Cm7, C#m7, C/E, C#m/E, C9, Cadd9, etc.
+    const chordRegex = /\b([A-G][#b]?(?:m|maj|min|dim|sus|aug|add)?\d*(?:\/[A-G][#b]?)?)\b/gi;
     
-    // Expresión regular para identificar acordes (tolerante)
-    const chordRegex = /([A-G][#b]?(m|maj|min|dim|sus|aug|add|M)?(\d*)(\/[A-G][#b]?)?)/gi;
-    
+    let preContent = '';
     for (let line of lines) {
-        let trimmedLine = line.trimEnd(); // elimina espacios al final pero respeta los del medio
-        
-        // Detectar si la línea completa es solo acordes y espacios
-        const isChordLine = /^[\sA-Ga-g0-9#b\/]+$/.test(trimmedLine) && !/[aeiouáéíóú]/i.test(trimmedLine);
-        
-        if (trimmedLine.toLowerCase().startsWith('tono:')) {
-            // Extraer tonalidad y actualizar el display (si existe en tu visor)
-            const tonoMatch = trimmedLine.split(':')[1].trim();
-            const toneSpan = document.getElementById('currentToneDisplay');
-            if (toneSpan) toneSpan.innerText = tonoMatch;
-            html += `<span style="color: #94a3b8; font-weight: bold;">${escapeHtml(trimmedLine)}</span>\n`;
+        if (line.trim() === '') {
+            preContent += '\n';
+            continue;
         }
-        else if (trimmedLine.toLowerCase().startsWith('afinación:')) {
-            html += `<span style="color: #94a3b8; font-style: italic;">${escapeHtml(trimmedLine)}</span>\n`;
-        }
-        else if (isChordLine && trimmedLine.length > 0) {
-            // Pintar acordes en rojo/azul
-            let chordLine = trimmedLine.replace(chordRegex, (match) => `<strong class="chord-inline" style="color: #dc2626 !important; font-weight: bold;">${escapeHtml(match)}</strong>`);
-            html += `${chordLine}\n`;
-        }
-        else {
-            // Línea de letra (puede contener [Acorde] entre corchetes)
-            let processedLine = trimmedLine.replace(/\[([^\]]+)\]/g, (match, chord) => `<strong class="chord-inline" style="color: #dc2626 !important; font-weight: bold;">${escapeHtml(chord)}</strong>`);
-            html += `${processedLine || ' '}\n`;
-        }
+        // Reemplazar cada acorde con un span coloreado
+        let coloredLine = line.replace(chordRegex, (match) => `<strong class="chord">${match}</strong>`);
+        preContent += coloredLine + '\n';
     }
     
-    html += `</pre>`;
-    return html;
+    // Devolver dentro de <pre> con estilos básicos en línea
+    return `<pre style="font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; text-align: left; font-size: 16px; line-height: 1.6; margin: 0; padding: 0;">${preContent}</pre>`;
 }
     
     
