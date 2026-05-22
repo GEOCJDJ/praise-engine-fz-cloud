@@ -125,6 +125,58 @@
     }
 }
 
+        /* ========== NUEVOS ESTILOS PARA VISOR Y EDITOR (del ejemplo) ========== */
+.chord {
+    color: #dc2626;
+    font-weight: bold;
+}
+body.dark .chord {
+    color: #60a5fa;
+}
+
+/* Columnas en el visor */
+.cifra-content-wrapper.two-columns {
+    column-count: 2;
+    column-gap: 2rem;
+}
+@media (max-width: 768px) {
+    .cifra-content-wrapper.two-columns {
+        column-count: 1;
+    }
+}
+
+/* Metrónomo visual */
+.bpm-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--border);
+    display: inline-block;
+    margin-right: 5px;
+}
+.bpm-indicator.beat {
+    background-color: #dc2626;
+    box-shadow: 0 0 8px #dc2626;
+}
+body.dark .bpm-indicator.beat {
+    background-color: #60a5fa;
+    box-shadow: 0 0 8px #60a5fa;
+}
+
+/* Botones en el visor */
+.cifra-toolbar button {
+    background: #334155;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+.cifra-toolbar button:hover {
+    background: #475569;
+}
+        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -132,18 +184,54 @@
 <body>
 <div id="appRoot"></div>
 
-<!-- VISOR CIFRA CLUB -->
 <div id="cifraClubModal" class="cifra-modal">
-    <div class="cifra-header"><div class="cifra-title-area"><h2 id="cifraModalTitle">Título de la Canción</h2><p id="cifraModalArtist">Artista / Ministerio</p></div><button class="cifra-btn cifra-btn-close" onclick="closeCifraViewer()"><i class="fa-solid fa-xmark"></i> Salir</button></div>
-    <div class="cifra-toolbar">
-        <div class="tool-group"><span>TONO:</span><button class="cifra-btn" onclick="changeTone(-1)">-</button><span id="currentToneDisplay" style="min-width:35px; text-align:center; color:#f59e0b;">Orig</span><button class="cifra-btn" onclick="changeTone(1)">+</button></div>
-        <div class="tool-group"><span>BPM:</span><input type="number" id="cifraBpmInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()"><button id="btnMetronomeToggle" class="cifra-btn" onclick="toggleCifraMetronome()"><i class="fa-solid fa-drum"></i> Iniciar</button><div id="metronomeVisualDot" class="metronome-dot"></div></div>
-        <div class="tool-group"><span>SCROLL:</span><button id="btnAutoScrollToggle" class="cifra-btn" onclick="toggleCifraAutoScroll()"><i class="fa-solid fa-play"></i> Play</button><button class="cifra-btn" onclick="adjustScrollSpeed(2)"><i class="fa-solid fa-angle-down"></i></button><button class="cifra-btn" onclick="adjustScrollSpeed(-2)"><i class="fa-solid fa-angle-up"></i></button></div>
-        <div class="tool-group"><span>ZOOM:</span><button class="cifra-btn" onclick="adjustCifraFontSize(-1)">-</button><button class="cifra-btn" onclick="adjustCifraFontSize(1)">+</button></div>
-        <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
-        <div class="tool-group" style="margin-left:auto;"><button class="cifra-btn" id="prevSongBtn" onclick="navigateSong(-1)">◀ Anterior</button><button class="cifra-btn" id="nextSongBtn" onclick="navigateSong(1)">Siguiente ▶</button></div>
+    <div class="cifra-header">
+        <div class="cifra-title-area">
+            <h2 id="cifraModalTitle">Título de la Canción</h2>
+            <p id="cifraModalArtist">Artista / Ministerio</p>
+            <p id="cifraCapoDisplay" style="font-size:0.75rem; color:#94a3b8; margin-top:4px;"></p>
+        </div>
+        <button class="cifra-btn cifra-btn-close" onclick="closeCifraViewer()"><i class="fa-solid fa-xmark"></i> Salir</button>
     </div>
-    <div id="cifraBodyContainer" class="cifra-body"><div id="cifraContentWrapper" class="cifra-content-wrapper"></div></div>
+    <div class="cifra-toolbar">
+        <button onclick="toggleDarkModeCifra()"><i class="fa-solid fa-moon"></i> Modo Oscuro</button>
+        <div style="width:1px; height:20px; background:#475569;"></div>
+        <button onclick="transposeCifra(-1)">-½ Tono</button>
+        <span id="currentToneDisplay" style="min-width:35px; text-align:center; color:#f59e0b;">Orig</span>
+        <button onclick="transposeCifra(1)">+½ Tono</button>
+        <div style="width:1px; height:20px; background:#475569;"></div>
+        <button onclick="changeFontSizeCifra(-2)">A-</button>
+        <button onclick="changeFontSizeCifra(2)">A+</button>
+        <button onclick="toggleColumnsCifra()"><i class="fa-solid fa-columns"></i> Columnas</button>
+        <div style="flex-grow:1;"></div>
+        <button onclick="window.print()"><i class="fa-solid fa-print"></i> Imprimir</button>
+        <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+        <div class="tool-group" style="margin-left:auto;">
+            <button class="cifra-btn" id="prevSongBtn" onclick="navigateSong(-1)">◀ Anterior</button>
+            <button class="cifra-btn" id="nextSongBtn" onclick="navigateSong(1)">Siguiente ▶</button>
+        </div>
+    </div>
+    <div class="cifra-toolbar" style="border-top:1px solid #334155;">
+        <div class="tool-group">
+            <span>Auto-Scroll:</span>
+            <button onclick="changeScrollSpeedCifra(-1)">-</button>
+            <span id="speedDisplayCifra" style="width:20px; text-align:center;">3</span>
+            <button onclick="changeScrollSpeedCifra(1)">+</button>
+            <button id="btnPlayScrollCifra" class="cifra-btn" onclick="toggleAutoScrollCifra()"><i class="fa-solid fa-play"></i> Iniciar</button>
+        </div>
+        <div class="tool-group">
+            <span>BPM:</span>
+            <input type="number" id="cifraBpmInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()">
+            <div class="bpm-indicator" id="bpmDot"></div>
+        </div>
+        <div class="tool-group">
+            <span>Capo:</span>
+            <input type="text" id="cifraCapoInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" placeholder="Ej: 2">
+        </div>
+    </div>
+    <div id="cifraBodyContainer" class="cifra-body">
+        <div id="cifraContentWrapper" class="cifra-content-wrapper"></div>
+    </div>
 </div>
 
 <!-- OVERLAY PARA EXÁMENES -->
@@ -246,7 +334,7 @@ async function registrarImpresionLista(listaId) { if (!currentUser) return; try 
 async function registrarActividad(accion, detalles = '') { if (!currentUser) return; try { await supabaseClient.from('estadisticas_usuarios').insert({ user_id: currentUser.id, accion, detalles, iglesia_id: currentIglesiaId }); } catch(e) { console.error(e); } }
 
 // ========== CARGA DE DATOS ==========
-async function loadUserData() { if (!currentUser || !currentIglesiaId) return; try { const { data: s } = await supabaseClient.from('canciones').select('*').eq('iglesia_id', currentIglesiaId); songs = (s || []).map(song => ({ ...song, chordsUrl: song.chords_url, chordsData: song.chords_data })); const { data: deptos } = await supabaseClient.from('departamentos').select('*').eq('iglesia_id', currentIglesiaId); departamentos = deptos || []; const { data: miembros } = await supabaseClient.from('usuarios_iglesia').select('*, perfiles(nombre, email, foto_url)').eq('iglesia_id', currentIglesiaId); usuariosIglesia = miembros || []; const { data: l } = await supabaseClient.from('listas').select('*').eq('iglesia_id', currentIglesiaId); lists = l || []; for (let list of lists) { const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden'); list.items = items || []; } const { data: a } = await supabaseClient.from('asistencia').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId); attendance = a || []; const { data: sh } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId); shifts = sh || []; const deptIds = departamentos.map(d => d.id).join(',') || 'null'; const { data: c } = await supabaseClient.from('cursos').select('*').or(`entidad_tipo.eq.iglesia,and(entidad_tipo.eq.departamento,entidad_id.in.(${deptIds})`); cursos = c || []; const { data: m } = await supabaseClient.from('modulos').select('*'); modulosList = m || []; const { data: e } = await supabaseClient.from('examenes').select('*'); examenes = e || []; const { data: p } = await supabaseClient.from('preguntas').select('*'); preguntas = p || []; } catch(e) { console.error(e); alert("Error al cargar datos. Recarga la página."); } }
+async function loadUserData() { if (!currentUser || !currentIglesiaId) return; try { const { data: s } = await supabaseClient.from('canciones').select('*').eq('iglesia_id', currentIglesiaId); songs = (s || []).map(song => ({ ...song, chordsUrl: song.chords_url, chordsData: song.chords_data, capo: song.capo || })); const { data: deptos } = await supabaseClient.from('departamentos').select('*').eq('iglesia_id', currentIglesiaId); departamentos = deptos || []; const { data: miembros } = await supabaseClient.from('usuarios_iglesia').select('*, perfiles(nombre, email, foto_url)').eq('iglesia_id', currentIglesiaId); usuariosIglesia = miembros || []; const { data: l } = await supabaseClient.from('listas').select('*').eq('iglesia_id', currentIglesiaId); lists = l || []; for (let list of lists) { const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden'); list.items = items || []; } const { data: a } = await supabaseClient.from('asistencia').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId); attendance = a || []; const { data: sh } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId); shifts = sh || []; const deptIds = departamentos.map(d => d.id).join(',') || 'null'; const { data: c } = await supabaseClient.from('cursos').select('*').or(`entidad_tipo.eq.iglesia,and(entidad_tipo.eq.departamento,entidad_id.in.(${deptIds})`); cursos = c || []; const { data: m } = await supabaseClient.from('modulos').select('*'); modulosList = m || []; const { data: e } = await supabaseClient.from('examenes').select('*'); examenes = e || []; const { data: p } = await supabaseClient.from('preguntas').select('*'); preguntas = p || []; } catch(e) { console.error(e); alert("Error al cargar datos. Recarga la página."); } }
 
 // ========== GUARDADO ==========
 async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin) { alert("No tienes permiso para editar canciones."); return false; } try { const cleanSong = { id: song.id || generateUniqueId(), user_id: currentUser.id, title: song.title || "Sin título", category: song.category || "Adoración", key: song.key || "C", bpm: parseInt(song.bpm) || 80, chords_url: song.chordsUrl || "", chords_data: song.chordsData || "", lyrics: song.lyrics || "", youtube: song.youtube || "", iglesia_id: currentIglesiaId }; const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' }); if (error) throw error; await loadUserData(); renderCurrentView(); return true; } catch (err) { console.error(err); alert("Error al guardar: " + err.message); return false; } }
@@ -297,8 +385,8 @@ async function toggleFavorite(songId) { if (!currentUser) return alert("Inicia s
 async function deleteSongConfirm(id) { if (confirm("¿Eliminar?")) await deleteSong(id); }
 function openSongModal(id=null) { if (!isAdminUser && !isIglesiaAdmin) return; const s = songs.find(s=>s.id===id) || { title:'', category:'Adoración', key:'C', bpm:80, chordsUrl:'', chordsData:'', lyrics:'' }; showModal(`<h3>${id?'Editar':'Nueva'} Canción</h3><div class="form-group"><label>Título</label><input id="mTitle" class="form-control" value="${escapeHtml(s.title)}"></div><div class="form-group"><label>Categoría</label><select id="mCat" class="form-control"><option ${s.category==='Adoración'?'selected':''}>Adoración</option><option ${s.category==='Exaltación'?'selected':''}>Exaltación</option><option ${s.category==='Júbilo'?'selected':''}>Júbilo</option></select></div><div class="form-group"><label>Tonalidad</label><select id="mKey" class="form-control">${keys.map(k=>`<option ${s.key===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group"><label>BPM</label><input id="mBpm" type="number" class="form-control" value="${s.bpm||80}"></div><div class="form-group"><label>Enlace acordes (PDF/imagen)</label><input id="mChordsUrl" class="form-control" value="${escapeHtml(s.chordsUrl)}"></div><div class="form-group"><label>Subir archivo</label><input type="file" id="mChordsFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control"></div><div class="form-group"><label>Letra</label><textarea id="mLyrics" rows="6" class="form-control">${escapeHtml(s.lyrics)}</textarea><button id="convertChordsBtn" class="btn btn-ghost" style="margin-top:0.5rem;" onclick="convertLyricsInModal()">Convertir formato (espaciado -> [Acorde])</button></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveSongFromModal('${id}')">Guardar</button></div>`); window.convertLyricsInModal = () => { const textarea = document.getElementById('mLyrics'); textarea.value = convertSpacedChordsToBrackets(textarea.value); }; }
 async function saveSongFromModal(id) { if (!isAdminUser && !isIglesiaAdmin) return; const title = document.getElementById('mTitle').value.trim(); if (!title) return alert("Título requerido"); const category = document.getElementById('mCat').value; const key = document.getElementById('mKey').value; const bpm = parseInt(document.getElementById('mBpm').value) || 80; const chordsUrl = document.getElementById('mChordsUrl').value.trim(); const lyrics = document.getElementById('mLyrics').value; let chordsData = ''; const file = document.getElementById('mChordsFile').files[0]; if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); } else if (id) { const existingSong = songs.find(s=>s.id===id); if (existingSong) chordsData = existingSong.chordsData || ''; } const song = { id: id || generateUniqueId(), title, category, key, bpm, chordsUrl, chordsData, lyrics, youtube: '' }; await saveSong(song); closeModal(); }
-async function openLyricsEditor(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; let lyrics = song.lyrics||''; showModal(`<h3>Editar Letra y Acordes: ${escapeHtml(song.title)}</h3><div style="display:flex;gap:1rem;margin-bottom:1rem;"><label>Tonalidad actual:</label><select id="transposeFromKey" class="form-control" style="width:100px;">${keys.map(k=>`<option ${song.key===k?'selected':''}>${k}</option>`).join('')}</select><label>Transponer a:</label><select id="transposeToKey" class="form-control" style="width:100px;">${keys.map(k=>`<option>${k}</option>`).join('')}</select><button class="btn btn-primary" onclick="applyTranspose()">Transponer</button><button id="convertChordsEditorBtn" class="btn btn-ghost" onclick="convertEditorLyrics()">Convertir formato</button><button id="previewLyricsBtn" class="btn btn-secondary" onclick="previewLyrics()">Vista Previa</button></div><div class="form-group"><textarea id="lyricsEditor" rows="12" class="form-control" style="font-family:monospace;">${escapeHtml(lyrics)}</textarea></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLyrics('${song.id}')">Guardar</button></div>`); window.applyTranspose = () => { const fromKey = document.getElementById('transposeFromKey').value; const toKey = document.getElementById('transposeToKey').value; const textarea = document.getElementById('lyricsEditor'); textarea.value = transposeLyrics(textarea.value, fromKey, toKey); document.getElementById('transposeFromKey').value = toKey; }; window.convertEditorLyrics = () => { const textarea = document.getElementById('lyricsEditor'); textarea.value = convertSpacedChordsToBrackets(textarea.value); }; window.previewLyrics = () => { const lyricsPreview = document.getElementById('lyricsEditor').value; const htmlPreview = renderChordsOverLyrics(lyricsPreview); showModal(`<h3>Vista Previa</h3><div style="background:#0F172A;color:#F1F5F9;padding:1rem;border-radius:1rem;max-height:60vh;overflow:auto;">${htmlPreview}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`); }; window.saveLyrics = async (id) => { const newLyrics = document.getElementById('lyricsEditor').value; const songToUpdate = songs.find(s=>s.id===id); if(songToUpdate) { songToUpdate.lyrics = newLyrics; await saveSong(songToUpdate); } closeModal(); }; }
-function openMetronome(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; const bpm = song.bpm||80; const intervalMs = 60000/bpm; if(metronomeInterval) clearInterval(metronomeInterval); showModal(`<div style="text-align:center"><h3>Metrónomo: ${escapeHtml(song.title)}</h3><div class="metronome-led" id="metroLed"></div><p style="font-size:1.5rem;">${bpm} BPM</p><button class="btn btn-primary" id="startMetroBtn">Iniciar</button><button class="btn btn-ghost" id="stopMetroBtn">Detener</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const led = document.getElementById('metroLed'), startBtn = document.getElementById('startMetroBtn'), stopBtn = document.getElementById('stopMetroBtn'); let isRunning = false; const tick = () => { led.style.background="#3B82F6"; if(navigator.vibrate) navigator.vibrate(40); setTimeout(()=>led.style.background="#475569",100); }; startBtn.onclick = () => { if(!isRunning) { isRunning=true; tick(); metronomeInterval = setInterval(()=>{ if(isRunning) tick(); }, intervalMs); } }; stopBtn.onclick = () => { if(metronomeInterval) clearInterval(metronomeInterval); isRunning=false; }; }
+    
+    function openMetronome(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; const bpm = song.bpm||80; const intervalMs = 60000/bpm; if(metronomeInterval) clearInterval(metronomeInterval); showModal(`<div style="text-align:center"><h3>Metrónomo: ${escapeHtml(song.title)}</h3><div class="metronome-led" id="metroLed"></div><p style="font-size:1.5rem;">${bpm} BPM</p><button class="btn btn-primary" id="startMetroBtn">Iniciar</button><button class="btn btn-ghost" id="stopMetroBtn">Detener</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const led = document.getElementById('metroLed'), startBtn = document.getElementById('startMetroBtn'), stopBtn = document.getElementById('stopMetroBtn'); let isRunning = false; const tick = () => { led.style.background="#3B82F6"; if(navigator.vibrate) navigator.vibrate(40); setTimeout(()=>led.style.background="#475569",100); }; startBtn.onclick = () => { if(!isRunning) { isRunning=true; tick(); metronomeInterval = setInterval(()=>{ if(isRunning) tick(); }, intervalMs); } }; stopBtn.onclick = () => { if(metronomeInterval) clearInterval(metronomeInterval); isRunning=false; }; }
 function viewChords(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; let content = ''; if(song.chordsData) { const blob = dataURLtoBlob(song.chordsData); const url = URL.createObjectURL(blob); content = `<iframe src="${url}" style="width:100%;height:420px;border:none"></iframe><br><a href="${url}" download="acordes_${song.id}.pdf" class="btn btn-primary">Descargar Archivo</a>`; } else if(song.chordsUrl) { content = `<iframe src="${song.chordsUrl}" style="width:100%;height:420px;border:none"></iframe><br><a href="${song.chordsUrl}" target="_blank" class="btn btn-primary">Abrir enlace</a>`; } else content = `<p>No hay archivos adjuntos.</p>`; showModal(`<h3>Acordes: ${escapeHtml(song.title)}</h3>${content}<div style="margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); }
 
 // ========== LISTAS ==========
@@ -857,20 +945,292 @@ window.deleteUserById = async (userId) => {
     function adminAttendance() { let html=`<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${usuariosIglesia.map(u=>`<option value="${u.id}">${escapeHtml(u.perfiles?.nombre)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); flatpickr("#attDate",{locale:"es",dateFormat:"d/m/Y",defaultDate:"today"}); const renderAttList=()=>{ const container=document.getElementById('attList'); if(container) container.innerHTML=attendance.map((a)=>{ const miembro=usuariosIglesia.find(u=>u.id===a.usuario_iglesia_id); return `<div>${a.fecha} - ${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`; }).join(''); }; window.saveAttendanceAdmin=async()=>{ const date=document.getElementById('attDate').value; const usuarioIglesiaId=document.getElementById('attMember').value; const status=document.getElementById('attStatus').value; if(!date||!usuarioIglesiaId) return alert("Completa los campos"); const { error } = await supabaseClient.from('asistencia').insert([{ fecha:date, usuario_iglesia_id:usuarioIglesiaId, estado:status }]); if(error) return alert("Error: "+error.message); await loadUserData(); renderAttList(); document.getElementById('attDate').value=''; }; window.deleteAttendanceAdmin=async(id)=>{ if(confirm("¿Eliminar este registro?")){ const { error } = await supabaseClient.from('asistencia').delete().eq('id',id); if(error) return alert("Error: "+error.message); await loadUserData(); renderAttList(); } }; renderAttList(); }
     function adminShifts() { let currentDate=null; async function loadTurnosForDate(dateStr){ const { data, error } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(perfiles(nombre,email))').eq('fecha',dateStr); if(error){ console.error(error); return []; } return data; } async function showDateManagement(dateStr){ currentDate=dateStr; const turnos=await loadTurnosForDate(dateStr); const miembrosPorSubgrupo={}; for(let turno of turnos){ const miembro=usuariosIglesia.find(u=>u.id===turno.usuario_iglesia_id); if(!miembro) continue; const depto=departamentos.find(d=>d.id===miembro.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!miembrosPorSubgrupo[grupo]) miembrosPorSubgrupo[grupo]=[]; miembrosPorSubgrupo[grupo].push({ id:turno.id, nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } let html=`<h3>📅 Turnos del ${dateStr}</h3><div style="margin-bottom:1rem;">`; for(let [grupo,lista] of Object.entries(miembrosPorSubgrupo)){ if(lista.length===0) continue; html+=`<div class="card" style="margin-bottom:1rem;padding:0.8rem;"><h4>${grupo}</h4>`; for(let item of lista){ html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;"><div><strong>${escapeHtml(item.nombre)}</strong> (${escapeHtml(item.rol||'Sin rol')})</div><button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}','${dateStr}')" style="color:red;"><i class="fas fa-trash"></i></button></div>`; } html+=`</div>`; } html+=`<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button><button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button></div>`; showModal(html); } window.showAddMemberForm=async(dateStr)=>{ const turnosExistentes=await loadTurnosForDate(dateStr); const miembrosOcupados=turnosExistentes.map(t=>t.usuario_iglesia_id); const miembrosDisponibles=usuariosIglesia.filter(u=>!miembrosOcupados.includes(u.id)); if(miembrosDisponibles.length===0){ alert("Todos los miembros ya tienen turno asignado en esta fecha."); closeModal(); adminShifts(); return; } const porSubgrupo={}; for(let m of miembrosDisponibles){ const depto=departamentos.find(d=>d.id===m.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!porSubgrupo[grupo]) porSubgrupo[grupo]=[]; porSubgrupo[grupo].push(m); } let formHtml=`<h3>Agregar miembro al turno del ${dateStr}</h3>`; for(let [grupo, miembros] of Object.entries(porSubgrupo)){ formHtml+=`<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`; for(let m of miembros){ formHtml+=`<div class="team-member-card" style="cursor:pointer;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;" onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical||'')}')"><div class="avatar" style="width:40px;height:40px;font-size:1rem;">${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase()||'?')}</div><div><strong>${escapeHtml(m.perfiles?.nombre)}</strong><br><span class="card-category">${escapeHtml(m.rol_musical||'Sin rol')}</span></div></div>`; } formHtml+=`</div></div>`; } formHtml+=`<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button></div>`; showModal(formHtml); }; window.confirmAddTurno=async(dateStr, usuarioIglesiaId, nombre, rol)=>{ if(confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)){ const { error } = await supabaseClient.from('turnos').insert([{ fecha:dateStr, usuario_iglesia_id:usuarioIglesiaId }]); if(error) alert("Error: "+error.message); else { alert("Turno asignado correctamente"); showDateManagement(dateStr); } } }; window.deleteTurnoFromDate=async(turnoId, dateStr)=>{ if(confirm("¿Eliminar este turno?")){ const { error } = await supabaseClient.from('turnos').delete().eq('id',turnoId); if(error) alert("Error: "+error.message); else showDateManagement(dateStr); } }; const turnosMap={}; shifts.forEach(s=>{ const miembro=usuariosIglesia.find(u=>u.id===s.usuario_iglesia_id); if(miembro){ if(!turnosMap[s.fecha]) turnosMap[s.fecha]=[]; turnosMap[s.fecha].push({ nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } }); const modalHtml=`<h3>📅 Gestión de Turnos por Día</h3><p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p><div class="form-group"><input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha"></div><div style="margin-top:1rem;"><h4>📋 Resumen de turnos asignados</h4><div style="max-height:300px;overflow-y:auto;border-radius:var(--radius-sm);border:1px solid var(--border);"><table style="width:100%;border-collapse:collapse;"><thead style="position:sticky;top:0;background:var(--surface);"><tr><th style="padding:0.5rem;text-align:left;">Fecha</th><th style="padding:0.5rem;text-align:left;">Miembros (rol)</th></tr></thead><tbody>${Object.entries(turnosMap).map(([fecha, miembros])=>`<tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="showDateManagement('${fecha}')"><td style="padding:0.5rem;"><strong>${fecha}</strong></td><td style="padding:0.5rem;">${miembros.map(m=>`${m.nombre} (${m.rol||'Sin rol'})`).join(', ')}</td></tr>`).join('')||'<tr><td colspan="2" style="padding:1rem;text-align:center;">No hay turnos asignados aún.</td></tr>'}</tbody></table></div></div><div style="text-align:right;margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`; showModal(modalHtml); flatpickr("#shiftCalendar",{locale:"es",dateFormat:"d/m/Y",inline:true,onDayCreate:(dObj,dStr,fp,dayElem)=>{ const year=dayElem.dateObj.getFullYear(); const month=String(dayElem.dateObj.getMonth()+1).padStart(2,'0'); const day=String(dayElem.dateObj.getDate()).padStart(2,'0'); const dateStr=`${day}/${month}/${year}`; if(turnosMap[dateStr]){ dayElem.style.backgroundColor='#3B82F6'; dayElem.style.color='white'; dayElem.style.borderRadius='50%'; dayElem.title=`Turnos: ${turnosMap[dateStr].map(m=>m.nombre).join(', ')}`; } }, onChange:(selectedDates,dateStr)=>{ if(dateStr) showDateManagement(dateStr); } }); }
 
-    // ========== VISOR DE CIFRAS ==========
-function openCifraViewer(songId, index) { registrarVistaCancion(songId); currentSongIndex=index; const song=songs.find(s=>s.id===songId); if(!song) return; cifraCurrentSong=song; cifraOriginalLyrics=song.lyrics||""; cifraSemitonesShift=0; document.getElementById('cifraModalTitle').innerText=song.title; document.getElementById('cifraModalArtist').innerText=song.category; document.getElementById('currentToneDisplay').innerText=song.key; document.getElementById('cifraBpmInput').value=song.bpm||80; if(cifraScrollInterval) clearInterval(cifraScrollInterval); cifraScrollInterval=null; document.getElementById('btnAutoScrollToggle').innerHTML=`<i class="fa-solid fa-play"></i> Play`; document.getElementById('cifraBodyContainer').scrollTop=0; if(cifraMetroInterval) clearInterval(cifraMetroInterval); cifraMetroRunning=false; document.getElementById('btnMetronomeToggle').innerHTML=`<i class="fa-solid fa-drum"></i> Iniciar`; document.getElementById('metronomeVisualDot').classList.remove('pulse'); cifraFontSize=18; document.getElementById('cifraContentWrapper').style.fontSize=cifraFontSize+'px'; renderCifraContent(); document.getElementById('cifraClubModal').style.display='flex'; }
-function closeCifraViewer() { if(cifraScrollInterval) clearInterval(cifraScrollInterval); if(cifraMetroInterval) clearInterval(cifraMetroInterval); document.getElementById('cifraClubModal').style.display='none'; }
-function navigateSong(delta) { let newIndex=currentSongIndex+delta; if(newIndex<0) newIndex=songs.length-1; if(newIndex>=songs.length) newIndex=0; const newSong=songs[newIndex]; if(newSong) openCifraViewer(newSong.id,newIndex); }
-function getShiftedKey(origKey, shift) { if(!origKey) return 'C'; const isMinor=origKey.endsWith('m'); const base=origKey.replace(/m$/,''); let idx=noteMap[base]; if(idx===undefined) return origKey; let newIdx=(idx+shift+12)%12; return noteNames[newIdx]+(isMinor?'m':''); }
-function renderCifraContent() { let lyrics=cifraOriginalLyrics; if(cifraSemitonesShift!==0){ let targetKey=getShiftedKey(cifraCurrentSong.key,cifraSemitonesShift); lyrics=transposeLyrics(cifraOriginalLyrics,cifraCurrentSong.key,targetKey); } let html=renderChordsOverLyrics(lyrics); document.getElementById('cifraContentWrapper').innerHTML=html; }
-function changeTone(direction) { cifraSemitonesShift+=direction; document.getElementById('currentToneDisplay').innerText=getShiftedKey(cifraCurrentSong.key,cifraSemitonesShift); renderCifraContent(); }
-function updateSongBpm() { if(cifraCurrentSong) cifraCurrentSong.bpm=parseInt(document.getElementById('cifraBpmInput').value)||80; if(cifraMetroRunning){ toggleCifraMetronome(); toggleCifraMetronome(); } }
-function toggleCifraMetronome() { const dot=document.getElementById('metronomeVisualDot'); const btn=document.getElementById('btnMetronomeToggle'); if(cifraMetroRunning){ clearInterval(cifraMetroInterval); cifraMetroRunning=false; btn.innerHTML=`<i class="fa-solid fa-drum"></i> Iniciar`; dot.classList.remove('pulse'); } else { cifraMetroRunning=true; btn.innerHTML=`<i class="fa-solid fa-pause"></i> Pausa`; let bpm=parseInt(document.getElementById('cifraBpmInput').value)||80; cifraMetroInterval=setInterval(()=>{ dot.classList.add('pulse'); if(navigator.vibrate) navigator.vibrate(30); setTimeout(()=>dot.classList.remove('pulse'),90); },60000/bpm); } }
-function toggleCifraAutoScroll() { const btn=document.getElementById('btnAutoScrollToggle'); const container=document.getElementById('cifraBodyContainer'); if(cifraScrollInterval){ clearInterval(cifraScrollInterval); cifraScrollInterval=null; btn.innerHTML=`<i class="fa-solid fa-play"></i> Play`; } else { btn.innerHTML=`<i class="fa-solid fa-pause"></i> Pausa`; cifraScrollInterval=setInterval(()=>{ container.scrollTop+=1; if(container.scrollTop>=(container.scrollHeight-container.clientHeight)){ clearInterval(cifraScrollInterval); cifraScrollInterval=null; btn.innerHTML=`<i class="fa-solid fa-play"></i> Play`; } },cifraScrollSpeed); } }
-function adjustScrollSpeed(delta) { cifraScrollSpeed+=delta; if(cifraScrollSpeed<10) cifraScrollSpeed=10; if(cifraScrollSpeed>150) cifraScrollSpeed=150; if(cifraScrollInterval){ toggleCifraAutoScroll(); toggleCifraAutoScroll(); } }
-function adjustCifraFontSize(delta) { cifraFontSize+=delta; if(cifraFontSize<12) cifraFontSize=12; if(cifraFontSize>36) cifraFontSize=36; document.getElementById('cifraContentWrapper').style.fontSize=cifraFontSize+'px'; }
-async function saveCifraStateToServer() { if(!cifraCurrentSong) return; if(!isAdminUser && !isIglesiaAdmin){ alert("Solo administrador puede guardar cambios permanentes."); return; } let finalKey=getShiftedKey(cifraCurrentSong.key,cifraSemitonesShift); let finalBpm=parseInt(document.getElementById('cifraBpmInput').value)||80; cifraCurrentSong.key=finalKey; cifraCurrentSong.bpm=finalBpm; await saveSong(cifraCurrentSong); alert("¡Tono y BPM guardados!"); cifraSemitonesShift=0; }
-function applyTheme(tema) { const root=document.documentElement; switch(tema){ case 'verde': root.style.setProperty('--primary','#059669'); root.style.setProperty('--primary-light','#10B981'); root.style.setProperty('--primary-rgb','5,150,105'); break; case 'morado': root.style.setProperty('--primary','#6D28D9'); root.style.setProperty('--primary-light','#8B5CF6'); root.style.setProperty('--primary-rgb','109,40,217'); break; case 'rosa': root.style.setProperty('--primary','#DB2777'); root.style.setProperty('--primary-light','#F472B6'); root.style.setProperty('--primary-rgb','219,39,119'); break; case 'naranja': root.style.setProperty('--primary','#EA580C'); root.style.setProperty('--primary-light','#F97316'); root.style.setProperty('--primary-rgb','234,88,12'); break; default: root.style.setProperty('--primary','#1E3A8A'); root.style.setProperty('--primary-light','#3B82F6'); root.style.setProperty('--primary-rgb','30,58,138'); } }
+   // ============================================================
+// ========== VISOR DE CIFRAS MEJORADO (con auto-scroll, metrónomo, columnas, capo) ==========
+// ============================================================
+let cifraScrollInterval = null;
+let cifraScrollSpeedLevel = 3; // nivel 1-10
+let cifraMetronomeInterval = null;
+let cifraCurrentSong = null;
+let cifraOriginalLyrics = "";
+let cifraSemitonesShift = 0;
+let currentSongIndex = -1;
+
+function openCifraViewer(songId, index) {
+    registrarVistaCancion(songId);
+    currentSongIndex = index;
+    const song = songs.find(s => s.id === songId);
+    if (!song) return;
+    cifraCurrentSong = song;
+    cifraOriginalLyrics = song.lyrics || "";
+    cifraSemitonesShift = 0;
+    document.getElementById('cifraModalTitle').innerText = song.title;
+    document.getElementById('cifraModalArtist').innerText = song.category;
+    document.getElementById('currentToneDisplay').innerText = song.key;
+    document.getElementById('cifraBpmInput').value = song.bpm || 80;
+    document.getElementById('cifraCapoInput').value = song.capo || '';
+    const capoText = song.capo ? `Capo: ${song.capo}` : '';
+    document.getElementById('cifraCapoDisplay').innerText = capoText;
+    document.getElementById('cifraBodyContainer').scrollTop = 0;
+    startMetronomeVisual(song.bpm);
+    renderCifraContent();
+    document.getElementById('cifraClubModal').style.display = 'flex';
+}
+
+function closeCifraViewer() {
+    if (cifraScrollInterval) clearInterval(cifraScrollInterval);
+    if (cifraMetronomeInterval) clearInterval(cifraMetronomeInterval);
+    document.getElementById('cifraClubModal').style.display = 'none';
+}
+
+function renderCifraContent() {
+    let lyrics = cifraOriginalLyrics;
+    if (cifraSemitonesShift !== 0) {
+        let targetKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+        lyrics = transposeLyrics(cifraOriginalLyrics, cifraCurrentSong.key, targetKey);
+    }
+    let html = renderChordsOverLyrics(lyrics);
+    document.getElementById('cifraContentWrapper').innerHTML = html;
+}
+
+function transposeCifra(steps) {
+    cifraSemitonesShift += steps;
+    let newKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+    document.getElementById('currentToneDisplay').innerText = newKey;
+    renderCifraContent();
+}
+
+function updateSongBpm() {
+    if (cifraCurrentSong) {
+        cifraCurrentSong.bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+        startMetronomeVisual(cifraCurrentSong.bpm);
+    }
+}
+
+function startMetronomeVisual(bpm) {
+    if (cifraMetronomeInterval) clearInterval(cifraMetronomeInterval);
+    const dot = document.getElementById('bpmDot');
+    if (!dot) return;
+    dot.classList.remove('beat');
+    if (!bpm || bpm <= 0) return;
+    const interval = 60000 / bpm;
+    cifraMetronomeInterval = setInterval(() => {
+        dot.classList.add('beat');
+        setTimeout(() => dot.classList.remove('beat'), 150);
+        if (navigator.vibrate) navigator.vibrate(30);
+    }, interval);
+}
+
+// Auto-scroll
+function toggleAutoScrollCifra() {
+    const btn = document.getElementById('btnPlayScrollCifra');
+    const container = document.getElementById('cifraBodyContainer');
+    if (cifraScrollInterval) {
+        clearInterval(cifraScrollInterval);
+        cifraScrollInterval = null;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Iniciar';
+        btn.style.background = '#334155';
+    } else {
+        btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pausar';
+        btn.style.background = '#dc2626';
+        let msPerStep = 110 - (cifraScrollSpeedLevel * 9);
+        if (msPerStep < 15) msPerStep = 15;
+        cifraScrollInterval = setInterval(() => {
+            container.scrollTop += 1;
+            if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
+                clearInterval(cifraScrollInterval);
+                cifraScrollInterval = null;
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> Iniciar';
+                btn.style.background = '#334155';
+            }
+        }, msPerStep);
+    }
+}
+
+function changeScrollSpeedCifra(delta) {
+    cifraScrollSpeedLevel += delta;
+    if (cifraScrollSpeedLevel < 1) cifraScrollSpeedLevel = 1;
+    if (cifraScrollSpeedLevel > 10) cifraScrollSpeedLevel = 10;
+    document.getElementById('speedDisplayCifra').innerText = cifraScrollSpeedLevel;
+    if (cifraScrollInterval) {
+        toggleAutoScrollCifra();
+        toggleAutoScrollCifra();
+    }
+}
+
+function changeFontSizeCifra(delta) {
+    let currentSize = parseInt(getComputedStyle(document.getElementById('cifraContentWrapper')).fontSize);
+    let newSize = currentSize + delta;
+    if (newSize < 12) newSize = 12;
+    if (newSize > 36) newSize = 36;
+    document.getElementById('cifraContentWrapper').style.fontSize = newSize + 'px';
+}
+
+function toggleColumnsCifra() {
+    document.getElementById('cifraContentWrapper').classList.toggle('two-columns');
+}
+
+function toggleDarkModeCifra() {
+    document.body.classList.toggle('dark');
+    const modal = document.getElementById('cifraClubModal');
+    if (modal) modal.style.colorScheme = document.body.classList.contains('dark') ? 'dark' : 'light';
+}
+
+function navigateSong(delta) {
+    let newIndex = currentSongIndex + delta;
+    if (newIndex < 0) newIndex = songs.length - 1;
+    if (newIndex >= songs.length) newIndex = 0;
+    const newSong = songs[newIndex];
+    if (newSong) openCifraViewer(newSong.id, newIndex);
+}
+
+function getShiftedKey(origKey, shift) {
+    if (!origKey) return 'C';
+    const isMinor = origKey.endsWith('m');
+    const base = origKey.replace(/m$/, '');
+    let idx = noteMap[base];
+    if (idx === undefined) return origKey;
+    let newIdx = (idx + shift + 12) % 12;
+    return noteNames[newIdx] + (isMinor ? 'm' : '');
+}
+
+async function saveCifraStateToServer() {
+    if (!cifraCurrentSong) return;
+    if (!isAdminUser && !isIglesiaAdmin) {
+        alert("Solo administrador puede guardar cambios permanentes.");
+        return;
+    }
+    let finalKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+    let finalBpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+    let finalCapo = document.getElementById('cifraCapoInput').value;
+    cifraCurrentSong.key = finalKey;
+    cifraCurrentSong.bpm = finalBpm;
+    cifraCurrentSong.capo = finalCapo;
+    await saveSong(cifraCurrentSong);
+    alert("¡Tono, BPM y Capo guardados!");
+    cifraSemitonesShift = 0;
+    document.getElementById('currentToneDisplay').innerText = finalKey;
+}
+
+// ============================================================
+// ========== EDITOR DE LETRAS MEJORADO (con capo y vista previa) ==========
+// ============================================================
+async function openLyricsEditor(songId) {
+    const song = songs.find(s => s.id === songId);
+    if (!song) return;
+    let lyrics = song.lyrics || '';
+
+    const modalContent = `
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <h3>Editar Canción: ${escapeHtml(song.title)}</h3>
+            <div class="row">
+                <input type="text" id="editTitle" class="form-control" placeholder="Título" value="${escapeHtml(song.title)}" style="flex:2;">
+                <input type="text" id="editArtist" class="form-control" placeholder="Categoría / Artista" value="${escapeHtml(song.category)}" style="flex:1;">
+            </div>
+            <div class="row">
+                <input type="number" id="editBpm" class="form-control" placeholder="BPM" value="${song.bpm || ''}" style="flex:1;">
+                <input type="text" id="editKey" class="form-control" placeholder="Tonalidad" value="${song.key || 'C'}" style="flex:1;">
+                <input type="text" id="editCapo" class="form-control" placeholder="Capo (ej: 2)" value="${song.capo || ''}" style="flex:1;">
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="convertSpacedChordsInEditor()">Convertir formato (espaciado → [Acorde])</button>
+                <button class="btn btn-secondary" onclick="showPreviewInEditor()">Vista previa</button>
+                <div style="margin-top:0.5rem;">
+                    <label>Transponer:</label>
+                    <button class="btn-icon" onclick="transposeEditor(-1)">-½</button>
+                    <span id="editorCurrentKey">${song.key}</span>
+                    <button class="btn-icon" onclick="transposeEditor(1)">+½</button>
+                    <select id="transposeToKeySelect" class="form-control" style="width:auto; display:inline-block;">
+                        ${keys.map(k => `<option value="${k}">${k}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary" onclick="applyEditorTranspose()">Transponer</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Letra y acordes</label>
+                <textarea id="lyricsEditor" rows="12" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea>
+            </div>
+            <div id="editorPreview" style="background: var(--bg-app); padding: 1rem; border-radius: var(--radius-lg); max-height: 300px; overflow: auto; display: none;">
+                <h4>Vista previa</h4>
+                <div id="previewContent"></div>
+            </div>
+            <div style="text-align: right;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveSongFromEditor('${song.id}')">Guardar</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+
+    // Funciones auxiliares para el editor (se definen globalmente para que los botones las encuentren)
+    window.convertSpacedChordsInEditor = () => {
+        const textarea = document.getElementById('lyricsEditor');
+        textarea.value = convertSpacedChordsToBrackets(textarea.value);
+        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
+    };
+    window.showPreviewInEditor = () => {
+        const textarea = document.getElementById('lyricsEditor');
+        const previewDiv = document.getElementById('previewContent');
+        const previewContainer = document.getElementById('editorPreview');
+        previewDiv.innerHTML = renderChordsOverLyrics(textarea.value);
+        previewContainer.style.display = 'block';
+    };
+    window.transposeEditor = (steps) => {
+        const textarea = document.getElementById('lyricsEditor');
+        const currentKeySpan = document.getElementById('editorCurrentKey');
+        let currentKey = currentKeySpan.innerText;
+        let idx = keys.indexOf(currentKey);
+        let newIdx = (idx + steps + keys.length) % keys.length;
+        let newKey = keys[newIdx];
+        textarea.value = transposeLyrics(textarea.value, currentKey, newKey);
+        currentKeySpan.innerText = newKey;
+        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
+    };
+    window.applyEditorTranspose = () => {
+        const textarea = document.getElementById('lyricsEditor');
+        const toKey = document.getElementById('transposeToKeySelect').value;
+        const currentKeySpan = document.getElementById('editorCurrentKey');
+        let currentKey = currentKeySpan.innerText;
+        textarea.value = transposeLyrics(textarea.value, currentKey, toKey);
+        currentKeySpan.innerText = toKey;
+        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
+    };
+    window.saveSongFromEditor = async (id) => {
+        const newTitle = document.getElementById('editTitle').value;
+        const newArtist = document.getElementById('editArtist').value;
+        const newBpm = parseInt(document.getElementById('editBpm').value) || 80;
+        const newKey = document.getElementById('editKey').value;
+        const newCapo = document.getElementById('editCapo').value;
+        const newLyrics = document.getElementById('lyricsEditor').value;
+        const songToUpdate = songs.find(s => s.id === id);
+        if (songToUpdate) {
+            songToUpdate.title = newTitle;
+            songToUpdate.category = newArtist;
+            songToUpdate.bpm = newBpm;
+            songToUpdate.key = newKey;
+            songToUpdate.capo = newCapo;
+            songToUpdate.lyrics = newLyrics;
+            await saveSong(songToUpdate);
+        }
+        closeModal();
+        // Si el visor de cifras está abierto, actualizarlo
+        if (cifraCurrentSong && cifraCurrentSong.id === id) {
+            cifraCurrentSong.lyrics = newLyrics;
+            cifraCurrentSong.key = newKey;
+            cifraCurrentSong.bpm = newBpm;
+            cifraCurrentSong.capo = newCapo;
+            renderCifraContent();
+            document.getElementById('cifraBpmInput').value = newBpm;
+            document.getElementById('cifraCapoInput').value = newCapo;
+            startMetronomeVisual(newBpm);
+        }
+        // Refrescar la vista actual (cancionero o favoritos)
+        if (currentTab === 'songs') await renderSongsGrid();
+        else if (currentTab === 'favorites') await renderFavorites();
+    };
+}
+    
+   function applyTheme(tema) { const root=document.documentElement; switch(tema){ case 'verde': root.style.setProperty('--primary','#059669'); root.style.setProperty('--primary-light','#10B981'); root.style.setProperty('--primary-rgb','5,150,105'); break; case 'morado': root.style.setProperty('--primary','#6D28D9'); root.style.setProperty('--primary-light','#8B5CF6'); root.style.setProperty('--primary-rgb','109,40,217'); break; case 'rosa': root.style.setProperty('--primary','#DB2777'); root.style.setProperty('--primary-light','#F472B6'); root.style.setProperty('--primary-rgb','219,39,119'); break; case 'naranja': root.style.setProperty('--primary','#EA580C'); root.style.setProperty('--primary-light','#F97316'); root.style.setProperty('--primary-rgb','234,88,12'); break; default: root.style.setProperty('--primary','#1E3A8A'); root.style.setProperty('--primary-light','#3B82F6'); root.style.setProperty('--primary-rgb','30,58,138'); } }
 
 // ========== INICIALIZACIÓN ==========
 (async () => { const { data: { session } } = await supabaseClient.auth.getSession(); if(session){ currentUser=session.user; await loadProfile(); await loadUserIglesia(); if(currentIglesiaId || isAdminUser) { await loadUserData(); renderApp(); } else { renderApp(); } } else { renderLogin(); } })();
