@@ -101,25 +101,7 @@
         .card-title, .team-member-card strong, .profile-detail-card p { word-break: break-word; overflow-wrap: break-word; max-width: 100%; }
         .option-btn, .btn, .form-control { white-space: normal; word-break: break-word; }
 
-        /* Mejoras para el visor de cifras */
-
-        
-.chord {
-    color: #dc2626;
-    font-weight: bold;
-    display: inline-block;
-}
-body.dark .chord {
-    color: #60a5fa;
-}
-.chord-line, .lyric-line {
-    white-space: pre-wrap;
-    font-family: 'Courier New', Courier, monospace;
-    margin-bottom: 0.2rem;
-}
-.song-line {
-    margin-bottom: 1rem;
-}
+ 
 /* Suavizar el cambio de tamaño de letra */
 .cifra-content-wrapper {
     transition: font-size 0.2s ease-out;
@@ -246,36 +228,31 @@ body.dark .chord { color: #60a5fa; }
 .bpm-indicator.beat { background-color: #dc2626; box-shadow: 0 0 8px #dc2626; }
 body.dark .bpm-indicator.beat { background-color: #60a5fa; }
 
-        /* ========== ESTILOS BLINDADOS PARA EL VISOR DE CANCIONES ========== */
-/* Forzar fuente monoespaciada en el contenedor y todos sus hijos */
+       /* ========== ESTILOS OBLIGATORIOS PARA EL VISOR ========== */
+/* Forzar alineación izquierda y monoespaciado en el contenedor y todos sus hijos */
 .cifra-content-wrapper,
-.cifra-content-wrapper div,
-.cifra-content-wrapper span {
+.cifra-content-wrapper * {
     font-family: 'Courier New', Courier, monospace !important;
+    text-align: left !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
 }
 
 .cifra-content-wrapper {
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
     font-size: 16px !important;
     line-height: 1.6 !important;
+    width: 100% !important;
+    display: block !important;
 }
 
-/* Estilo de los acordes (rojo/azul) */
 .chord {
     color: #dc2626 !important;
     font-weight: bold !important;
-    display: inline-block;
+    display: inline !important;
 }
 
 body.dark .chord {
     color: #60a5fa !important;
-}
-
-/* Líneas de acordes y letras */
-.chord-line, .lyric-line {
-    margin-bottom: 0.2rem;
-    white-space: pre-wrap;
 }
         
         
@@ -412,9 +389,13 @@ function renderCifraContent() {
     let lyrics = cifraOriginalLyrics;
     if (cifraSemitonesShift !== 0) {
         let targetKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
-        lyrics = transposeLyrics(cifraOriginalLyrics, cifraCurrentSong.key, targetKey);
+        lyrics = transposeLyrics(lyrics, cifraCurrentSong.key, targetKey);
     }
-    document.getElementById('cifraContentWrapper').innerHTML = renderChordsOverLyrics(lyrics);
+    const htmlContent = renderChordsOverLyrics(lyrics);
+    const wrapper = document.getElementById('cifraContentWrapper');
+    // Forzar estilos en línea (por si el CSS no prevalece)
+    wrapper.style.cssText = "font-family: 'Courier New', Courier, monospace !important; text-align: left !important; white-space: pre-wrap !important; font-size: 16px; line-height: 1.6;";
+    wrapper.innerHTML = htmlContent;
 }
 
 function transposeCifra(steps) {
@@ -669,13 +650,7 @@ function convertSpacedChordsToBrackets(text) { const lines = text.split('\n'); c
 function renderChordsOverLyrics(text) {
     if (!text) return '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
     
-    // Limpieza de caracteres invisibles
-    let cleanText = text
-        .replace(/\r/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    
+    let cleanText = text.replace(/\r/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
     const lines = cleanText.split('\n');
     let html = '';
     const chordRegex = /([A-G][#b]?(m|maj|min|dim|sus|aug|add|M)?(\d*)(\/[A-G][#b]?)?)/gi;
