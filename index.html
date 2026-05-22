@@ -254,7 +254,52 @@ body.dark .bpm-indicator.beat { background-color: #60a5fa; }
 body.dark .chord {
     color: #60a5fa !important;
 }
+
+        /* Modo oscuro para el modal de cifras */
+.cifra-modal {
+    background: var(--bg-app);
+    color: var(--text-main);
+}
+.cifra-header, .cifra-toolbar {
+    background: var(--surface);
+    border-bottom-color: var(--border);
+}
+.cifra-btn {
+    background: var(--surface);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
+.cifra-btn:hover {
+    background: var(--hover-bg);
+}
+.cifra-body {
+    background: var(--bg-app);
+}
         
+       @media print {
+    body * {
+        visibility: hidden;
+    }
+    .cifra-modal, .cifra-modal * {
+        visibility: visible;
+    }
+    .cifra-modal {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: white;
+        color: black;
+    }
+    .cifra-header, .cifra-toolbar, .cifra-btn-close {
+        display: none;
+    }
+    .cifra-body {
+        overflow: visible;
+    }
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -559,36 +604,37 @@ async function saveCifraStateToServer() {
     `;
     showModal(modalContent);
 
-        const textarea = document.getElementById('lyricsEditor');
-        textarea.value = convertSpacedChordsToBrackets(textarea.value);
-        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
-    };
+    // Definir funciones auxiliares globales para los botones
     window.showPreviewInEditor = () => {
         const textarea = document.getElementById('lyricsEditor');
         const previewDiv = document.getElementById('previewContent');
         const previewContainer = document.getElementById('editorPreview');
-        previewDiv.innerHTML = renderChordsOverLyrics(textarea.value);
-        previewContainer.style.display = 'block';
+        if (textarea && previewDiv) {
+            previewDiv.innerHTML = renderChordsOverLyrics(textarea.value);
+            previewContainer.style.display = 'block';
+        }
     };
     window.transposeEditor = (steps) => {
         const textarea = document.getElementById('lyricsEditor');
         const currentKeySpan = document.getElementById('editorCurrentKey');
+        if (!textarea || !currentKeySpan) return;
         let currentKey = currentKeySpan.innerText;
         let idx = keys.indexOf(currentKey);
         let newIdx = (idx + steps + keys.length) % keys.length;
         let newKey = keys[newIdx];
         textarea.value = transposeLyrics(textarea.value, currentKey, newKey);
         currentKeySpan.innerText = newKey;
-        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
+        if (document.getElementById('editorPreview').style.display === 'block') window.showPreviewInEditor();
     };
     window.applyEditorTranspose = () => {
         const textarea = document.getElementById('lyricsEditor');
         const toKey = document.getElementById('transposeToKeySelect').value;
         const currentKeySpan = document.getElementById('editorCurrentKey');
+        if (!textarea || !currentKeySpan) return;
         let currentKey = currentKeySpan.innerText;
         textarea.value = transposeLyrics(textarea.value, currentKey, toKey);
         currentKeySpan.innerText = toKey;
-        if (document.getElementById('editorPreview').style.display === 'block') showPreviewInEditor();
+        if (document.getElementById('editorPreview').style.display === 'block') window.showPreviewInEditor();
     };
     window.saveSongFromEditor = async (id) => {
         const newTitle = document.getElementById('editTitle').value;
@@ -608,7 +654,6 @@ async function saveCifraStateToServer() {
             await saveSong(songToUpdate);
         }
         closeModal();
-        // Actualizar el visor si está abierto
         if (cifraCurrentSong && cifraCurrentSong.id === id) {
             cifraCurrentSong.lyrics = newLyrics;
             cifraCurrentSong.key = newKey;
@@ -619,15 +664,12 @@ async function saveCifraStateToServer() {
             document.getElementById('cifraCapoInput').value = newCapo;
             startMetronomeVisual(newBpm);
         }
-        // Refrescar la vista actual (cancionero o favoritos)
         if (currentTab === 'songs') await renderSongsGrid();
         else if (currentTab === 'favorites') await renderFavorites();
     };
+}
 
-
-window.openLyricsEditor = openLyricsEditor;   // <--- ¡NO OLVIDES ESTA LÍNEA!
-    
-
+window.openLyricsEditor = openLyricsEditor;
     
 // ========== AUXILIARES ==========
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
@@ -670,7 +712,7 @@ function renderChordsOverLyrics(text) {
     }
     
     // Devolver dentro de <pre> con estilos básicos en línea
-    return `<pre style="font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; text-align: left; font-size: 16px; line-height: 1.6; margin: 0; padding: 0;">${preContent}</pre>`;
+    return `<pre style="font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; text-align: left; line-height: 1.6; margin: 0; padding: 0;">${preContent}</pre>`;
 }
     
     
@@ -785,8 +827,115 @@ async function renderSongsGrid() { let favs = []; if (currentUser) { const { dat
 async function renderFavorites() { if (!currentUser) return; const { data: favoritos } = await supabaseClient.from('favoritos').select('song_id').eq('user_id', currentUser.id); const favIds = favoritos.map(f=>f.song_id); const filtered = songs.filter(s=>favIds.includes(s.id)); filtered.sort((a,b)=>a.title.localeCompare(b.title)); document.getElementById('actionHeader').innerHTML = `<span class="text-muted">Tus canciones favoritas</span>`; const container = document.getElementById('mainContent'); if (filtered.length===0) { container.innerHTML='<p>Marca la estrella ⭐ en cualquier canción del CANCIONERO.</p>'; return; } container.innerHTML = `<div class="grid">${filtered.map((s,idx)=>`<div class="card" onclick="openCifraViewer('${s.id}',${idx})"><div style="display:flex;justify-content:space-between;"><span class="card-category">${s.category}</span><i class="fas fa-star fav-icon" style="color:gold;cursor:pointer;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')"></i></div><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}</div></div>`).join('')}</div>`; }
 async function toggleFavorite(songId) { if (!currentUser) return alert("Inicia sesión"); const { data: exists } = await supabaseClient.from('favoritos').select('id').eq('user_id', currentUser.id).eq('song_id', songId).single(); if (exists) await supabaseClient.from('favoritos').delete().eq('id', exists.id); else await supabaseClient.from('favoritos').insert({ user_id: currentUser.id, song_id: songId }); if (currentTab === 'favorites') await renderFavorites(); else if (currentTab === 'songs') await renderSongsGrid(); }
 async function deleteSongConfirm(id) { if (confirm("¿Eliminar?")) await deleteSong(id); }
-function openSongModal(id=null) { if (!isAdminUser && !isIglesiaAdmin) return; const s = songs.find(s=>s.id===id) || { title:'', category:'Adoración', key:'C', bpm:80, chordsUrl:'', chordsData:'', lyrics:'' }; showModal(`<h3>${id?'Editar':'Nueva'} Canción</h3><div class="form-group"><label>Título</label><input id="mTitle" class="form-control" value="${escapeHtml(s.title)}"></div><div class="form-group"><label>Categoría</label><select id="mCat" class="form-control"><option ${s.category==='Adoración'?'selected':''}>Adoración</option><option ${s.category==='Exaltación'?'selected':''}>Exaltación</option><option ${s.category==='Júbilo'?'selected':''}>Júbilo</option></select></div><div class="form-group"><label>Tonalidad</label><select id="mKey" class="form-control">${keys.map(k=>`<option ${s.key===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group"><label>BPM</label><input id="mBpm" type="number" class="form-control" value="${s.bpm||80}"></div><div class="form-group"><label>Enlace acordes (PDF/imagen)</label><input id="mChordsUrl" class="form-control" value="${escapeHtml(s.chordsUrl)}"></div><div class="form-group"><label>Subir archivo</label><input type="file" id="mChordsFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control"></div><div class="form-group"><label>Letra</label><textarea id="mLyrics" rows="6" class="form-control">${escapeHtml(s.lyrics)}</textarea><button id="convertChordsBtn" class="btn btn-ghost" style="margin-top:0.5rem;" onclick="convertLyricsInModal()">Convertir formato (espaciado -> [Acorde])</button></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveSongFromModal('${id}')">Guardar</button></div>`); window.convertLyricsInModal = () => { const textarea = document.getElementById('mLyrics'); textarea.value = convertSpacedChordsToBrackets(textarea.value); }; }
-async function saveSongFromModal(id) { if (!isAdminUser && !isIglesiaAdmin) return; const title = document.getElementById('mTitle').value.trim(); if (!title) return alert("Título requerido"); const category = document.getElementById('mCat').value; const key = document.getElementById('mKey').value; const bpm = parseInt(document.getElementById('mBpm').value) || 80; const chordsUrl = document.getElementById('mChordsUrl').value.trim(); const lyrics = document.getElementById('mLyrics').value; let chordsData = ''; const file = document.getElementById('mChordsFile').files[0]; if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); } else if (id) { const existingSong = songs.find(s=>s.id===id); if (existingSong) chordsData = existingSong.chordsData || ''; } const song = { id: id || generateUniqueId(), title, category, key, bpm, chordsUrl, chordsData, lyrics, youtube: '' }; await saveSong(song); closeModal(); }
+
+    function openSongModal(id = null) {
+    if (!isAdminUser && !isIglesiaAdmin) return;
+    const song = id ? songs.find(s => s.id === id) : null;
+    const title = song?.title || '';
+    const artist = song?.category || '';
+    const bpm = song?.bpm || '';
+    const key = song?.key || 'C';
+    const capo = song?.capo || '';
+    const lyrics = song?.lyrics || '';
+
+    const modalContent = `
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <h3>${id ? 'Editar' : 'Nueva'} Canción</h3>
+            <div class="row">
+                <input type="text" id="editTitle" class="form-control" placeholder="Título" value="${escapeHtml(title)}" style="flex:2;">
+                <input type="text" id="editArtist" class="form-control" placeholder="Categoría / Artista" value="${escapeHtml(artist)}" style="flex:1;">
+            </div>
+            <div class="row">
+                <input type="number" id="editBpm" class="form-control" placeholder="BPM" value="${bpm}" style="flex:1;">
+                <input type="text" id="editKey" class="form-control" placeholder="Tonalidad" value="${key}" style="flex:1;">
+                <input type="text" id="editCapo" class="form-control" placeholder="Capo (ej: 2)" value="${capo}" style="flex:1;">
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="showPreviewInNewSong()">Vista previa</button>
+                <div style="margin-top:0.5rem;">
+                    <label>Transponer:</label>
+                    <button class="btn-icon" onclick="transposeNewSong(-1)">-½</button>
+                    <span id="newSongCurrentKey">${key}</span>
+                    <button class="btn-icon" onclick="transposeNewSong(1)">+½</button>
+                    <select id="transposeNewSongToKey" class="form-control" style="width:auto; display:inline-block;">
+                        ${keys.map(k => `<option value="${k}">${k}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary" onclick="applyNewSongTranspose()">Transponer</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Letra y acordes</label>
+                <textarea id="newSongLyrics" rows="12" class="form-control" style="font-family: monospace;">${escapeHtml(lyrics)}</textarea>
+            </div>
+            <div id="newSongPreview" style="background: var(--bg-app); padding: 1rem; border-radius: var(--radius-lg); max-height: 300px; overflow: auto; display: none;">
+                <h4>Vista previa</h4>
+                <div id="newSongPreviewContent"></div>
+            </div>
+            <div style="text-align: right;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveNewSong()">Guardar</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+
+    // Funciones auxiliares para el modal de nueva canción
+    window.showPreviewInNewSong = () => {
+        const textarea = document.getElementById('newSongLyrics');
+        const previewDiv = document.getElementById('newSongPreviewContent');
+        const previewContainer = document.getElementById('newSongPreview');
+        if (textarea && previewDiv) {
+            previewDiv.innerHTML = renderChordsOverLyrics(textarea.value);
+            previewContainer.style.display = 'block';
+        }
+    };
+    window.transposeNewSong = (steps) => {
+        const textarea = document.getElementById('newSongLyrics');
+        const currentKeySpan = document.getElementById('newSongCurrentKey');
+        if (!textarea || !currentKeySpan) return;
+        let currentKey = currentKeySpan.innerText;
+        let idx = keys.indexOf(currentKey);
+        let newIdx = (idx + steps + keys.length) % keys.length;
+        let newKey = keys[newIdx];
+        textarea.value = transposeLyrics(textarea.value, currentKey, newKey);
+        currentKeySpan.innerText = newKey;
+        if (document.getElementById('newSongPreview').style.display === 'block') window.showPreviewInNewSong();
+    };
+    window.applyNewSongTranspose = () => {
+        const textarea = document.getElementById('newSongLyrics');
+        const toKey = document.getElementById('transposeNewSongToKey').value;
+        const currentKeySpan = document.getElementById('newSongCurrentKey');
+        if (!textarea || !currentKeySpan) return;
+        let currentKey = currentKeySpan.innerText;
+        textarea.value = transposeLyrics(textarea.value, currentKey, toKey);
+        currentKeySpan.innerText = toKey;
+        if (document.getElementById('newSongPreview').style.display === 'block') window.showPreviewInNewSong();
+    };
+    window.saveNewSong = async () => {
+        const title = document.getElementById('editTitle').value.trim();
+        if (!title) return alert("El título es requerido");
+        const artist = document.getElementById('editArtist').value;
+        const bpm = parseInt(document.getElementById('editBpm').value) || 80;
+        const key = document.getElementById('editKey').value;
+        const capo = document.getElementById('editCapo').value;
+        const lyrics = document.getElementById('newSongLyrics').value;
+        const song = {
+            id: id || generateUniqueId(),
+            title,
+            category: artist || "Adoración",
+            key,
+            bpm,
+            chordsUrl: '',
+            chordsData: '',
+            lyrics,
+            youtube: '',
+            capo
+        };
+        await saveSong(song);
+        closeModal();
+    };
+}    
+    async function saveSongFromModal(id) { if (!isAdminUser && !isIglesiaAdmin) return; const title = document.getElementById('mTitle').value.trim(); if (!title) return alert("Título requerido"); const category = document.getElementById('mCat').value; const key = document.getElementById('mKey').value; const bpm = parseInt(document.getElementById('mBpm').value) || 80; const chordsUrl = document.getElementById('mChordsUrl').value.trim(); const lyrics = document.getElementById('mLyrics').value; let chordsData = ''; const file = document.getElementById('mChordsFile').files[0]; if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); } else if (id) { const existingSong = songs.find(s=>s.id===id); if (existingSong) chordsData = existingSong.chordsData || ''; } const song = { id: id || generateUniqueId(), title, category, key, bpm, chordsUrl, chordsData, lyrics, youtube: '' }; await saveSong(song); closeModal(); }
     
     function openMetronome(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; const bpm = song.bpm||80; const intervalMs = 60000/bpm; if(metronomeInterval) clearInterval(metronomeInterval); showModal(`<div style="text-align:center"><h3>Metrónomo: ${escapeHtml(song.title)}</h3><div class="metronome-led" id="metroLed"></div><p style="font-size:1.5rem;">${bpm} BPM</p><button class="btn btn-primary" id="startMetroBtn">Iniciar</button><button class="btn btn-ghost" id="stopMetroBtn">Detener</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const led = document.getElementById('metroLed'), startBtn = document.getElementById('startMetroBtn'), stopBtn = document.getElementById('stopMetroBtn'); let isRunning = false; const tick = () => { led.style.background="#3B82F6"; if(navigator.vibrate) navigator.vibrate(40); setTimeout(()=>led.style.background="#475569",100); }; startBtn.onclick = () => { if(!isRunning) { isRunning=true; tick(); metronomeInterval = setInterval(()=>{ if(isRunning) tick(); }, intervalMs); } }; stopBtn.onclick = () => { if(metronomeInterval) clearInterval(metronomeInterval); isRunning=false; }; }
 function viewChords(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; let content = ''; if(song.chordsData) { const blob = dataURLtoBlob(song.chordsData); const url = URL.createObjectURL(blob); content = `<iframe src="${url}" style="width:100%;height:420px;border:none"></iframe><br><a href="${url}" download="acordes_${song.id}.pdf" class="btn btn-primary">Descargar Archivo</a>`; } else if(song.chordsUrl) { content = `<iframe src="${song.chordsUrl}" style="width:100%;height:420px;border:none"></iframe><br><a href="${song.chordsUrl}" target="_blank" class="btn btn-primary">Abrir enlace</a>`; } else content = `<p>No hay archivos adjuntos.</p>`; showModal(`<h3>Acordes: ${escapeHtml(song.title)}</h3>${content}<div style="margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); }
