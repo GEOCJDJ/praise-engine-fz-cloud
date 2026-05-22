@@ -334,10 +334,57 @@ async function registrarImpresionLista(listaId) { if (!currentUser) return; try 
 async function registrarActividad(accion, detalles = '') { if (!currentUser) return; try { await supabaseClient.from('estadisticas_usuarios').insert({ user_id: currentUser.id, accion, detalles, iglesia_id: currentIglesiaId }); } catch(e) { console.error(e); } }
 
 // ========== CARGA DE DATOS ==========
-async function loadUserData() { if (!currentUser || !currentIglesiaId) return; try { const { data: s } = await supabaseClient.from('canciones').select('*').eq('iglesia_id', currentIglesiaId); songs = (s || []).map(song => ({ ...song, chordsUrl: song.chords_url, chordsData: song.chords_data, capo: song.capo || })); const { data: deptos } = await supabaseClient.from('departamentos').select('*').eq('iglesia_id', currentIglesiaId); departamentos = deptos || []; const { data: miembros } = await supabaseClient.from('usuarios_iglesia').select('*, perfiles(nombre, email, foto_url)').eq('iglesia_id', currentIglesiaId); usuariosIglesia = miembros || []; const { data: l } = await supabaseClient.from('listas').select('*').eq('iglesia_id', currentIglesiaId); lists = l || []; for (let list of lists) { const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden'); list.items = items || []; } const { data: a } = await supabaseClient.from('asistencia').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId); attendance = a || []; const { data: sh } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId); shifts = sh || []; const deptIds = departamentos.map(d => d.id).join(',') || 'null'; const { data: c } = await supabaseClient.from('cursos').select('*').or(`entidad_tipo.eq.iglesia,and(entidad_tipo.eq.departamento,entidad_id.in.(${deptIds})`); cursos = c || []; const { data: m } = await supabaseClient.from('modulos').select('*'); modulosList = m || []; const { data: e } = await supabaseClient.from('examenes').select('*'); examenes = e || []; const { data: p } = await supabaseClient.from('preguntas').select('*'); preguntas = p || []; } catch(e) { console.error(e); alert("Error al cargar datos. Recarga la página."); } }
+async function loadUserData() {
+    if (!currentUser || !currentIglesiaId) return;
+    try {
+        const { data: s } = await supabaseClient.from('canciones').select('*').eq('iglesia_id', currentIglesiaId);
+        songs = (s || []).map(song => ({ 
+            ...song, 
+            chordsUrl: song.chords_url, 
+            chordsData: song.chords_data,
+            capo: song.capo || ''   // ← CORREGIDO
+        }));
 
+        const { data: deptos } = await supabaseClient.from('departamentos').select('*').eq('iglesia_id', currentIglesiaId);
+        departamentos = deptos || [];
+        
+        const { data: miembros } = await supabaseClient.from('usuarios_iglesia').select('*, perfiles(nombre, email, foto_url)').eq('iglesia_id', currentIglesiaId);
+        usuariosIglesia = miembros || [];
+        
+        const { data: l } = await supabaseClient.from('listas').select('*').eq('iglesia_id', currentIglesiaId);
+        lists = l || [];
+        for (let list of lists) {
+            const { data: items } = await supabaseClient.from('lista_items').select('*').eq('lista_id', list.id).order('orden');
+            list.items = items || [];
+        }
+        
+        const { data: a } = await supabaseClient.from('asistencia').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId);
+        attendance = a || [];
+        
+        const { data: sh } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId);
+        shifts = sh || [];
+        
+        const deptIds = departamentos.map(d => d.id).join(',') || 'null';
+        const { data: c } = await supabaseClient.from('cursos').select('*').or(`entidad_tipo.eq.iglesia,and(entidad_tipo.eq.departamento,entidad_id.in.(${deptIds})`);
+        cursos = c || [];
+        
+        const { data: m } = await supabaseClient.from('modulos').select('*');
+        modulosList = m || [];
+        
+        const { data: e } = await supabaseClient.from('examenes').select('*');
+        examenes = e || [];
+        
+        const { data: p } = await supabaseClient.from('preguntas').select('*');
+        preguntas = p || [];
+        
+    } catch(e) {
+        console.error(e);
+        alert("Error al cargar datos. Recarga la página.");
+    }
+}
+    
 // ========== GUARDADO ==========
-async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin) { alert("No tienes permiso para editar canciones."); return false; } try { const cleanSong = { id: song.id || generateUniqueId(), user_id: currentUser.id, title: song.title || "Sin título", category: song.category || "Adoración", key: song.key || "C", bpm: parseInt(song.bpm) || 80, chords_url: song.chordsUrl || "", chords_data: song.chordsData || "", lyrics: song.lyrics || "", youtube: song.youtube || "", iglesia_id: currentIglesiaId }; const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' }); if (error) throw error; await loadUserData(); renderCurrentView(); return true; } catch (err) { console.error(err); alert("Error al guardar: " + err.message); return false; } }
+async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin) { alert("No tienes permiso para editar canciones."); return false; } try { const cleanSong = { id: song.id || generateUniqueId(), user_id: currentUser.id, title: song.title || "Sin título", category: song.category || "Adoración", key: song.key || "C", bpm: parseInt(song.bpm) || 80, chords_url: song.chordsUrl || "", chords_data: song.chordsData || "", lyrics: song.lyrics || "", youtube: song.youtube || "", iglesia_id: currentIglesiaId, capo: song.capo || "" }; const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' }); if (error) throw error; await loadUserData(); renderCurrentView(); return true; } catch (err) { console.error(err); alert("Error al guardar: " + err.message); return false; } }
 async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('canciones').delete().eq('id', id).eq('iglesia_id', currentIglesiaId); await loadUserData(); renderCurrentView(); }
 async function saveList(list) { if (!currentUser) return alert("Debes iniciar sesión."); try { if (list.id) { await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id); await supabaseClient.from('lista_items').delete().eq('lista_id', list.id); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } else { const newId = generateUniqueId(); await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date, iglesia_id: currentIglesiaId }); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } await loadUserData(); renderCurrentView(); } catch(e) { console.error(e); alert("Error guardando lista."); } }
 async function deleteList(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
