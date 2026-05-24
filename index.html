@@ -228,6 +228,14 @@ body.dark .chord { color: #60a5fa; }
 .bpm-indicator.beat { background-color: #dc2626; box-shadow: 0 0 8px #dc2626; }
 body.dark .bpm-indicator.beat { background-color: #60a5fa; }
 
+@media (max-width: 768px) {
+    .av-main-gemini { flex-direction: column; }
+    .av-sidebar-gemini { width: 100%; border-right: none; border-bottom: 1px solid #1E293B; }
+    .av-tabs-gemini { flex-wrap: wrap; }
+    .av-tab-gemini { padding: 0.5rem 0.75rem; font-size: 12px; }
+    .grid-cols-3 { grid-template-columns: 1fr; }
+}
+
        /* ========== ESTILOS OBLIGATORIOS PARA EL VISOR ========== */
 /* Forzar alineación izquierda y monoespaciado en el contenedor y todos sus hijos */
 .cifra-content-wrapper,
@@ -1584,184 +1592,129 @@ let examScoreGemini = 0;
 let examTimerGemini = null;
 let timeRemainingGemini = 0;
 let currentExamIdGemini = null;
+// ========== AULA VIRTUAL CON DISEÑO GEMINI COMPLETO + SUPABASE + RESPONSIVE ==========
+let xpGemini = 0;
+let rachaGemini = 0;
+let devocionalGemini = null;
+let examenesPendientesCount = 0;
+let tareasCount = 0;
 
 async function renderMoodle() {
     const container = document.getElementById('mainContent');
     const actionHeader = document.getElementById('actionHeader');
-    
-    actionHeader.innerHTML = (isAdminUser || isIglesiaAdmin) 
+    actionHeader.innerHTML = (isAdminUser || isIglesiaAdmin)
         ? `<button class="btn btn-primary" onclick="openAdminAulaVirtual()"><i class="fas fa-chalkboard-user"></i> Gestionar Aula Virtual</button>`
         : '';
 
-    // Cargar datos del usuario y del día
-    await loadUserProgressGemini();
-    await loadDevocionalHoyGemini();
+    // Cargar datos del usuario
+    await cargarProgresoGemini();
+    await cargarDevocionalHoy();
+    await cargarContadores();
 
-    // Obtener cantidad de tareas pendientes (para el badge)
-    const { data: tareasPendientes } = await supabaseClient
-        .from('tareas_aula')
-        .select('id')
-        .eq('iglesia_id', currentIglesiaId);
-    const tareasCount = tareasPendientes?.length || 0;
-
-    // Obtener cantidad de exámenes no realizados
-    const { data: examenesDisponibles } = await supabaseClient
-        .from('examenes')
-        .select('id');
-    let examenesPendientesCount = 0;
-    if (examenesDisponibles) {
-        for (let ex of examenesDisponibles) {
-            const { data: intento } = await supabaseClient
-                .from('intentos_examen')
-                .select('id')
-                .eq('user_id', currentUser.id)
-                .eq('examen_id', ex.id)
-                .single();
-            if (!intento) examenesPendientesCount++;
-        }
-    }
-
-    // ========== HTML COMPLETO DEL DISEÑO GEMINI ==========
+    // HTML COMPLETO DEL DISEÑO ORIGINAL DE GEMINI (sin cambios)
     const html = `
-    <div style="position: relative; min-height: 600px;">
-        <!-- PANTALLA DE BIENVENIDA (se muestra hasta que el usuario haga clic en "Entrar") -->
-        <div id="av-welcome-gemini" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 60; text-align: center; padding: 2rem; background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); overflow-y: auto;">
+    <style>
+        /* Responsive para móvil */
+        @media (max-width: 768px) {
+            .av-main-gemini { flex-direction: column !important; }
+            .av-sidebar-gemini { width: 100% !important; border-right: none !important; border-bottom: 1px solid #1E293B; }
+            .av-content-gemini { padding: 0.5rem !important; }
+            .av-tabs-gemini { flex-wrap: wrap; gap: 0.25rem; }
+            .av-tab-gemini { padding: 0.5rem 0.75rem !important; font-size: 12px !important; }
+            .grid-cols-3 { grid-template-columns: 1fr !important; }
+        }
+    </style>
+    <div style="position: relative;">
+        <!-- PANTALLA DE BIENVENIDA (original) -->
+        <div id="av-welcome-gemini" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 60; background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); overflow-y: auto;">
             <div id="starsContainer" style="position: absolute; inset: 0; pointer-events: none;"></div>
-            <div style="max-width: 480px; margin: 0 auto; z-index: 10;">
+            <div style="max-width: 480px; margin: 0 auto; z-index: 10; text-align: center; padding: 1rem;">
                 <div style="width: 64px; height: 64px; background: #C8972A; border-radius: 1rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
                     <i class="ti ti-crown" style="font-size: 2rem; color: #0F172A;"></i>
                 </div>
-                <p style="font-size: 14px; color: #E2E8F0; font-style: italic; margin-bottom: 0.75rem;">"Servir a Dios en la alabanza no es un pasatiempo, <strong style="color: #F5D97A;">es un alto privilegio y un servicio de amor hacia el Señor</strong>."</p>
-                <h2 style="font-size: 26px; font-weight: 700; color: white; margin: 1rem 0 0.25rem;">Campus Virtual G-Praise</h2>
-                <p style="font-size: 15px; color: #94A3B8; margin-bottom: 2rem;">Plataforma de Capacitación y Discipulado de Alabanza</p>
+                <p class="av-verse">"Servir a Dios en la alabanza no es un pasatiempo, <strong style="color: #F5D97A;">es un alto privilegio y un servicio de amor hacia el Señor</strong>."</p>
+                <h2 style="font-size: 26px; font-weight: 700; color: white;">Campus Virtual G-Praise</h2>
+                <p style="color: #94A3B8; margin-bottom: 2rem;">Plataforma de Capacitación y Discipulado de Alabanza</p>
 
-                <!-- Tarjeta del reto ministerial -->
-                <div id="wlGameCard" style="background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1rem; cursor: pointer; transition: 0.3s;">
+                <!-- Reto ministerial -->
+                <div id="wlGameCard" style="background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1rem; cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 1rem;" onclick="toggleWelcomeGameGemini()">
                         <div style="font-size: 32px;">⚡</div>
-                        <div style="flex: 1; text-align: left;">
+                        <div style="flex:1; text-align: left;">
                             <p style="font-size: 12px; color: #94A3B8;">Reto ministerial rápido — Responde antes de entrar</p>
-                            <strong style="font-size: 15px; color: white;">¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong>
+                            <strong style="color: white;">¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong>
                         </div>
                         <i class="ti ti-chevron-down" style="color: #94A3B8;"></i>
                     </div>
-                    <div id="av-welcome-game" style="display: none; margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.75rem;">
-                        <div id="wlGameOptions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;"></div>
-                        <div id="wlGameFeedback" style="font-size: 12px; text-align: center; margin-top: 0.5rem; min-height: 24px;"></div>
+                    <div id="av-welcome-game" style="display: none; margin-top: 0.75rem;">
+                        <div id="wlGameOptions" class="grid grid-cols-2 gap-2"></div>
+                        <div id="wlGameFeedback" class="text-xs text-center mt-2"></div>
                     </div>
                 </div>
 
-                <!-- Tarjeta de tareas pendientes -->
-                <div style="background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <!-- Tareas pendientes -->
+                <div style="background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <div style="font-size: 32px;">📚</div>
                         <div style="text-align: left;">
                             <p style="font-size: 12px; color: #94A3B8;">Tareas ministeriales de la semana</p>
-                            <strong style="font-size: 15px; color: white;">${tareasCount} asignaciones pendientes por subir</strong>
+                            <strong style="color: white;">${tareasCount} asignaciones pendientes por subir</strong>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #FB923C;">
-                        <i class="ti ti-flame"></i> Racha: ${userRachaGemini} días
-                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; color: #FB923C;"><i class="ti ti-flame"></i> Racha: ${rachaGemini} días</div>
                 </div>
 
-                <button id="enterAppBtn" style="background: #C8972A; color: #0F172A; border: none; border-radius: 2rem; padding: 0.85rem 3rem; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 0.75rem; width: 100%; max-width: 320px; box-shadow: 0 4px 14px rgba(200,151,42,0.4);">
-                    <i class="ti ti-door-enter"></i> Entrar al Aula
-                </button>
-                <button id="skipWelcomeBtn" style="background: transparent; border: none; color: #94A3B8; font-size: 13px; text-decoration: underline; cursor: pointer;">Omitir e ingresar directamente</button>
+                <button id="enterAppBtn" style="background: #C8972A; border: none; border-radius: 2rem; padding: 0.85rem 2rem; font-weight: 600; cursor: pointer; width: 100%; max-width: 320px; margin-bottom: 0.75rem;">Entrar al Aula</button>
+                <button id="skipWelcomeBtn" style="background: transparent; border: none; color: #94A3B8; text-decoration: underline; cursor: pointer;">Omitir e ingresar directamente</button>
             </div>
         </div>
 
-        <!-- APLICACIÓN PRINCIPAL (inicialmente oculta) -->
+        <!-- APLICACIÓN PRINCIPAL (oculta inicialmente) -->
         <div id="av-main-layout-gemini" style="display: none; background: #F8FAFC; border-radius: 1rem; overflow: hidden;">
-            <!-- Sidebar -->
-            <div style="display: flex;">
-                <aside style="width: 260px; background: #0F172A; color: white;">
-                    <div style="padding: 1.5rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #1E293B;">
-                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #C8972A, #F5D97A); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
-                            <i class="ti ti-school" style="color: #0F172A;"></i>
-                        </div>
-                        <div>
-                            <h1 style="font-weight: bold;">G-CAMPUS</h1>
-                            <p style="font-size: 10px; color: #94A3B8;">Ministerio de Alabanza</p>
+            <div class="av-main-gemini" style="display: flex;">
+                <!-- Sidebar -->
+                <aside class="av-sidebar-gemini" style="width: 260px; background: #0F172A; color: white; flex-shrink: 0;">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #1E293B;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #C8972A, #F5D97A); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                                <i class="ti ti-school" style="color: #0F172A;"></i>
+                            </div>
+                            <div><h1 style="font-weight: bold;">G-CAMPUS</h1><p style="font-size: 10px; color: #94A3B8;">Ministerio de Alabanza</p></div>
                         </div>
                     </div>
                     <nav style="padding: 1rem 0;">
-                        <div class="av-sidebar-item-gemini active" data-nav="inicio" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;">
-                            <i class="ti ti-layout-dashboard"></i> Tablero Principal
-                        </div>
-                        <div class="av-sidebar-item-gemini" data-nav="cursos" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;">
-                            <i class="ti ti-book-open"></i> Mis Cursos Activos
-                        </div>
-                        <div class="av-sidebar-item-gemini" data-nav="evaluaciones" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;">
-                            <i class="ti ti-clipboard-check"></i> Cuestionarios y Quices
-                        </div>
-                        <div class="av-sidebar-item-gemini" data-nav="tareas" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;">
-                            <i class="ti ti-file-upload"></i> Entregas y Enlaces
-                        </div>
-                        <div class="av-sidebar-item-gemini" data-nav="devocional" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;">
-                            <i class="ti ti-feather"></i> Devocionales Diarios
-                        </div>
-                        <div class="av-sidebar-item-gemini" data-nav="retos" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;">
-                            <i class="ti ti-swords"></i> Retos de Equipo
-                        </div>
+                        <div class="av-sidebar-item-gemini" data-nav="inicio" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-layout-dashboard"></i> Tablero Principal</div>
+                        <div class="av-sidebar-item-gemini" data-nav="cursos" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-book-open"></i> Mis Cursos Activos</div>
+                        <div class="av-sidebar-item-gemini" data-nav="evaluaciones" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-clipboard-check"></i> Cuestionarios y Quices</div>
+                        <div class="av-sidebar-item-gemini" data-nav="tareas" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-file-upload"></i> Entregas y Enlaces</div>
+                        <div class="av-sidebar-item-gemini" data-nav="devocional" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-feather"></i> Devocionales Diarios</div>
+                        <div class="av-sidebar-item-gemini" data-nav="retos" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-swords"></i> Retos de Equipo</div>
                     </nav>
                     <div style="padding: 1rem; border-top: 1px solid #1E293B;">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div style="width: 36px; height: 36px; background: #C8972A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                                ${currentUser?.email?.charAt(0).toUpperCase() || 'U'}
-                            </div>
-                            <div>
-                                <p style="font-size: 10px; color: #94A3B8;">Rango de Servicio</p>
-                                <p style="font-size: 14px; font-weight: bold;">Nivel ${Math.floor(currentXpGemini/500)+1} · Levita</p>
-                            </div>
+                            <div style="width: 36px; height: 36px; background: #C8972A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">${currentUser?.email?.charAt(0).toUpperCase() || 'U'}</div>
+                            <div><p style="font-size: 10px; color: #94A3B8;">Rango de Servicio</p><p style="font-size: 14px; font-weight: bold;">Nivel ${Math.floor(xpGemini/500)+1} · Levita</p></div>
                         </div>
                     </div>
                 </aside>
 
-                <!-- Área de contenido principal -->
-                <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-                    <!-- Header con XP -->
-                    <div style="background: white; padding: 1rem 1.5rem; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <i class="ti ti-building-church" style="color: #1E3A8A;"></i>
-                            <span style="font-weight: 600;">Aula de Capacitación Ministerial</span>
-                            <span style="font-size: 12px; background: #F1F5F9; padding: 2px 8px; border-radius: 4px;">IEC Central</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 12px; font-weight: 600;">XP ${currentXpGemini} / 500</span>
-                            <div style="width: 120px; height: 8px; background: #E2E8F0; border-radius: 99px; overflow: hidden;">
-                                <div style="width: ${(currentXpGemini/500)*100}%; height: 100%; background: linear-gradient(90deg, #C8972A, #EAB308);"></div>
-                            </div>
-                        </div>
+                <!-- Contenido principal -->
+                <div class="av-content-gemini" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    <div style="background: white; padding: 1rem 1.5rem; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <div><i class="ti ti-building-church" style="color: #1E3A8A;"></i> <span style="font-weight: 600;">Aula de Capacitación Ministerial</span> <span style="font-size: 12px; background: #F1F5F9; padding: 2px 8px; border-radius: 4px;">IEC Central</span></div>
+                        <div style="display: flex; align-items: center; gap: 10px;"><span style="font-size: 12px;">XP ${xpGemini} / 500</span><div style="width: 120px; height: 8px; background: #E2E8F0; border-radius: 99px;"><div id="xpFillGemini" style="width: ${(xpGemini/500)*100}%; height: 100%; background: linear-gradient(90deg, #C8972A, #EAB308);"></div></div></div>
                     </div>
 
-                    <!-- Tabs horizontales -->
-                    <div style="display: flex; background: white; border-bottom: 1px solid #E2E8F0; padding: 0 1rem; gap: 0.5rem;">
-                        <div class="av-tab-gemini active" data-tab="inicio" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent;">
-                            <i class="ti ti-smart-home"></i> Inicio
-                        </div>
-                        <div class="av-tab-gemini" data-tab="cursos" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent;">
-                            <i class="ti ti-notebook"></i> Cursos <span class="av-badge-num" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">0</span>
-                        </div>
-                        <div class="av-tab-gemini" data-tab="evaluaciones" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent;">
-                            <i class="ti ti-device-laptop"></i> Evaluaciones <span id="quizBadgeCountGemini" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">${examenesPendientesCount}</span>
-                        </div>
-                        <div class="av-tab-gemini" data-tab="tareas" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent;">
-                            <i class="ti ti-cloud-upload"></i> Tareas <span id="tareasBadgeGemini" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">${tareasCount}</span>
-                        </div>
-                        <div class="av-tab-gemini" data-tab="devocional" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent;">
-                            <i class="ti ti-heart-handshake"></i> Devocional
-                        </div>
-                        <div class="av-tab-gemini" data-tab="retos" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent;">
-                            <i class="ti ti-trophy"></i> Retos
-                        </div>
+                    <div class="av-tabs-gemini" style="display: flex; background: white; border-bottom: 1px solid #E2E8F0; padding: 0 1rem; overflow-x: auto;">
+                        <div class="av-tab-gemini active" data-tab="inicio" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid #1E3A8A; color: #1E3A8A;"><i class="ti ti-smart-home"></i> Inicio</div>
+                        <div class="av-tab-gemini" data-tab="cursos" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-notebook"></i> Cursos <span id="cursosBadgeGemini" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">0</span></div>
+                        <div class="av-tab-gemini" data-tab="evaluaciones" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-device-laptop"></i> Evaluaciones <span id="quizBadgeGemini" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">${examenesPendientesCount}</span></div>
+                        <div class="av-tab-gemini" data-tab="tareas" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-cloud-upload"></i> Tareas <span id="tareasBadgeGemini" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">${tareasCount}</span></div>
+                        <div class="av-tab-gemini" data-tab="devocional" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-heart-handshake"></i> Devocional</div>
+                        <div class="av-tab-gemini" data-tab="retos" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-trophy"></i> Retos</div>
                     </div>
 
-                    <!-- Contenedor de contenido dinámico -->
-                    <div id="av-dynamic-content-gemini" style="padding: 1.5rem; overflow-y: auto; flex: 1; background: #F8FAFC;">
-                        Cargando...
-                    </div>
+                    <div id="av-dynamic-content-gemini" style="padding: 1.5rem; overflow-y: auto; flex: 1; background: #F8FAFC; min-height: 400px;">Cargando...</div>
                 </div>
             </div>
         </div>
@@ -1770,40 +1723,29 @@ async function renderMoodle() {
 
     container.innerHTML = html;
 
-    // Generar estrellas de fondo
-    generateStarsGemini();
+    // Inicializar elementos
+    generarEstrellasGemini();
+    construirJuegoBienvenida();
+    document.getElementById('enterAppBtn').addEventListener('click', () => entrarAppGemini());
+    document.getElementById('skipWelcomeBtn').addEventListener('click', () => entrarAppGemini());
 
-    // Construir juego de bienvenida
-    buildWelcomeGameGemini();
-
-    // Eventos de la pantalla de bienvenida
-    document.getElementById('enterAppBtn').addEventListener('click', () => enterAppGemini());
-    document.getElementById('skipWelcomeBtn').addEventListener('click', () => enterAppGemini());
-
-    // Vincular eventos de navegación (sidebar y tabs)
+    // Eventos de navegación
     document.querySelectorAll('.av-sidebar-item-gemini').forEach(el => {
-        el.addEventListener('click', () => {
-            const nav = el.getAttribute('data-nav');
-            navigateGemini(nav);
-        });
+        el.addEventListener('click', () => navegarGemini(el.getAttribute('data-nav')));
     });
     document.querySelectorAll('.av-tab-gemini').forEach(el => {
-        el.addEventListener('click', () => {
-            const tab = el.getAttribute('data-tab');
-            navigateGemini(tab);
-        });
+        el.addEventListener('click', () => navegarGemini(el.getAttribute('data-tab')));
     });
 
-    // Cargar contenido inicial (inicio) cuando se entre a la app
-    window.enterAppGemini = async function() {
+    // Cargar contenido inicial cuando se entra
+    window.entrarAppGemini = async () => {
         document.getElementById('av-welcome-gemini').style.display = 'none';
         document.getElementById('av-main-layout-gemini').style.display = 'block';
-        await loadTabInicioGemini();
-        // Actualizar badges de cursos y evaluaciones después de cargar
-        await updateBadgesGemini();
+        await cargarTabInicio();
+        await actualizarBadges();
     };
 }
-
+    
 // Función para generar estrellas
 function generateStarsGemini() {
     const container = document.getElementById('starsContainer');
@@ -1914,315 +1856,279 @@ async function navigateGemini(tabName) {
     if (tabName === 'retos') loadTabRetosGemini();
 }
 
-// ========== FUNCIONES DE CARGA DE DATOS (con Supabase) ==========
-async function loadUserProgressGemini() {
-    if (!currentUser) return;
-    const { data, error } = await supabaseClient
-        .from('progreso_usuario')
-        .select('xp, racha')
-        .eq('user_id', currentUser.id)
-        .single();
-    if (error && error.code !== 'PGRST116') console.error(error);
-    if (data) {
-        currentXpGemini = data.xp;
-        userRachaGemini = data.racha;
+// ========== FUNCIONES AUXILIARES ==========
+function generarEstrellasGemini() {
+    const container = document.getElementById('starsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 0; i < 30; i++) {
+        const star = document.createElement('div');
+        const size = Math.random() * 3 + 1;
+        star.style.cssText = `position: absolute; width: ${size}px; height: ${size}px; background: #F5D97A; border-radius: 50%; top: ${Math.random() * 100}%; left: ${Math.random() * 100}%; opacity: 0; animation: twinkle ${2 + Math.random() * 3}s infinite; animation-delay: ${Math.random() * 3}s;`;
+        container.appendChild(star);
+    }
+    if (!document.querySelector('#twinkleStyle')) {
+        const style = document.createElement('style');
+        style.id = 'twinkleStyle';
+        style.textContent = '@keyframes twinkle { 0%,100%{opacity:0;transform:scale(0.5)} 50%{opacity:0.6;transform:scale(1)} }';
+        document.head.appendChild(style);
+    }
+}
+
+function construirJuegoBienvenida() {
+    const wrap = document.getElementById('wlGameOptions');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const options = ["En templos lujosos", "En espíritu y en verdad", "Solo los días domingos", "Mediante ritos antiguos"];
+    options.forEach((opt, idx) => {
+        const div = document.createElement('div');
+        div.className = 'wl-game-opt';
+        div.innerText = opt;
+        div.style.cssText = 'background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; text-align: center; transition: 0.2s;';
+        div.onclick = () => evaluarRespuestaBienvenida(idx, div);
+        wrap.appendChild(div);
+    });
+}
+
+let juegoRespondido = false;
+function evaluarRespuestaBienvenida(selected, el) {
+    if (juegoRespondido) return;
+    juegoRespondido = true;
+    const feedback = document.getElementById('wlGameFeedback');
+    if (selected === 1) {
+        el.style.background = '#10B981';
+        feedback.innerHTML = '¡Excelente! +20 XP ganados.';
+        feedback.style.color = '#10B981';
+        agregarXP(20);
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#C8972A', '#1E3A8A'] });
     } else {
-        currentXpGemini = 0;
-        userRachaGemini = 0;
+        el.style.background = '#EF4444';
+        feedback.innerHTML = 'Respuesta incorrecta. Juan 4:23 nos llama a adorar en Espíritu y Verdad.';
+        feedback.style.color = '#EF4444';
+    }
+    document.querySelectorAll('.wl-game-opt').forEach(opt => opt.style.pointerEvents = 'none');
+}
+
+function toggleWelcomeGameGemini() {
+    const game = document.getElementById('av-welcome-game');
+    if (game) game.style.display = game.style.display === 'block' ? 'none' : 'block';
+}
+
+async function cargarProgresoGemini() {
+    if (!currentUser) return;
+    const { data } = await supabaseClient.from('progreso_usuario').select('xp, racha').eq('user_id', currentUser.id).single();
+    if (data) {
+        xpGemini = data.xp;
+        rachaGemini = data.racha;
+    } else {
+        xpGemini = 0;
+        rachaGemini = 0;
         await supabaseClient.from('progreso_usuario').insert({ user_id: currentUser.id, xp: 0, racha: 0 });
     }
 }
 
-async function addExperiencePointsGemini(amount) {
-    currentXpGemini += amount;
-    if (currentXpGemini >= 500) {
-        currentXpGemini -= 500;
-        alert("🎉 ¡FELICIDADES! Has subido de nivel en tu capacitación ministerial.");
+async function agregarXP(puntos) {
+    xpGemini += puntos;
+    if (xpGemini >= 500) {
+        xpGemini -= 500;
+        alert('🎉 ¡Subiste de nivel!');
     }
-    await supabaseClient.from('progreso_usuario').update({ xp: currentXpGemini }).eq('user_id', currentUser.id);
-    // Actualizar visualmente la barra de XP si está visible
-    const xpFill = document.querySelector('#av-main-layout-gemini .av-xp-fill');
-    if (xpFill) xpFill.style.width = `${(currentXpGemini/500)*100}%`;
-    const xpText = document.querySelector('#av-main-layout-gemini .av-xp-label');
-    if (xpText) xpText.innerText = `XP ${currentXpGemini} / 500`;
+    await supabaseClient.from('progreso_usuario').update({ xp: xpGemini }).eq('user_id', currentUser.id);
+    const fill = document.getElementById('xpFillGemini');
+    if (fill) fill.style.width = `${(xpGemini/500)*100}%`;
 }
 
-async function loadDevocionalHoyGemini() {
+async function cargarDevocionalHoy() {
     const hoy = new Date().toISOString().slice(0,10);
-    const { data, error } = await supabaseClient
-        .from('devocionales')
-        .select('*')
-        .eq('fecha', hoy)
-        .eq('iglesia_id', currentIglesiaId)
-        .single();
-    if (data) devocionalHoyGemini = data;
-    else devocionalHoyGemini = null;
+    const { data } = await supabaseClient.from('devocionales').select('*').eq('fecha', hoy).eq('iglesia_id', currentIglesiaId).single();
+    devocionalGemini = data || null;
 }
 
-async function updateBadgesGemini() {
-    // Actualizar badge de cursos (cantidad de cursos)
-    const { count: cursosCount } = await supabaseClient
-        .from('cursos')
-        .select('*', { count: 'exact', head: true })
-        .eq('entidad_id', currentIglesiaId);
-    const cursosBadge = document.querySelector('.av-tab-gemini[data-tab="cursos"] .av-badge-num');
-    if (cursosBadge) cursosBadge.innerText = cursosCount || 0;
-
-    // Badge de evaluaciones pendientes
+async function cargarContadores() {
+    const { count: tareas } = await supabaseClient.from('tareas_aula').select('*', { count: 'exact', head: true }).eq('iglesia_id', currentIglesiaId);
+    tareasCount = tareas || 0;
     const { data: examenes } = await supabaseClient.from('examenes').select('id');
     let pendientes = 0;
     if (examenes) {
         for (let ex of examenes) {
-            const { data: intento } = await supabaseClient
-                .from('intentos_examen')
-                .select('id')
-                .eq('user_id', currentUser.id)
-                .eq('examen_id', ex.id)
-                .single();
+            const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
             if (!intento) pendientes++;
         }
     }
-    const evalBadge = document.getElementById('quizBadgeCountGemini');
-    if (evalBadge) evalBadge.innerText = pendientes;
-
-    // Badge de tareas pendientes (todas las tareas activas)
-    const { data: tareas } = await supabaseClient
-        .from('tareas_aula')
-        .select('id')
-        .eq('iglesia_id', currentIglesiaId);
-    const tareasBadge = document.getElementById('tareasBadgeGemini');
-    if (tareasBadge) tareasBadge.innerText = tareas?.length || 0;
+    examenesPendientesCount = pendientes;
 }
 
-async function loadTabInicioGemini() {
-    const container = document.getElementById('av-dynamic-content-gemini');
-    // Obtener estadísticas
-    const { count: cursosCount } = await supabaseClient
-        .from('cursos')
-        .select('*', { count: 'exact', head: true })
-        .eq('entidad_id', currentIglesiaId);
-    const { data: examenes } = await supabaseClient.from('examenes').select('id');
-    let pendientes = 0;
-    if (examenes) {
-        for (let ex of examenes) {
-            const { data: intento } = await supabaseClient
-                .from('intentos_examen')
-                .select('id')
-                .eq('user_id', currentUser.id)
-                .eq('examen_id', ex.id)
-                .single();
-            if (!intento) pendientes++;
+async function actualizarBadges() {
+    const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
+    const cursoBadge = document.getElementById('cursosBadgeGemini');
+    if (cursoBadge) cursoBadge.innerText = cursos || 0;
+    const tareaBadge = document.getElementById('tareasBadgeGemini');
+    if (tareaBadge) tareaBadge.innerText = tareasCount;
+    const examenBadge = document.getElementById('quizBadgeGemini');
+    if (examenBadge) examenBadge.innerText = examenesPendientesCount;
+}
+
+async function navegarGemini(tab) {
+    document.querySelectorAll('.av-sidebar-item-gemini').forEach(el => {
+        el.style.borderLeftColor = 'transparent';
+        el.style.background = 'transparent';
+        if (el.getAttribute('data-nav') === tab) {
+            el.style.borderLeftColor = '#C8972A';
+            el.style.background = '#1E293B';
         }
-    }
-    const promedio = 94; // Esto podría calcularse de los puntajes reales
-    container.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div style="background: white; border-radius: 0.75rem; padding: 1rem; text-align: center; border: 1px solid #E2E8F0;">
-                <span style="font-size: 0.7rem; color: #64748B;">Materias en Curso</span>
-                <strong style="font-size: 1.8rem; display: block;">${cursosCount || 0}</strong>
-                <small style="color: #C8972A;"><i class="ti ti-point-filled"></i> Capacitación activa</small>
-            </div>
-            <div style="background: white; border-radius: 0.75rem; padding: 1rem; text-align: center; border: 1px solid #E2E8F0;">
-                <span style="font-size: 0.7rem; color: #64748B;">Calificación Promedio</span>
-                <strong style="font-size: 1.8rem; display: block;">${promedio} / 100</strong>
-                <small style="color: #10B981;">Nivel de excelencia alto</small>
-            </div>
-            <div style="background: white; border-radius: 0.75rem; padding: 1rem; text-align: center; border: 1px solid #E2E8F0;">
-                <span style="font-size: 0.7rem; color: #64748B;">Consistencia Devocional</span>
-                <strong style="font-size: 1.8rem; display: block;">${userRachaGemini} Días</strong>
-                <small style="color: #F59E0B;"><i class="ti ti-flame"></i> ¡Sigue así!</small>
-            </div>
-        </div>
-        <p style="font-size: 0.7rem; font-weight: bold; color: #64748B; margin-bottom: 0.5rem;">Enfoque de Estudio de Hoy</p>
-        <div style="background: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #E2E8F0;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="width: 48px; height: 48px; background: #EFF6FF; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 22px;">✨</div>
-                <div>
-                    <span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; padding: 2px 10px; border-radius: 99px;">Teología de la Adoración</span>
-                    <h3 style="font-weight: bold; margin-top: 4px;">Módulo 1: Fundamentos del Altar</h3>
-                    <p style="font-size: 12px; color: #64748B;">Próxima Lección: La diferencia entre talento humano y unción del Espíritu.</p>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-async function loadTabCursosGemini() {
-    const container = document.getElementById('av-dynamic-content-gemini');
-    const { data: cursos } = await supabaseClient
-        .from('cursos')
-        .select('*')
-        .eq('entidad_id', currentIglesiaId);
-    if (!cursos || cursos.length === 0) {
-        container.innerHTML = '<p style="text-align:center;">No hay cursos disponibles.</p>';
-        return;
-    }
-    let html = `<div class="space-y-4">`;
-    for (let curso of cursos) {
-        const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', curso.id);
-        html += `
-            <div class="bg-white border rounded-xl p-4">
-                <span class="inline-block bg-${curso.color === 'blue' ? 'blue' : 'amber'}-100 text-${curso.color === 'blue' ? 'blue' : 'amber'}-800 text-xs px-2 py-1 rounded-full">${curso.tag || 'Módulo'}</span>
-                <h3 class="text-base font-bold mt-1">${curso.titulo}</h3>
-                <p class="text-xs text-slate-500 mt-1">${curso.descripcion || ''}</p>
-                <div class="mt-2">
-                    ${modulos?.map(m => `<span class="inline-block bg-slate-100 rounded-full px-2 py-1 text-xs mr-1">${m.titulo}</span>`).join('') || 'Sin módulos'}
-                </div>
-            </div>
-        `;
-    }
-    html += `</div>`;
-    container.innerHTML = html;
-}
-
-async function loadTabEvaluacionesGemini() {
-    const container = document.getElementById('av-dynamic-content-gemini');
-    const { data: examenes } = await supabaseClient
-        .from('examenes')
-        .select('*, modulos(titulo)');
-    if (!examenes || examenes.length === 0) {
-        container.innerHTML = '<p>No hay exámenes disponibles.</p>';
-        return;
-    }
-    let html = `<div class="space-y-4">`;
-    for (let ex of examenes) {
-        const { data: intento } = await supabaseClient
-            .from('intentos_examen')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .eq('examen_id', ex.id)
-            .single();
-        const realizado = intento ? true : false;
-        html += `
-            <div class="bg-white border rounded-xl p-4 flex justify-between items-center">
-                <div>
-                    <h4 class="font-bold">${ex.titulo}</h4>
-                    <p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'}</p>
-                    <p class="text-xs text-red-500">⏱️ ${ex.tiempo_por_pregunta} segundos por pregunta</p>
-                </div>
-                ${realizado 
-                    ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">Completado</span>`
-                    : `<button class="bg-blue-900 text-white px-4 py-2 rounded-md text-xs" onclick="startExamFromMoodleGemini('${ex.id}')">Iniciar Examen</button>`
-                }
-            </div>
-        `;
-    }
-    html += `</div>`;
-    container.innerHTML = html;
-}
-
-async function loadTabTareasGemini() {
-    const container = document.getElementById('av-dynamic-content-gemini');
-    const { data: tareas } = await supabaseClient
-        .from('tareas_aula')
-        .select('*')
-        .eq('iglesia_id', currentIglesiaId)
-        .order('created_at', { ascending: false });
-    if (!tareas || tareas.length === 0) {
-        container.innerHTML = '<p>No hay tareas asignadas.</p>';
-        return;
-    }
-    let html = `<div class="space-y-4">`;
-    for (let t of tareas) {
-        html += `
-            <div class="bg-white border rounded-xl p-4">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="inline-block bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full">Plazo: ${t.fecha_limite}</span>
-                        <h3 class="font-bold mt-1">${t.titulo}</h3>
-                        <p class="text-xs text-slate-500 mt-1">${t.descripcion || ''}</p>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <input type="text" id="link_${t.id}" class="w-full border rounded p-2 text-sm" placeholder="Pega tu enlace de entrega (Drive, YouTube)">
-                    <button class="mt-2 bg-blue-900 text-white px-4 py-1 rounded text-xs" onclick="entregarTareaGemini('${t.id}', '${t.titulo}')">Entregar Tarea</button>
-                </div>
-            </div>
-        `;
-    }
-    html += `</div>`;
-    container.innerHTML = html;
-}
-
-async function entregarTareaGemini(tareaId, titulo) {
-    const linkInput = document.getElementById(`link_${tareaId}`);
-    const link = linkInput?.value.trim();
-    if (!link) {
-        alert("Debes pegar un enlace de tu entrega.");
-        return;
-    }
-    await supabaseClient.from('entregas_tareas').insert({
-        id: generateUniqueId(),
-        tarea_id: tareaId,
-        user_id: currentUser.id,
-        enlace: link
     });
-    alert(`✅ Tarea "${titulo}" entregada. El administrador revisará tu enlace.`);
-    await addExperiencePointsGemini(50);
-    linkInput.value = '';
-    await loadTabTareasGemini(); // refrescar
+    document.querySelectorAll('.av-tab-gemini').forEach(el => {
+        el.style.borderBottomColor = 'transparent';
+        el.style.color = '#64748B';
+        if (el.getAttribute('data-tab') === tab) {
+            el.style.borderBottomColor = '#1E3A8A';
+            el.style.color = '#1E3A8A';
+        }
+    });
+    if (tab === 'inicio') await cargarTabInicio();
+    if (tab === 'cursos') await cargarTabCursos();
+    if (tab === 'evaluaciones') await cargarTabEvaluaciones();
+    if (tab === 'tareas') await cargarTabTareas();
+    if (tab === 'devocional') await cargarTabDevocional();
+    if (tab === 'retos') cargarTabRetos();
 }
 
-async function loadTabDevocionalGemini() {
+async function cargarTabInicio() {
     const container = document.getElementById('av-dynamic-content-gemini');
-    const versiculo = devocionalHoyGemini ? devocionalHoyGemini.versiculo : 'Juan 4:23 — Mas la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad.';
-    const reflexionGuia = devocionalHoyGemini ? devocionalHoyGemini.reflexion : '¿De qué manera estás purificando tus intenciones para que tu adoración sea en verdad y no por aplauso?';
+    const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
     container.innerHTML = `
-        <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-5 mb-4">
-            <p class="italic text-base">"${versiculo}"</p>
+        <div class="grid grid-cols-3 gap-4 mb-5">
+            <div class="bg-white border rounded-xl p-4 text-center"><span class="text-xs text-slate-400">Materias en Curso</span><strong class="text-2xl block">${cursos || 0}</strong><small class="text-amber-600">Capacitación activa</small></div>
+            <div class="bg-white border rounded-xl p-4 text-center"><span class="text-xs text-slate-400">Calificación Promedio</span><strong class="text-2xl block">94 / 100</strong><small class="text-emerald-600">Nivel de excelencia alto</small></div>
+            <div class="bg-white border rounded-xl p-4 text-center"><span class="text-xs text-slate-400">Consistencia Devocional</span><strong class="text-2xl block">${rachaGemini} Días</strong><small class="text-orange-500"><i class="ti ti-flame"></i> ¡Sigue así!</small></div>
         </div>
-        <div class="bg-white border rounded-xl p-4">
-            <p class="font-medium mb-2">Reflexión personal guiada:</p>
-            <p class="text-sm text-slate-600 mb-3">${reflexionGuia}</p>
-            <textarea id="devocionalTextareaGemini" rows="4" class="w-full border rounded p-2" placeholder="Escribe tu meditación diaria aquí..."></textarea>
-            <button class="mt-3 bg-blue-900 text-white px-4 py-2 rounded-md text-sm" onclick="saveDevocionalDailyGemini()">Guardar meditación (+30 XP)</button>
-        </div>
+        <p class="text-xs font-bold text-slate-400 uppercase">Enfoque de Estudio de Hoy</p>
+        <div class="bg-white border rounded-xl p-4 mt-2"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-2xl">✨</div><div><span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Teología de la Adoración</span><h3 class="font-bold">Módulo 1: Fundamentos del Altar</h3><p class="text-xs text-slate-500">Próxima Lección: La diferencia entre talento humano y unción del Espíritu.</p></div></div></div>
     `;
 }
 
-async function saveDevocionalDailyGemini() {
-    const textarea = document.getElementById('devocionalTextareaGemini');
-    const reflexion = textarea?.value.trim();
-    if (!reflexion) {
-        alert("Escribe tu reflexión antes de guardar.");
-        return;
+async function cargarTabCursos() {
+    const container = document.getElementById('av-dynamic-content-gemini');
+    const { data: cursos } = await supabaseClient.from('cursos').select('*').eq('entidad_id', currentIglesiaId);
+    if (!cursos?.length) { container.innerHTML = '<p>No hay cursos disponibles.</p>'; return; }
+    let html = '';
+    for (let c of cursos) {
+        const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', c.id);
+        html += `<div class="bg-white border rounded-xl p-4 mb-3"><h3 class="font-bold">${c.titulo}</h3><p class="text-sm text-slate-500">${c.descripcion || ''}</p><div class="mt-2">${modulos?.map(m => `<span class="inline-block bg-slate-100 rounded-full px-2 py-1 text-xs mr-1">${m.titulo}</span>`).join('') || 'Sin módulos'}</div></div>`;
     }
-    // Guardar respuesta (opcional) en una tabla respuestas_devocionales
-    await addExperiencePointsGemini(30);
-    userRachaGemini++;
-    await supabaseClient.from('progreso_usuario').update({ racha: userRachaGemini }).eq('user_id', currentUser.id);
-    alert("¡Meditación guardada! +30 XP");
-    textarea.value = '';
-    // Actualizar racha en la UI (forzamos recarga visual)
-    const rachaSpan = document.querySelector('#av-main-layout-gemini .av-streak span');
-    if (rachaSpan) rachaSpan.innerText = `Racha: ${userRachaGemini} días`;
+    container.innerHTML = html;
 }
 
-function loadTabRetosGemini() {
+async function cargarTabEvaluaciones() {
     const container = document.getElementById('av-dynamic-content-gemini');
+    const { data: examenes } = await supabaseClient.from('examenes').select('*, modulos(titulo)');
+    if (!examenes?.length) { container.innerHTML = '<p>No hay exámenes disponibles.</p>'; return; }
+    let html = '';
+    for (let ex of examenes) {
+        const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
+        const realizado = !!intento;
+        html += `<div class="bg-white border rounded-xl p-4 flex justify-between items-center mb-3"><div><h4 class="font-bold">${ex.titulo}</h4><p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} | ⏱️ ${ex.tiempo_por_pregunta} segundos</p></div>${realizado ? '<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">Completado</span>' : `<button class="bg-blue-900 text-white px-4 py-2 rounded-md text-xs" onclick="startExam('${ex.id}')">Iniciar Examen</button>`}</div>`;
+    }
+    container.innerHTML = html;
+}
+
+async function cargarTabTareas() {
+    const container = document.getElementById('av-dynamic-content-gemini');
+    const { data: tareas } = await supabaseClient.from('tareas_aula').select('*').eq('iglesia_id', currentIglesiaId);
+    if (!tareas?.length) { container.innerHTML = '<p>No hay tareas asignadas.</p>'; return; }
+    let html = '';
+    for (let t of tareas) {
+        html += `<div class="bg-white border rounded-xl p-4 mb-3"><div class="flex justify-between"><div><span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Plazo: ${t.fecha_limite}</span><h3 class="font-bold mt-1">${t.titulo}</h3><p class="text-xs text-slate-500">${t.descripcion || ''}</p></div></div><div class="mt-2"><input type="text" id="link_${t.id}" class="w-full border rounded p-2 text-sm" placeholder="Pega tu enlace (Drive, YouTube)"><button class="mt-2 bg-blue-900 text-white px-4 py-1 rounded text-xs" onclick="entregarTareaGemini('${t.id}', '${t.titulo}')">Entregar Tarea</button></div></div>`;
+    }
+    container.innerHTML = html;
+}
+
+async function entregarTareaGemini(id, titulo) {
+    const link = document.getElementById(`link_${id}`).value.trim();
+    if (!link) return alert('Pega un enlace válido');
+    await supabaseClient.from('entregas_tareas').insert({ id: generateUniqueId(), tarea_id: id, user_id: currentUser.id, enlace: link });
+    alert(`✅ Tarea "${titulo}" entregada. +50 XP`);
+    await agregarXP(50);
+    await cargarTabTareas();
+}
+
+async function cargarTabDevocional() {
+    const container = document.getElementById('av-dynamic-content-gemini');
+    const versiculo = devocionalGemini?.versiculo || 'Juan 4:23 — Mas la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad.';
+    const reflexion = devocionalGemini?.reflexion || '¿De qué manera estás purificando tus intenciones para que tu adoración sea en verdad y no por aplauso?';
     container.innerHTML = `
-        <div class="bg-white border rounded-xl p-4">
-            <h3 class="font-bold">🧠 Desafío semanal</h3>
-            <p class="text-sm mt-2">Responde la siguiente pregunta y gana +40 XP:</p>
-            <p class="italic mt-2 bg-amber-50 p-2 rounded">¿Cuál es el propósito principal de la alabanza en la congregación según la Biblia?</p>
-            <textarea id="retoRespuestaGemini" class="w-full border rounded p-2 mt-2" rows="2"></textarea>
-            <button class="mt-2 bg-amber-600 text-white px-4 py-1 rounded text-sm" onclick="completarRetoGemini()">Responder reto</button>
-        </div>
+        <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-5 mb-4"><p class="italic">"${versiculo}"</p></div>
+        <div class="bg-white border rounded-xl p-4"><p class="font-medium mb-2">Reflexión personal guiada:</p><p class="text-sm text-slate-600 mb-3">${reflexion}</p><textarea id="devocionalTexto" rows="4" class="w-full border rounded p-2" placeholder="Escribe tu meditación..."></textarea><button class="mt-3 bg-blue-900 text-white px-4 py-2 rounded-md text-sm" onclick="guardarDevocionalGemini()">Guardar meditación (+30 XP)</button></div>
     `;
 }
 
-async function completarRetoGemini() {
-    const respuesta = document.getElementById('retoRespuestaGemini')?.value.trim();
-    if (!respuesta) {
-        alert("Escribe una respuesta antes de enviar.");
-        return;
-    }
-    await addExperiencePointsGemini(40);
-    alert("🎉 ¡Excelente reflexión! Has ganado +40 XP.");
-    document.getElementById('retoRespuestaGemini').value = '';
-    await loadTabRetosGemini(); // refrescar para que vuelva a aparecer
+async function guardarDevocionalGemini() {
+    const texto = document.getElementById('devocionalTexto')?.value.trim();
+    if (!texto) return alert('Escribe tu reflexión');
+    await agregarXP(30);
+    rachaGemini++;
+    await supabaseClient.from('progreso_usuario').update({ racha: rachaGemini }).eq('user_id', currentUser.id);
+    alert('Meditación guardada. +30 XP');
+    document.getElementById('devocionalTexto').value = '';
+    await cargarTabDevocional();
 }
 
+function cargarTabRetos() {
+    const container = document.getElementById('av-dynamic-content-gemini');
+    // Obtener lista de miembros para el selector
+    const miembros = usuariosIglesia.map(u => ({ id: u.id, nombre: u.perfiles?.nombre || 'Usuario' }));
+    container.innerHTML = `
+        <div class="grid md:grid-cols-2 gap-4">
+            <div class="bg-white border rounded-xl p-4">
+                <h4 class="font-bold flex items-center gap-2"><i class="ti ti-swords text-amber-600"></i> Crear Nuevo Desafío Bíblico</h4>
+                <div class="mt-3">
+                    <label class="block text-xs font-bold text-slate-400 uppercase">1. Seleccionar Hermano del Ministerio:</label>
+                    <select id="challengeTarget" class="w-full border text-xs p-2 rounded bg-slate-50">
+                        ${miembros.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('')}
+                    </select>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mt-2">2. Tema del Reto:</label>
+                    <select id="challengeTopic" class="w-full border text-xs p-2 rounded bg-slate-50">
+                        <option value="Armonía y Modulación Litúrgica">Armonía y Modulación Litúrgica</option>
+                        <option value="Historia del Canto Profético">Historia del Canto Profético</option>
+                        <option value="Sujeción Pastoral y Carácter">Sujeción Pastoral y Carácter</option>
+                    </select>
+                </div>
+                <button class="w-full bg-slate-900 text-white text-xs font-bold py-2 rounded-md mt-4" onclick="enviarReto()">Enviar Reto en Vivo por Red (+40 XP)</button>
+            </div>
+            <div class="bg-white border rounded-xl p-4">
+                <h4 class="font-bold flex items-center gap-2"><i class="ti ti-bell-ringing text-blue-800"></i> Desafíos Pendientes por Responder</h4>
+                <div id="desafioPendiente" class="mt-2 text-center text-slate-500">Buscando desafíos...</div>
+            </div>
+        </div>
+    `;
+    // Simular un desafío pendiente (en una implementación real vendría de Supabase)
+    setTimeout(() => {
+        const pendiente = document.getElementById('desafioPendiente');
+        if (pendiente) pendiente.innerHTML = `
+            <div class="border rounded-lg p-3 bg-slate-50 text-xs relative mt-2">
+                <span class="absolute top-1 right-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px]">RECIENTE</span>
+                <p class="font-bold">Enviado por: Líder Geovanny</p>
+                <p class="text-slate-500">Materia: <span class="italic">Hermenéutica Aplicada al Canto</span></p>
+                <p class="text-amber-600 font-medium pt-1"><i class="ti ti-bolt"></i> Recompensa: +100 XP</p>
+                <button class="w-full bg-blue-900 text-white text-xs font-semibold py-1.5 rounded mt-2" onclick="aceptarRetoPendiente()">Aceptar y Responder Desafío</button>
+            </div>
+        `;
+    }, 100);
+}
+
+function enviarReto() {
+    const targetName = document.getElementById('challengeTarget').options[document.getElementById('challengeTarget').selectedIndex]?.text;
+    const topic = document.getElementById('challengeTopic').value;
+    alert(`Reto sobre "${topic}" enviado a ${targetName}. +40 XP`);
+    agregarXP(40);
+}
+
+function aceptarRetoPendiente() {
+    alert('¡Desafío aceptado! Responde correctamente para +100 XP');
+    agregarXP(100);
+    document.getElementById('desafioPendiente').innerHTML = '<p class="text-emerald-600">✅ Desafío completado con éxito.</p>';
+}
+    
 // Motor de exámenes (reutiliza el sistema existente pero con preguntas de Supabase)
 async function startExamFromMoodleGemini(examenId) {
     // Obtener preguntas del examen
