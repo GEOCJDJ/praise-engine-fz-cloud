@@ -1944,13 +1944,7 @@ function toggleJuegoBienvenida() {
 
 function openAdminAulaVirtual() { window.open('admin_aula.html', '_blank'); }
 
-    // Cargar contenido inicial de los tabs
-    await cargarTabInicio();
-    await cargarTabCursos();
-    await cargarTabEvaluaciones();
-    await cargarTabTareas();
-    await cargarTabDevocional();
-    await cargarTabRetos();
+
 
     // Actualizar badges
     actualizarBadges();
@@ -2541,8 +2535,24 @@ window.deleteUserById = async (userId) => {
 
 
    
+
 // ========== INICIALIZACIÓN ==========
-(async () => { const { data: { session } } = await supabaseClient.auth.getSession(); if(session){ currentUser=session.user; await loadProfile(); await loadUserIglesia(); if(currentIglesiaId || isAdminUser) { await loadUserData(); renderApp(); } else { renderApp(); } } else { renderLogin(); } })();
+(async () => {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        currentUser = session.user;
+        await loadProfile();
+        await loadUserIglesia();
+        if (currentIglesiaId || isAdminUser) {
+            await loadUserData();
+            renderApp();
+        } else {
+            renderApp();
+        }
+    } else {
+        renderLogin();
+    }
+})();
 </script>
 </body>
 </html>
