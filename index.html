@@ -2073,11 +2073,49 @@ async function guardarDevocionalGemini() {
     await cargarTabDevocional();
 }
 
-function cargarTabRetos() {
+async function cargarTabRetos() {
     const container = document.getElementById('av-dynamic-content-gemini');
-    // Obtener lista de miembros para el selector
-    const miembros = usuariosIglesia.map(u => ({ id: u.id, nombre: u.perfiles?.nombre || 'Usuario' }));
-    container.innerHTML = `
+    
+    // Obtener lista de miembros (excluyendo al usuario actual)
+    const otrosMiembros = usuariosIglesia.filter(u => u.user_id !== currentUser.id);
+    const miembros = otrosMiembros.map(u => ({ 
+        id: u.user_id, 
+        nombre: u.perfiles?.nombre || 'Usuario' 
+    }));
+
+    // Obtener desafíos PENDIENTES para el usuario actual
+    const { data: desafiosPendientes, error } = await supabaseClient
+        .from('desafios')
+        .select(`
+            *,
+            de_usuario:perfiles!desafios_de_usuario_id_fkey(nombre)
+        `)
+        .eq('para_usuario_id', currentUser.id)
+        .eq('estado', 'pendiente')
+        .order('fecha_envio', { ascending: false });
+
+    let desafiosHtml = '<div class="space-y-2">';
+    if (desafiosPendientes && desafiosPendientes.length > 0) {
+        for (let d of desafiosPendientes) {
+            desafiosHtml += `
+                <div class="border rounded-lg p-3 bg-slate-50 text-xs relative">
+                    <span class="absolute top-1 right-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px]">PENDIENTE</span>
+                    <p class="font-bold">Enviado por: ${d.de_usuario?.nombre || 'Alguien'}</p>
+                    <p class="text-slate-500">Materia: <span class="italic">${d.tema}</span></p>
+                    <p class="text-amber-600 font-medium pt-1"><i class="ti ti-bolt"></i> Recompensa: +100 XP</p>
+                    <button class="w-full bg-blue-900 text-white text-xs font-semibold py-1.5 rounded mt-2" 
+                            onclick="responderReto('${d.id}')">
+                        Aceptar y Responder Desafío
+                    </button>
+                </div>
+            `;
+        }
+    } else {
+        desafiosHtml += '<p class="text-center text-slate-500 py-2">No hay desafíos pendientes.</p>';
+    }
+    desafiosHtml += '</div>';
+
+    const html = `
         <div class="grid md:grid-cols-2 gap-4">
             <div class="bg-white border rounded-xl p-4">
                 <h4 class="font-bold flex items-center gap-2"><i class="ti ti-swords text-amber-600"></i> Crear Nuevo Desafío Bíblico</h4>
@@ -2091,42 +2129,85 @@ function cargarTabRetos() {
                         <option value="Armonía y Modulación Litúrgica">Armonía y Modulación Litúrgica</option>
                         <option value="Historia del Canto Profético">Historia del Canto Profético</option>
                         <option value="Sujeción Pastoral y Carácter">Sujeción Pastoral y Carácter</option>
+                        <option value="Teología de la Adoración">Teología de la Adoración</option>
                     </select>
                 </div>
-                <button class="w-full bg-slate-900 text-white text-xs font-bold py-2 rounded-md mt-4" onclick="enviarReto()">Enviar Reto en Vivo por Red (+40 XP)</button>
+                <button class="w-full bg-slate-900 text-white text-xs font-bold py-2 rounded-md mt-4" onclick="enviarReto()">
+                    Enviar Reto en Vivo por Red (+40 XP)
+                </button>
             </div>
             <div class="bg-white border rounded-xl p-4">
                 <h4 class="font-bold flex items-center gap-2"><i class="ti ti-bell-ringing text-blue-800"></i> Desafíos Pendientes por Responder</h4>
-                <div id="desafioPendiente" class="mt-2 text-center text-slate-500">Buscando desafíos...</div>
+                ${desafiosHtml}
             </div>
         </div>
     `;
-    // Simular un desafío pendiente (en una implementación real vendría de Supabase)
-    setTimeout(() => {
-        const pendiente = document.getElementById('desafioPendiente');
-        if (pendiente) pendiente.innerHTML = `
-            <div class="border rounded-lg p-3 bg-slate-50 text-xs relative mt-2">
-                <span class="absolute top-1 right-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px]">RECIENTE</span>
-                <p class="font-bold">Enviado por: Líder Geovanny</p>
-                <p class="text-slate-500">Materia: <span class="italic">Hermenéutica Aplicada al Canto</span></p>
-                <p class="text-amber-600 font-medium pt-1"><i class="ti ti-bolt"></i> Recompensa: +100 XP</p>
-                <button class="w-full bg-blue-900 text-white text-xs font-semibold py-1.5 rounded mt-2" onclick="aceptarRetoPendiente()">Aceptar y Responder Desafío</button>
-            </div>
-        `;
-    }, 100);
+    container.innerHTML = html;
 }
 
-function enviarReto() {
-    const targetName = document.getElementById('challengeTarget').options[document.getElementById('challengeTarget').selectedIndex]?.text;
+async function enviarReto() {
+    const select = document.getElementById('challengeTarget');
+    const targetId = select.value;
+    const targetName = select.options[select.selectedIndex]?.text;
     const topic = document.getElementById('challengeTopic').value;
-    alert(`Reto sobre "${topic}" enviado a ${targetName}. +40 XP`);
-    agregarXP(40);
+
+    if (!targetId) {
+        alert("Selecciona un destinatario");
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from('desafios')
+        .insert({
+            id: generateUniqueId(),
+            de_usuario_id: currentUser.id,
+            para_usuario_id: targetId,
+            tema: topic,
+            estado: 'pendiente'
+        });
+
+    if (error) {
+        alert("Error al enviar reto: " + error.message);
+        return;
+    }
+
+    alert(`✅ Reto sobre "${topic}" enviado a ${targetName}. +40 XP`);
+    await agregarXP(40);
 }
 
 function aceptarRetoPendiente() {
     alert('¡Desafío aceptado! Responde correctamente para +100 XP');
     agregarXP(100);
     document.getElementById('desafioPendiente').innerHTML = '<p class="text-emerald-600">✅ Desafío completado con éxito.</p>';
+}
+    async function responderReto(desafioId) {
+    // Aquí podrías mostrar un modal con una pregunta o simplemente dar XP
+    // Por simplicidad, asumimos que el usuario acepta y automáticamente gana XP
+    const confirmar = confirm("¿Aceptas el desafío? Ganarás +100 XP al responder.");
+    if (!confirmar) return;
+
+    // Opcional: podrías pedir una respuesta abierta o una pregunta específica
+    const respuesta = prompt("Escribe tu respuesta al desafío (para el registro):");
+    
+    const { error } = await supabaseClient
+        .from('desafios')
+        .update({
+            estado: 'respondido',
+            fecha_respuesta: new Date().toISOString(),
+            respuesta: respuesta || ''
+        })
+        .eq('id', desafioId);
+
+    if (error) {
+        alert("Error al responder: " + error.message);
+        return;
+    }
+
+    await agregarXP(100);
+    alert("🎉 ¡Respuesta registrada! Has ganado +100 XP.");
+    
+    // Recargar la pestaña de retos para actualizar la lista
+    await cargarTabRetos();
 }
     
 // Motor de exámenes (reutiliza el sistema existente pero con preguntas de Supabase)
@@ -2311,6 +2392,12 @@ function renderAdmin() {
                 <h3>Gestionar Exámenes</h3>
                 <p>Crear preguntas, tiempos, etc.</p>
             </div>
+            <div class="card" onclick="adminDesafios()">
+    <i class="fas fa-tasks"></i>
+    <h3>📋 Desafíos entre miembros</h3>
+    <p>Ver y gestionar retos enviados</p>
+</div>
+
             <div class="card" onclick="showEstadisticas()">
                 <i class="fas fa-chart-line"></i>
                 <h3>Estadísticas de Uso</h3>
@@ -2461,6 +2548,46 @@ async function showEstadisticas() {
 
 // Asegurar que la función sea global
 window.showEstadisticas = showEstadisticas;
+
+    async function adminDesafios() {
+    const { data: desafios, error } = await supabaseClient
+        .from('desafios')
+        .select('*, de_usuario:perfiles!desafios_de_usuario_id_fkey(nombre), para_usuario:perfiles!desafios_para_usuario_id_fkey(nombre)')
+        .order('fecha_envio', { ascending: false });
+
+    if (error) {
+        alert("Error: " + error.message);
+        return;
+    }
+
+    let html = `<h3>📊 Gestión de Desafíos</h3>
+                <div class="space-y-2 max-h-[60vh] overflow-y-auto">`;
+    for (let d of desafios || []) {
+        html += `
+            <div class="bg-white border rounded p-3 text-sm">
+                <div><strong>De:</strong> ${d.de_usuario?.nombre || '?'} &nbsp;→&nbsp; <strong>Para:</strong> ${d.para_usuario?.nombre || '?'}</div>
+                <div><strong>Tema:</strong> ${d.tema}</div>
+                <div><strong>Estado:</strong> 
+                    <span class="px-2 py-0.5 rounded text-xs ${d.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
+                        ${d.estado}
+                    </span>
+                </div>
+                <div><strong>Fecha:</strong> ${new Date(d.fecha_envio).toLocaleString()}</div>
+                ${d.respuesta ? `<div><strong>Respuesta:</strong> ${d.respuesta}</div>` : ''}
+                <button class="btn-icon text-red-500 mt-1" onclick="eliminarDesafioAdmin('${d.id}')"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+    }
+    html += `</div><button class="btn btn-ghost mt-3" onclick="closeModal()">Cerrar</button>`;
+    showModal(html);
+}
+
+async function eliminarDesafioAdmin(id) {
+    if (confirm("¿Eliminar este desafío?")) {
+        await supabaseClient.from('desafios').delete().eq('id', id);
+        adminDesafios();
+    }
+}
     
 // NUEVA FUNCIÓN: adminUserManagement con selector jerárquico (departamento padre + equipo hijo)
 async function adminUserManagement() {
