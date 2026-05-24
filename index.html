@@ -1708,46 +1708,61 @@ window.descargarRecursoGnotes = (archivo) => {
     alert(`🔧 En una versión posterior podrás descargar "${archivo}" directamente desde Supabase Storage.`);
 };
 
-  // ========== MÓDULO SCRIPTURA CON JSON LOCAL ==========
+// ========== MÓDULO SCRIPTURA CON JSON LOCAL ==========
 let scCurrentBook = "Génesis";
 let scCurrentChapter = 1;
 let scSelectedVerseNum = null;
 let scFavorites = [];
 let scHighlights = {};
-let bibleData = [];         // Aquí se guardarán todos los versículos
-let bibleBooks = [];        // Lista única de libros
+let bibleData = [];
+let bibleBooks = [];
+
+// LISTAS FIJAS DE LIBROS DEL ANTIGUO Y NUEVO TESTAMENTO (en orden)
+const OT_BOOKS = [
+    "Génesis", "Éxodo", "Levítico", "Números", "Deuteronomio", "Josué", "Jueces", "Rut",
+    "1 Samuel", "2 Samuel", "1 Reyes", "2 Reyes", "1 Crónicas", "2 Crónicas", "Esdras",
+    "Nehemías", "Ester", "Job", "Salmos", "Proverbios", "Eclesiastés", "Cantares", "Isaías",
+    "Jeremías", "Lamentaciones", "Ezequiel", "Daniel", "Oseas", "Joel", "Amós", "Abdías",
+    "Jonás", "Miqueas", "Nahúm", "Habacuc", "Sofonías", "Hageo", "Zacarías", "Malaquías"
+];
+const NT_BOOKS = [
+    "Mateo", "Marcos", "Lucas", "Juan", "Hechos", "Romanos", "1 Corintios", "2 Corintios",
+    "Gálatas", "Efesios", "Filipenses", "Colosenses", "1 Tesalonicenses", "2 Tesalonicenses",
+    "1 Timoteo", "2 Timoteo", "Tito", "Filemón", "Hebreos", "Santiago", "1 Pedro", "2 Pedro",
+    "1 Juan", "2 Juan", "3 Juan", "Judas", "Apocalipsis"
+];
 
 // Cargar el JSON de la Biblia
 async function cargarBibliaJson() {
     try {
-        // 👇 CAMBIA ESTA URL por la correcta (local o de Supabase)
+        // 🔁 Cambia esta ruta si tu JSON está en otro lugar
         const response = await fetch('./rvr1960.json');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         bibleData = await response.json();
         console.log(`✅ Biblia cargada: ${bibleData.length} versículos`);
 
-        // Extraer lista única de libros (ordenada)
+        // Extraer lista única de libros que existen en el JSON (para validar)
         const booksSet = new Set();
         bibleData.forEach(v => booksSet.add(v.book));
         bibleBooks = Array.from(booksSet).sort((a,b) => a.localeCompare(b));
         
-        // Cargar el primer capítulo después de cargar los datos
+        // Cargar el capítulo inicial
         await cargarCapitulo(scCurrentBook, scCurrentChapter);
     } catch (error) {
         console.error("Error cargando el JSON bíblico:", error);
-        document.getElementById('sc-bible-text-flow').innerHTML = '<div style="text-align:center; color:#EF4444;">Error cargando la Biblia. Verifica que el archivo JSON esté accesible.</div>';
+        const flow = document.getElementById('sc-bible-text-flow');
+        if (flow) flow.innerHTML = '<div style="text-align:center; color:#EF4444;">⚠️ Error cargando la Biblia. Asegúrate de que el archivo "rvr1960.json" esté en la misma carpeta.</div>';
     }
 }
 
-// Obtener los versículos de un libro y capítulo específicos
 function getVersiculos(book, chapter) {
     return bibleData.filter(v => v.book === book && v.chapter === chapter);
 }
 
-// Renderizar el capítulo completo
 function renderChapterContent(book, chapter) {
     const versiculos = getVersiculos(book, chapter);
     const container = document.getElementById('sc-bible-text-flow');
+    if (!container) return;
     container.innerHTML = '';
 
     if (versiculos.length === 0) {
@@ -1776,19 +1791,18 @@ function renderChapterContent(book, chapter) {
     }
 }
 
-// Función principal para cambiar de capítulo
 async function cargarCapitulo(book, chapter) {
     scCurrentBook = book;
     scCurrentChapter = chapter;
     scSelectedVerseNum = null;
     closeScripturaCtx();
 
-    document.getElementById('sc-header-title').innerText = `${book} ${chapter}`;
+    const titleElem = document.getElementById('sc-header-title');
+    if (titleElem) titleElem.innerText = `${book} ${chapter}`;
     highlightActiveBook(book);
     renderChapterContent(book, chapter);
 }
 
-// Resaltar el libro activo en el sidebar
 function highlightActiveBook(book) {
     document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
         if (el.getAttribute('data-book') === book) el.classList.add('active');
@@ -1796,57 +1810,65 @@ function highlightActiveBook(book) {
     });
 }
 
-// Construir la lista de libros en el sidebar (con buscador)
 function buildBooksList() {
-    const otBooks = bibleBooks.slice(0, 39);  // Aprox: AT primeros 39 libros
-    const ntBooks = bibleBooks.slice(39);
-
     const otContainer = document.getElementById('ot-books-list');
     const ntContainer = document.getElementById('nt-books-list');
+    if (!otContainer || !ntContainer) return;
 
-    if (otContainer) {
-        otContainer.innerHTML = '';
-        otBooks.forEach(book => {
+    otContainer.innerHTML = '';
+    ntContainer.innerHTML = '';
+
+    // Usamos las listas fijas OT_BOOKS y NT_BOOKS para asegurar orden y existencia
+    const allBooksSet = new Set(bibleBooks);
+    
+    OT_BOOKS.forEach(book => {
+        if (allBooksSet.has(book) || book === "Salmos") { // Si el JSON tiene el libro, lo mostramos
             const el = document.createElement('div');
             el.className = 'sc-book-item';
             el.setAttribute('data-book', book);
             el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
             el.onclick = () => cargarCapitulo(book, 1);
             otContainer.appendChild(el);
-        });
-    }
+        }
+    });
 
-    if (ntContainer) {
-        ntContainer.innerHTML = '';
-        ntBooks.forEach(book => {
+    NT_BOOKS.forEach(book => {
+        if (allBooksSet.has(book) || book === "Mateo") {
             const el = document.createElement('div');
             el.className = 'sc-book-item';
             el.setAttribute('data-book', book);
             el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
             el.onclick = () => cargarCapitulo(book, 1);
             ntContainer.appendChild(el);
-        });
-    }
+        }
+    });
 
-    // Agregar evento de búsqueda de libros
+    // Si no hay libros del AT o NT porque el JSON no los contiene, mostramos un mensaje
+    if (otContainer.children.length === 0) otContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Antiguo Testamento en el JSON.</div>';
+    if (ntContainer.children.length === 0) ntContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Nuevo Testamento en el JSON.</div>';
+
+    // Buscador de libros
     const searchInput = document.getElementById('bibleSearchInput');
     if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase().trim();
-            const allBooks = document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item');
-            allBooks.forEach(bookEl => {
-                const bookName = bookEl.getAttribute('data-book').toLowerCase();
-                if (term === '' || bookName.includes(term)) {
-                    bookEl.style.display = 'flex';
-                } else {
-                    bookEl.style.display = 'none';
-                }
-            });
-        });
+        searchInput.removeEventListener('input', handleBookSearch);
+        searchInput.addEventListener('input', handleBookSearch);
     }
 }
 
-// ========== FUNCIONES PARA FAVORITOS Y RESALTADOS (se mantienen igual) ==========
+function handleBookSearch(e) {
+    const term = e.target.value.toLowerCase().trim();
+    const allBooks = document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item');
+    allBooks.forEach(bookEl => {
+        const bookName = bookEl.getAttribute('data-book').toLowerCase();
+        if (term === '' || bookName.includes(term)) {
+            bookEl.style.display = 'flex';
+        } else {
+            bookEl.style.display = 'none';
+        }
+    });
+}
+
+// ========== FUNCIONES PARA FAVORITOS Y RESALTADOS ==========
 async function cargarDatosScriptura() {
     if (!currentUser) return;
     const { data, error } = await supabaseClient
@@ -1885,7 +1907,7 @@ function renderFavoritesSidebar() {
     container.innerHTML = scFavorites.map(f => `
         <div class="sc-fav-item" onclick="cargarCapitulo('${f.book}', ${f.chapter})">
             <strong style="color:#C8972A; display:block; margin-bottom:2px;">${f.book} ${f.chapter}:${f.verse}</strong>
-            <span style="color:#94A3B8; font-style:italic; font-size:11px;">"${f.text.substring(0, 100)}..."</span>
+            <span style="color:#94A3B8; font-style:italic; font-size:11px;">"${(f.text || '').substring(0, 100)}..."</span>
         </div>
     `).join('');
 }
@@ -1893,32 +1915,35 @@ function renderFavoritesSidebar() {
 async function openVersePremiumPanel(verseNum) {
     scSelectedVerseNum = verseNum;
     const panel = document.getElementById('scCtxPanel');
-    panel.classList.add('open');
+    if (panel) panel.classList.add('open');
 
-    document.getElementById('sc-ctx-verse-indicator').innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${verseNum}`;
+    const indicator = document.getElementById('sc-ctx-verse-indicator');
+    if (indicator) indicator.innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${verseNum}`;
 
     const isFav = scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === verseNum);
     const favBtn = document.getElementById('sc-btn-fav');
-    if (isFav) {
-        favBtn.classList.add('active');
-        favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Guardado en Joyas`;
-    } else {
-        favBtn.classList.remove('active');
-        favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Marcar Favorito`;
+    if (favBtn) {
+        if (isFav) {
+            favBtn.classList.add('active');
+            favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Guardado en Joyas`;
+        } else {
+            favBtn.classList.remove('active');
+            favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Marcar Favorito`;
+        }
     }
 
-    // Obtener el texto del versículo desde bibleData
     const verseObj = bibleData.find(v => v.book === scCurrentBook && v.chapter === scCurrentChapter && v.verse === verseNum);
     const verseText = verseObj ? verseObj.text : '';
 
-    // Mostrar solo la versión RVR1960 (sin comparación múltiple)
     const compView = document.getElementById('scComparisonView');
-    compView.innerHTML = `
-        <div class="sc-version-card">
-            <div class="sc-v-title">REINA VALERA 1960</div>
-            <div class="sc-v-text">${verseText}</div>
-        </div>
-    `;
+    if (compView) {
+        compView.innerHTML = `
+            <div class="sc-version-card">
+                <div class="sc-v-title">REINA VALERA 1960</div>
+                <div class="sc-v-text">${verseText}</div>
+            </div>
+        `;
+    }
 }
 
 async function applyHighlightToSelected(hlClass) {
@@ -1991,7 +2016,8 @@ async function toggleFavoriteSelected() {
 }
 
 function closeScripturaCtx() {
-    document.getElementById('scCtxPanel').classList.remove('open');
+    const panel = document.getElementById('scCtxPanel');
+    if (panel) panel.classList.remove('open');
     scSelectedVerseNum = null;
 }
 
@@ -2008,14 +2034,22 @@ function shareVerseAction() {
 }
 
 function switchSidebarView(view) {
-    document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('#gpraise-scriptura-shield .sc-sidebar-pane').forEach(p => p.classList.remove('active'));
+    const btnLibros = document.getElementById('btn-tab-libros');
+    const btnFavs = document.getElementById('btn-tab-favs');
+    const paneLibros = document.getElementById('sc-pane-libros');
+    const paneFavs = document.getElementById('sc-pane-favs');
+    if (!btnLibros || !btnFavs || !paneLibros || !paneFavs) return;
+    
     if (view === 'libros') {
-        document.getElementById('btn-tab-libros').classList.add('active');
-        document.getElementById('sc-pane-libros').classList.add('active');
+        btnLibros.classList.add('active');
+        btnFavs.classList.remove('active');
+        paneLibros.classList.add('active');
+        paneFavs.classList.remove('active');
     } else {
-        document.getElementById('btn-tab-favs').classList.add('active');
-        document.getElementById('sc-pane-favs').classList.add('active');
+        btnFavs.classList.add('active');
+        btnLibros.classList.remove('active');
+        paneFavs.classList.add('active');
+        paneLibros.classList.remove('active');
     }
 }
 
@@ -2023,6 +2057,7 @@ function switchSidebarView(view) {
 async function renderScriptura() {
     const container = document.getElementById('mainContent');
     const actionHeader = document.getElementById('actionHeader');
+    if (!container) return;
     actionHeader.innerHTML = '';
 
     await cargarDatosScriptura();
@@ -2030,8 +2065,202 @@ async function renderScriptura() {
     const html = `
     <div id="gpraise-scriptura-shield">
         <style>
-            /* (todos los estilos que ya tenías se mantienen igual, no los repito por espacio) */
-            /* Asegúrate de incluir los estilos originales del módulo scriptura */
+            /* ===== ESTILOS COMPLETOS PARA SCRIPTURA ===== */
+            #gpraise-scriptura-shield {
+                all: initial;
+                display: grid !important;
+                grid-template-columns: 280px 1fr !important;
+                width: 100% !important;
+                height: 750px !important;
+                background-color: #050811 !important;
+                border-radius: 1rem !important;
+                overflow: hidden !important;
+                font-family: 'Inter', sans-serif !important;
+                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important;
+                color: #E2E8F0 !important;
+                position: relative !important;
+            }
+            #gpraise-scriptura-shield * { box-sizing: border-box !important; }
+            /* Sidebar */
+            #gpraise-scriptura-shield .sc-sidebar {
+                background-color: #0A0F1E !important;
+                border-right: 1px solid rgba(200,151,42,0.08) !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+            }
+            #gpraise-scriptura-shield .sc-sidebar-header {
+                padding: 1.5rem !important;
+                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+                background: linear-gradient(180deg, #0A0F1E 0%, #060A15 100%) !important;
+            }
+            #gpraise-scriptura-shield .sc-brand {
+                font-size: 11px !important; color: #C8972A !important;
+                font-weight: 700 !important; letter-spacing: 2px !important;
+                text-transform: uppercase !important;
+            }
+            #gpraise-scriptura-shield .sc-app-title {
+                font-size: 20px !important; font-weight: 800 !important;
+                color: #FFFFFF !important; margin: 2px 0 0 0 !important;
+                letter-spacing: -0.5px !important;
+            }
+            #gpraise-scriptura-shield .sc-tabs-nav {
+                display: flex !important; padding: 0.5rem 1rem !important;
+                gap: 5px !important; background: rgba(0,0,0,0.2) !important;
+                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+            }
+            #gpraise-scriptura-shield .sc-tab-btn {
+                flex: 1 !important; background: transparent !important; border: none !important;
+                color: #64748B !important; font-size: 11px !important; font-weight: 700 !important;
+                padding: 0.5rem !important; cursor: pointer !important; border-radius: 6px !important;
+                text-transform: uppercase !important; transition: 0.2s !important;
+            }
+            #gpraise-scriptura-shield .sc-tab-btn.active {
+                background: rgba(255,255,255,0.03) !important; color: #C8972A !important;
+            }
+            #gpraise-scriptura-shield .sc-sidebar-scroll {
+                flex: 1 !important; overflow-y: auto !important; padding: 1rem !important;
+            }
+            #gpraise-scriptura-shield .sc-sidebar-pane { display: none !important; }
+            #gpraise-scriptura-shield .sc-sidebar-pane.active { display: block !important; }
+            #gpraise-scriptura-shield .sc-list-group-title {
+                font-size: 10px !important; font-weight: 700 !important; color: #475569 !important;
+                text-transform: uppercase !important; letter-spacing: 1px !important;
+                margin: 1rem 0 0.5rem 0 !important;
+            }
+            #gpraise-scriptura-shield .sc-book-item {
+                padding: 0.65rem 0.85rem !important; font-size: 13px !important;
+                color: #94A3B8 !important; border-radius: 6px !important;
+                cursor: pointer !important; display: flex !important;
+                justify-content: space-between !important; align-items: center !important;
+                transition: 0.15s !important; margin-bottom: 2px !important;
+            }
+            #gpraise-scriptura-shield .sc-book-item:hover,
+            #gpraise-scriptura-shield .sc-book-item.active {
+                background: rgba(200,151,42,0.08) !important;
+                color: #F5D97A !important;
+            }
+            #gpraise-scriptura-shield .sc-book-item.active {
+                font-weight: 600 !important; border-left: 3px solid #C8972A !important;
+            }
+            #gpraise-scriptura-shield .sc-fav-item {
+                background: rgba(255,255,255,0.01) !important;
+                border: 1px solid rgba(255,255,255,0.03) !important;
+                border-radius: 6px !important; padding: 0.75rem !important;
+                margin-bottom: 0.5rem !important; font-size: 12px !important;
+                cursor: pointer !important;
+            }
+            #gpraise-scriptura-shield .sc-fav-item:hover { border-color: #C8972A !important; }
+            /* Área del lector */
+            #gpraise-scriptura-shield .sc-main-reader {
+                display: flex !important; flex-direction: column !important;
+                overflow: hidden !important; background-color: #050811 !important;
+            }
+            #gpraise-scriptura-shield .sc-reader-header {
+                padding: 1.5rem 2rem !important;
+                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+                display: flex !important; justify-content: space-between !important;
+                align-items: center !important; background: #060A15 !important;
+            }
+            #gpraise-scriptura-shield .sc-current-location {
+                font-size: 22px !important; font-weight: 700 !important;
+                color: #FFFFFF !important; display: flex !important;
+                align-items: center !important; gap: 10px !important;
+            }
+            #gpraise-scriptura-shield .sc-version-pill {
+                background: linear-gradient(135deg, #C8972A 0%, #A6761E 100%) !important;
+                color: #050811 !important; padding: 4px 12px !important;
+                border-radius: 99px !important; font-size: 11px !important;
+                font-weight: 800 !important;
+            }
+            #gpraise-scriptura-shield .sc-reader-body {
+                flex: 1 !important; overflow-y: auto !important;
+                padding: 3rem !important; line-height: 1.85 !important;
+                font-size: 18px !important; color: #CBD5E1 !important;
+                max-width: 840px !important; margin: 0 auto !important;
+                width: 100% !important;
+            }
+            #gpraise-scriptura-shield .v-box {
+                cursor: pointer !important; padding: 4px 6px !important;
+                border-radius: 4px !important; transition: background 0.2s ease !important;
+                display: inline !important;
+            }
+            #gpraise-scriptura-shield .v-box:hover {
+                background: rgba(255,255,255,0.05) !important;
+            }
+            #gpraise-scriptura-shield .v-num {
+                font-size: 12px !important; font-weight: 700 !important;
+                color: #C8972A !important; margin-right: 6px !important;
+                vertical-align: super !important;
+            }
+            /* Resaltados */
+            #gpraise-scriptura-shield .hl-gold { background: rgba(200,151,42,0.25) !important; border-bottom: 2px dashed #C8972A !important; }
+            #gpraise-scriptura-shield .hl-emerald { background: rgba(16,185,129,0.25) !important; border-bottom: 2px dashed #10B981 !important; }
+            #gpraise-scriptura-shield .hl-sapphire { background: rgba(37,99,235,0.25) !important; border-bottom: 2px dashed #2563EB !important; }
+            #gpraise-scriptura-shield .hl-ruby { background: rgba(225,29,72,0.25) !important; border-bottom: 2px dashed #E11D48 !important; }
+            /* Panel contextual */
+            #gpraise-scriptura-shield .sc-ctx-panel {
+                position: absolute !important; bottom: -400px !important;
+                left: 280px !important; right: 0 !important; height: 340px !important;
+                background: #090F1F !important; border-top: 1px solid rgba(200,151,42,0.2) !important;
+                transition: bottom 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+                display: grid !important; grid-template-rows: auto 1fr !important;
+                z-index: 100 !important;
+            }
+            #gpraise-scriptura-shield .sc-ctx-panel.open { bottom: 0 !important; }
+            #gpraise-scriptura-shield .sc-ctx-header {
+                background: #0D142A !important; padding: 0.75rem 1.5rem !important;
+                display: flex !important; justify-content: space-between !important;
+                align-items: center !important; border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+            }
+            #gpraise-scriptura-shield .sc-action-row {
+                display: flex !important; align-items: center !important; gap: 15px !important;
+            }
+            #gpraise-scriptura-shield .sc-color-dot {
+                width: 22px !important; height: 22px !important; border-radius: 50% !important;
+                cursor: pointer !important; border: 2px solid transparent !important;
+                transition: transform 0.1s !important;
+            }
+            #gpraise-scriptura-shield .sc-color-dot:hover { transform: scale(1.15) !important; }
+            #gpraise-scriptura-shield .sc-tool-btn {
+                background: rgba(255,255,255,0.03) !important;
+                border: 1px solid rgba(255,255,255,0.05) !important;
+                color: #94A3B8 !important; padding: 6px 12px !important;
+                border-radius: 6px !important; font-size: 12px !important;
+                font-weight: 600 !important; cursor: pointer !important;
+                display: inline-flex !important; align-items: center !important; gap: 6px !important;
+            }
+            #gpraise-scriptura-shield .sc-tool-btn:hover {
+                background: rgba(200,151,42,0.1) !important; color: #F5D97A !important;
+            }
+            #gpraise-scriptura-shield .sc-tool-btn.active {
+                background: #C8972A !important; color: #050811 !important;
+            }
+            #gpraise-scriptura-shield .sc-comparison-engine {
+                display: grid !important; grid-template-columns: repeat(4, 1fr) !important;
+                gap: 1rem !important; padding: 1.25rem !important;
+                overflow-x: auto !important; background: #060A15 !important;
+            }
+            #gpraise-scriptura-shield .sc-version-card {
+                background: #0D142A !important;
+                border: 1px solid rgba(255,255,255,0.03) !important;
+                border-radius: 8px !important; padding: 1rem !important;
+                display: flex !important; flex-direction: column !important; gap: 6px !important;
+            }
+            #gpraise-scriptura-shield .sc-v-title {
+                font-size: 11px !important; font-weight: 800 !important; color: #C8972A !important;
+                text-transform: uppercase !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+                padding-bottom: 4px !important;
+            }
+            #gpraise-scriptura-shield .sc-v-text {
+                font-size: 13.5px !important; line-height: 1.6 !important; color: #94A3B8 !important;
+            }
+            @media (max-width: 768px) {
+                #gpraise-scriptura-shield { grid-template-columns: 1fr !important; }
+                #gpraise-scriptura-shield .sc-ctx-panel { left: 0 !important; }
+                #gpraise-scriptura-shield .sc-comparison-engine { grid-template-columns: 1fr !important; }
+                #gpraise-scriptura-shield .sc-reader-body { padding: 1.5rem !important; font-size: 16px !important; }
+            }
         </style>
 
         <aside class="sc-sidebar">
