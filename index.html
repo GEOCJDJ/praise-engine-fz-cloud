@@ -856,7 +856,7 @@ async function saveCifraStateToServer() {
     printWindow.document.close();
     printWindow.print();
 }
-    .async function deleteAllSongs() {
+    async function deleteAllSongs() {
     if (!isAdminUser && !isIglesiaAdmin) {
         alert("No tienes permiso para eliminar todas las canciones.");
         return;
