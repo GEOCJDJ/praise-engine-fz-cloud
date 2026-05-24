@@ -1606,11 +1606,11 @@ async function viewMyShifts() {
     
     function openTuner() { showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const noteElem=document.getElementById('tunerNote'), needleElem=document.getElementById('tunerNeedle'); if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ noteElem.innerText="Sin micrófono"; return; } navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{ const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const source=audioCtx.createMediaStreamSource(stream); const analyser=audioCtx.createAnalyser(); analyser.fftSize=2048; source.connect(analyser); const bufferLength=analyser.frequencyBinCount; const dataArray=new Float32Array(bufferLength); const detectPitch=()=>{ if(!document.getElementById('tunerNote')) return; analyser.getFloatTimeDomainData(dataArray); let maxSample=0; for(let i=0;i<bufferLength;i++) if(Math.abs(dataArray[i])>maxSample) maxSample=Math.abs(dataArray[i]); if(maxSample<0.01){ requestAnimationFrame(detectPitch); return; } let autocorr=new Array(bufferLength); for(let lag=0;lag<bufferLength;lag++){ let sum=0; for(let i=0;i<bufferLength-lag;i++) sum+=dataArray[i]*dataArray[i+lag]; autocorr[lag]=sum; } let maxVal=-1, maxLag=0; for(let lag=20;lag<bufferLength/2;lag++) if(autocorr[lag]>maxVal){ maxVal=autocorr[lag]; maxLag=lag; } let freq=audioCtx.sampleRate/maxLag; let noteNum=12*Math.log2(freq/440)+69; let roundedNote=Math.round(noteNum); let cents=Math.round((noteNum-roundedNote)*100); let note=noteNames[roundedNote%12]; if(freq>50&&freq<600){ noteElem.innerText=`${note} (${cents>0?'+':''}${cents}¢)`; let percent=Math.min(100,Math.max(0,50+(cents/50)*50)); needleElem.style.width=`${percent}%`; needleElem.style.background=Math.abs(cents)<5?"#10B981":"#F59E0B"; } else { noteElem.innerText="--"; needleElem.style.width="0%"; } requestAnimationFrame(detectPitch); }; detectPitch(); }).catch(()=>{ if(noteElem) noteElem.innerText="Permiso denegado"; }); }
 
-// ========== AULA VIRTUAL (VERSIÓN UNIFICADA Y FUNCIONAL) ==========
-let xpUsuario = 0;
-let rachaUsuario = 0;
-let devocionalActual = null;
-let examenesPendientes = 0;
+// ========== AULA VIRTUAL CON DISEÑO GEMINI ORIGINAL (COMPLETO) ==========
+let xpGemini = 0;
+let rachaGemini = 0;
+let devocionalGemini = null;
+let juegoBienvenidaRespondido = false;
 
 async function renderMoodle() {
     const container = document.getElementById('mainContent');
@@ -1619,277 +1619,223 @@ async function renderMoodle() {
         ? `<button class="btn btn-primary" onclick="openAdminAulaVirtual()"><i class="fas fa-chalkboard-user"></i> Gestionar Aula Virtual</button>`
         : '';
 
-    await cargarDatosUsuario();
-    await cargarDevocional();
-    await cargarContadores();
+    // Cargar datos del usuario
+    await cargarProgresoGemini();
+    await cargarDevocionalGemini();
+    await cargarContadoresGemini();
 
+    // HTML IDÉNTICO al original de Gemini (con clases y estructura exacta)
     const html = `
     <style>
+        /* ===== ESTILOS COMPLETOS DE GEMINI (sin pérdidas) ===== */
+        :root {
+            --av-gold: #C8972A;
+            --av-gold-light: #F5D97A;
+            --av-navy: #1E3A8A;
+            --av-soft: #F8FAFC;
+            --av-card: #ffffff;
+            --av-border: #E2E8F0;
+            --av-text: #0F172A;
+            --av-muted: #64748B;
+        }
+        .av-verse { font-size: 14px; color: #E2E8F0; font-style: italic; margin-bottom: 0.75rem; max-width: 460px; line-height: 1.6; }
+        .av-verse strong { color: var(--av-gold-light); font-style: normal; }
+        .av-welcome-title { font-size: 26px; font-weight: 700; color: white; margin: 1rem 0 0.25rem; }
+        .av-welcome-sub { font-size: 15px; color: #94A3B8; margin-bottom: 2rem; }
+        .av-today-card { background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.25rem; display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; width: 100%; max-width: 480px; color: white; transition: 0.3s; }
+        .av-today-card:hover { background: rgba(255,255,255,0.1); border-color: var(--av-gold-light); }
+        .av-today-icon { font-size: 32px; }
+        .av-today-info { text-align: left; flex: 1; }
+        .av-today-info p { font-size: 12px; color: #94A3B8; }
+        .av-today-info strong { font-size: 15px; color: white; font-weight: 600; }
+        .av-streak { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #FB923C; }
+        .av-enter-btn { background: var(--av-gold); color: #0F172A; border: none; border-radius: 2rem; padding: 0.85rem 3rem; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-bottom: 0.75rem; width: 100%; max-width: 320px; box-shadow: 0 4px 14px rgba(200,151,42,0.4); }
+        .av-enter-btn:hover { background: var(--av-gold-light); transform: translateY(-1px); }
+        .av-skip { font-size: 13px; color: #94A3B8; cursor: pointer; text-decoration: underline; }
+        .wl-game-opt { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 13px; text-align: center; transition: 0.2s; }
+        .wl-game-opt:hover { background: rgba(255,255,255,0.2); }
+        .wl-game-opt.correct { background: #10B981 !important; color: white; }
+        .wl-game-opt.wrong { background: #EF4444 !important; color: white; }
+        .av-sidebar { width: 260px; background: #0F172A; color: white; display: flex; flex-direction: column; }
+        .av-sidebar-item { display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; font-size: 14px; font-weight: 500; cursor: pointer; transition: 0.2s; border-left: 4px solid transparent; }
+        .av-sidebar-item:hover { background: #1E293B; color: white; }
+        .av-sidebar-item.active { background: #1E293B; color: white; border-left-color: var(--av-gold); }
+        .av-header { background: white; border-bottom: 1px solid var(--av-border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .av-header-title { font-size: 16px; font-weight: 600; color: var(--av-text); display: flex; align-items: center; gap: 8px; }
+        .av-header-title span { font-size: 12px; font-weight: 400; color: var(--av-muted); background: #F1F5F9; padding: 2px 8px; border-radius: 4px; }
+        .av-xp-bar-wrap { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 240px; }
+        .av-xp-label { font-size: 12px; font-weight: 600; color: var(--av-muted); white-space: nowrap; }
+        .av-xp-bar { flex: 1; height: 8px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
+        .av-xp-fill { height: 100%; background: linear-gradient(90deg, var(--av-gold) 0%, #EAB308 100%); transition: width 0.5s ease; }
+        .av-tabs { display: flex; border-bottom: 1px solid var(--av-border); background: white; padding: 0 1.5rem; overflow-x: auto; gap: 0.5rem; }
+        .av-tab { padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: var(--av-muted); cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 6px; transition: 0.15s; }
+        .av-tab:hover { color: var(--av-text); }
+        .av-tab.active { color: var(--av-navy); border-bottom-color: var(--av-navy); font-weight: 600; }
+        .av-tab .av-badge-num { background: #EF4444; color: white; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 99px; }
+        .av-body { padding: 1.5rem; overflow-y: auto; flex: 1; display: none; }
+        .av-body.active { display: block; }
+        .av-course-card, .av-eval-card, .av-task-card { background: white; border: 1px solid var(--av-border); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; transition: all 0.2s; }
+        .av-course-card:hover, .av-eval-card:hover { transform: translateY(-2px); border-color: #CBD5E1; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .av-course-icon { width: 48px; height: 48px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+        .av-cat { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; margin-bottom: 6px; text-transform: uppercase; }
+        .av-cat-blue { background: #EFF6FF; color: #1D4ED8; }
+        .av-cat-amber { background: #FEF3C7; color: #B45309; }
+        .av-progress-bar { margin-top: 8px; height: 6px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
         @media (max-width: 768px) {
-            .av-sidebar { width: 100% !important; border-bottom: 1px solid #1E293B; }
-            .av-main-flex { flex-direction: column; }
+            .av-sidebar { width: 100% !important; border-right: none !important; border-bottom: 1px solid #1E293B; }
+            .av-main-flex { flex-direction: column !important; }
+            .av-tabs { padding: 0 0.5rem; }
             .av-tab { padding: 0.5rem 0.75rem; font-size: 12px; }
             .grid-cols-3 { grid-template-columns: 1fr !important; }
+            .av-body { padding: 1rem; }
         }
-        .av-verse { font-size: 14px; color: #E2E8F0; font-style: italic; margin-bottom: 0.75rem; }
-        .av-verse strong { color: #F5D97A; }
-        .av-welcome-title { font-size: 26px; font-weight: 700; color: white; }
-        .av-welcome-sub { font-size: 15px; color: #94A3B8; margin-bottom: 2rem; }
-        .av-today-card { background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.25rem; display: flex; gap: 1rem; margin-bottom: 1rem; width: 100%; max-width: 480px; color: white; transition: 0.3s; }
-        .av-today-card:hover { background: rgba(255,255,255,0.1); border-color: #F5D97A; }
-        .av-today-icon { font-size: 32px; }
-        .av-streak { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #FB923C; }
-        .av-enter-btn { background: #C8972A; color: #0F172A; border-radius: 2rem; padding: 0.85rem 2rem; font-weight: 600; cursor: pointer; width: 100%; max-width: 320px; box-shadow: 0 4px 14px rgba(200,151,42,0.4); }
-        .wl-game-opt { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; text-align: center; transition: 0.2s; }
-        .wl-game-opt.correct { background: #10B981; color: white; }
-        .wl-game-opt.wrong { background: #EF4444; color: white; }
-        .av-sidebar { width: 260px; background: #0F172A; color: white; }
-        .av-sidebar-item { padding: 0.85rem 1.5rem; display: flex; align-items: center; gap: 12px; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent; }
-        .av-sidebar-item.active, .av-sidebar-item:hover { background: #1E293B; color: white; border-left-color: #C8972A; }
-        .av-header { background: white; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; }
-        .av-xp-bar { display: flex; align-items: center; gap: 10px; }
-        .av-xp-bar-fill { width: 120px; height: 8px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
-        .av-xp-fill { height: 100%; background: linear-gradient(90deg, #C8972A, #EAB308); transition: width 0.5s; }
-        .av-tabs { display: flex; background: white; border-bottom: 1px solid #E2E8F0; padding: 0 1.5rem; gap: 0.5rem; overflow-x: auto; }
-        .av-tab { padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
-        .av-tab.active { color: #1E3A8A; border-bottom-color: #1E3A8A; }
-        .av-body { padding: 1.5rem; display: none; }
-        .av-body.active { display: block; }
-        .av-course-card, .av-eval-card { background: white; border: 1px solid #E2E8F0; border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; transition: 0.2s; }
-        .av-course-card:hover, .av-eval-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .av-badge-num { background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px; }
     </style>
 
-    <div id="av-root" style="background: #F1F5F9; border-radius: 1rem; overflow: hidden;">
-        <div id="av-welcome" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 50; background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); overflow-y: auto;">
+    <div id="av-root" style="display: flex; flex-direction: column; background: #F1F5F9; border-radius: 1rem; overflow: hidden;">
+        <!-- Pantalla de bienvenida -->
+        <div id="av-welcome" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 50; text-align: center; padding: 2rem; background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); overflow-y: auto;">
             <div id="starsContainer" style="position: absolute; inset: 0; pointer-events: none;"></div>
-            <div class="max-w-md mx-auto z-10 text-center p-4">
-                <div class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4"><i class="ti ti-crown"></i></div>
+            <div class="w-full max-w-md mx-auto z-10 flex flex-col items-center">
+                <div class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-slate-900 text-3xl shadow-lg mb-4">
+                    <i class="ti ti-crown"></i>
+                </div>
                 <p class="av-verse">"Servir a Dios en la alabanza no es un pasatiempo, <strong>es un alto privilegio y un servicio de amor hacia el Señor</strong>."</p>
                 <h2 class="av-welcome-title">Campus Virtual G-Praise</h2>
                 <p class="av-welcome-sub">Plataforma de Capacitación y Discipulado de Alabanza</p>
 
-                <div class="av-today-card flex-col gap-2 cursor-pointer" onclick="toggleJuegoBienvenida()">
-                    <div class="flex items-center gap-3"><div class="av-today-icon">⚡</div><div class="flex-1 text-left"><p>Reto ministerial rápido — Responde antes de entrar</p><strong>¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong></div><i class="ti ti-chevron-down"></i></div>
-                    <div id="av-welcome-game" class="hidden"><div class="grid grid-cols-2 gap-2" id="wlGameOptions"></div><div id="wlGameFeedback" class="text-xs text-center mt-2"></div></div>
+                <div class="av-today-card flex-col gap-2 cursor-pointer" id="wlGameCard">
+                    <div class="flex items-center gap-3 w-full" onclick="toggleWelcomeGame()">
+                        <div class="av-today-icon">⚡</div>
+                        <div class="av-today-info">
+                            <p>Reto ministerial rápido — Responde antes de entrar</p>
+                            <strong id="wlGameQuestion">¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong>
+                        </div>
+                        <i class="ti ti-chevron-down text-slate-400 text-lg"></i>
+                    </div>
+                    <div id="av-welcome-game" class="w-full" style="display: none;">
+                        <div class="grid grid-cols-2 gap-2" id="wlGameOptions"></div>
+                        <div id="wlGameFeedback" class="text-xs text-center mt-2 font-medium min-h-[16px]"></div>
+                    </div>
                 </div>
 
                 <div class="av-today-card justify-between items-center">
-                    <div class="flex items-center gap-3"><div class="av-today-icon">📚</div><div><p>Tareas ministeriales de la semana</p><strong>${window.tareasCount || 0} asignaciones pendientes</strong></div></div>
-                    <div class="av-streak"><i class="ti ti-flame"></i> Racha: <span id="rachaBienvenida">${rachaUsuario}</span> días</div>
+                    <div class="flex items-center gap-3">
+                        <div class="av-today-icon">📚</div>
+                        <div class="av-today-info">
+                            <p>Tareas ministeriales de la semana</p>
+                            <strong id="welcomeTareasCount">${window.tareasCount || 0} asignaciones pendientes por subir</strong>
+                        </div>
+                    </div>
+                    <div class="av-streak"><i class="ti ti-flame"></i> Racha: <span id="welcomeRacha">${rachaGemini}</span> días</div>
                 </div>
 
-                <button class="av-enter-btn" onclick="entrarApp()">Entrar al Aula</button>
-                <span class="text-slate-400 text-sm underline cursor-pointer block mt-2" onclick="entrarApp()">Omitir e ingresar directamente</span>
+                <button class="av-enter-btn shadow-md w-full max-w-xs" onclick="enterApp()">
+                    <i class="ti ti-door-enter mr-2"></i>Entrar al Aula
+                </button>
+                <span class="av-skip mt-2" onclick="enterApp()">Omitir e ingresar directamente</span>
             </div>
         </div>
 
-        <div id="av-main-layout" style="display: none;">
+        <!-- Aplicación principal (oculta inicialmente) -->
+        <div id="av-main-layout" style="display: none; width: 100%; height: auto; flex: 1;">
             <div class="flex av-main-flex">
-                <aside class="av-sidebar">
-                    <div class="p-6 border-b border-slate-800"><div class="flex items-center gap-3"><div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-lg flex items-center justify-center"><i class="ti ti-school"></i></div><div><h1 class="font-bold text-white">G-CAMPUS</h1><p class="text-xs text-slate-400">Ministerio de Alabanza</p></div></div></div>
-                    <nav>
-                        <div class="av-sidebar-item active" data-nav="inicio"><i class="ti ti-layout-dashboard"></i> Tablero Principal</div>
-                        <div class="av-sidebar-item" data-nav="cursos"><i class="ti ti-book-open"></i> Mis Cursos Activos</div>
-                        <div class="av-sidebar-item" data-nav="evaluaciones"><i class="ti ti-clipboard-check"></i> Cuestionarios y Quices</div>
-                        <div class="av-sidebar-item" data-nav="tareas"><i class="ti ti-file-upload"></i> Entregas y Enlaces</div>
-                        <div class="av-sidebar-item" data-nav="devocional"><i class="ti ti-feather"></i> Devocionales Diarios</div>
-                        <div class="av-sidebar-item" data-nav="retos"><i class="ti ti-swords"></i> Retos de Equipo</div>
+                <!-- Sidebar -->
+                <aside class="av-sidebar shadow-xl z-20">
+                    <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+                        <div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-md">
+                            <i class="ti ti-school text-slate-900 text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="font-bold text-base tracking-wide text-white">G-CAMPUS</h1>
+                            <p class="text-xs text-slate-400">Ministerio de Alabanza</p>
+                        </div>
+                    </div>
+                    <nav class="flex-1 py-4 space-y-1">
+                        <div class="av-sidebar-item active" data-nav="inicio"><i class="ti ti-layout-dashboard text-lg"></i> Tablero Principal</div>
+                        <div class="av-sidebar-item" data-nav="cursos"><i class="ti ti-book-open text-lg"></i> Mis Cursos Activos</div>
+                        <div class="av-sidebar-item" data-nav="evaluaciones"><i class="ti ti-clipboard-check text-lg"></i> Cuestionarios y Quices</div>
+                        <div class="av-sidebar-item" data-nav="tareas"><i class="ti ti-file-upload text-lg"></i> Entregas y Enlaces</div>
+                        <div class="av-sidebar-item" data-nav="devocional"><i class="ti ti-feather text-lg"></i> Devocionales Diarios</div>
+                        <div class="av-sidebar-item" data-nav="retos"><i class="ti ti-swords text-lg"></i> Retos de Equipo</div>
                     </nav>
-                    <div class="p-4 border-t border-slate-800"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center text-slate-900 font-bold">${currentUser?.email?.charAt(0).toUpperCase() || 'U'}</div><div><p class="text-xs text-slate-400">Rango de Servicio</p><p class="text-sm font-bold text-white" id="userRank">Nivel ${Math.floor(xpUsuario/500)+1} · Levita</p></div></div></div>
+                    <div class="p-4 border-t border-slate-800 bg-slate-900/50">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 flex items-center justify-center font-bold text-sm">
+                                ${currentUser?.email?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400">Rango de Servicio</p>
+                                <p class="text-sm font-semibold text-white" id="userRank">Nivel ${Math.floor(xpGemini/500)+1} · Levita</p>
+                            </div>
+                        </div>
+                    </div>
                 </aside>
 
-                <div class="flex-1">
-                    <div class="av-header"><div><i class="ti ti-building-church"></i> Aula de Capacitación Ministerial <span class="text-xs bg-slate-100 p-1 rounded">IEC Central</span></div><div class="av-xp-bar"><span>XP ${xpUsuario} / 500</span><div class="av-xp-bar-fill"><div class="av-xp-fill" id="xpFill" style="width: ${(xpUsuario/500)*100}%"></div></div></div></div>
-                    <div class="av-tabs"><div class="av-tab active" data-tab="inicio">Inicio</div><div class="av-tab" data-tab="cursos">Cursos <span class="av-badge-num" id="badgeCursos">0</span></div><div class="av-tab" data-tab="evaluaciones">Evaluaciones <span class="av-badge-num" id="badgeEvaluaciones">0</span></div><div class="av-tab" data-tab="tareas">Tareas <span class="av-badge-num" id="badgeTareas">0</span></div><div class="av-tab" data-tab="devocional">Devocional</div><div class="av-tab" data-tab="retos">Retos</div></div>
-                    <div id="av-content" class="p-6">Cargando...</div>
+                <!-- Contenido principal -->
+                <div class="av-content-area" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="av-header">
+                        <div class="av-header-title">
+                            <i class="ti ti-building-church text-xl text-blue-900"></i>
+                            Aula de Capacitación Ministerial <span>IEC Central</span>
+                        </div>
+                        <div class="av-xp-bar-wrap">
+                            <span class="av-xp-label" id="xpText">XP ${xpGemini} / 500</span>
+                            <div class="av-xp-bar"><div class="av-xp-fill" id="xpFill" style="width: ${(xpGemini/500)*100}%;"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="av-tabs">
+                        <div class="av-tab active" data-tab="inicio"><i class="ti ti-smart-home"></i> Inicio</div>
+                        <div class="av-tab" data-tab="cursos"><i class="ti ti-notebook"></i> Cursos <span class="av-badge-num" id="cursosBadge">0</span></div>
+                        <div class="av-tab" data-tab="evaluaciones"><i class="ti ti-device-laptop"></i> Evaluaciones <span class="av-badge-num" id="evaluacionesBadge">0</span></div>
+                        <div class="av-tab" data-tab="tareas"><i class="ti ti-cloud-upload"></i> Tareas <span class="av-badge-num" id="tareasBadge">0</span></div>
+                        <div class="av-tab" data-tab="devocional"><i class="ti ti-heart-handshake"></i> Devocional</div>
+                        <div class="av-tab" data-tab="retos"><i class="ti ti-trophy"></i> Retos</div>
+                    </div>
+
+                    <div class="av-body active" id="tab-inicio"></div>
+                    <div class="av-body" id="tab-cursos"></div>
+                    <div class="av-body" id="tab-evaluaciones"></div>
+                    <div class="av-body" id="tab-tareas"></div>
+                    <div class="av-body" id="tab-devocional"></div>
+                    <div class="av-body" id="tab-retos"></div>
                 </div>
             </div>
         </div>
-    </div>`;
+    </div>
+    `;
     container.innerHTML = html;
 
-    generarEstrellas();
+    // Generar estrellas de fondo
+    generarEstrellasGemini();
+    // Construir juego de bienvenida
     construirJuegoBienvenida();
-    document.getElementById('av-welcome-game').classList.add('hidden');
-    window.entrarApp = async function() {
+    // Vincular eventos de entrada
+    window.enterApp = () => {
         document.getElementById('av-welcome').style.display = 'none';
         document.getElementById('av-main-layout').style.display = 'block';
-        await cargarTab('inicio');
-        await actualizarBadges();
+        cargarTab('inicio');
+        actualizarBadgesGemini();
     };
+    // Vincular navegación
     document.querySelectorAll('.av-sidebar-item, .av-tab').forEach(el => {
         el.addEventListener('click', () => {
             const tab = el.getAttribute('data-nav') || el.getAttribute('data-tab');
-            cambiarTab(tab);
+            cambiarTabGemini(tab);
         });
     });
+    // Cargar contenido inicial de los tabs (pero aún no visible hasta entrar)
+    await Promise.all([
+        cargarCursosGemini(),
+        cargarEvaluacionesGemini(),
+        cargarTareasGemini(),
+        cargarDevocionalUI(),
+        cargarRetosGemini()
+    ]);
 }
 
-async function cargarDatosUsuario() {
-    if (!currentUser) return;
-    const { data } = await supabaseClient.from('progreso_usuario').select('xp, racha').eq('user_id', currentUser.id).single();
-    if (data) { xpUsuario = data.xp; rachaUsuario = data.racha; }
-    else await supabaseClient.from('progreso_usuario').insert({ user_id: currentUser.id, xp: 0, racha: 0 });
-}
-
-async function agregarXP(puntos) {
-    xpUsuario += puntos;
-    if (xpUsuario >= 500) { xpUsuario -= 500; alert('🎉 ¡Subiste de nivel!'); }
-    await supabaseClient.from('progreso_usuario').update({ xp: xpUsuario }).eq('user_id', currentUser.id);
-    const fill = document.getElementById('xpFill'); if (fill) fill.style.width = `${(xpUsuario/500)*100}%`;
-}
-
-async function cargarDevocional() {
-    const hoy = new Date().toISOString().slice(0,10);
-    const { data } = await supabaseClient.from('devocionales').select('*').eq('fecha', hoy).eq('iglesia_id', currentIglesiaId).single();
-    devocionalActual = data || null;
-}
-
-async function cargarContadores() {
-    const { count: tareas } = await supabaseClient.from('tareas_aula').select('*', { count: 'exact', head: true }).eq('iglesia_id', currentIglesiaId);
-    window.tareasCount = tareas || 0;
-    const { data: examenes } = await supabaseClient.from('examenes').select('id');
-    let pendientes = 0;
-    if (examenes) for (let ex of examenes) {
-        const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
-        if (!intento) pendientes++;
-    }
-    examenesPendientes = pendientes;
-}
-
-async function actualizarBadges() {
-    const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
-    document.getElementById('badgeCursos').innerText = cursos || 0;
-    document.getElementById('badgeEvaluaciones').innerText = examenesPendientes;
-    document.getElementById('badgeTareas').innerText = window.tareasCount || 0;
-}
-
-async function cambiarTab(tab) {
-    document.querySelectorAll('.av-sidebar-item, .av-tab').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll(`.av-sidebar-item[data-nav="${tab}"], .av-tab[data-tab="${tab}"]`).forEach(el => el.classList.add('active'));
-    await cargarTab(tab);
-}
-
-async function cargarTab(tab) {
-    const container = document.getElementById('av-content');
-    if (tab === 'inicio') await cargarInicio(container);
-    else if (tab === 'cursos') await cargarCursos(container);
-    else if (tab === 'evaluaciones') await cargarEvaluaciones(container);
-    else if (tab === 'tareas') await cargarTareas(container);
-    else if (tab === 'devocional') cargarDevocionalUI(container);
-    else if (tab === 'retos') await cargarRetos(container);
-}
-
-async function cargarInicio(container) {
-    const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
-    container.innerHTML = `<div class="grid grid-cols-3 gap-4 mb-5"><div class="bg-white p-4 rounded-xl border text-center"><span class="text-xs text-slate-400">Materias en Curso</span><div class="text-2xl font-bold">${cursos || 0}</div></div><div class="bg-white p-4 rounded-xl border text-center"><span class="text-xs text-slate-400">Calificación Promedio</span><div class="text-2xl font-bold text-emerald-600">94 / 100</div></div><div class="bg-white p-4 rounded-xl border text-center"><span class="text-xs text-slate-400">Consistencia Devocional</span><div class="text-2xl font-bold text-orange-500">${rachaUsuario} Días</div></div></div><div class="bg-white p-4 rounded-xl border"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-2xl">✨</div><div><span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Teología de la Adoración</span><h3 class="font-bold">Módulo 1: Fundamentos del Altar</h3><p class="text-xs text-slate-500">Próxima Lección: Talento vs Unción</p></div></div></div>`;
-}
-
-async function cargarCursos(container) {
-    const { data: cursos } = await supabaseClient.from('cursos').select('*').eq('entidad_id', currentIglesiaId);
-    if (!cursos?.length) { container.innerHTML = '<p>No hay cursos.</p>'; return; }
-    let html = '';
-    for (let c of cursos) {
-        const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', c.id);
-        html += `<div class="bg-white border rounded-xl p-4 mb-3"><h3 class="font-bold">${c.titulo}</h3><p class="text-sm text-slate-500">${c.descripcion || ''}</p><div class="mt-2">${modulos?.map(m => `<span class="inline-block bg-slate-100 text-xs px-2 py-1 rounded-full mr-1">${m.titulo}</span>`).join('') || 'Sin módulos'}</div></div>`;
-    }
-    container.innerHTML = html;
-}
-
-async function cargarEvaluaciones(container) {
-    const { data: examenes } = await supabaseClient.from('examenes').select('*, modulos(titulo)');
-    if (!examenes?.length) { container.innerHTML = '<p>No hay exámenes.</p>'; return; }
-    let html = '';
-    for (let ex of examenes) {
-        const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
-        const realizado = !!intento;
-        html += `<div class="bg-white border rounded-xl p-4 flex justify-between items-center mb-3"><div><h4 class="font-bold">${ex.titulo}</h4><p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} | ⏱️ ${ex.tiempo_por_pregunta}s</p></div>${realizado ? '<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">Completado</span>' : `<button class="bg-blue-900 text-white px-4 py-2 rounded-md text-xs" onclick="startExam('${ex.id}')">Iniciar Examen</button>`}</div>`;
-    }
-    container.innerHTML = html;
-}
-
-async function cargarTareas(container) {
-    const { data: tareas } = await supabaseClient.from('tareas_aula').select('*').eq('iglesia_id', currentIglesiaId);
-    if (!tareas?.length) { container.innerHTML = '<p>No hay tareas.</p>'; return; }
-    let html = '';
-    for (let t of tareas) {
-        html += `<div class="bg-white border rounded-xl p-4 mb-3"><div><span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Plazo: ${t.fecha_limite}</span><h3 class="font-bold mt-1">${t.titulo}</h3><p class="text-xs text-slate-500">${t.descripcion || ''}</p></div><div class="mt-2"><input type="text" id="link_${t.id}" class="w-full border rounded p-2 text-sm" placeholder="Pega tu enlace (Drive, YouTube)"><button class="mt-2 bg-blue-900 text-white px-4 py-1 rounded text-xs" onclick="entregarTarea('${t.id}', '${t.titulo}')">Entregar Tarea</button></div></div>`;
-    }
-    container.innerHTML = html;
-}
-
-window.entregarTarea = async (id, titulo) => {
-    const link = document.getElementById(`link_${id}`).value.trim();
-    if (!link) return alert('Pega un enlace válido');
-    await supabaseClient.from('entregas_tareas').insert({ id: generateUniqueId(), tarea_id: id, user_id: currentUser.id, enlace: link });
-    alert(`✅ Tarea "${titulo}" entregada. +50 XP`);
-    await agregarXP(50);
-    await cargarTareas(document.getElementById('av-content'));
-};
-
-function cargarDevocionalUI(container) {
-    const versiculo = devocionalActual?.versiculo || 'Juan 4:23 — Mas la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad.';
-    const reflexion = devocionalActual?.reflexion || '¿De qué manera estás purificando tus intenciones para que tu adoración sea en verdad y no por aplauso?';
-    container.innerHTML = `<div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-5 mb-4"><p class="italic">"${versiculo}"</p></div><div class="bg-white border rounded-xl p-4"><p class="font-medium mb-2">Reflexión personal guiada:</p><p class="text-sm text-slate-600 mb-3">${reflexion}</p><textarea id="devocionalTexto" rows="4" class="w-full border rounded p-2" placeholder="Escribe tu meditación..."></textarea><button class="mt-3 bg-blue-900 text-white px-4 py-2 rounded-md text-sm" onclick="guardarDevocional()">Guardar meditación (+30 XP)</button></div>`;
-}
-
-window.guardarDevocional = async () => {
-    const texto = document.getElementById('devocionalTexto')?.value.trim();
-    if (!texto) return alert('Escribe tu reflexión');
-    await agregarXP(30);
-    rachaUsuario++;
-    await supabaseClient.from('progreso_usuario').update({ racha: rachaUsuario }).eq('user_id', currentUser.id);
-    alert('Meditación guardada. +30 XP');
-    document.getElementById('devocionalTexto').value = '';
-    await cargarDevocionalUI(document.getElementById('av-content'));
-};
-
-async function cargarRetos(container) {
-    const otros = usuariosIglesia.filter(u => u.user_id !== currentUser.id);
-    const opciones = otros.map(u => `<option value="${u.user_id}">${u.perfiles?.nombre || 'Usuario'}</option>`).join('');
-    let desafiosHtml = '<div class="space-y-2">';
-    const { data: pendientes } = await supabaseClient.from('desafios').select('*, de_usuario:perfiles!desafios_de_usuario_id_fkey(nombre)').eq('para_usuario_id', currentUser.id).eq('estado', 'pendiente');
-    if (pendientes?.length) {
-        for (let d of pendientes) {
-            desafiosHtml += `<div class="border rounded-lg p-3 bg-slate-50 text-xs relative"><span class="absolute top-1 right-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px]">PENDIENTE</span><p class="font-bold">Enviado por: ${d.de_usuario?.nombre || 'Alguien'}</p><p class="text-slate-500">Tema: ${d.tema || 'General'}</p><p class="text-amber-600 font-medium pt-1"><i class="ti ti-bolt"></i> Recompensa: +50 XP</p><button class="w-full bg-blue-900 text-white text-xs font-semibold py-1.5 rounded mt-2" onclick="responderReto('${d.id}')">Responder Desafío</button></div>`;
-        }
-    } else desafiosHtml += '<p class="text-center text-slate-500 py-2">No hay desafíos pendientes.</p>';
-    desafiosHtml += '</div>';
-
-    container.innerHTML = `<div class="grid md:grid-cols-2 gap-4"><div class="bg-white border rounded-xl p-4"><h4 class="font-bold flex gap-2"><i class="ti ti-swords text-amber-600"></i> Crear Nuevo Desafío</h4><div class="mt-3 space-y-3"><div><label class="text-xs font-bold">1. Hermano:</label><select id="challengeTarget" class="w-full border text-xs p-2 rounded">${opciones}</select></div><div><label class="text-xs font-bold">2. Tema:</label><select id="challengeTopic" class="w-full border text-xs p-2 rounded"><option>Armonía y Modulación Litúrgica</option><option>Historia del Canto Profético</option><option>Sujeción Pastoral y Carácter</option></select></div><div><label class="text-xs font-bold">3. Pregunta:</label><textarea id="challengeQuestion" rows="2" class="w-full border text-sm p-2 rounded" placeholder="Ej: ¿Qué significa 'Tehillah'?"></textarea></div><div><label class="text-xs font-bold">4. Respuesta correcta (secreta):</label><input id="challengeAnswer" class="w-full border text-sm p-2 rounded" placeholder="Ej: Canto de alabanza"></div></div><button class="w-full bg-slate-900 text-white text-xs font-bold py-2 rounded-md mt-4" onclick="enviarReto()">Enviar Reto (+50 XP para quien responda bien)</button></div><div class="bg-white border rounded-xl p-4"><h4 class="font-bold flex gap-2"><i class="ti ti-bell-ringing text-blue-800"></i> Desafíos Pendientes</h4>${desafiosHtml}</div></div>`;
-}
-
-window.enviarReto = async () => {
-    const para = document.getElementById('challengeTarget').value;
-    const tema = document.getElementById('challengeTopic').value;
-    const pregunta = document.getElementById('challengeQuestion').value.trim();
-    const respuesta = document.getElementById('challengeAnswer').value.trim();
-    if (!para || !pregunta || !respuesta) return alert('Completa todos los campos');
-    const { error } = await supabaseClient.from('desafios').insert({ de_usuario_id: currentUser.id, para_usuario_id: para, tema, pregunta, respuesta_correcta: respuesta, estado: 'pendiente' });
-    if (error) alert('Error: ' + error.message);
-    else alert('✅ Reto enviado');
-    await cargarRetos(document.getElementById('av-content'));
-};
-
-window.responderReto = async (id) => {
-    const { data: reto } = await supabaseClient.from('desafios').select('*').eq('id', id).single();
-    if (!reto) return;
-    const respuesta = prompt(`Responde el desafío de ${reto.de_usuario_id}:\n\n${reto.pregunta}`);
-    if (!respuesta) return;
-    const normalizar = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-    if (normalizar(respuesta) !== normalizar(reto.respuesta_correcta)) {
-        alert('❌ Respuesta incorrecta. Sigue intentando.');
-        return;
-    }
-    await supabaseClient.from('desafios').update({ estado: 'completado', respuesta_usuario: respuesta, fecha_respuesta: new Date().toISOString() }).eq('id', id);
-    await agregarXP(50);
-    alert('🎉 ¡Correcto! +50 XP');
-    await cargarRetos(document.getElementById('av-content'));
-};
-
-// Funciones auxiliares visuales
-function generarEstrellas() {
+// ========== FUNCIONES AUXILIARES DE GEMINI ==========
+function generarEstrellasGemini() {
     const cont = document.getElementById('starsContainer');
     if (!cont) return;
     cont.innerHTML = '';
@@ -1915,41 +1861,338 @@ function construirJuegoBienvenida() {
         const div = document.createElement('div');
         div.className = 'wl-game-opt';
         div.textContent = opt;
-        div.onclick = () => evaluarBienvenida(i, div);
+        div.onclick = () => evaluarRespuestaBienvenida(i, div);
         wrap.appendChild(div);
     });
 }
 
-let juegoRespondido = false;
-function evaluarBienvenida(idx, el) {
-    if (juegoRespondido) return;
-    juegoRespondido = true;
+function evaluarRespuestaBienvenida(idx, el) {
+    if (juegoBienvenidaRespondido) return;
+    juegoBienvenidaRespondido = true;
     const fb = document.getElementById('wlGameFeedback');
     if (idx === 1) {
         el.classList.add('correct');
-        fb.textContent = '¡Excelente! +20 XP';
-        agregarXP(20);
+        fb.textContent = '¡Excelente! +20 XP ganados para tu cuenta.';
+        agregarXPGemini(20);
         confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#C8972A', '#1E3A8A'] });
     } else {
         el.classList.add('wrong');
-        fb.textContent = 'Incorrecto. Juan 4:23: en Espíritu y verdad.';
+        fb.textContent = 'Respuesta incorrecta. Juan 4:23 nos llama a adorar en Espíritu y Verdad.';
     }
     document.querySelectorAll('.wl-game-opt').forEach(opt => opt.style.pointerEvents = 'none');
 }
 
-function toggleJuegoBienvenida() {
+function toggleWelcomeGame() {
     const game = document.getElementById('av-welcome-game');
-    if (game) game.classList.toggle('hidden');
+    if (game) game.style.display = game.style.display === 'block' ? 'none' : 'block';
 }
 
-function openAdminAulaVirtual() { window.open('admin_aula.html', '_blank'); }
+async function cargarProgresoGemini() {
+    if (!currentUser) return;
+    const { data } = await supabaseClient.from('progreso_usuario').select('xp, racha').eq('user_id', currentUser.id).single();
+    if (data) { xpGemini = data.xp; rachaGemini = data.racha; }
+    else await supabaseClient.from('progreso_usuario').insert({ user_id: currentUser.id, xp: 0, racha: 0 });
+}
+
+async function agregarXPGemini(puntos) {
+    xpGemini += puntos;
+    if (xpGemini >= 500) { xpGemini -= 500; alert('🎉 ¡FELICIDADES! Has subido de nivel en tu capacitación ministerial.'); }
+    await supabaseClient.from('progreso_usuario').update({ xp: xpGemini }).eq('user_id', currentUser.id);
+    const fill = document.getElementById('xpFill');
+    if (fill) fill.style.width = `${(xpGemini/500)*100}%`;
+    const xpText = document.getElementById('xpText');
+    if (xpText) xpText.innerText = `XP ${xpGemini} / 500`;
+    const rankSpan = document.getElementById('userRank');
+    if (rankSpan) rankSpan.innerText = `Nivel ${Math.floor(xpGemini/500)+1} · Levita`;
+}
+
+async function cargarDevocionalGemini() {
+    const hoy = new Date().toISOString().slice(0,10);
+    const { data } = await supabaseClient.from('devocionales').select('*').eq('fecha', hoy).eq('iglesia_id', currentIglesiaId).single();
+    devocionalGemini = data || null;
+}
+
+async function cargarContadoresGemini() {
+    const { count: tareas } = await supabaseClient.from('tareas_aula').select('*', { count: 'exact', head: true }).eq('iglesia_id', currentIglesiaId);
+    window.tareasCount = tareas || 0;
+    const welcomeTareas = document.getElementById('welcomeTareasCount');
+    if (welcomeTareas) welcomeTareas.innerText = `${window.tareasCount} asignaciones pendientes por subir`;
+    const welcomeRacha = document.getElementById('welcomeRacha');
+    if (welcomeRacha) welcomeRacha.innerText = rachaGemini;
+}
+
+async function actualizarBadgesGemini() {
+    const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
+    document.getElementById('cursosBadge').innerText = cursos || 0;
+    const { data: examenes } = await supabaseClient.from('examenes').select('id');
+    let pendientes = 0;
+    if (examenes) for (let ex of examenes) {
+        const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
+        if (!intento) pendientes++;
+    }
+    document.getElementById('evaluacionesBadge').innerText = pendientes;
+    document.getElementById('tareasBadge').innerText = window.tareasCount || 0;
+}
+
+async function cambiarTabGemini(tab) {
+    document.querySelectorAll('.av-sidebar-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.av-tab').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll(`.av-sidebar-item[data-nav="${tab}"], .av-tab[data-tab="${tab}"]`).forEach(el => el.classList.add('active'));
+    document.querySelectorAll('.av-body').forEach(el => el.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    if (tab === 'inicio') await cargarInicioGemini();
+    // Los demás tabs ya tienen sus datos precargados, pero recargamos si se desea
+}
+
+async function cargarInicioGemini() {
+    const container = document.getElementById('tab-inicio');
+    const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
+    container.innerHTML = `
+        <div class="grid grid-cols-3 gap-4 mb-5">
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
+                <span class="text-xs font-medium text-slate-400 uppercase">Materias en Curso</span>
+                <strong class="text-2xl font-bold mt-1 text-slate-800">${cursos || 0}</strong>
+                <small class="text-xs text-amber-600 font-medium mt-1"><i class="ti ti-point-filled"></i> Capacitación activa</small>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
+                <span class="text-xs font-medium text-slate-400 uppercase">Calificación Promedio</span>
+                <strong class="text-2xl font-bold mt-1 text-emerald-600">94 / 100</strong>
+                <small class="text-xs text-slate-400 mt-1">Nivel de excelencia alto</small>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
+                <span class="text-xs font-medium text-slate-400 uppercase">Consistencia Devocional</span>
+                <strong class="text-2xl font-bold mt-1 text-orange-500">${rachaGemini} Días</strong>
+                <small class="text-xs text-orange-400 font-medium mt-1"><i class="ti ti-flame"></i> ¡Sigue así!</small>
+            </div>
+        </div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Enfoque de Estudio de Hoy</p>
+        <div class="av-course-card flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="av-course-icon bg-blue-50 text-blue-700">✨</div>
+                <div>
+                    <span class="av-cat av-cat-blue">Teología de la Adoración</span>
+                    <h3 class="text-sm font-bold text-slate-800">Módulo 1: Fundamentos del Altar</h3>
+                    <p class="text-xs text-slate-500">Próxima Lección: La diferencia entre talento humano y unción del Espíritu.</p>
+                </div>
+            </div>
+            <button class="bg-slate-100 p-2 rounded-full text-slate-700 hover:bg-slate-200 transition" onclick="cambiarTabGemini('cursos')">
+                <i class="ti ti-player-play-filled"></i>
+            </button>
+        </div>
+    `;
+}
+
+async function cargarCursosGemini() {
+    const container = document.getElementById('tab-cursos');
+    const { data: cursos } = await supabaseClient.from('cursos').select('*').eq('entidad_id', currentIglesiaId);
+    if (!cursos || cursos.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500">No hay cursos disponibles.</p>';
+        return;
+    }
+    let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Currículum del Ministerio</p>`;
+    for (let c of cursos) {
+        const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', c.id);
+        html += `
+            <div class="av-course-card">
+                <span class="av-cat av-cat-blue">Módulo Principal</span>
+                <h3 class="text-base font-bold text-slate-800">${c.titulo}</h3>
+                <p class="text-xs text-slate-500 mt-1">${c.descripcion || ''}</p>
+                <div class="av-progress-bar"><div class="av-progress-fill" style="width: 45%; background: var(--av-navy);"></div></div>
+                <div class="flex justify-between items-center mt-3 text-xs text-slate-400">
+                    <span>Progreso: 45% Realizado</span>
+                    <span class="text-blue-700 font-semibold cursor-pointer hover:underline">Ver apuntes de clase</span>
+                </div>
+                <div class="mt-2">${modulos?.map(m => `<span class="inline-block bg-slate-100 rounded-full px-2 py-1 text-xs mr-1">${m.titulo}</span>`).join('') || ''}</div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+async function cargarEvaluacionesGemini() {
+    const container = document.getElementById('tab-evaluaciones');
+    const { data: examenes } = await supabaseClient.from('examenes').select('*, modulos(titulo)');
+    if (!examenes || examenes.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500">No hay exámenes disponibles.</p>';
+        return;
+    }
+    let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Exámenes Teológicos Pendientes</p>`;
+    for (let ex of examenes) {
+        const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
+        const realizado = !!intento;
+        html += `
+            <div class="av-eval-card flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full ${realizado ? 'bg-emerald-500' : 'bg-red-500'}"></div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-800">${ex.titulo}</h4>
+                        <p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p>
+                    </div>
+                </div>
+                ${realizado 
+                    ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded">Aprobado</span>`
+                    : `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">Iniciar Cuestionario</button>`
+                }
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+async function cargarTareasGemini() {
+    const container = document.getElementById('tab-tareas');
+    const { data: tareas } = await supabaseClient.from('tareas_aula').select('*').eq('iglesia_id', currentIglesiaId);
+    if (!tareas || tareas.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500">No hay tareas asignadas.</p>';
+        return;
+    }
+    let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Tareas de Investigación y Evidencia</p>`;
+    for (let t of tareas) {
+        html += `
+            <div class="av-task-card">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="av-cat av-cat-amber">Plazo: ${t.fecha_limite}</span>
+                        <h3 class="text-sm font-bold text-slate-800 mt-1">${t.titulo}</h3>
+                        <p class="text-xs text-slate-500 mt-1">${t.descripcion || ''}</p>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <input type="text" id="link_${t.id}" class="w-full border rounded p-2 text-sm" placeholder="Pega tu enlace de entrega (Drive, YouTube)">
+                    <button class="mt-2 bg-blue-900 text-white px-4 py-1 rounded text-xs" onclick="entregarTareaGemini('${t.id}', '${t.titulo}')">Entregar Tarea</button>
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+window.entregarTareaGemini = async (tareaId, titulo) => {
+    const linkInput = document.getElementById(`link_${tareaId}`);
+    const link = linkInput?.value.trim();
+    if (!link) return alert('Debes pegar un enlace de tu entrega.');
+    await supabaseClient.from('entregas_tareas').insert({ id: generateUniqueId(), tarea_id: tareaId, user_id: currentUser.id, enlace: link });
+    alert(`✅ Tarea "${titulo}" entregada. +50 XP`);
+    await agregarXPGemini(50);
+    await cargarTareasGemini();
+};
+
+async function cargarDevocionalUI() {
+    const container = document.getElementById('tab-devocional');
+    const versiculo = devocionalGemini?.versiculo || 'Juan 4:23 — Mas la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad.';
+    const reflexion = devocionalGemini?.reflexion || '¿De qué manera estás purificando tus intenciones para que tu adoración sea en verdad y no por aplauso?';
+    container.innerHTML = `
+        <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-5 border border-slate-800 shadow-md mb-4">
+            <span class="text-amber-500 font-bold text-xs uppercase tracking-wider">Espacio de Conexión Espiritual</span>
+            <p class="text-base italic font-medium my-3 text-slate-100">"${versiculo}"</p>
+            <div class="text-right text-xs text-amber-400 font-bold font-mono">— Juan 4:23</div>
+        </div>
+        <div class="bg-white border rounded-xl p-4 shadow-sm">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Reflexión Personal Guiada:</label>
+            <p class="text-sm text-slate-700 mb-3 font-medium">${reflexion}</p>
+            <textarea id="devocionalTexto" rows="4" class="w-full text-sm border p-3 rounded-lg focus:outline-none focus:border-blue-900 bg-slate-50" placeholder="Escribe tu meditación diaria aquí..."></textarea>
+            <div class="flex justify-between items-center mt-3">
+                <div class="text-xs text-slate-500"><i class="ti ti-flame text-orange-500"></i> Racha actual: ${rachaGemini} días consecutivos</div>
+                <button class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="guardarDevocionalGemini()">Guardar Meditación e Incrementar Racha (+30 XP)</button>
+            </div>
+        </div>
+    `;
+}
+
+window.guardarDevocionalGemini = async () => {
+    const texto = document.getElementById('devocionalTexto')?.value.trim();
+    if (!texto) return alert('Escribe tu reflexión antes de guardar.');
+    await agregarXPGemini(30);
+    rachaGemini++;
+    await supabaseClient.from('progreso_usuario').update({ racha: rachaGemini }).eq('user_id', currentUser.id);
+    alert('Meditación guardada. +30 XP');
+    document.getElementById('devocionalTexto').value = '';
+    await cargarDevocionalUI();
+    const welcomeRacha = document.getElementById('welcomeRacha');
+    if (welcomeRacha) welcomeRacha.innerText = rachaGemini;
+};
+
+async function cargarRetosGemini() {
+    const container = document.getElementById('tab-retos');
+    const otros = usuariosIglesia.filter(u => u.user_id !== currentUser.id);
+    const opciones = otros.map(u => `<option value="${u.user_id}">${u.perfiles?.nombre || 'Usuario'}</option>`).join('');
+    let desafiosHtml = '<div class="space-y-2">';
+    const { data: pendientes } = await supabaseClient.from('desafios').select('*, de_usuario:perfiles!desafios_de_usuario_id_fkey(nombre)').eq('para_usuario_id', currentUser.id).eq('estado', 'pendiente');
+    if (pendientes?.length) {
+        for (let d of pendientes) {
+            desafiosHtml += `
+                <div class="border rounded-lg p-3 bg-slate-50 text-xs relative">
+                    <span class="absolute top-1 right-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px]">PENDIENTE</span>
+                    <p class="font-bold">Enviado por: ${d.de_usuario?.nombre || 'Alguien'}</p>
+                    <p class="text-slate-500">Tema: ${d.tema || 'General'}</p>
+                    <p class="text-amber-600 font-medium pt-1"><i class="ti ti-bolt"></i> Recompensa: +50 XP</p>
+                    <button class="w-full bg-blue-900 text-white text-xs font-semibold py-1.5 rounded mt-2" onclick="responderRetoGemini('${d.id}')">Responder Desafío</button>
+                </div>
+            `;
+        }
+    } else desafiosHtml += '<p class="text-center text-slate-500 py-2">No hay desafíos pendientes.</p>';
+    desafiosHtml += '</div>';
+
+    container.innerHTML = `
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Desafíos y Trivias Inter-Miembros</p>
+        <p class="text-xs text-slate-500 mb-4">Envía cuestionarios rápidos y retos teóricos a otros integrantes del ministerio de música para ganar reputación y bonus de experiencia en equipo.</p>
+        <div class="grid md:grid-cols-2 gap-4">
+            <div class="bg-white border rounded-xl p-4">
+                <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i class="ti ti-swords text-amber-600"></i> Crear Nuevo Desafío Bíblico</h4>
+                <div class="mt-3 space-y-2">
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase">1. Seleccionar Hermano del Ministerio:</label>
+                    <select id="challengeTarget" class="w-full border text-xs p-2 rounded bg-slate-50">${opciones}</select>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase mt-2">2. Tema del Reto:</label>
+                    <select id="challengeTopic" class="w-full border text-xs p-2 rounded bg-slate-50">
+                        <option value="Armonía y Modulación Litúrgica">Armonía y Modulación Litúrgica</option>
+                        <option value="Historia del Canto Profético">Historia del Canto Profético</option>
+                        <option value="Sujeción Pastoral y Carácter">Sujeción Pastoral y Carácter</option>
+                        <option value="Teología de la Adoración">Teología de la Adoración</option>
+                    </select>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase mt-2">3. Pregunta / Desafío:</label>
+                    <textarea id="challengeQuestion" rows="2" class="w-full border text-sm p-2 rounded" placeholder="Ej: ¿Cuál es el significado de la palabra 'Tehillah'?"></textarea>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase mt-2">4. Respuesta correcta (se guarda en secreto):</label>
+                    <input type="text" id="challengeAnswer" class="w-full border text-sm p-2 rounded" placeholder="Ej: Canto de alabanza espontáneo">
+                </div>
+                <button class="w-full bg-slate-900 text-white text-xs font-bold py-2 rounded-md mt-4" onclick="enviarRetoGemini()">Enviar Reto (+50 XP para quien responda bien)</button>
+            </div>
+            <div class="bg-white border rounded-xl p-4">
+                <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i class="ti ti-bell-ringing text-blue-800"></i> Desafíos Pendientes por Responder</h4>
+                ${desafiosHtml}
+            </div>
+        </div>
+    `;
+}
+
+window.enviarRetoGemini = async () => {
+    const para = document.getElementById('challengeTarget').value;
+    const tema = document.getElementById('challengeTopic').value;
+    const pregunta = document.getElementById('challengeQuestion').value.trim();
+    const respuesta = document.getElementById('challengeAnswer').value.trim();
+    if (!para || !pregunta || !respuesta) return alert('Completa todos los campos');
+    const { error } = await supabaseClient.from('desafios').insert({ de_usuario_id: currentUser.id, para_usuario_id: para, tema, pregunta, respuesta_correcta: respuesta, estado: 'pendiente' });
+    if (error) alert('Error: ' + error.message);
+    else alert('✅ Reto enviado');
+    await cargarRetosGemini();
+};
+
+window.responderRetoGemini = async (id) => {
+    const { data: reto } = await supabaseClient.from('desafios').select('*').eq('id', id).single();
+    if (!reto) return;
+    const respuesta = prompt(`Responde el desafío de ${reto.de_usuario_id}:\n\n${reto.pregunta}`);
+    if (!respuesta) return;
+    const normalizar = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    if (normalizar(respuesta) !== normalizar(reto.respuesta_correcta)) {
+        alert('❌ Respuesta incorrecta. Sigue intentando.');
+        return;
+    }
+    await supabaseClient.from('desafios').update({ estado: 'completado', respuesta_usuario: respuesta, fecha_respuesta: new Date().toISOString() }).eq('id', id);
+    await agregarXPGemini(50);
+    alert('🎉 ¡Correcto! +50 XP');
+    await cargarRetosGemini();
+};
 
 
-
-    // Actualizar badges
-    actualizarBadges();
-
-    
 
     
 // Motor de exámenes (reutiliza el sistema existente pero con preguntas de Supabase)
