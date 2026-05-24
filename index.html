@@ -533,7 +533,44 @@ body.stage-mode pre {
 const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUser = null;
+// ========== PARCHES PARA EVITAR ERRORES FATALES ==========
+// Definir variables de API bíblica (aunque no tengas key real, evita el error)
+window.BIBLE_API_BASE_URL = 'https://api.scripture.api.bible/v1';
+window.BIBLE_API_KEY = '9zxPgaC2mFyi5qKeNvzvd';  // Si tienes una real, ponla aquí
+if (typeof confetti === 'undefined') {
+    window.confetti = function() { console.log('confetti no disponible'); };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.ti').forEach(el => {
+        const classes = el.className;
+        if (classes.includes('ti-crown')) el.innerHTML = '<i class="fas fa-crown"></i>';
+        else if (classes.includes('ti-chevron-down')) el.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        else if (classes.includes('ti-door-enter')) el.innerHTML = '<i class="fas fa-door-open"></i>';
+        else if (classes.includes('ti-flame')) el.innerHTML = '<i class="fas fa-fire"></i>';
+        else if (classes.includes('ti-school')) el.innerHTML = '<i class="fas fa-school"></i>';
+        else if (classes.includes('ti-layout-dashboard')) el.innerHTML = '<i class="fas fa-tachometer-alt"></i>';
+        else if (classes.includes('ti-book-open')) el.innerHTML = '<i class="fas fa-book-open"></i>';
+        else if (classes.includes('ti-clipboard-check')) el.innerHTML = '<i class="fas fa-clipboard-check"></i>';
+        else if (classes.includes('ti-file-upload')) el.innerHTML = '<i class="fas fa-file-upload"></i>';
+        else if (classes.includes('ti-feather')) el.innerHTML = '<i class="fas fa-feather-alt"></i>';
+        else if (classes.includes('ti-swords')) el.innerHTML = '<i class="fas fa-fist-raised"></i>';
+        else if (classes.includes('ti-building-church')) el.innerHTML = '<i class="fas fa-church"></i>';
+        else if (classes.includes('ti-smart-home')) el.innerHTML = '<i class="fas fa-home"></i>';
+        else if (classes.includes('ti-notebook')) el.innerHTML = '<i class="fas fa-notebook"></i>';
+        else if (classes.includes('ti-device-laptop')) el.innerHTML = '<i class="fas fa-laptop"></i>';
+        else if (classes.includes('ti-cloud-upload')) el.innerHTML = '<i class="fas fa-cloud-upload-alt"></i>';
+        else if (classes.includes('ti-heart-handshake')) el.innerHTML = '<i class="fas fa-hand-holding-heart"></i>';
+        else if (classes.includes('ti-trophy')) el.innerHTML = '<i class="fas fa-trophy"></i>';
+        else if (classes.includes('ti-bolt')) el.innerHTML = '<i class="fas fa-bolt"></i>';
+        else if (classes.includes('ti-bell-ringing')) el.innerHTML = '<i class="fas fa-bell"></i>';
+        else if (classes.includes('ti-point-filled')) el.innerHTML = '<i class="fas fa-circle"></i>';
+        else el.innerHTML = '<i class="fas fa-cog"></i>';
+        el.classList.remove('ti');
+    });
+});
+    
+    let currentUser = null;
 let currentIglesiaId = null;
 let currentIglesiaData = null;
 let currentUserIglesia = null;
