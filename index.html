@@ -2272,12 +2272,14 @@ window.responderRetoGemini = async (id) => {
     await cargarRetosGemini();
 };
 
-function openAdminAulaVirtual() { window.open('admin_aula.html', '_blank'); }
-    
-
-
-    // Abre el panel en una nueva pestaña (ajusta la ruta si está en otra carpeta)
+function openAdminAulaVirtual() {
+    if (!isAdminUser && !isIglesiaAdmin) {
+        alert("No tienes permisos de administrador.");
+        return;
+    }
     window.open('admin_aula.html', '_blank');
+}
+
 
     
     
