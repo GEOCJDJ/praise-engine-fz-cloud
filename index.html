@@ -1563,8 +1563,356 @@ async function viewMyShifts() {
     function openTuner() { showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const noteElem=document.getElementById('tunerNote'), needleElem=document.getElementById('tunerNeedle'); if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ noteElem.innerText="Sin micrófono"; return; } navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{ const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const source=audioCtx.createMediaStreamSource(stream); const analyser=audioCtx.createAnalyser(); analyser.fftSize=2048; source.connect(analyser); const bufferLength=analyser.frequencyBinCount; const dataArray=new Float32Array(bufferLength); const detectPitch=()=>{ if(!document.getElementById('tunerNote')) return; analyser.getFloatTimeDomainData(dataArray); let maxSample=0; for(let i=0;i<bufferLength;i++) if(Math.abs(dataArray[i])>maxSample) maxSample=Math.abs(dataArray[i]); if(maxSample<0.01){ requestAnimationFrame(detectPitch); return; } let autocorr=new Array(bufferLength); for(let lag=0;lag<bufferLength;lag++){ let sum=0; for(let i=0;i<bufferLength-lag;i++) sum+=dataArray[i]*dataArray[i+lag]; autocorr[lag]=sum; } let maxVal=-1, maxLag=0; for(let lag=20;lag<bufferLength/2;lag++) if(autocorr[lag]>maxVal){ maxVal=autocorr[lag]; maxLag=lag; } let freq=audioCtx.sampleRate/maxLag; let noteNum=12*Math.log2(freq/440)+69; let roundedNote=Math.round(noteNum); let cents=Math.round((noteNum-roundedNote)*100); let note=noteNames[roundedNote%12]; if(freq>50&&freq<600){ noteElem.innerText=`${note} (${cents>0?'+':''}${cents}¢)`; let percent=Math.min(100,Math.max(0,50+(cents/50)*50)); needleElem.style.width=`${percent}%`; needleElem.style.background=Math.abs(cents)<5?"#10B981":"#F59E0B"; } else { noteElem.innerText="--"; needleElem.style.width="0%"; } requestAnimationFrame(detectPitch); }; detectPitch(); }).catch(()=>{ if(noteElem) noteElem.innerText="Permiso denegado"; }); }
 
 // ========== AULA VIRTUAL ==========
-async function renderMoodle() { const container = document.getElementById('mainContent'); document.getElementById('actionHeader').innerHTML = (isAdminUser||isIglesiaAdmin) ? `<button class="btn btn-primary" onclick="openCreateCourseModal()"><i class="fas fa-plus"></i> Crear Curso</button>` : ''; let html = ''; const { data: misIntentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id); const totalExamenes = misIntentos?.length||0; const puntajePromedio = misIntentos&&misIntentos.length ? (misIntentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/misIntentos.length).toFixed(1) : 0; html += `<div class="card" style="margin-bottom:1rem;"><h3>📊 Mi Progreso</h3><p>Exámenes completados: ${totalExamenes}</p><p>Puntaje promedio: ${puntajePromedio} / 20</p></div>`; for(let curso of cursos){ let mods = modulosList.filter(m=>m.curso_id===curso.id); html += `<div class="card" style="margin-bottom:1rem;"><h3>${escapeHtml(curso.titulo)}</h3><p>${escapeHtml(curso.descripcion||'')}</p>`; for(let mod of mods){ let examenesMod = examenes.filter(e=>e.modulo_id===mod.id); html += `<div style="margin-top:1rem;padding-left:1rem;border-left:3px solid var(--primary-light);"><strong>${escapeHtml(mod.titulo)}</strong>`; if(mod.contenido) html += `<button class="btn btn-secondary" style="margin-left:1rem;" onclick="showModuleContent('${mod.id}')">📖 Ver Contenido del Curso</button>`; for(let ex of examenesMod){ const intento = misIntentos?.find(i=>i.examen_id===ex.id); if(intento) html += `<div style="margin-top:0.5rem;background:rgba(16,185,129,0.1);padding:0.5rem;border-radius:8px;">✅ Completado - Nota: ${intento.puntaje}/20</div>`; else html += `<button class="btn btn-primary" style="margin-top:0.5rem;" onclick="startExam('${ex.id}')">📝 Rendir Examen: ${escapeHtml(ex.titulo)}</button>`; } html += `</div>`; } if(isAdminUser||isIglesiaAdmin) html += `<button class="btn btn-secondary" style="margin-top:1rem;" onclick="openAddModuleModal('${curso.id}')">Añadir Módulo</button>`; html += `</div>`; } container.innerHTML = html||'<p>No hay cursos disponibles.</p>'; }
-function showModuleContent(moduleId) { const mod = modulosList.find(m=>m.id===moduleId); if(!mod||!mod.contenido) return; showModal(`<h3>${escapeHtml(mod.titulo)}</h3><div style="max-height:60vh;overflow-y:auto;">${mod.contenido}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`); }
+// ========== NUEVA VERSIÓN DE renderMoodle() ==========
+async function renderMoodle() {
+    const container = document.getElementById('mainContent');
+    const actionHeader = document.getElementById('actionHeader');
+    
+    actionHeader.innerHTML = (isAdminUser || isIglesiaAdmin) 
+        ? `<button class="btn btn-primary" onclick="openAdminAulaVirtual()"><i class="fas fa-chalkboard-user"></i> Gestionar Aula Virtual</button>`
+        : '';
+
+    // Cargar progreso del usuario (XP, racha)
+    await loadUserProgress();
+
+    // Cargar devocional del día
+    await loadDevocionalHoy();
+
+    // Obtener tareas activas
+    const { data: tareas } = await supabaseClient
+        .from('tareas_aula')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('created_at', { ascending: false });
+
+    // Obtener cantidad de cursos y exámenes pendientes
+    const { count: cursosCount } = await supabaseClient
+        .from('cursos')
+        .select('*', { count: 'exact', head: true })
+        .eq('entidad_id', currentIglesiaId);
+    
+    const { data: examenesPendientes } = await supabaseClient
+        .from('examenes')
+        .select('id');
+    const examenesCount = examenesPendientes?.length || 0;
+
+    const html = `
+    <div class="av-container" style="background:#F1F5F9; border-radius: 1rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <!-- Cabecera con XP -->
+        <div style="background: white; padding: 1rem; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h2 style="font-size: 1.2rem; font-weight: 800;"><i class="fas fa-graduation-cap" style="color: #C8972A;"></i> Campus G-Praise</h2>
+                <p style="font-size: 0.75rem; color: #64748B;">Capacitación Ministerial</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 0.75rem; font-weight: 600;">XP ${currentXp} / 500</span>
+                    <div style="width: 120px; height: 6px; background: #E2E8F0; border-radius: 99px; overflow: hidden;">
+                        <div style="width: ${(currentXp/500)*100}%; height: 100%; background: linear-gradient(90deg, #C8972A, #EAB308);"></div>
+                    </div>
+                </div>
+                <div style="font-size: 0.75rem;"><i class="fas fa-fire" style="color: #F59E0B;"></i> Racha: ${userRacha} días</div>
+            </div>
+        </div>
+
+        <!-- Pestañas horizontales -->
+        <div style="display: flex; background: white; border-bottom: 1px solid #E2E8F0; padding: 0 1rem; gap: 0.5rem; overflow-x: auto;">
+            <button class="av-tab-btn active" data-tab="inicio" style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent;">🏠 Inicio</button>
+            <button class="av-tab-btn" data-tab="cursos" style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent;">📚 Mis Cursos</button>
+            <button class="av-tab-btn" data-tab="evaluaciones" style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent;">📝 Evaluaciones</button>
+            <button class="av-tab-btn" data-tab="tareas" style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent;">📋 Tareas</button>
+            <button class="av-tab-btn" data-tab="devocional" style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent;">🙏 Devocional</button>
+            <button class="av-tab-btn" data-tab="retos" style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent;">⚔️ Retos</button>
+        </div>
+
+        <!-- Contenido dinámico -->
+        <div id="av-dynamic-content" style="padding: 1.5rem; min-height: 400px;">
+            Cargando...
+        </div>
+    </div>
+    `;
+    container.innerHTML = html;
+
+    // Cargar contenido inicial (Inicio)
+    await loadTabInicio(cursosCount, examenesCount);
+
+    // Vincular eventos de los tabs
+    document.querySelectorAll('.av-tab-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            document.querySelectorAll('.av-tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.borderBottomColor = 'transparent';
+                b.style.color = '#64748B';
+            });
+            btn.classList.add('active');
+            btn.style.borderBottomColor = '#1E3A8A';
+            btn.style.color = '#1E3A8A';
+            const tabName = btn.getAttribute('data-tab');
+            if (tabName === 'inicio') await loadTabInicio(cursosCount, examenesCount);
+            if (tabName === 'cursos') await loadTabCursos();
+            if (tabName === 'evaluaciones') await loadTabEvaluaciones();
+            if (tabName === 'tareas') await loadTabTareas(tareas);
+            if (tabName === 'devocional') await loadTabDevocional();
+            if (tabName === 'retos') loadTabRetos();
+        });
+    });
+}
+
+// ========== FUNCIONES AUXILIARES DEL AULA ==========
+let currentXp = 0;
+let userRacha = 0;
+let devocionalHoy = null;
+
+async function loadUserProgress() {
+    if (!currentUser) return;
+    const { data, error } = await supabaseClient
+        .from('progreso_usuario')
+        .select('xp, racha')
+        .eq('user_id', currentUser.id)
+        .single();
+    if (error && error.code !== 'PGRST116') console.error(error);
+    if (data) {
+        currentXp = data.xp;
+        userRacha = data.racha;
+    } else {
+        currentXp = 0;
+        userRacha = 0;
+        await supabaseClient.from('progreso_usuario').insert({
+            user_id: currentUser.id,
+            xp: 0,
+            racha: 0
+        });
+    }
+}
+
+async function addExperiencePoints(amount) {
+    currentXp += amount;
+    if (currentXp >= 500) {
+        currentXp -= 500;
+        alert("🎉 ¡FELICIDADES! Has subido de nivel en tu capacitación ministerial.");
+    }
+    await supabaseClient.from('progreso_usuario').update({ xp: currentXp }).eq('user_id', currentUser.id);
+    // Actualizar barra visual si existe
+    const fillDiv = document.querySelector('#av-dynamic-content .xp-fill');
+    if (fillDiv) fillDiv.style.width = `${(currentXp/500)*100}%`;
+}
+
+async function loadDevocionalHoy() {
+    const hoy = new Date().toISOString().slice(0,10);
+    const { data, error } = await supabaseClient
+        .from('devocionales')
+        .select('*')
+        .eq('fecha', hoy)
+        .eq('iglesia_id', currentIglesiaId)
+        .single();
+    if (data) devocionalHoy = data;
+    else devocionalHoy = null;
+}
+
+async function saveDevocionalDaily() {
+    const textarea = document.getElementById('devocionalTextarea');
+    const reflexion = textarea?.value.trim();
+    if (!reflexion) {
+        alert("Escribe tu reflexión antes de guardar.");
+        return;
+    }
+    // Opcional: guardar la respuesta en una tabla
+    await addExperiencePoints(30);
+    userRacha++;
+    await supabaseClient.from('progreso_usuario').update({ racha: userRacha }).eq('user_id', currentUser.id);
+    alert("¡Meditación guardada! +30 XP");
+    textarea.value = '';
+}
+
+// TABS
+async function loadTabInicio(cursosCount, examenesCount) {
+    const container = document.getElementById('av-dynamic-content');
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="background: white; border-radius: 0.75rem; padding: 1rem; text-align: center; border: 1px solid #E2E8F0;">
+                <span style="font-size: 0.7rem; color: #64748B;">Materias Activas</span>
+                <strong style="font-size: 1.8rem; display: block;">${cursosCount || 0}</strong>
+            </div>
+            <div style="background: white; border-radius: 0.75rem; padding: 1rem; text-align: center; border: 1px solid #E2E8F0;">
+                <span style="font-size: 0.7rem; color: #64748B;">Exámenes Pendientes</span>
+                <strong style="font-size: 1.8rem; display: block;">${examenesCount}</strong>
+            </div>
+            <div style="background: white; border-radius: 0.75rem; padding: 1rem; text-align: center; border: 1px solid #E2E8F0;">
+                <span style="font-size: 0.7rem; color: #64748B;">Nivel de Capacitación</span>
+                <strong style="font-size: 1.8rem; display: block;">Nivel ${Math.floor(currentXp/500)+1}</strong>
+            </div>
+        </div>
+        <div style="background: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #E2E8F0;">
+            <p style="font-weight: 700; margin-bottom: 0.5rem;">📖 Versículo del día</p>
+            <p style="font-style: italic; color: #334155;">${devocionalHoy ? devocionalHoy.versiculo : 'Juan 4:23 — Mas la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad.'}</p>
+        </div>
+    `;
+}
+
+async function loadTabCursos() {
+    const container = document.getElementById('av-dynamic-content');
+    const { data: cursos } = await supabaseClient
+        .from('cursos')
+        .select('*')
+        .eq('entidad_id', currentIglesiaId);
+    if (!cursos || cursos.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#64748B;">No hay cursos disponibles. Contacta al administrador.</p>';
+        return;
+    }
+    let html = `<div style="display: flex; flex-direction: column; gap: 1rem;">`;
+    for (let curso of cursos) {
+        const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', curso.id);
+        html += `
+            <div style="background: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #E2E8F0;">
+                <h3 style="font-weight: 700;">📘 ${curso.titulo}</h3>
+                <p style="font-size: 0.8rem; color: #64748B; margin-top: 0.25rem;">${curso.descripcion || ''}</p>
+                <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    ${modulos?.map(mod => `<span style="background: #F1F5F9; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem;">${mod.titulo}</span>`).join('') || '<span class="text-muted">Sin módulos</span>'}
+                </div>
+            </div>
+        `;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+async function loadTabEvaluaciones() {
+    const container = document.getElementById('av-dynamic-content');
+    const { data: examenes } = await supabaseClient
+        .from('examenes')
+        .select('*, modulos(titulo)');
+    if (!examenes || examenes.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#64748B;">No hay exámenes disponibles.</p>';
+        return;
+    }
+    let html = `<div style="display: flex; flex-direction: column; gap: 1rem;">`;
+    for (let ex of examenes) {
+        const { data: intento } = await supabaseClient
+            .from('intentos_examen')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('examen_id', ex.id)
+            .single();
+        const realizado = intento ? true : false;
+        html += `
+            <div style="background: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                    <h3 style="font-weight: 700;">${ex.titulo}</h3>
+                    <p style="font-size: 0.7rem; color: #64748B;">Módulo: ${ex.modulos?.titulo || 'General'}</p>
+                    <p style="font-size: 0.7rem; color: #EF4444;">⏱️ ${ex.tiempo_por_pregunta} segundos por pregunta</p>
+                </div>
+                ${realizado 
+                    ? `<span style="background: #D1FAE5; color: #065F46; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.7rem;">✅ Completado</span>`
+                    : `<button class="btn btn-primary" style="font-size: 0.7rem; padding: 0.4rem 0.8rem;" onclick="startExamFromMoodle('${ex.id}')">Iniciar Examen</button>`
+                }
+            </div>
+        `;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+async function loadTabTareas(tareas) {
+    const container = document.getElementById('av-dynamic-content');
+    if (!tareas || tareas.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#64748B;">No hay tareas asignadas.</p>';
+        return;
+    }
+    let html = `<div style="display: flex; flex-direction: column; gap: 1rem;">`;
+    for (let t of tareas) {
+        html += `
+            <div style="background: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #E2E8F0;">
+                <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                    <h3 style="font-weight: 700;">📌 ${t.titulo}</h3>
+                    <span style="font-size: 0.7rem; color: #D97706;">📅 ${t.fecha_limite}</span>
+                </div>
+                <p style="font-size: 0.8rem; margin-top: 0.25rem;">${t.descripcion || ''}</p>
+                <div style="margin-top: 0.75rem;">
+                    <input type="text" id="link_${t.id}" placeholder="Pega tu enlace de entrega (Drive, YouTube, etc.)" style="width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #CBD5E1; font-size: 0.8rem;">
+                    <button class="btn btn-primary" style="margin-top: 0.5rem; font-size: 0.7rem;" onclick="entregarTarea('${t.id}', '${t.titulo}')">Entregar Tarea</button>
+                </div>
+            </div>
+        `;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+async function entregarTarea(tareaId, titulo) {
+    const linkInput = document.getElementById(`link_${tareaId}`);
+    const link = linkInput?.value.trim();
+    if (!link) {
+        alert("Debes pegar un enlace de tu entrega.");
+        return;
+    }
+    // Guardar entrega (opcional)
+    await supabaseClient.from('entregas_tareas').insert({
+        id: generateUniqueId(),
+        tarea_id: tareaId,
+        user_id: currentUser.id,
+        enlace: link
+    });
+    alert(`✅ Tarea "${titulo}" entregada. El administrador revisará tu enlace.`);
+    await addExperiencePoints(50);
+    linkInput.value = '';
+}
+
+async function loadTabDevocional() {
+    const container = document.getElementById('av-dynamic-content');
+    const versiculo = devocionalHoy ? devocionalHoy.versiculo : 'Juan 4:23 — Mas la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad.';
+    const reflexionGuia = devocionalHoy ? devocionalHoy.reflexion : '¿De qué manera estás purificando tus intenciones para que tu adoración sea en verdad y no por aplauso?';
+    container.innerHTML = `
+        <div style="background: linear-gradient(135deg, #0F172A, #1E3A8A); color: white; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem;">
+            <p style="font-style: italic; font-size: 1rem;">“${versiculo}”</p>
+        </div>
+        <div style="background: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #E2E8F0;">
+            <p style="font-weight: 600; margin-bottom: 0.5rem;">📝 Reflexión guiada:</p>
+            <p style="font-size: 0.85rem; color: #334155; margin-bottom: 1rem;">${reflexionGuia}</p>
+            <textarea id="devocionalTextarea" rows="4" style="width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #CBD5E1; font-size: 0.8rem;" placeholder="Escribe tu meditación diaria aquí..."></textarea>
+            <button class="btn btn-primary" style="margin-top: 0.75rem;" onclick="saveDevocionalDaily()">Guardar meditación (+30 XP)</button>
+        </div>
+    `;
+}
+
+function loadTabRetos() {
+    const container = document.getElementById('av-dynamic-content');
+    container.innerHTML = `
+        <div style="background: white; border-radius: 0.75rem; padding: 1.5rem; border: 1px solid #E2E8F0; text-align: center;">
+            <i class="fas fa-swords" style="font-size: 2rem; color: #C8972A;"></i>
+            <h3 style="font-weight: 700; margin: 0.5rem 0;">⚔️ Desafío semanal</h3>
+            <p style="font-size: 0.85rem; margin-bottom: 1rem;">Responde correctamente y gana +40 XP</p>
+            <p style="font-weight: 600; background: #FEF3C7; padding: 0.5rem; border-radius: 0.5rem;">¿Cuál es el propósito principal de la alabanza en la congregación según la Biblia?</p>
+            <textarea id="retoRespuesta" rows="3" style="width: 100%; margin-top: 1rem; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #CBD5E1;" placeholder="Escribe tu respuesta..."></textarea>
+            <button class="btn btn-primary" style="margin-top: 1rem;" onclick="completarReto()">Enviar respuesta</button>
+        </div>
+    `;
+}
+
+async function completarReto() {
+    const respuesta = document.getElementById('retoRespuesta')?.value.trim();
+    if (!respuesta) {
+        alert("Escribe una respuesta antes de enviar.");
+        return;
+    }
+    await addExperiencePoints(40);
+    alert("🎉 ¡Excelente reflexión! Has ganado +40 XP.");
+    document.getElementById('retoRespuesta').value = '';
+}
+
+// Función para iniciar examen desde el aula virtual
+async function startExamFromMoodle(examenId) {
+    await startExam(examenId);
+}
+
+// Función para abrir el panel de administración del aula
+function openAdminAulaVirtual() {
+    // Opción 1: Abrir en nueva pestaña (si tienes el archivo AULAVIRTUALADMIN.html)
+    window.open('AULAVIRTUALADMIN.html', '_blank');
+    // Opción 2: Mostrar un modal con los formularios de admin (lo veremos después)
+}
+    
+    
+    function showModuleContent(moduleId) { const mod = modulosList.find(m=>m.id===moduleId); if(!mod||!mod.contenido) return; showModal(`<h3>${escapeHtml(mod.titulo)}</h3><div style="max-height:60vh;overflow-y:auto;">${mod.contenido}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`); }
 function openCreateCourseModal() { if(!isAdminUser && !isIglesiaAdmin) return; const title = prompt("Nombre del curso:"); if(title) supabaseClient.from('cursos').insert([{ titulo:title, creado_por:currentUser.id, entidad_tipo:'iglesia', entidad_id:currentIglesiaId }]).then(()=>{ loadUserData(); renderMoodle(); }); }
 async function openAddModuleModal(cursoId) { const title = prompt("Título del módulo:"); if(title) await supabaseClient.from('modulos').insert([{ curso_id:cursoId, titulo:title, orden_index:1 }]); await loadUserData(); renderMoodle(); }
 async function startExam(examenId) { const { data: existing } = await supabaseClient.from('intentos_examen').select('*').eq('user_id',currentUser.id).eq('examen_id',examenId).single(); if(existing){ alert("Ya completaste este examen."); return; } const qs = preguntas.filter(q=>q.examen_id===examenId).sort((a,b)=>a.orden_index-b.orden_index); if(qs.length===0){ alert("Este examen no tiene preguntas."); return; } examQuestions=qs; examCurrentIndex=0; examScore=0; currentExamId=examenId; document.getElementById('examOverlay').style.display='block'; loadExamQuestion(); }
