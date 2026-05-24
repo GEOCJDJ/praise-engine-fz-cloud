@@ -1247,6 +1247,10 @@ function renderApp() {
     <i class="fas fa-microphone-alt"></i>
     <span>G‑NOTES</span>
 </div>
+<div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura">
+    <i class="fas fa-bible"></i>
+    <span>SCRIPTURA</span>
+</div>
     <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}<div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div><div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div><div id="mainContent"></div></div><footer class="app-footer"><div class="footer-content"><div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div><div class="footer-copyright">© 2025 - <span id="currentYear"></span> | By <strong>GIO DESIGNS®</strong></div><div class="footer-social"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div><div class="footer-verse">"Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos" — Salmo 68:4</div></footer>`;
     document.querySelectorAll('.nav-item[data-tab]').forEach(el => { el.addEventListener('click', () => { document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active')); el.classList.add('active'); currentTab = el.dataset.tab; selectedListId = null; renderCurrentView(); }); });
     const darkToggle = document.getElementById('darkModeToggle'); darkToggle.addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('iec_darkmode', document.body.classList.contains('dark')); darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro'; });
@@ -1262,7 +1266,8 @@ function darkModeToggle() { const toggle = document.getElementById('darkModeTogg
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
     else if (currentTab === 'moodle') await renderMoodle();
-    else if (currentTab === 'gnotes') await renderGnotes();   // <-- NUEVA LÍNEA
+    else if (currentTab === 'gnotes') await renderGnotes();  
+    else if (currentTab === 'scriptura') await renderScriptura();
     else if (currentTab === 'profile') renderUserProfile();
     else if (currentTab === 'admin' && (isAdminUser || isIglesiaAdmin)) renderAdmin();
 }
@@ -1288,8 +1293,14 @@ async function renderHome() {
     <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white;"><h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3><p style="font-style:italic;">“${versiculo.texto}”</p><p style="text-align:right;">— ${versiculo.ref}</p></div></div>
     <div class="card" style="background:linear-gradient(135deg,#F59E0B,#FCD34D);color:white;"><h3><i class="fas fa-calendar-alt"></i> 📆 Próximos turnos</h3>${proximosTurnos.length === 0 ? '<p>Sin turnos próximos.</p>' : `<ul>${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`}</div>
     <div class="card" style="background:linear-gradient(135deg,#10B981,#34D399);color:white;"><h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : `<ul>${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`}</div>
+    <div class="card quick-access-card" onclick="navigateTo('scriptura')">
+    <i class="fas fa-bible" style="color: #C8972A;"></i>
+    <h3>Scriptura</h3>
+    <p>Lectura bíblica interactiva</p>
+</div>
+    <div class="grid" style="margin-top:1.5rem;"><div class="card quick-access-card" onclick="navigateTo('profile')"><i class="fas fa-user" style="color:var(--primary);"></i><h3>Mi perfil</h3></div><div class="card quick-access-card" onclick="navigateTo('myShifts')"><i class="fas fa-calendar-alt" style="color:#F59E0B;"></i><h3>Mis turnos</h3></div>
     
-    <div class="grid" style="margin-top:1.5rem;"><div class="card quick-access-card" onclick="navigateTo('profile')"><i class="fas fa-user" style="color:var(--primary);"></i><h3>Mi perfil</h3></div><div class="card quick-access-card" onclick="navigateTo('myShifts')"><i class="fas fa-calendar-alt" style="color:#F59E0B;"></i><h3>Mis turnos</h3></div><div class="card quick-access-card" onclick="navigateTo('songs')"><i class="fas fa-music" style="color:#EC4899;"></i><h3>Cancionero</h3></div><div class="card quick-access-card" onclick="navigateTo('resources')"><i class="fas fa-tools" style="color:#10B981;"></i><h3>Recursos</h3></div></div></div>`;
+    <div class="card quick-access-card" onclick="navigateTo('resources')"><i class="fas fa-tools" style="color:#10B981;"></i><h3>Recursos</h3></div></div></div>`;
     document.getElementById('mainContent').innerHTML = html; document.getElementById('actionHeader').innerHTML = '';
 }
 
@@ -1642,6 +1653,534 @@ async function renderGnotes() {
 window.descargarRecursoGnotes = (archivo) => {
     alert(`🔧 En una versión posterior podrás descargar "${archivo}" directamente desde Supabase Storage.`);
 };
+
+    // ========== MÓDULO SCRIPTURA (Biblia interactiva con API real) ==========
+let scCurrentBook = "Salmos";
+let scCurrentChapter = 23;
+let scSelectedVerseNum = null;
+let scFavorites = [];      // Se cargarán desde Supabase
+let scHighlights = {};     // clave: "libro_capitulo_versiculo"
+
+async function renderScriptura() {
+    const container = document.getElementById('mainContent');
+    const actionHeader = document.getElementById('actionHeader');
+    actionHeader.innerHTML = ''; // Sin botones extra
+
+    // Cargar favoritos y resaltados del usuario desde Supabase
+    await cargarDatosScriptura();
+
+    // HTML idéntico al diseño de Gemini (con blindaje)
+    const html = `
+    <div id="gpraise-scriptura-shield">
+        <style>
+            /* ===== PROTECCIÓN ABSOLUTA - DISEÑO PREMIUM ===== */
+            #gpraise-scriptura-shield {
+                all: initial;
+                display: grid !important;
+                grid-template-columns: 280px 1fr !important;
+                width: 100% !important;
+                height: 750px !important;
+                background-color: #050811 !important;
+                border-radius: 1rem !important;
+                overflow: hidden !important;
+                font-family: 'Inter', sans-serif !important;
+                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important;
+                color: #E2E8F0 !important;
+                position: relative !important;
+            }
+            #gpraise-scriptura-shield * { box-sizing: border-box !important; }
+
+            /* Sidebar */
+            #gpraise-scriptura-shield .sc-sidebar {
+                background-color: #0A0F1E !important;
+                border-right: 1px solid rgba(200,151,42,0.08) !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+            }
+            #gpraise-scriptura-shield .sc-sidebar-header {
+                padding: 1.5rem !important;
+                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+                background: linear-gradient(180deg, #0A0F1E 0%, #060A15 100%) !important;
+            }
+            #gpraise-scriptura-shield .sc-brand {
+                font-size: 11px !important; color: #C8972A !important;
+                font-weight: 700 !important; letter-spacing: 2px !important;
+                text-transform: uppercase !important;
+            }
+            #gpraise-scriptura-shield .sc-app-title {
+                font-size: 20px !important; font-weight: 800 !important;
+                color: #FFFFFF !important; margin: 2px 0 0 0 !important;
+                letter-spacing: -0.5px !important;
+            }
+            #gpraise-scriptura-shield .sc-tabs-nav {
+                display: flex !important; padding: 0.5rem 1rem !important;
+                gap: 5px !important; background: rgba(0,0,0,0.2) !important;
+                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+            }
+            #gpraise-scriptura-shield .sc-tab-btn {
+                flex: 1 !important; background: transparent !important; border: none !important;
+                color: #64748B !important; font-size: 11px !important; font-weight: 700 !important;
+                padding: 0.5rem !important; cursor: pointer !important; border-radius: 6px !important;
+                text-transform: uppercase !important; transition: 0.2s !important;
+            }
+            #gpraise-scriptura-shield .sc-tab-btn.active {
+                background: rgba(255,255,255,0.03) !important; color: #C8972A !important;
+            }
+            #gpraise-scriptura-shield .sc-sidebar-scroll {
+                flex: 1 !important; overflow-y: auto !important; padding: 1rem !important;
+            }
+            #gpraise-scriptura-shield .sc-sidebar-pane { display: none !important; }
+            #gpraise-scriptura-shield .sc-sidebar-pane.active { display: block !important; }
+            #gpraise-scriptura-shield .sc-list-group-title {
+                font-size: 10px !important; font-weight: 700 !important; color: #475569 !important;
+                text-transform: uppercase !important; letter-spacing: 1px !important;
+                margin: 1rem 0 0.5rem 0 !important;
+            }
+            #gpraise-scriptura-shield .sc-book-item {
+                padding: 0.65rem 0.85rem !important; font-size: 13px !important;
+                color: #94A3B8 !important; border-radius: 6px !important;
+                cursor: pointer !important; display: flex !important;
+                justify-content: space-between !important; align-items: center !important;
+                transition: 0.15s !important; margin-bottom: 2px !important;
+            }
+            #gpraise-scriptura-shield .sc-book-item:hover,
+            #gpraise-scriptura-shield .sc-book-item.active {
+                background: rgba(200,151,42,0.08) !important;
+                color: #F5D97A !important;
+            }
+            #gpraise-scriptura-shield .sc-book-item.active {
+                font-weight: 600 !important; border-left: 3px solid #C8972A !important;
+            }
+            #gpraise-scriptura-shield .sc-fav-item {
+                background: rgba(255,255,255,0.01) !important;
+                border: 1px solid rgba(255,255,255,0.03) !important;
+                border-radius: 6px !important; padding: 0.75rem !important;
+                margin-bottom: 0.5rem !important; font-size: 12px !important;
+                cursor: pointer !important;
+            }
+            #gpraise-scriptura-shield .sc-fav-item:hover { border-color: #C8972A !important; }
+
+            /* Área del lector */
+            #gpraise-scriptura-shield .sc-main-reader {
+                display: flex !important; flex-direction: column !important;
+                overflow: hidden !important; background-color: #050811 !important;
+            }
+            #gpraise-scriptura-shield .sc-reader-header {
+                padding: 1.5rem 2rem !important;
+                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+                display: flex !important; justify-content: space-between !important;
+                align-items: center !important; background: #060A15 !important;
+            }
+            #gpraise-scriptura-shield .sc-current-location {
+                font-size: 22px !important; font-weight: 700 !important;
+                color: #FFFFFF !important; display: flex !important;
+                align-items: center !important; gap: 10px !important;
+            }
+            #gpraise-scriptura-shield .sc-version-pill {
+                background: linear-gradient(135deg, #C8972A 0%, #A6761E 100%) !important;
+                color: #050811 !important; padding: 4px 12px !important;
+                border-radius: 99px !important; font-size: 11px !important;
+                font-weight: 800 !important;
+            }
+            #gpraise-scriptura-shield .sc-reader-body {
+                flex: 1 !important; overflow-y: auto !important;
+                padding: 3rem !important; line-height: 1.85 !important;
+                font-size: 18px !important; color: #CBD5E1 !important;
+                max-width: 840px !important; margin: 0 auto !important;
+                width: 100% !important;
+            }
+            #gpraise-scriptura-shield .v-box {
+                cursor: pointer !important; padding: 4px 6px !important;
+                border-radius: 4px !important; transition: background 0.2s ease !important;
+                display: inline !important; position: relative !important;
+            }
+            #gpraise-scriptura-shield .v-box:hover {
+                background: rgba(255,255,255,0.05) !important;
+            }
+            #gpraise-scriptura-shield .v-num {
+                font-size: 12px !important; font-weight: 700 !important;
+                color: #C8972A !important; margin-right: 6px !important;
+                vertical-align: super !important;
+            }
+            /* Resaltados */
+            #gpraise-scriptura-shield .hl-gold { background: rgba(200,151,42,0.25) !important; border-bottom: 2px dashed #C8972A !important; }
+            #gpraise-scriptura-shield .hl-emerald { background: rgba(16,185,129,0.25) !important; border-bottom: 2px dashed #10B981 !important; }
+            #gpraise-scriptura-shield .hl-sapphire { background: rgba(37,99,235,0.25) !important; border-bottom: 2px dashed #2563EB !important; }
+            #gpraise-scriptura-shield .hl-ruby { background: rgba(225,29,72,0.25) !important; border-bottom: 2px dashed #E11D48 !important; }
+
+            /* Panel contextual */
+            #gpraise-scriptura-shield .sc-ctx-panel {
+                position: absolute !important; bottom: -400px !important;
+                left: 280px !important; right: 0 !important; height: 340px !important;
+                background: #090F1F !important; border-top: 1px solid rgba(200,151,42,0.2) !important;
+                transition: bottom 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+                display: grid !important; grid-template-rows: auto 1fr !important;
+                z-index: 100 !important;
+            }
+            #gpraise-scriptura-shield .sc-ctx-panel.open { bottom: 0 !important; }
+            #gpraise-scriptura-shield .sc-ctx-header {
+                background: #0D142A !important; padding: 0.75rem 1.5rem !important;
+                display: flex !important; justify-content: space-between !important;
+                align-items: center !important; border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+            }
+            #gpraise-scriptura-shield .sc-action-row {
+                display: flex !important; align-items: center !important; gap: 15px !important;
+            }
+            #gpraise-scriptura-shield .sc-color-dot {
+                width: 22px !important; height: 22px !important; border-radius: 50% !important;
+                cursor: pointer !important; border: 2px solid transparent !important;
+                transition: transform 0.1s !important;
+            }
+            #gpraise-scriptura-shield .sc-color-dot:hover { transform: scale(1.15) !important; }
+            #gpraise-scriptura-shield .sc-tool-btn {
+                background: rgba(255,255,255,0.03) !important;
+                border: 1px solid rgba(255,255,255,0.05) !important;
+                color: #94A3B8 !important; padding: 6px 12px !important;
+                border-radius: 6px !important; font-size: 12px !important;
+                font-weight: 600 !important; cursor: pointer !important;
+                display: inline-flex !important; align-items: center !important; gap: 6px !important;
+            }
+            #gpraise-scriptura-shield .sc-tool-btn:hover {
+                background: rgba(200,151,42,0.1) !important; color: #F5D97A !important;
+            }
+            #gpraise-scriptura-shield .sc-tool-btn.active {
+                background: #C8972A !important; color: #050811 !important;
+            }
+            #gpraise-scriptura-shield .sc-comparison-engine {
+                display: grid !important; grid-template-columns: repeat(4, 1fr) !important;
+                gap: 1rem !important; padding: 1.25rem !important;
+                overflow-x: auto !important; background: #060A15 !important;
+            }
+            #gpraise-scriptura-shield .sc-version-card {
+                background: #0D142A !important;
+                border: 1px solid rgba(255,255,255,0.03) !important;
+                border-radius: 8px !important; padding: 1rem !important;
+                display: flex !important; flex-direction: column !important; gap: 6px !important;
+            }
+            #gpraise-scriptura-shield .sc-v-title {
+                font-size: 11px !important; font-weight: 800 !important; color: #C8972A !important;
+                text-transform: uppercase !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+                padding-bottom: 4px !important;
+            }
+            #gpraise-scriptura-shield .sc-v-text {
+                font-size: 13.5px !important; line-height: 1.6 !important; color: #94A3B8 !important;
+            }
+            @media (max-width: 768px) {
+                #gpraise-scriptura-shield { grid-template-columns: 1fr !important; }
+                #gpraise-scriptura-shield .sc-ctx-panel { left: 0 !important; }
+                #gpraise-scriptura-shield .sc-comparison-engine { grid-template-columns: 1fr !important; }
+                #gpraise-scriptura-shield .sc-reader-body { padding: 1.5rem !important; font-size: 16px !important; }
+            }
+        </style>
+
+        <aside class="sc-sidebar">
+            <div class="sc-sidebar-header">
+                <div class="sc-brand">Ecosistema Digital</div>
+                <h2 class="sc-app-title">SCRIPTURA</h2>
+            </div>
+            <div class="sc-tabs-nav">
+                <button class="sc-tab-btn active" id="btn-tab-libros" onclick="switchSidebarView('libros')">Libros</button>
+                <button class="sc-tab-btn" id="btn-tab-favs" onclick="switchSidebarView('favs')">Mis Joyas</button>
+            </div>
+            <div class="sc-sidebar-scroll">
+                <div class="sc-sidebar-pane active" id="sc-pane-libros">
+                    <div class="sc-list-group-title">Antiguo Testamento</div>
+                    <div class="sc-book-item" data-book="Salmos" data-chapter="23"><i class="fa-solid fa-bookmark" style="margin-right:8px; color:#C8972A;"></i> Salmos <span style="font-size:10px;">Cap. 23</span></div>
+                    <div class="sc-book-item" data-book="Isaías" data-chapter="40"><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Isaías <span style="font-size:10px;">Cap. 40</span></div>
+                    <div class="sc-list-group-title">Nuevo Testamento</div>
+                    <div class="sc-book-item" data-book="Juan" data-chapter="4"><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Juan <span style="font-size:10px;">Cap. 4</span></div>
+                    <div class="sc-book-item" data-book="Romanos" data-chapter="8"><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Romanos <span style="font-size:10px;">Cap. 8</span></div>
+                    <div class="sc-book-item" data-book="Efesios" data-chapter="5"><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Efesios <span style="font-size:10px;">Cap. 5</span></div>
+                </div>
+                <div class="sc-sidebar-pane" id="sc-pane-favs">
+                    <div id="sc-favs-dynamic-list" style="padding:0.5rem;"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="sc-main-reader">
+            <header class="sc-reader-header">
+                <div class="sc-current-location" id="sc-header-title">Salmos 23</div>
+                <div class="sc-version-pill">REINA VALERA 1960</div>
+            </header>
+            <div class="sc-reader-body" id="sc-bible-text-flow">
+                <div style="text-align:center; color:#64748B;">Cargando Escrituras...</div>
+            </div>
+            <div class="sc-ctx-panel" id="scCtxPanel">
+                <div class="sc-ctx-header">
+                    <div style="font-size:12px; font-weight:700;" id="sc-ctx-verse-indicator">Versículo Seleccionado</div>
+                    <div class="sc-action-row">
+                        <div style="display:flex; gap:6px; align-items:center; margin-right:10px;">
+                            <div class="sc-color-dot" style="background:#C8972A;" onclick="applyHighlightToSelected('hl-gold')"></div>
+                            <div class="sc-color-dot" style="background:#10B981;" onclick="applyHighlightToSelected('hl-emerald')"></div>
+                            <div class="sc-color-dot" style="background:#2563EB;" onclick="applyHighlightToSelected('hl-sapphire')"></div>
+                            <div class="sc-color-dot" style="background:#E11D48;" onclick="applyHighlightToSelected('hl-ruby')"></div>
+                            <div class="sc-color-dot" style="background:transparent; border:1px dashed #64748B; display:flex; align-items:center; justify-content:center; color:#64748B; font-size:10px;" onclick="applyHighlightToSelected('clear')"><i class="fa-solid fa-eraser"></i></div>
+                        </div>
+                        <button class="sc-tool-btn" id="sc-btn-fav" onclick="toggleFavoriteSelected()"><i class="fa-solid fa-star"></i> Favorito</button>
+                        <button class="sc-tool-btn" onclick="shareVerseAction()"><i class="fa-solid fa-share-nodes"></i> Copiar</button>
+                        <button class="sc-tool-btn" style="background:rgba(225,29,72,0.1); color:#E11D48;" onclick="closeScripturaCtx()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div class="sc-comparison-engine" id="scComparisonView"></div>
+            </div>
+        </main>
+    </div>
+    `;
+    container.innerHTML = html;
+
+    // Vincular eventos de los libros
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const book = el.getAttribute('data-book');
+            const chapter = parseInt(el.getAttribute('data-chapter'));
+            if (book && chapter) cargarCapitulo(book, chapter);
+        });
+    });
+
+    // Cargar capítulo inicial
+    await cargarCapitulo(scCurrentBook, scCurrentChapter);
+}
+
+// ========== FUNCIONES AUXILIARES DE SCRIPTURA ==========
+async function cargarDatosScriptura() {
+    if (!currentUser) return;
+    // Cargar favoritos y resaltados desde Supabase
+    const { data, error } = await supabaseClient
+        .from('biblia_progreso')
+        .select('*')
+        .eq('user_id', currentUser.id);
+    if (error) console.error('Error cargando datos bíblicos:', error);
+    else {
+        scFavorites = [];
+        scHighlights = {};
+        for (let item of data) {
+            if (item.es_favorito) {
+                scFavorites.push({
+                    book: item.libro,
+                    chapter: item.capitulo,
+                    verse: item.versiculo,
+                    text: '' // se cargará después
+                });
+            }
+            if (item.resaltado_color) {
+                const key = `${item.libro}_${item.capitulo}_${item.versiculo}`;
+                scHighlights[key] = item.resaltado_color;
+            }
+        }
+        renderFavoritesSidebar();
+    }
+}
+
+async function cargarCapitulo(book, chapter) {
+    scCurrentBook = book;
+    scCurrentChapter = chapter;
+    scSelectedVerseNum = null;
+    closeScripturaCtx();
+
+    // Actualizar UI
+    document.getElementById('sc-header-title').innerText = `${book} ${chapter}`;
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
+        if (el.getAttribute('data-book') === book && parseInt(el.getAttribute('data-chapter')) === chapter) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+
+    // Mostrar loader
+    const textContainer = document.getElementById('sc-bible-text-flow');
+    textContainer.innerHTML = '<div style="text-align:center; color:#94A3B8;">Cargando capítulo...</div>';
+
+    // Usar API gratuita: https://bible-api.fr/ (sin clave)
+    // Versión RVR1960 por defecto
+    const url = `https://bible-api.fr/api/verses/${encodeURIComponent(book)}/${chapter}?version=RVR1960`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data && data.verses && data.verses.length) {
+            let html = '';
+            for (let v of data.verses) {
+                const verseNum = v.verse;
+                const uniqueKey = `${book}_${chapter}_${verseNum}`;
+                const savedClass = scHighlights[uniqueKey] || '';
+                html += `<span class="v-box ${savedClass}" id="vbox-${uniqueKey}" onclick="openVersePremiumPanel(${verseNum})">
+                            <span class="v-num">${verseNum}</span> ${v.text}
+                        </span> `;
+            }
+            textContainer.innerHTML = html;
+        } else {
+            textContainer.innerHTML = '<p>No se pudo cargar el capítulo. Intente más tarde.</p>';
+        }
+    } catch (error) {
+        console.error(error);
+        textContainer.innerHTML = '<p>Error de conexión con la API bíblica.</p>';
+    }
+}
+
+async function openVersePremiumPanel(verseNum) {
+    scSelectedVerseNum = verseNum;
+    const panel = document.getElementById('scCtxPanel');
+    panel.classList.add('open');
+
+    document.getElementById('sc-ctx-verse-indicator').innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${verseNum}`;
+
+    // Verificar si ya es favorito
+    const isFav = scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === verseNum);
+    const favBtn = document.getElementById('sc-btn-fav');
+    if (isFav) {
+        favBtn.classList.add('active');
+        favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Guardado en Joyas`;
+    } else {
+        favBtn.classList.remove('active');
+        favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Marcar Favorito`;
+    }
+
+    // Cargar comparación de versiones desde la API
+    const compView = document.getElementById('scComparisonView');
+    compView.innerHTML = '<div style="padding:1rem; text-align:center;">Cargando versiones...</div>';
+
+    const versiones = ['RVR1960', 'NVI', 'TLA', 'NTV'];
+    const promises = versiones.map(version => 
+        fetch(`https://bible-api.fr/api/verse/${encodeURIComponent(scCurrentBook)}/${scCurrentChapter}/${verseNum}?version=${version}`)
+            .then(res => res.json())
+            .catch(() => null)
+    );
+    const results = await Promise.all(promises);
+    let html = '';
+    for (let i = 0; i < versiones.length; i++) {
+        const version = versiones[i];
+        const data = results[i];
+        const text = (data && data.text) ? data.text : 'Texto no disponible';
+        html += `
+            <div class="sc-version-card">
+                <div class="sc-v-title">${version}</div>
+                <div class="sc-v-text">${text}</div>
+            </div>
+        `;
+    }
+    compView.innerHTML = html;
+}
+
+function closeScripturaCtx() {
+    document.getElementById('scCtxPanel').classList.remove('open');
+    scSelectedVerseNum = null;
+}
+
+async function applyHighlightToSelected(hlClass) {
+    if (!scSelectedVerseNum) return;
+    const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
+    const targetSpan = document.getElementById(`vbox-${uniqueKey}`);
+    if (!targetSpan) return;
+
+    // Remover clases anteriores
+    targetSpan.classList.remove('hl-gold', 'hl-emerald', 'hl-sapphire', 'hl-ruby');
+    if (hlClass !== 'clear') {
+        targetSpan.classList.add(hlClass);
+        scHighlights[uniqueKey] = hlClass;
+        // Guardar en Supabase
+        if (currentUser) {
+            await supabaseClient.from('biblia_progreso').upsert({
+                user_id: currentUser.id,
+                libro: scCurrentBook,
+                capitulo: scCurrentChapter,
+                versiculo: scSelectedVerseNum,
+                resaltado_color: hlClass,
+                es_favorito: scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === scSelectedVerseNum)
+            }, { onConflict: 'user_id, libro, capitulo, versiculo' });
+        }
+    } else {
+        delete scHighlights[uniqueKey];
+        if (currentUser) {
+            await supabaseClient.from('biblia_progreso').update({ resaltado_color: null })
+                .eq('user_id', currentUser.id)
+                .eq('libro', scCurrentBook)
+                .eq('capitulo', scCurrentChapter)
+                .eq('versiculo', scSelectedVerseNum);
+        }
+    }
+}
+
+async function toggleFavoriteSelected() {
+    if (!scSelectedVerseNum) return;
+    const existingIndex = scFavorites.findIndex(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === scSelectedVerseNum);
+
+    if (existingIndex > -1) {
+        scFavorites.splice(existingIndex, 1);
+        if (currentUser) {
+            await supabaseClient.from('biblia_progreso').update({ es_favorito: false })
+                .eq('user_id', currentUser.id)
+                .eq('libro', scCurrentBook)
+                .eq('capitulo', scCurrentChapter)
+                .eq('versiculo', scSelectedVerseNum);
+        }
+    } else {
+        // Obtener texto del versículo desde la UI (o desde API)
+        const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
+        const span = document.getElementById(`vbox-${uniqueKey}`);
+        let verseText = '';
+        if (span) verseText = span.innerText.replace(/^\d+\s*/, '').trim();
+        scFavorites.push({
+            book: scCurrentBook,
+            chapter: scCurrentChapter,
+            verse: scSelectedVerseNum,
+            text: verseText
+        });
+        if (currentUser) {
+            await supabaseClient.from('biblia_progreso').upsert({
+                user_id: currentUser.id,
+                libro: scCurrentBook,
+                capitulo: scCurrentChapter,
+                versiculo: scSelectedVerseNum,
+                es_favorito: true,
+                resaltado_color: scHighlights[uniqueKey] || null
+            }, { onConflict: 'user_id, libro, capitulo, versiculo' });
+        }
+    }
+    // Actualizar UI del botón y sidebar
+    openVersePremiumPanel(scSelectedVerseNum);
+    renderFavoritesSidebar();
+}
+
+function renderFavoritesSidebar() {
+    const container = document.getElementById('sc-favs-dynamic-list');
+    if (!container) return;
+    if (scFavorites.length === 0) {
+        container.innerHTML = '<div style="font-size:11px; color:#64748B; text-align:center; padding:1rem;">No has guardado joyas aún.</div>';
+        return;
+    }
+    container.innerHTML = scFavorites.map(f => `
+        <div class="sc-fav-item" onclick="cargarCapitulo('${f.book}', ${f.chapter})">
+            <strong style="color:#C8972A; display:block; margin-bottom:2px;">${f.book} ${f.chapter}:${f.verse}</strong>
+            <span style="color:#94A3B8; font-style:italic; font-size:11px;">"${f.text.substring(0, 100)}..."</span>
+        </div>
+    `).join('');
+}
+
+function switchSidebarView(view) {
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-sidebar-pane').forEach(p => p.classList.remove('active'));
+    if (view === 'libros') {
+        document.getElementById('btn-tab-libros').classList.add('active');
+        document.getElementById('sc-pane-libros').classList.add('active');
+    } else {
+        document.getElementById('btn-tab-favs').classList.add('active');
+        document.getElementById('sc-pane-favs').classList.add('active');
+    }
+}
+
+function shareVerseAction() {
+    if (!scSelectedVerseNum) return;
+    const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
+    const span = document.getElementById(`vbox-${uniqueKey}`);
+    if (!span) return;
+    const verseText = span.innerText.replace(/^\d+\s*/, '').trim();
+    const shareString = `"${verseText}" — ${scCurrentBook} ${scCurrentChapter}:${scSelectedVerseNum}`;
+    navigator.clipboard.writeText(shareString).then(() => {
+        alert('¡Versículo copiado al portapapeles!');
+    }).catch(() => alert('No se pudo copiar.'));
+}
     
     
 // ========== RECURSOS ==========
