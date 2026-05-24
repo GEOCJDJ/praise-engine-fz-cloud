@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin | Aula Virtual G-Praise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    :root { --av-gold: #C8972A; --av-navy: #1E3A8A; --av-border: #E2E8F0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background: #F1F5F9; }
+    .admin-sidebar { width: 280px; background: #0B1329; color: white; }
+    .admin-sidebar-item { display: flex; align-items: center; gap: 12px; padding: 0.9rem 1.5rem; color: #8A99AD; cursor: pointer; border-left: 4px solid transparent; }
+    .admin-sidebar-item.active { background: #131E3A; color: white; border-left-color: var(--av-gold); }
+    .admin-content { flex: 1; overflow-y: auto; background: #F8FAFC; }
+    .form-card { background: white; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid var(--av-border); }
+    .input-field { width: 100%; background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 0.65rem; }
+  </style>
+</head>
+<body>
+
+<div id="admin-root" style="display: flex; height: 100vh; width: 100vw;">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="p-6 border-b border-slate-800">
+      <h1 class="font-bold text-white">G-PANEL ADM</h1>
+      <p class="text-xs text-amber-500">Aula Virtual</p>
+    </div>
+    <nav class="py-4">
+      <div class="admin-sidebar-item active" data-tab="cursos">📚 Cursos y Módulos</div>
+      <div class="admin-sidebar-item" data-tab="examenes">📝 Exámenes y Preguntas</div>
+      <div class="admin-sidebar-item" data-tab="tareas">📋 Tareas</div>
+      <div class="admin-sidebar-item" data-tab="devocionales">🙏 Devocionales</div>
+    </nav>
+  </aside>
+
+  <!-- Contenido principal -->
+  <div class="admin-content">
+    <div class="p-6 border-b bg-white flex justify-between">
+      <h2 class="font-bold text-slate-800">Centro de Control Académico</h2>
+      <button id="syncBtn" class="bg-blue-900 text-white px-3 py-1 rounded text-xs"><i class="fas fa-sync"></i> Sincronizar</button>
+    </div>
+    <div id="adminPanelContent" class="p-6"></div>
+  </div>
+</div>
+
+<script>
+  // ========== CONFIGURACIÓN SUPABASE (misma que en tu app principal) ==========
+  const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let currentIglesiaId = null;
+  let currentUser = null;
+
+  // Obtener sesión y datos de la iglesia desde localStorage o Supabase
+  async function initAdmin() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      document.getElementById('adminPanelContent').innerHTML = '<div class="p-6 text-red-500">No has iniciado sesión. Cierra esta ventana y abre desde la app principal.</div>';
+      return;
+    }
+    currentUser = session.user;
+    // Obtener iglesia_id del usuario (podrías tenerlo guardado en localStorage)
+    const { data: userIglesia } = await supabase
+      .from('usuarios_iglesia')
+      .select('iglesia_id')
+      .eq('user_id', currentUser.id)
+      .single();
+    if (userIglesia) currentIglesiaId = userIglesia.iglesia_id;
+    else {
+      // Si no, intentar obtener del perfil (admin global)
+      const { data: perfil } = await supabase.from('perfiles').select('rol').eq('id', currentUser.id).single();
+      if (perfil?.rol === 'admin') currentIglesiaId = null; // admin global puede ver todas? Lo dejamos null y mostramos selector
+    }
+    renderCurrentTab();
+    attachEvents();
+  }
+
+  function attachEvents() {
+    document.querySelectorAll('.admin-sidebar-item').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.admin-sidebar-item').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
+        renderCurrentTab();
+      });
+    });
+    document.getElementById('syncBtn').addEventListener('click', () => renderCurrentTab());
+  }
+
+  function renderCurrentTab() {
+    const active = document.querySelector('.admin-sidebar-item.active').getAttribute('data-tab');
+    if (active === 'cursos') renderCursosTab();
+    if (active === 'examenes') renderExamenesTab();
+    if (active === 'tareas') renderTareasTab();
+    if (active === 'devocionales') renderDevocionalesTab();
+  }
+
+  // ========== 1. GESTIÓN DE CURSOS Y MÓDULOS ==========
+  async function renderCursosTab() {
+    const container = document.getElementById('adminPanelContent');
+    let cursos = [];
+    if (currentIglesiaId) {
+      const { data } = await supabase.from('cursos').select('*').eq('entidad_id', currentIglesiaId);
+      cursos = data || [];
+    } else {
+      const { data } = await supabase.from('cursos').select('*');
+      cursos = data || [];
+    }
+    let html = `<div class="form-card"><h3 class="font-bold mb-3">➕ Nuevo Curso</h3>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <input type="text" id="newCursoTitulo" class="input-field" placeholder="Título del curso">
+        <input type="text" id="newCursoTag" class="input-field" placeholder="Enfoque (ej. Teología)">
+      </div>
+      <textarea id="newCursoDesc" rows="2" class="input-field mb-3" placeholder="Descripción"></textarea>
+      <button class="bg-emerald-600 text-white px-4 py-2 rounded text-sm" onclick="crearCurso()">Crear Curso</button>
+    </div>`;
+    html += `<div class="space-y-4"><h3 class="font-bold">📘 Cursos existentes</h3>`;
+    for (let curso of cursos) {
+      const { data: modulos } = await supabase.from('modulos').select('*').eq('curso_id', curso.id);
+      html += `<div class="bg-white p-4 rounded-xl border">
+        <div class="flex justify-between items-start">
+          <div><h4 class="font-bold">${curso.titulo}</h4><p class="text-sm text-slate-500">${curso.descripcion || ''}</p></div>
+          <button class="text-red-500 text-xs" onclick="eliminarCurso('${curso.id}')">Eliminar</button>
+        </div>
+        <div class="mt-2"><strong class="text-sm">Módulos:</strong>
+          ${modulos.map(m => `<span class="inline-block bg-slate-100 rounded-full px-2 py-1 text-xs mr-1">${m.titulo}</span>`).join('')}
+          <button class="text-blue-600 text-xs ml-2" onclick="agregarModulo('${curso.id}')">+ Añadir módulo</button>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+
+  window.crearCurso = async () => {
+    const titulo = document.getElementById('newCursoTitulo').value.trim();
+    const tag = document.getElementById('newCursoTag').value.trim();
+    const desc = document.getElementById('newCursoDesc').value.trim();
+    if (!titulo) return alert("Título requerido");
+    const id = crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random();
+    await supabase.from('cursos').insert({
+      id, titulo, descripcion: desc,
+      entidad_tipo: 'iglesia', entidad_id: currentIglesiaId,
+      creado_por: currentUser.id
+    });
+    alert("Curso creado");
+    renderCursosTab();
+  };
+  window.eliminarCurso = async (id) => {
+    if (confirm("¿Eliminar curso y todos sus módulos?")) {
+      await supabase.from('modulos').delete().eq('curso_id', id);
+      await supabase.from('cursos').delete().eq('id', id);
+      renderCursosTab();
+    }
+  };
+  window.agregarModulo = async (cursoId) => {
+    const titulo = prompt("Título del módulo:");
+    if (!titulo) return;
+    const id = crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random();
+    await supabase.from('modulos').insert({ id, curso_id: cursoId, titulo, orden_index: 1 });
+    renderCursosTab();
+  };
+
+  // ========== 2. GESTIÓN DE EXÁMENES Y PREGUNTAS ==========
+  async function renderExamenesTab() {
+    const container = document.getElementById('adminPanelContent');
+    const { data: examenes } = await supabase.from('examenes').select('*, modulos(titulo)');
+    let html = `<div class="form-card"><h3 class="font-bold mb-3">📝 Nuevo Examen</h3>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <input type="text" id="newExamTitulo" class="input-field" placeholder="Título del examen">
+        <select id="newExamModulo" class="input-field">
+          <option value="">Selecciona un módulo</option>
+          ${(await supabase.from('modulos').select('id, titulo')).data?.map(m => `<option value="${m.id}">${m.titulo}</option>`).join('')}
+        </select>
+      </div>
+      <input type="number" id="newExamTiempo" class="input-field mb-3" placeholder="Tiempo por pregunta (segundos)" value="15">
+      <button class="bg-emerald-600 text-white px-4 py-2 rounded text-sm" onclick="crearExamen()">Crear Examen</button>
+    </div>`;
+    html += `<div class="space-y-4"><h3 class="font-bold">📋 Exámenes registrados</h3>`;
+    for (let ex of examenes || []) {
+      const { data: preguntas } = await supabase.from('preguntas').select('*').eq('examen_id', ex.id);
+      html += `<div class="bg-white p-4 rounded-xl border">
+        <div class="flex justify-between"><div><h4 class="font-bold">${ex.titulo}</h4><p class="text-xs">Módulo: ${ex.modulos?.titulo || '?'} | ⏱️ ${ex.tiempo_por_pregunta}s</p></div>
+        <button class="text-red-500 text-xs" onclick="eliminarExamen('${ex.id}')">Eliminar</button></div>
+        <div class="mt-2"><strong>Preguntas:</strong> ${preguntas?.length || 0}
+          <button class="text-blue-600 text-xs ml-2" onclick="gestionarPreguntas('${ex.id}')">Gestionar preguntas</button>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+
+  window.crearExamen = async () => {
+    const titulo = document.getElementById('newExamTitulo').value.trim();
+    const modulo_id = document.getElementById('newExamModulo').value;
+    const tiempo = parseInt(document.getElementById('newExamTiempo').value) || 15;
+    if (!titulo || !modulo_id) return alert("Completa título y módulo");
+    const id = crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random();
+    await supabase.from('examenes').insert({ id, titulo, modulo_id, tiempo_por_pregunta: tiempo });
+    alert("Examen creado");
+    renderExamenesTab();
+  };
+  window.eliminarExamen = async (id) => {
+    if (confirm("¿Eliminar examen y todas sus preguntas?")) {
+      await supabase.from('preguntas').delete().eq('examen_id', id);
+      await supabase.from('examenes').delete().eq('id', id);
+      renderExamenesTab();
+    }
+  };
+  window.gestionarPreguntas = async (examenId) => {
+    const { data: preguntas } = await supabase.from('preguntas').select('*').eq('examen_id', examenId);
+    let modalHtml = `<div><h3>Preguntas del examen</h3><div id="preguntasLista">`;
+    for (let p of preguntas) {
+      modalHtml += `<div class="border p-2 mb-2">${p.enunciado} <button class="text-red-500" onclick="eliminarPregunta('${p.id}')">🗑️</button></div>`;
+    }
+    modalHtml += `</div>
+      <input type="text" id="nuevaPregunta" class="input-field my-2" placeholder="Enunciado de la pregunta">
+      <div class="grid grid-cols-2 gap-2">
+        <input type="text" id="opA" placeholder="Opción A (correcta)" class="input-field">
+        <input type="text" id="opB" placeholder="Opción B" class="input-field">
+        <input type="text" id="opC" placeholder="Opción C" class="input-field">
+        <input type="text" id="opD" placeholder="Opción D" class="input-field">
+      </div>
+      <button class="bg-blue-900 text-white px-3 py-1 rounded mt-2" onclick="guardarPregunta('${examenId}')">Agregar Pregunta</button>
+      <button class="btn-ghost mt-2" onclick="closeModal()">Cerrar</button>
+    </div>`;
+    showModalSimple(modalHtml);
+  };
+  window.guardarPregunta = async (examenId) => {
+    const enunciado = document.getElementById('nuevaPregunta').value.trim();
+    const opA = document.getElementById('opA').value.trim();
+    const opB = document.getElementById('opB').value.trim();
+    const opC = document.getElementById('opC').value.trim();
+    const opD = document.getElementById('opD').value.trim();
+    if (!enunciado || !opA) return alert("Enunciado y opción A son obligatorios (A es la correcta)");
+    const id = crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random();
+    await supabase.from('preguntas').insert({
+      id, examen_id: examenId, enunciado, tipo: 'multiple',
+      opcion_a: opA, opcion_b: opB, opcion_c: opC, opcion_d: opD,
+      opcion_correcta: 'A', tiempo_segundos: 15
+    });
+    alert("Pregunta agregada");
+    closeModal();
+    gestionarPreguntas(examenId);
+  };
+
+  // ========== 3. GESTIÓN DE TAREAS ==========
+  async function renderTareasTab() {
+    const container = document.getElementById('adminPanelContent');
+    const { data: tareas } = await supabase.from('tareas_aula').select('*').eq('iglesia_id', currentIglesiaId);
+    let html = `<div class="form-card"><h3 class="font-bold mb-3">📋 Nueva Tarea</h3>
+      <input type="text" id="newTareaTitulo" class="input-field mb-2" placeholder="Título">
+      <textarea id="newTareaDesc" rows="2" class="input-field mb-2" placeholder="Descripción"></textarea>
+      <input type="text" id="newTareaFecha" class="input-field mb-2" placeholder="Fecha límite (ej. Domingo 15 Jun)">
+      <button class="bg-emerald-600 text-white px-4 py-2 rounded text-sm" onclick="crearTarea()">Crear Tarea</button>
+    </div>
+    <div class="space-y-2"><h3 class="font-bold">Tareas activas</h3>`;
+    for (let t of tareas || []) {
+      html += `<div class="bg-white p-3 rounded border flex justify-between"><div><strong>${t.titulo}</strong><br><span class="text-xs">${t.fecha_limite}</span><p class="text-xs">${t.descripcion}</p></div><button class="text-red-500" onclick="eliminarTareaAdmin('${t.id}')">Eliminar</button></div>`;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+  window.crearTarea = async () => {
+    const titulo = document.getElementById('newTareaTitulo').value.trim();
+    const desc = document.getElementById('newTareaDesc').value.trim();
+    const fecha = document.getElementById('newTareaFecha').value.trim();
+    if (!titulo) return alert("Título requerido");
+    const id = crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random();
+    await supabase.from('tareas_aula').insert({ id, titulo, descripcion: desc, fecha_limite: fecha, iglesia_id: currentIglesiaId });
+    alert("Tarea creada");
+    renderTareasTab();
+  };
+  window.eliminarTareaAdmin = async (id) => {
+    if (confirm("¿Eliminar esta tarea?")) {
+      await supabase.from('tareas_aula').delete().eq('id', id);
+      renderTareasTab();
+    }
+  };
+
+  // ========== 4. GESTIÓN DE DEVOCIONALES ==========
+  async function renderDevocionalesTab() {
+    const container = document.getElementById('adminPanelContent');
+    const hoy = new Date().toISOString().slice(0,10);
+    const { data: devoHoy } = await supabase.from('devocionales').select('*').eq('fecha', hoy).eq('iglesia_id', currentIglesiaId).single();
+    const { data: devos } = await supabase.from('devocionales').select('*').eq('iglesia_id', currentIglesiaId).order('fecha', { ascending: false }).limit(5);
+    let html = `<div class="form-card"><h3 class="font-bold mb-3">📖 Devocional de hoy (${hoy})</h3>
+      <textarea id="devoVersiculo" rows="2" class="input-field mb-2" placeholder="Versículo / Pasaje">${devoHoy?.versiculo || ''}</textarea>
+      <textarea id="devoReflexion" rows="3" class="input-field mb-2" placeholder="Reflexión o pregunta guiada">${devoHoy?.reflexion || ''}</textarea>
+      <button class="bg-emerald-600 text-white px-4 py-2 rounded text-sm" onclick="guardarDevocionalHoy()">Guardar Devocional de Hoy</button>
+    </div>
+    <div><h3 class="font-bold">Últimos devocionales</h3>`;
+    for (let d of devos || []) {
+      html += `<div class="bg-white p-2 my-2 border rounded text-sm"><strong>${d.fecha}</strong><br>${d.versiculo.substring(0,80)}...</div>`;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+  window.guardarDevocionalHoy = async () => {
+    const versiculo = document.getElementById('devoVersiculo').value.trim();
+    const reflexion = document.getElementById('devoReflexion').value.trim();
+    if (!versiculo || !reflexion) return alert("Completa ambos campos");
+    const hoy = new Date().toISOString().slice(0,10);
+    const { data: existe } = await supabase.from('devocionales').select('id').eq('fecha', hoy).eq('iglesia_id', currentIglesiaId).single();
+    const id = existe?.id || (crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random());
+    if (existe) {
+      await supabase.from('devocionales').update({ versiculo, reflexion }).eq('id', existe.id);
+    } else {
+      await supabase.from('devocionales').insert({ id, versiculo, reflexion, fecha: hoy, iglesia_id: currentIglesiaId });
+    }
+    alert("Devocional actualizado");
+    renderDevocionalesTab();
+  };
+
+  function showModalSimple(content) {
+    const modalDiv = document.createElement('div');
+    modalDiv.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4';
+    modalDiv.innerHTML = `<div class="bg-white rounded-xl max-w-lg w-full p-4 max-h-[80vh] overflow-auto">${content}</div>`;
+    document.body.appendChild(modalDiv);
+    window.closeModal = () => modalDiv.remove();
+  }
+
+  initAdmin();
+</script>
+</body>
+</html>
