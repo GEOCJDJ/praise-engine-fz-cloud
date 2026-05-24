@@ -388,7 +388,42 @@ let isIglesiaAdmin = false;
 let isDeptAdmin = false;
 let currentProfile = null;
 let adminSelectedIglesiaId = null;
+// Variables de control global para el Visor Musical
+let originalSongContent = "";  // Almacena el texto limpio y original de la canción activa
+let currentTransposeOffset = 0; // Lleva el control acumulado de tonos (+1, -2, 0, etc.)
+let currentFontSize = 16;       // Tamaño de letra por defecto
 
+const NOTE_TO_INDEX = {
+    'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4,
+    'F':5, 'F#':6, 'GB':6, 'G':7, 'G#':8, 'AB':8, 'A':9,
+    'A#':10, 'BB':10, 'B':11
+};
+const INDEX_TO_NOTE = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+function transposeChordName(chord, semitones) {
+    // Separa raíz, modificadores (m,7, maj, etc.) y bajo (/E)
+    const match = chord.match(/^([A-G][#b]?)(.*?)(\/([A-G][#b]?))?$/i);
+    if (!match) return chord;
+    let root = match[1];
+    let suffix = match[2] || '';
+    let slash = match[3] || '';
+    let slashNote = match[4] || '';
+
+    let idx = NOTE_TO_INDEX[root.toUpperCase()];
+    if (idx === undefined) return chord;
+    let newIdx = (idx + semitones + 12) % 12;
+    let newRoot = INDEX_TO_NOTE[newIdx];
+    if (slashNote) {
+        let slashIdx = NOTE_TO_INDEX[slashNote.toUpperCase()];
+        if (slashIdx !== undefined) {
+            let newSlashIdx = (slashIdx + semitones + 12) % 12;
+            slash = '/' + INDEX_TO_NOTE[newSlashIdx];
+        }
+    }
+    return newRoot + suffix + slash;
+}
+    
+    
 const keys = ["C","Cm","C#","C#m","D","Dm","D#","D#m","E","Em","F","Fm","F#","F#m","G","Gm","G#","G#m","A","Am","A#","A#m","B","Bm"];
 const noteMap = { 'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11 };
 const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -409,26 +444,20 @@ function openCifraViewer(songId, index) {
     const song = songs.find(s => s.id === songId);
     if (!song) return;
     cifraCurrentSong = song;
-    cifraBaseLyrics = song.lyrics || "";      // ← guarda el original intacto
-    cifraOriginalLyrics = cifraBaseLyrics;
-    cifraSemitonesShift = 0;
-    // Aplicar tamaño de letra guardado (si existe)
-let savedSize = localStorage.getItem('cifraFontSize');
-    if (savedSize) {
-        document.getElementById('cifraContentWrapper').style.fontSize = savedSize + 'px';
-    } else {
-        document.getElementById('cifraContentWrapper').style.fontSize = '16px';
-    }
+    // Guardar el original (sin modificar)
+    cifraOriginalContent = song.lyrics || "";
+    cifraCurrentOffset = 0;
+    cifraFontSize = parseInt(localStorage.getItem('cifraFontSize')) || 16;
+    // Actualizar datos en la interfaz
     document.getElementById('cifraModalTitle').innerText = song.title;
     document.getElementById('cifraModalArtist').innerText = song.category;
     document.getElementById('currentToneDisplay').innerText = song.key;
     document.getElementById('cifraBpmInput').value = song.bpm || 80;
     document.getElementById('cifraCapoInput').value = song.capo || '';
-    const capoText = song.capo ? `Capo: ${song.capo}` : '';
-    document.getElementById('cifraCapoDisplay').innerText = capoText;
-    document.getElementById('cifraBodyContainer').scrollTop = 0;
+    document.getElementById('cifraCapoDisplay').innerText = song.capo ? `Capo: ${song.capo}` : '';
+    // Renderizar con offset actual (0)
+    applyTransposition(0);
     startMetronomeVisual(song.bpm);
-    renderCifraContent();
     document.getElementById('cifraClubModal').style.display = 'flex';
 }
 
@@ -438,35 +467,86 @@ function closeCifraViewer() {
     document.getElementById('cifraClubModal').style.display = 'none';
 }
 
-function renderCifraContent() {
-    // Ya no transponemos aquí; simplemente mostramos lo que haya en cifraOriginalLyrics
-    const htmlContent = renderChordsOverLyrics(cifraOriginalLyrics);
-    const wrapper = document.getElementById('cifraContentWrapper');
-    wrapper.innerHTML = htmlContent;
-    
-    // Restaurar el tamaño de letra guardado
-    let savedSize = localStorage.getItem('cifraFontSize');
-    if (savedSize) {
-        wrapper.style.fontSize = savedSize + 'px';
-    } else {
-        wrapper.style.fontSize = '16px';
+function renderCifraFromText(content) {
+    if (!content) {
+        document.getElementById('cifraContentWrapper').innerHTML = '<p style="color:#64748b; text-align:center;">No hay letra disponible.</p>';
+        return;
     }
-    // Forzar que el <pre> herede el tamaño
-    let pre = wrapper.querySelector('pre');
-    if (pre) pre.style.fontSize = 'inherit';
+    // Convertir a líneas
+    const lines = content.split(/\r?\n/);
+    const chordPattern = /\b([A-G][#b]?(?:m|maj|min|dim|sus|aug|add)?\d*(?:\/[A-G][#b]?)?)\b/gi;
+    let html = '<pre style="font-family: \'Courier New\', Courier, monospace; white-space: pre-wrap; text-align: left; margin: 0; padding: 0; line-height: 1.6;">';
+    for (let line of lines) {
+        let coloredLine = line.replace(chordPattern, match => `<strong class="chord" style="color: #dc2626; font-weight: bold;">${match}</strong>`);
+        html += coloredLine + '\n';
+    }
+    html += '</pre>';
+    const wrapper = document.getElementById('cifraContentWrapper');
+    wrapper.innerHTML = html;
+    // Aplicar tamaño de letra guardado
+    const preElem = wrapper.querySelector('pre');
+    if (preElem) preElem.style.fontSize = cifraFontSize + 'px';
 }
 
-    function changeFontSizeCifra(delta) {
-    let wrapper = document.getElementById('cifraContentWrapper');
-    // Leer siempre de localStorage para evitar lecturas incorrectas de getComputedStyle
-    let cur = parseInt(localStorage.getItem('cifraFontSize')) || parseInt(getComputedStyle(wrapper).fontSize) || 16;
-    let newSize = cur + delta;
-    if (newSize < 12) newSize = 12;
-    if (newSize > 36) newSize = 36;
-    wrapper.style.fontSize = newSize + 'px';
-    localStorage.setItem('cifraFontSize', newSize);
-    let pre = wrapper.querySelector('pre');
-    if (pre) pre.style.fontSize = 'inherit';
+    function applyTransposition(offset) {
+    if (!cifraOriginalContent) return;
+    if (offset === 0) {
+        renderCifraFromText(cifraOriginalContent);
+        return;
+    }
+    const lines = cifraOriginalContent.split(/\r?\n/);
+    // Expresión para detectar líneas que son SOLO acordes
+    const chordLineRegex = /^[\s]*([A-G][#b]?(m|maj|min|dim|sus|aug|7M|M7|\d)*(\/[A-G][#b]?)?[\s,\.]*)+$/i;
+    const tokenRegex = /([A-G][#b]?)([^/\s]*)(\/([A-G][#b]?))?/g;
+
+    const transposedLines = lines.map(line => {
+        if (chordLineRegex.test(line) && line.trim().length > 0) {
+            // Línea de acordes: transponer cada token
+            return line.replace(tokenRegex, (match, root, mod, slashPart, slashRoot) => {
+                let newRoot = root;
+                let idx = NOTE_TO_INDEX[root.toUpperCase()];
+                if (idx !== undefined) {
+                    let newIdx = (idx + offset + 12) % 12;
+                    newRoot = INDEX_TO_NOTE[newIdx];
+                }
+                let newSlash = '';
+                if (slashRoot) {
+                    let sIdx = NOTE_TO_INDEX[slashRoot.toUpperCase()];
+                    if (sIdx !== undefined) {
+                        let newSIdx = (sIdx + offset + 12) % 12;
+                        newSlash = '/' + INDEX_TO_NOTE[newSIdx];
+                    }
+                }
+                return newRoot + (mod || '') + newSlash;
+            });
+        }
+        // También transponer la línea "Tono: X" si existe
+        if (line.toLowerCase().startsWith('tono:')) {
+            return line.replace(/([A-G][#b]?)(m|maj|min)?/i, (match, root, mod) => {
+                let idx = NOTE_TO_INDEX[root.toUpperCase()];
+                if (idx !== undefined) {
+                    let newIdx = (idx + offset + 12) % 12;
+                    return INDEX_TO_NOTE[newIdx] + (mod || '');
+                }
+                return match;
+            });
+        }
+        return line;
+    });
+    renderCifraFromText(transposedLines.join('\n'));
+}
+    
+
+    
+
+
+   function changeFontSizeCifra(delta) {
+    cifraFontSize += delta;
+    if (cifraFontSize < 10) cifraFontSize = 10;
+    if (cifraFontSize > 36) cifraFontSize = 36;
+    localStorage.setItem('cifraFontSize', cifraFontSize);
+    const preElem = document.querySelector('#cifraContentWrapper pre');
+    if (preElem) preElem.style.fontSize = cifraFontSize + 'px';
 }
     
     
@@ -490,25 +570,14 @@ function transposeLyricsCompleto(text, fromKey, toKey) {
     return transposedLines.join('\n');
 }
 function transposeCifra(steps) {
-    // Acumular el desplazamiento total (nunca se resetea hasta cambiar de canción)
-    cifraSemitonesShift += steps;
-
-    // Calcular nueva tonalidad a partir de la KEY ORIGINAL de la canción + shift total
-    let newKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
-
-    // SIEMPRE transponer desde cifraBaseLyrics (texto original intacto)
-    // Así +1 y luego -1 devuelve exactamente el texto de partida
-    if (cifraSemitonesShift === 0) {
-        cifraOriginalLyrics = cifraBaseLyrics;
-    } else {
-        cifraOriginalLyrics = transponeSemitonos(cifraBaseLyrics, cifraSemitonesShift);
-    }
-
-    // Actualizar indicador de tonalidad
+    if (!cifraOriginalContent) return;
+    cifraCurrentOffset += steps;
+    // Asegurar rango 0-11
+    cifraCurrentOffset = ((cifraCurrentOffset % 12) + 12) % 12;
+    // Mostrar la nueva tonalidad resultante
+    let newKey = getShiftedKey(cifraCurrentSong.key, cifraCurrentOffset);
     document.getElementById('currentToneDisplay').innerText = newKey;
-
-    // Re-renderizar
-    renderCifraContent();
+    applyTransposition(cifraCurrentOffset);
 }
 
 // Transpone directamente N semitonos desde el texto base (sin necesitar fromKey/toKey)
@@ -624,19 +693,53 @@ async function saveCifraStateToServer() {
         alert("Solo administrador puede guardar cambios permanentes.");
         return;
     }
-    let finalKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
+    let finalKey = getShiftedKey(cifraCurrentSong.key, cifraCurrentOffset);
     let finalBpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
     let finalCapo = document.getElementById('cifraCapoInput').value;
-    cifraCurrentSong.key = finalKey;
+    // Si hay offset, transpramos el original y lo guardamos como nuevo original
+    if (cifraCurrentOffset !== 0) {
+        const lines = cifraOriginalContent.split(/\r?\n/);
+        const chordLineRegex = /^[\s]*([A-G][#b]?(m|maj|min|dim|sus|aug|7M|M7|\d)*(\/[A-G][#b]?)?[\s,\.]*)+$/i;
+        const tokenRegex = /([A-G][#b]?)([^/\s]*)(\/([A-G][#b]?))?/g;
+        const transposedLines = lines.map(line => {
+            if (chordLineRegex.test(line)) {
+                return line.replace(tokenRegex, (match, root, mod, slashPart, slashRoot) => {
+                    let newRoot = root;
+                    let idx = NOTE_TO_INDEX[root.toUpperCase()];
+                    if (idx !== undefined) {
+                        let newIdx = (idx + cifraCurrentOffset + 12) % 12;
+                        newRoot = INDEX_TO_NOTE[newIdx];
+                    }
+                    let newSlash = '';
+                    if (slashRoot) {
+                        let sIdx = NOTE_TO_INDEX[slashRoot.toUpperCase()];
+                        if (sIdx !== undefined) {
+                            let newSIdx = (sIdx + cifraCurrentOffset + 12) % 12;
+                            newSlash = '/' + INDEX_TO_NOTE[newSIdx];
+                        }
+                    }
+                    return newRoot + (mod || '') + newSlash;
+                });
+            }
+            return line;
+        });
+        cifraCurrentSong.lyrics = transposedLines.join('\n');
+        cifraCurrentSong.key = finalKey;
+    } else {
+        cifraCurrentSong.lyrics = cifraOriginalContent;
+        cifraCurrentSong.key = finalKey;
+    }
     cifraCurrentSong.bpm = finalBpm;
     cifraCurrentSong.capo = finalCapo;
-    cifraCurrentSong.lyrics = cifraOriginalLyrics;   // ← guardar el texto ya transpuesto
     await saveSong(cifraCurrentSong);
-    alert("¡Tono, BPM y Capo guardados!");
-    cifraBaseLyrics = cifraOriginalLyrics;   // ← el nuevo "original" es el texto guardado
-    cifraSemitonesShift = 0;
+    // Después de guardar, resetear el original al contenido guardado y offset 0
+    cifraOriginalContent = cifraCurrentSong.lyrics;
+    cifraCurrentOffset = 0;
     document.getElementById('currentToneDisplay').innerText = finalKey;
+    applyTransposition(0);
+    alert("¡Canción actualizada con el nuevo tono, BPM y Capo!");
 }
+    
     function printCifra() {
     const title = cifraCurrentSong.title;
     const artist = cifraCurrentSong.category;
@@ -792,16 +895,19 @@ async function saveCifraStateToServer() {
             await saveSong(songToUpdate);
         }
         closeModal();
-        if (cifraCurrentSong && cifraCurrentSong.id === id) {
-            cifraCurrentSong.lyrics = newLyrics;
-            cifraCurrentSong.key = newKey;
-            cifraCurrentSong.bpm = newBpm;
-            cifraCurrentSong.capo = newCapo;
-            renderCifraContent();
-            document.getElementById('cifraBpmInput').value = newBpm;
-            document.getElementById('cifraCapoInput').value = newCapo;
-            startMetronomeVisual(newBpm);
-        }
+       if (cifraCurrentSong && cifraCurrentSong.id === id) {
+    cifraCurrentSong.lyrics = newLyrics;
+    cifraCurrentSong.key = newKey;
+    cifraCurrentSong.bpm = newBpm;
+    cifraCurrentSong.capo = newCapo;
+    // Importante: actualizar el original y resetear offset
+    cifraOriginalContent = newLyrics;
+    cifraCurrentOffset = 0;
+    applyTransposition(0);
+    document.getElementById('cifraBpmInput').value = newBpm;
+    document.getElementById('cifraCapoInput').value = newCapo;
+    startMetronomeVisual(newBpm);
+}
         if (currentTab === 'songs') await renderSongsGrid();
         else if (currentTab === 'favorites') await renderFavorites();
     };
