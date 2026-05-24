@@ -399,6 +399,7 @@ let cifraScrollSpeedLevel = 3;
 let cifraMetronomeInterval = null;
 let cifraCurrentSong = null;
 let cifraOriginalLyrics = "";
+let cifraBaseLyrics = "";   // ← TEXTO ORIGINAL INTACTO, nunca se modifica
 let cifraSemitonesShift = 0;
 let currentSongIndex = -1;
 
@@ -408,7 +409,8 @@ function openCifraViewer(songId, index) {
     const song = songs.find(s => s.id === songId);
     if (!song) return;
     cifraCurrentSong = song;
-    cifraOriginalLyrics = song.lyrics || "";
+    cifraBaseLyrics = song.lyrics || "";      // ← guarda el original intacto
+    cifraOriginalLyrics = cifraBaseLyrics;
     cifraSemitonesShift = 0;
     // Aplicar tamaño de letra guardado (si existe)
 let savedSize = localStorage.getItem('cifraFontSize');
@@ -456,7 +458,8 @@ function renderCifraContent() {
 
     function changeFontSizeCifra(delta) {
     let wrapper = document.getElementById('cifraContentWrapper');
-    let cur = parseInt(getComputedStyle(wrapper).fontSize);
+    // Leer siempre de localStorage para evitar lecturas incorrectas de getComputedStyle
+    let cur = parseInt(localStorage.getItem('cifraFontSize')) || parseInt(getComputedStyle(wrapper).fontSize) || 16;
     let newSize = cur + delta;
     if (newSize < 12) newSize = 12;
     if (newSize > 36) newSize = 36;
@@ -487,26 +490,49 @@ function transposeLyricsCompleto(text, fromKey, toKey) {
     return transposedLines.join('\n');
 }
 function transposeCifra(steps) {
-    // Actualizar el contador de semitonos acumulado
+    // Acumular el desplazamiento total (nunca se resetea hasta cambiar de canción)
     cifraSemitonesShift += steps;
-    
-    // Obtener la tonalidad actual que se muestra (la que tiene la canción en este momento)
-    let currentDisplayKey = document.getElementById('currentToneDisplay').innerText;
-    // O la original: cifraCurrentSong.key, pero lo correcto es usar la actual (puede que ya esté transpuesta)
-    // Mejor: usar la clave real de la canción más el desplazamiento acumulado
+
+    // Calcular nueva tonalidad a partir de la KEY ORIGINAL de la canción + shift total
     let newKey = getShiftedKey(cifraCurrentSong.key, cifraSemitonesShift);
-    
-    // Transponer el texto actual (cifraOriginalLyrics) desde la clave actual (la que se muestra) hacia la nueva
-    let transposedLyrics = transposeLyricsCompleto(cifraOriginalLyrics, currentDisplayKey, newKey);
-    
-    // Guardar el texto transpuesto
-    cifraOriginalLyrics = transposedLyrics;
-    
-    // Actualizar la visualización de la tonalidad
+
+    // SIEMPRE transponer desde cifraBaseLyrics (texto original intacto)
+    // Así +1 y luego -1 devuelve exactamente el texto de partida
+    if (cifraSemitonesShift === 0) {
+        cifraOriginalLyrics = cifraBaseLyrics;
+    } else {
+        cifraOriginalLyrics = transponeSemitonos(cifraBaseLyrics, cifraSemitonesShift);
+    }
+
+    // Actualizar indicador de tonalidad
     document.getElementById('currentToneDisplay').innerText = newKey;
-    
-    // Volver a renderizar el visor
+
+    // Re-renderizar
     renderCifraContent();
+}
+
+// Transpone directamente N semitonos desde el texto base (sin necesitar fromKey/toKey)
+function transponeSemitonos(text, semitones) {
+    if (!text || semitones === 0) return text;
+    const semiNorm = ((semitones % 12) + 12) % 12;
+    if (semiNorm === 0) return text;
+
+    // Regex que captura la raíz del acorde + sufijo completo (incluye números como 7M, 9, 7, 7M, 7sus, etc.)
+    // NO transpone palabras comunes (la, mi, re como pronombres) gracias al contexto de la línea
+    const lines = text.split('\n');
+    return lines.map(line => {
+        // Detectar si es línea de acordes: sin vocales españolas y contiene notas
+        const isChordLine = /^[\sA-Ga-g0-9#b\/\(\)]+$/.test(line) && !/[aeiouáéíóúü]/i.test(line);
+        if (!isChordLine || line.trim().length === 0) return line;
+
+        // Regex para acordes en línea de acordes: captura raíz + sufijo completo
+        return line.replace(/\b([A-G][#b]?)((?:maj|min|dim|aug|sus|add|M)?(?:\d+)?(?:\/[A-G][#b]?)?)\b/g, (match, root, suffix) => {
+            let idx = noteMap[root];
+            if (idx === undefined) return match;
+            let newIdx = (idx + semiNorm) % 12;
+            return noteNames[newIdx] + suffix;
+        });
+    }).join('\n');
 }
 function updateSongBpm() {
     if (cifraCurrentSong) {
@@ -604,8 +630,10 @@ async function saveCifraStateToServer() {
     cifraCurrentSong.key = finalKey;
     cifraCurrentSong.bpm = finalBpm;
     cifraCurrentSong.capo = finalCapo;
+    cifraCurrentSong.lyrics = cifraOriginalLyrics;   // ← guardar el texto ya transpuesto
     await saveSong(cifraCurrentSong);
     alert("¡Tono, BPM y Capo guardados!");
+    cifraBaseLyrics = cifraOriginalLyrics;   // ← el nuevo "original" es el texto guardado
     cifraSemitonesShift = 0;
     document.getElementById('currentToneDisplay').innerText = finalKey;
 }
