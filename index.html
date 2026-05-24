@@ -1654,26 +1654,53 @@ window.descargarRecursoGnotes = (archivo) => {
     alert(`🔧 En una versión posterior podrás descargar "${archivo}" directamente desde Supabase Storage.`);
 };
 
-    // ========== MÓDULO SCRIPTURA (Biblia interactiva con API real) ==========
+  // ========== MÓDULO SCRIPTURA CON API BÍBLICA REAL ==========
 let scCurrentBook = "Salmos";
 let scCurrentChapter = 23;
 let scSelectedVerseNum = null;
-let scFavorites = [];      // Se cargarán desde Supabase
-let scHighlights = {};     // clave: "libro_capitulo_versiculo"
+let scFavorites = [];
+let scHighlights = {};
+
+// IDs de las versiones en español (obtenidos de Scripture API)
+const BIBLE_TRANSLATIONS = {
+    'RVR1960': '06125adad2d5898a-01',  // Reina-Valera 1960
+    'NVI':     'de4e12af7f28f599-02',  // Nueva Versión Internacional
+    'TLA':     '1b7f6ae7d40b2da0-01',  // Traducción en Lenguaje Actual
+    'NTV':     'a58caba4e913df85-01'   // Nueva Traducción Viviente
+};
+const DEFAULT_BIBLE_ID = BIBLE_TRANSLATIONS['RVR1960'];
+
+// Mapa de libros a sus IDs para la API
+const BOOK_IDS = {
+    'Génesis': 'GEN', 'Éxodo': 'EXO', 'Levítico': 'LEV', 'Números': 'NUM', 'Deuteronomio': 'DEU',
+    'Josué': 'JOS', 'Jueces': 'JDG', 'Rut': 'RUT', '1 Samuel': '1SA', '2 Samuel': '2SA',
+    '1 Reyes': '1KI', '2 Reyes': '2KI', '1 Crónicas': '1CH', '2 Crónicas': '2CH',
+    'Esdras': 'EZR', 'Nehemías': 'NEH', 'Ester': 'EST', 'Job': 'JOB', 'Salmos': 'PSA',
+    'Proverbios': 'PRO', 'Eclesiastés': 'ECC', 'Cantares': 'SNG', 'Isaías': 'ISA',
+    'Jeremías': 'JER', 'Lamentaciones': 'LAM', 'Ezequiel': 'EZK', 'Daniel': 'DAN',
+    'Oseas': 'HOS', 'Joel': 'JOL', 'Amós': 'AMO', 'Abdías': 'OBA', 'Jonás': 'JON',
+    'Miqueas': 'MIC', 'Nahúm': 'NAM', 'Habacuc': 'HAB', 'Sofonías': 'ZEP', 'Hageo': 'HAG',
+    'Zacarías': 'ZEC', 'Malaquías': 'MAL',
+    'Mateo': 'MAT', 'Marcos': 'MRK', 'Lucas': 'LUK', 'Juan': 'JHN', 'Hechos': 'ACT',
+    'Romanos': 'ROM', '1 Corintios': '1CO', '2 Corintios': '2CO', 'Gálatas': 'GAL',
+    'Efesios': 'EPH', 'Filipenses': 'PHP', 'Colosenses': 'COL', '1 Tesalonicenses': '1TH',
+    '2 Tesalonicenses': '2TH', '1 Timoteo': '1TI', '2 Timoteo': '2TI', 'Tito': 'TIT',
+    'Filemón': 'PHM', 'Hebreos': 'HEB', 'Santiago': 'JAS', '1 Pedro': '1PE',
+    '2 Pedro': '2PE', '1 Juan': '1JN', '2 Juan': '2JN', '3 Juan': '3JN', 'Judas': 'JUD',
+    'Apocalipsis': 'REV'
+};
 
 async function renderScriptura() {
     const container = document.getElementById('mainContent');
     const actionHeader = document.getElementById('actionHeader');
-    actionHeader.innerHTML = ''; // Sin botones extra
+    actionHeader.innerHTML = '';
 
-    // Cargar favoritos y resaltados del usuario desde Supabase
     await cargarDatosScriptura();
 
-    // HTML idéntico al diseño de Gemini (con blindaje)
     const html = `
     <div id="gpraise-scriptura-shield">
         <style>
-            /* ===== PROTECCIÓN ABSOLUTA - DISEÑO PREMIUM ===== */
+            /* ===== ESCUDO CSS - DISEÑO PREMIUM ===== */
             #gpraise-scriptura-shield {
                 all: initial;
                 display: grid !important;
@@ -1689,7 +1716,6 @@ async function renderScriptura() {
                 position: relative !important;
             }
             #gpraise-scriptura-shield * { box-sizing: border-box !important; }
-
             /* Sidebar */
             #gpraise-scriptura-shield .sc-sidebar {
                 background-color: #0A0F1E !important;
@@ -1760,7 +1786,6 @@ async function renderScriptura() {
                 cursor: pointer !important;
             }
             #gpraise-scriptura-shield .sc-fav-item:hover { border-color: #C8972A !important; }
-
             /* Área del lector */
             #gpraise-scriptura-shield .sc-main-reader {
                 display: flex !important; flex-direction: column !important;
@@ -1793,7 +1818,7 @@ async function renderScriptura() {
             #gpraise-scriptura-shield .v-box {
                 cursor: pointer !important; padding: 4px 6px !important;
                 border-radius: 4px !important; transition: background 0.2s ease !important;
-                display: inline !important; position: relative !important;
+                display: inline !important;
             }
             #gpraise-scriptura-shield .v-box:hover {
                 background: rgba(255,255,255,0.05) !important;
@@ -1808,7 +1833,6 @@ async function renderScriptura() {
             #gpraise-scriptura-shield .hl-emerald { background: rgba(16,185,129,0.25) !important; border-bottom: 2px dashed #10B981 !important; }
             #gpraise-scriptura-shield .hl-sapphire { background: rgba(37,99,235,0.25) !important; border-bottom: 2px dashed #2563EB !important; }
             #gpraise-scriptura-shield .hl-ruby { background: rgba(225,29,72,0.25) !important; border-bottom: 2px dashed #E11D48 !important; }
-
             /* Panel contextual */
             #gpraise-scriptura-shield .sc-ctx-panel {
                 position: absolute !important; bottom: -400px !important;
@@ -1886,15 +1910,12 @@ async function renderScriptura() {
             <div class="sc-sidebar-scroll">
                 <div class="sc-sidebar-pane active" id="sc-pane-libros">
                     <div class="sc-list-group-title">Antiguo Testamento</div>
-                    <div class="sc-book-item" data-book="Salmos" data-chapter="23"><i class="fa-solid fa-bookmark" style="margin-right:8px; color:#C8972A;"></i> Salmos <span style="font-size:10px;">Cap. 23</span></div>
-                    <div class="sc-book-item" data-book="Isaías" data-chapter="40"><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Isaías <span style="font-size:10px;">Cap. 40</span></div>
-                    <div class="sc-list-group-title">Nuevo Testamento</div>
-                    <div class="sc-book-item" data-book="Juan" data-chapter="4"><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Juan <span style="font-size:10px;">Cap. 4</span></div>
-                    <div class="sc-book-item" data-book="Romanos" data-chapter="8"><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Romanos <span style="font-size:10px;">Cap. 8</span></div>
-                    <div class="sc-book-item" data-book="Efesios" data-chapter="5"><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Efesios <span style="font-size:10px;">Cap. 5</span></div>
+                    <div id="ot-books-list"></div>
+                    <div class="sc-list-group-title" style="margin-top: 1rem;">Nuevo Testamento</div>
+                    <div id="nt-books-list"></div>
                 </div>
                 <div class="sc-sidebar-pane" id="sc-pane-favs">
-                    <div id="sc-favs-dynamic-list" style="padding:0.5rem;"></div>
+                    <div id="sc-favs-dynamic-list"></div>
                 </div>
             </div>
         </aside>
@@ -1930,23 +1951,56 @@ async function renderScriptura() {
     `;
     container.innerHTML = html;
 
-    // Vincular eventos de los libros
-    document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
-        el.addEventListener('click', () => {
-            const book = el.getAttribute('data-book');
-            const chapter = parseInt(el.getAttribute('data-chapter'));
-            if (book && chapter) cargarCapitulo(book, chapter);
-        });
-    });
+    // Construir la lista completa de libros
+    buildBooksList();
 
     // Cargar capítulo inicial
     await cargarCapitulo(scCurrentBook, scCurrentChapter);
 }
 
-// ========== FUNCIONES AUXILIARES DE SCRIPTURA ==========
+// ========== FUNCIONES AUXILIARES ==========
+function buildBooksList() {
+    const otBooks = [
+        'Génesis', 'Éxodo', 'Levítico', 'Números', 'Deuteronomio', 'Josué', 'Jueces', 'Rut',
+        '1 Samuel', '2 Samuel', '1 Reyes', '2 Reyes', '1 Crónicas', '2 Crónicas', 'Esdras',
+        'Nehemías', 'Ester', 'Job', 'Salmos', 'Proverbios', 'Eclesiastés', 'Cantares', 'Isaías',
+        'Jeremías', 'Lamentaciones', 'Ezequiel', 'Daniel', 'Oseas', 'Joel', 'Amós', 'Abdías',
+        'Jonás', 'Miqueas', 'Nahúm', 'Habacuc', 'Sofonías', 'Hageo', 'Zacarías', 'Malaquías'
+    ];
+    const ntBooks = [
+        'Mateo', 'Marcos', 'Lucas', 'Juan', 'Hechos', 'Romanos', '1 Corintios', '2 Corintios',
+        'Gálatas', 'Efesios', 'Filipenses', 'Colosenses', '1 Tesalonicenses', '2 Tesalonicenses',
+        '1 Timoteo', '2 Timoteo', 'Tito', 'Filemón', 'Hebreos', 'Santiago', '1 Pedro', '2 Pedro',
+        '1 Juan', '2 Juan', '3 Juan', 'Judas', 'Apocalipsis'
+    ];
+    const otContainer = document.getElementById('ot-books-list');
+    const ntContainer = document.getElementById('nt-books-list');
+    if (otContainer) {
+        otContainer.innerHTML = '';
+        otBooks.forEach(book => {
+            const el = document.createElement('div');
+            el.className = 'sc-book-item';
+            el.setAttribute('data-book', book);
+            el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
+            el.onclick = () => cargarCapitulo(book, 1);
+            otContainer.appendChild(el);
+        });
+    }
+    if (ntContainer) {
+        ntContainer.innerHTML = '';
+        ntBooks.forEach(book => {
+            const el = document.createElement('div');
+            el.className = 'sc-book-item';
+            el.setAttribute('data-book', book);
+            el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
+            el.onclick = () => cargarCapitulo(book, 1);
+            ntContainer.appendChild(el);
+        });
+    }
+}
+
 async function cargarDatosScriptura() {
     if (!currentUser) return;
-    // Cargar favoritos y resaltados desde Supabase
     const { data, error } = await supabaseClient
         .from('biblia_progreso')
         .select('*')
@@ -1961,7 +2015,7 @@ async function cargarDatosScriptura() {
                     book: item.libro,
                     chapter: item.capitulo,
                     verse: item.versiculo,
-                    text: '' // se cargará después
+                    text: ''
                 });
             }
             if (item.resaltado_color) {
@@ -1979,44 +2033,473 @@ async function cargarCapitulo(book, chapter) {
     scSelectedVerseNum = null;
     closeScripturaCtx();
 
-    // Actualizar UI
     document.getElementById('sc-header-title').innerText = `${book} ${chapter}`;
-    document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
-        if (el.getAttribute('data-book') === book && parseInt(el.getAttribute('data-chapter')) === chapter) {
-            el.classList.add('active');
+    highlightActiveBook(book, chapter);
+    showLoadingState(true);
+
+    const bookId = BOOK_IDS[book];
+    if (!bookId) {
+        showErrorMessage(`No se encontró el libro '${book}'`);
+        return;
+    }
+
+    const url = `${BIBLE_API_BASE_URL}/bibles/${DEFAULT_BIBLE_ID}/chapters/${bookId}.${chapter}?content-type=json&include-notes=false&include-titles=true&include-chapter-numbers=false&include-verse-numbers=true&include-verse-spans=false`;
+    try {
+        const response = await fetch(url, { headers: { 'api-key': BIBLE_API_KEY } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data && data.data && data.data.content) {
+            renderChapterContent(data.data.content);
         } else {
-            el.classList.remove('active');
+            throw new Error('Formato de respuesta inesperado');
+        }
+    } catch (error) {
+        console.error('Error al cargar el capítulo:', error);
+        showErrorMessage('Error de conexión con la API bíblica. Verifique su conexión o la clave API.');
+    } finally {
+        showLoadingState(false);
+    }
+}
+
+function renderChapterContent(contentHTML) {
+    const container = document.getElementById('sc-bible-text-flow');
+    container.innerHTML = '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = contentHTML;
+    // Buscar todos los elementos con clase 'v' que contienen los versículos
+    const verseSpans = tempDiv.querySelectorAll('.v');
+    if (verseSpans.length === 0) {
+        container.innerHTML = contentHTML;
+        return;
+    }
+    for (const verseSpan of verseSpans) {
+        const verseNum = parseInt(verseSpan.getAttribute('data-number'));
+        if (isNaN(verseNum)) continue;
+        let verseText = verseSpan.innerText.trim();
+        if (!verseText) {
+            // Si el texto está vacío, tomar el texto del padre
+            const parent = verseSpan.parentElement;
+            if (parent) verseText = parent.innerText.replace(/^\d+\s*/, '').trim();
+        }
+        const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${verseNum}`;
+        const savedClass = scHighlights[uniqueKey] || '';
+        const span = document.createElement('span');
+        span.className = `v-box ${savedClass}`;
+        span.id = `vbox-${uniqueKey}`;
+        span.setAttribute('onclick', `openVersePremiumPanel(${verseNum})`);
+        const numSpan = document.createElement('span');
+        numSpan.className = 'v-num';
+        numSpan.innerText = verseNum;
+        span.appendChild(numSpan);
+        span.appendChild(document.createTextNode(' ' + verseText));
+        container.appendChild(span);
+    }
+}
+
+function highlightActiveBook(book, chapter) {
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
+        if (el.getAttribute('data-book') === book) el.classList.add('active');
+        else el.classList.remove('active');
+    });
+}
+
+function showLoadingState(loading) {
+    const container = document.getElementById('sc-bible-text-flow');
+    if (loading) {
+        container.innerHTML = '<div style="text-align:center; color:#94A3B8;">Cargando capítulo...</div>';
+    }
+}
+
+function showErrorMessage(msg) {
+    const container = document.getElementById('sc-bible-text-flow');
+    container.innerHTML = `<div style="text-align:center; color:#EF4444;">${msg}</div>`;
+}
+
+async function openVersePremiumPanel(verseNum) {
+    scSelectedVerseNum = verseNum;
+    const panel = document.getElementById('scCtxPanel');
+    panel.classList.add('open');
+
+    document.getElementById('sc-ctx-verse-indicator').innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${verseNum}`;
+
+    const isFav = scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === verseNum);
+    const favBtn = document.getElementById('sc-btn-fav');
+    if (isFav) {
+        favBtn.classList.add('active');
+        favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Guardado en Joyas`;
+    } else {
+        favBtn.classList.remove('active');
+        favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Marcar Favorito`;
+    }
+
+    const compView = document.getElementById('scComparisonView');
+    compView.innerHTML = '<div style="padding:1rem; text-align:center;"><i class="fa-solid fa-spinner fa-pulse"></i> Cargando versiones...</div>';
+
+    const bookId = BOOK_IDS[scCurrentBook];
+    if (!bookId) {
+        compView.innerHTML = '<div class="text-center text-red-400">Error: Libro no soportado</div>';
+        return;
+    }
+    const verseRef = `${bookId}.${scCurrentChapter}.${verseNum}`;
+    const versionesMap = {
+        'RVR1960': BIBLE_TRANSLATIONS.RVR1960,
+        'NVI': BIBLE_TRANSLATIONS.NVI,
+        'TLA': BIBLE_TRANSLATIONS.TLA,
+        'NTV': BIBLE_TRANSLATIONS.NTV
+    };
+    const promises = Object.entries(versionesMap).map(async ([versionName, bibleId]) => {
+        if (!bibleId) return { versionName, text: 'Texto no disponible' };
+        const url = `${BIBLE_API_BASE_URL}/bibles/${bibleId}/verses/${verseRef}?content-type=json&include-notes=false&include-titles=false&include-verse-numbers=false&include-verse-spans=false`;
+        try {
+            const response = await fetch(url, { headers: { 'api-key': BIBLE_API_KEY } });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            return { versionName, text: data.data.content };
+        } catch (error) {
+            console.error(`Error al cargar ${versionName}:`, error);
+            return { versionName, text: 'Error al cargar' };
+        }
+    });
+    const results = await Promise.all(promises);
+    let html = '';
+    for (const { versionName, text } of results) {
+        html += `
+            <div class="sc-version-card">
+                <div class="sc-v-title">${versionName}</div>
+                <div class="sc-v-text">${text}</div>
+            </div>
+        `;
+    }
+    compView.innerHTML = html;
+}
+
+function closeScripturaCtx() {
+    document.getElementById('scCtxPanel').classList.remove('open');
+    scSelectedVerseNum = null;
+}
+
+async function applyHighlightToSelected(hlClass) {
+    if (!scSelectedVerseNum) return;
+    const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
+    const targetSpan = document.getElementById(`vbox-${uniqueKey}`);
+    if (!targetSpan) return;
+    targetSpan.classList.remove('hl-gold', 'hl-emerald', 'hl-sapphire', 'hl-ruby');
+    if (hlClass !== 'clear') {
+        targetSpan.classList.add(hlClass);
+        scHighlights[uniqueKey] = hlClass;
+        if (currentUser) {
+            await supabaseClient.from('biblia_progreso').upsert({
+                user_id: currentUser.id,
+                libro: scCurrentBook,
+                capitulo: scCurrentChapter,
+                versiculo: scSelectedVerseNum,
+                resaltado_color: hlClass,
+                es_favorito: scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === scSelectedVerseNum)
+            }, { onConflict: 'user_id, libro, capitulo, versiculo' });
+        }
+    } else {
+        delete scHighlights[uniqueKey];
+        if (currentUser) {
+            await supabaseClient.from('biblia_progreso').update({ resaltado_color: null })
+                .eq('user_id', currentUser.id)
+                .eq('libro', scCurrentBook)
+                .eq('capitulo', scCurrentChapter)
+                .eq('versiculo', scSelectedVerseNum);
+        }
+    }
+}
+
+async function toggleFavoriteSelected() {
+    if (!scSelectedVerseNum) return;
+    const existingIndex = scFavorites.findIndex(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === scSelectedVerseNum);
+    if (existingIndex > -1) {
+        scFavorites.splice(existingIndex, 1);
+        if (currentUser) {
+            await supabaseClient.from('biblia_progreso').update({ es_favorito: false })
+                .eq('user_id', currentUser.id)
+                .eq('libro', scCurrentBook)
+                .eq('capitulo', scCurrentChapter)
+                .eq('versiculo', scSelectedVerseNum);
+        }
+    } else {
+        const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
+        const span = document.getElementById(`vbox-${uniqueKey}`);
+        let verseText = '';
+        if (span) verseText = span.innerText.replace(/^\d+\s*/, '').trim();
+        scFavorites.push({
+            book: scCurrentBook,
+            chapter: scCurrentChapter,
+            verse: scSelectedVerseNum,
+            text: verseText
+        });
+        if (currentUser) {
+            await supabaseClient.from('biblia_progreso').upsert({
+                user_id: currentUser.id,
+                libro: scCurrentBook,
+                capitulo: scCurrentChapter,
+                versiculo: scSelectedVerseNum,
+                es_favorito: true,
+                resaltado_color: scHighlights[uniqueKey] || null
+            }, { onConflict: 'user_id, libro, capitulo, versiculo' });
+        }
+    }
+    openVersePremiumPanel(scSelectedVerseNum);
+    renderFavoritesSidebar();
+}
+
+function renderFavoritesSidebar() {
+    const container = document.getElementById('sc-favs-dynamic-list');
+    if (!container) return;
+    if (scFavorites.length === 0) {
+        container.innerHTML = '<div style="font-size:11px; color:#64748B; text-align:center; padding:1rem;">No has guardado joyas aún.</div>';
+        return;
+    }
+    container.innerHTML = scFavorites.map(f => `
+        <div class="sc-fav-item" onclick="cargarCapitulo('${f.book}', ${f.chapter})">
+            <strong style="color:#C8972A; display:block; margin-bottom:2px;">${f.book} ${f.chapter}:${f.verse}</strong>
+            <span style="color:#94A3B8; font-style:italic; font-size:11px;">"${f.text.substring(0, 100)}..."</span>
+        </div>
+    `).join('');
+}
+
+function switchSidebarView(view) {
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-sidebar-pane').forEach(p => p.classList.remove('active'));
+    if (view === 'libros') {
+        document.getElementById('btn-tab-libros').classList.add('active');
+        document.getElementById('sc-pane-libros').classList.add('active');
+    } else {
+        document.getElementById('btn-tab-favs').classList.add('active');
+        document.getElementById('sc-pane-favs').classList.add('active');
+    }
+}
+
+function shareVerseAction() {
+    if (!scSelectedVerseNum) return;
+    const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
+    const span = document.getElementById(`vbox-${uniqueKey}`);
+    if (!span) return;
+    const verseText = span.innerText.replace(/^\d+\s*/, '').trim();
+    const shareString = `"${verseText}" — ${scCurrentBook} ${scCurrentChapter}:${scSelectedVerseNum}`;
+    navigator.clipboard.writeText(shareString).then(() => {
+        alert('¡Versículo copiado al portapapeles!');
+    }).catch(() => alert('No se pudo copiar.'));
+}
+    
+
+// ================= CONFIGURACIÓN DE LA API =================
+const BIBLE_API_KEY = '9zxPgaC2mFyi5qKeNvzvd';
+const BIBLE_API_BASE_URL = 'https://api.scripture.api.bible/v1';
+
+// IDs de las versiones en español (obtenidos del paso 2)
+const BIBLE_TRANSLATIONS = {
+    'RVR1960': '06125adad2d5898a-01',
+    'NVI':     '78a9f6124f344018-01',
+    'TLA':     '1b7f6ae7d40b2da0-01',
+    'NTV':     'a58caba4e913df85-01'
+};
+const DEFAULT_BIBLE_ID = BIBLE_TRANSLATIONS['RVR1960'];
+
+// Mapa de IDs de libros para la API (Reina-Valera 1960)
+const BOOK_IDS = {
+    'Génesis': 'GEN', 'Éxodo': 'EXO', 'Levítico': 'LEV', 'Números': 'NUM', 'Deuteronomio': 'DEU',
+    'Josué': 'JOS', 'Jueces': 'JDG', 'Rut': 'RUT', '1 Samuel': '1SA', '2 Samuel': '2SA',
+    '1 Reyes': '1KI', '2 Reyes': '2KI', '1 Crónicas': '1CH', '2 Crónicas': '2CH',
+    'Esdras': 'EZR', 'Nehemías': 'NEH', 'Ester': 'EST', 'Job': 'JOB', 'Salmos': 'PSA',
+    'Proverbios': 'PRO', 'Eclesiastés': 'ECC', 'Cantares': 'SNG', 'Isaías': 'ISA',
+    'Jeremías': 'JER', 'Lamentaciones': 'LAM', 'Ezequiel': 'EZK', 'Daniel': 'DAN',
+    'Oseas': 'HOS', 'Joel': 'JOL', 'Amós': 'AMO', 'Abdías': 'OBA', 'Jonás': 'JON',
+    'Miqueas': 'MIC', 'Nahúm': 'NAM', 'Habacuc': 'HAB', 'Sofonías': 'ZEP', 'Hageo': 'HAG',
+    'Zacarías': 'ZEC', 'Malaquías': 'MAL',
+    'Mateo': 'MAT', 'Marcos': 'MRK', 'Lucas': 'LUK', 'Juan': 'JHN', 'Hechos': 'ACT',
+    'Romanos': 'ROM', '1 Corintios': '1CO', '2 Corintios': '2CO', 'Gálatas': 'GAL',
+    'Efesios': 'EPH', 'Filipenses': 'PHP', 'Colosenses': 'COL', '1 Tesalonicenses': '1TH',
+    '2 Tesalonicenses': '2TH', '1 Timoteo': '1TI', '2 Timoteo': '2TI', 'Tito': 'TIT',
+    'Filemón': 'PHM', 'Hebreos': 'HEB', 'Santiago': 'JAS', '1 Pedro': '1PE',
+    '2 Pedro': '2PE', '1 Juan': '1JN', '2 Juan': '2JN', '3 Juan': '3JN', 'Judas': 'JUD',
+    'Apocalipsis': 'REV'
+};
+// ===========================================================
+
+// Función principal para cargar un capítulo entero
+async function cargarCapitulo(book, chapter) {
+    scCurrentBook = book;
+    scCurrentChapter = chapter;
+    scSelectedVerseNum = null;
+    closeScripturaCtx();
+
+    // Actualizar la interfaz de usuario
+    document.getElementById('sc-header-title').innerText = `${book} ${chapter}`;
+    highlightActiveBook(book, chapter);
+    showLoadingState(true);
+
+    const bookId = BOOK_IDS[book];
+    if (!bookId) {
+        showErrorMessage(`No se encontró el libro '${book}'`);
+        return;
+    }
+
+    // Construir la URL de la API
+    const apiUrl = `${BIBLE_API_BASE_URL}/bibles/${DEFAULT_BIBLE_ID}/chapters/${bookId}.${chapter}?content-type=json&include-notes=false&include-titles=true&include-chapter-numbers=false&include-verse-numbers=true&include-verse-spans=false`;
+    const url = `https://api.scripture.api.bible/v1/bibles/${DEFAULT_BIBLE_ID}/chapters/${bookId}.${chapter}?content-type=json&include-notes=false&include-titles=true&include-chapter-numbers=false&include-verse-numbers=true&include-verse-spans=false`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            headers: { 'api-key': BIBLE_API_KEY }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        if (data && data.data && data.data.content) {
+            const chapterContent = data.data.content;
+            const container = document.getElementById('sc-bible-text-flow');
+            container.innerHTML = ''; // Limpiar contenido anterior
+
+            // Usar el nuevo renderizador para preservar el formato
+            renderChapterContent(chapterContent);
+        } else {
+            throw new Error('Formato de respuesta inesperado');
+        }
+    } catch (error) {
+        console.error('Error al cargar el capítulo:', error);
+        showErrorMessage('Error de conexión con la API bíblica.');
+    } finally {
+        showLoadingState(false);
+    }
+}
+
+// Función para cargar un versículo específico en múltiples versiones
+
+    // Función para renderizar el contenido HTML de la API a nuestro formato
+function renderChapterContent(contentHTML) {
+    const container = document.getElementById('sc-bible-text-flow');
+    container.innerHTML = ''; // Limpiar contenido anterior
+
+    // Crear un elemento temporal para parsear el HTML de la API
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = contentHTML;
+
+    // Buscar todos los elementos que contienen versículos (párrafos con clase 'p')
+    const verseElements = tempDiv.querySelectorAll('.p, .q1, .q2, .m');
+    if (verseElements.length === 0) {
+        // Fallback si no encuentra los selectores
+        container.innerHTML = contentHTML;
+        return;
+    }
+
+    verseElements.forEach(element => {
+        // Buscar los números de versículo dentro del elemento
+        const verseNumbers = element.querySelectorAll('.v');
+        if (verseNumbers.length === 0) {
+            // Si no hay números de versículo, añadir el texto como párrafo normal
+            const text = element.innerText.trim();
+            if (text) {
+                const p = document.createElement('div');
+                p.className = 'sc-paragraph';
+                p.innerText = text;
+                container.appendChild(p);
+            }
+            return;
+        }
+
+        // Procesar cada número de versículo
+        verseNumbers.forEach(verseSpan => {
+            const verseNum = parseInt(verseSpan.getAttribute('data-number'));
+            if (isNaN(verseNum)) return;
+
+            // Obtener el texto del versículo
+            let verseText = '';
+            let nextSibling = verseSpan.nextSibling;
+            while (nextSibling && !(nextSibling.nodeType === 1 && nextSibling.classList && nextSibling.classList.contains('v'))) {
+                if (nextSibling.nodeType === 3) { // Text node
+                    verseText += nextSibling.textContent;
+                } else if (nextSibling.nodeType === 1) {
+                    verseText += nextSibling.innerText;
+                }
+                nextSibling = nextSibling.nextSibling;
+            }
+            verseText = verseText.trim();
+
+            const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${verseNum}`;
+            const savedClass = scHighlights[uniqueKey] || '';
+
+            const verseSpanElement = document.createElement('span');
+            verseSpanElement.className = `v-box ${savedClass}`;
+            verseSpanElement.id = `vbox-${uniqueKey}`;
+            verseSpanElement.setAttribute('onclick', `openVersePremiumPanel(${verseNum})`);
+
+            const verseNumberSpan = document.createElement('span');
+            verseNumberSpan.className = 'v-num';
+            verseNumberSpan.innerText = verseNum;
+
+            verseSpanElement.appendChild(verseNumberSpan);
+            verseSpanElement.appendChild(document.createTextNode(' ' + verseText));
+            container.appendChild(verseSpanElement);
+        });
+    });
+}
+    
+async function openVersePremiumPanel(verseNum) {
+    scSelectedVerseNum = verseNum;
+    const panel = document.getElementById('scCtxPanel');
+    panel.classList.add('open');
+
+    document.getElementById('sc-ctx-verse-indicator').innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${verseNum}`;
+
+    const isFav = scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === verseNum);
+    const favBtn = document.getElementById('sc-btn-fav');
+    if (isFav) {
+        favBtn.classList.add('active');
+        favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Guardado en Joyas`;
+    } else {
+        favBtn.classList.remove('active');
+        favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Marcar Favorito`;
+    }
+
+    const compView = document.getElementById('scComparisonView');
+    compView.innerHTML = '<div style="padding:1rem; text-align:center;"><i class="fa-solid fa-spinner fa-pulse"></i> Cargando versiones...</div>';
+
+    // Obtener el versículo en diferentes versiones en paralelo
+    const bookId = BOOK_IDS[scCurrentBook];
+    if (!bookId) {
+        compView.innerHTML = '<div class="text-center text-red-400">Error: Libro no soportado</div>';
+        return;
+    }
+    const verseRef = `${bookId}.${scCurrentChapter}.${verseNum}`;
+
+    // IDs de las versiones a consultar
+    const versionesMap = {
+        'RVR1960': BIBLE_TRANSLATIONS.RVR1960,
+        'NVI': BIBLE_TRANSLATIONS.NVI,
+        'TLA': BIBLE_TRANSLATIONS.TLA,
+        'NTV': BIBLE_TRANSLATIONS.NTV
+    };
+
+    const fetchPromises = Object.entries(versionesMap).map(async ([versionName, bibleId]) => {
+        if (!bibleId) return { versionName, text: 'Texto no disponible' };
+        const url = `${BIBLE_API_BASE_URL}/bibles/${bibleId}/verses/${verseRef}?content-type=json&include-notes=false&include-titles=false&include-verse-numbers=false&include-verse-spans=false`;
+        try {
+            const response = await fetch(url, { headers: { 'api-key': BIBLE_API_KEY } });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            return { versionName, text: data.data.content };
+        } catch (error) {
+            console.error(`Error al cargar ${versionName}:`, error);
+            return { versionName, text: 'Error al cargar' };
         }
     });
 
-    // Mostrar loader
-    const textContainer = document.getElementById('sc-bible-text-flow');
-    textContainer.innerHTML = '<div style="text-align:center; color:#94A3B8;">Cargando capítulo...</div>';
-
-    // Usar API gratuita: https://bible-api.fr/ (sin clave)
-    // Versión RVR1960 por defecto
-    const url = `https://bible-api.fr/api/verses/${encodeURIComponent(book)}/${chapter}?version=RVR1960`;
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data && data.verses && data.verses.length) {
-            let html = '';
-            for (let v of data.verses) {
-                const verseNum = v.verse;
-                const uniqueKey = `${book}_${chapter}_${verseNum}`;
-                const savedClass = scHighlights[uniqueKey] || '';
-                html += `<span class="v-box ${savedClass}" id="vbox-${uniqueKey}" onclick="openVersePremiumPanel(${verseNum})">
-                            <span class="v-num">${verseNum}</span> ${v.text}
-                        </span> `;
-            }
-            textContainer.innerHTML = html;
-        } else {
-            textContainer.innerHTML = '<p>No se pudo cargar el capítulo. Intente más tarde.</p>';
-        }
-    } catch (error) {
-        console.error(error);
-        textContainer.innerHTML = '<p>Error de conexión con la API bíblica.</p>';
+    const results = await Promise.all(fetchPromises);
+    let html = '';
+    for (const { versionName, text } of results) {
+        html += `
+            <div class="sc-version-card">
+                <div class="sc-v-title">${versionName}</div>
+                <div class="sc-v-text">${text}</div>
+            </div>
+        `;
     }
+    compView.innerHTML = html;
 }
 
 async function openVersePremiumPanel(verseNum) {
