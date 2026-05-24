@@ -1242,7 +1242,12 @@ function renderApp() {
         darkModeToggle(); renderAdmin(); return;
     }
     if (!currentIglesiaId) { renderLogin(); return; }
-    document.getElementById('appRoot').innerHTML = `<header class="app-header"><div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small></div><div class="nav-icons"><div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div><div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div><div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div><div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div><div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div><div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div><div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}<div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div><div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div><div id="mainContent"></div></div><footer class="app-footer"><div class="footer-content"><div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div><div class="footer-copyright">© 2025 - <span id="currentYear"></span> | By <strong>GIO DESIGNS®</strong></div><div class="footer-social"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div><div class="footer-verse">"Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos" — Salmo 68:4</div></footer>`;
+    document.getElementById('appRoot').innerHTML = `<header class="app-header"><div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small></div><div class="nav-icons"><div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div><div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div><div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div><div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div><div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div><div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
+    <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes">
+    <i class="fas fa-microphone-alt"></i>
+    <span>G‑NOTES</span>
+</div>
+    <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}<div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div><div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div><div id="mainContent"></div></div><footer class="app-footer"><div class="footer-content"><div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div><div class="footer-copyright">© 2025 - <span id="currentYear"></span> | By <strong>GIO DESIGNS®</strong></div><div class="footer-social"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div><div class="footer-verse">"Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos" — Salmo 68:4</div></footer>`;
     document.querySelectorAll('.nav-item[data-tab]').forEach(el => { el.addEventListener('click', () => { document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active')); el.classList.add('active'); currentTab = el.dataset.tab; selectedListId = null; renderCurrentView(); }); });
     const darkToggle = document.getElementById('darkModeToggle'); darkToggle.addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('iec_darkmode', document.body.classList.contains('dark')); darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro'; });
     if (localStorage.getItem('iec_darkmode') === 'true') { document.body.classList.add('dark'); darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro'; }
@@ -1256,10 +1261,13 @@ function darkModeToggle() { const toggle = document.getElementById('darkModeTogg
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
-    else if (currentTab === 'moodle') await renderMoodle();   // ← CORREGIDO
+    else if (currentTab === 'moodle') await renderMoodle();
+    else if (currentTab === 'gnotes') await renderGnotes();   // <-- NUEVA LÍNEA
     else if (currentTab === 'profile') renderUserProfile();
     else if (currentTab === 'admin' && (isAdminUser || isIglesiaAdmin)) renderAdmin();
 }
+
+    
     function navigateTo(tab) { currentTab = tab; document.querySelectorAll('.nav-item[data-tab]').forEach(el => { if (el.dataset.tab === tab) el.classList.add('active'); else el.classList.remove('active'); }); renderCurrentView(); }
 
 // ========== VISTA HOME ==========
@@ -1423,7 +1431,221 @@ async function loadComments(listaId) { const { data: comments } = await supabase
 async function addComment(listaId) { const contenido = document.getElementById('newComment').value.trim(); if(!contenido) return alert("Escribe un comentario"); const { error } = await supabaseClient.from('comentarios_lista').insert({ lista_id: listaId, user_id: currentUser.id, contenido }); if(error) alert("Error: " + error.message); else { document.getElementById('newComment').value=''; loadComments(listaId); } }
 async function deleteComment(commentId, listaId) { if(confirm("¿Eliminar comentario?")) { await supabaseClient.from('comentarios_lista').delete().eq('id',commentId); loadComments(listaId); } }
 
+// ========== MÓDULO G-NOTES (Recursos por Instrumento) ==========
+async function renderGnotes() {
+    const container = document.getElementById('mainContent');
+    const actionHeader = document.getElementById('actionHeader');
+    actionHeader.innerHTML = ''; // No necesita botones extra
+
+    // Detectar el rol musical del usuario actual
+    let rolUsuario = "Guitarra"; // valor por defecto
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
+    if (miembro && miembro.rol_musical) {
+        const rol = miembro.rol_musical.toLowerCase();
+        if (rol.includes('guitar') || rol.includes('bajo')) rolUsuario = "Guitarra";
+        else if (rol.includes('voz') || rol.includes('cantante') || rol.includes('coro')) rolUsuario = "Voces";
+        else if (rol.includes('trompeta') || rol.includes('viento') || rol.includes('cuerda') || rol.includes('violín')) rolUsuario = "Vientos";
+        // Si no coincide, se queda "Guitarra" por defecto
+    }
+
+    // Datos de ejemplo (luego los puedes conectar a Supabase)
+    const recursosPorInstrumento = {
+        "Guitarra": {
+            titulo: "Banco de Presets y Parches de Efectos",
+            descripcion: "Seteos de emulación exacta y cadenas de bloques estructurales para mantener un tono unificado.",
+            items: [
+                { cancion: "Preciosa Sangre", detalle: "Preset Headrush Prime - Scene A: Ambient Clean / Scene B: Overdrive Lead", archivo: "Preciosa_Sangre_V1.hrp" },
+                { cancion: "Hermoso Nombre", detalle: "Parche Line 6 Helix - Snapshots optimizados con Shimmer y Delay de punto", archivo: "Hermoso_Nombre.hlx" },
+                { cancion: "Alaba a Dios", detalle: "Captura de pantalla: Configuración analógica del pedal de Overdrive y Reverb de fondo", archivo: "Captura_Pedalboard.png" }
+            ]
+        },
+        "Bajo": {  // También lo incluimos si el rol es "Bajo"
+            titulo: "Configuración de Frecuencias y Líneas Base",
+            descripcion: "Ajustes de Preamp, Compresión y presets para capturar el golpe exacto en la mezcla de sala.",
+            items: [
+                { cancion: "Preciosa Sangre", detalle: "Preset de ecualización activa y compresión 4:1 para mantener el low-end estable", archivo: "Bass_Preamp_Clean.json" }
+            ]
+        },
+        "Voces": {
+            titulo: "Mapa de Armonías y Guías de Afinación",
+            descripcion: "Líneas de referencia aisladas para asegurar la ejecución correcta de las voces del coro.",
+            items: [
+                { cancion: "Grande es tu Fidelidad", detalle: "Referencia corta de audio: Línea de Sopranos en el puente de modulación", archivo: "Sopranos_Puente_G.mp3" },
+                { cancion: "Hermoso Nombre", detalle: "Audio de referencia: Contraltos y Tenores haciendo la segunda y tercera armónica en el coro principal", archivo: "Voces_Coro_Armonia.wav" }
+            ]
+        },
+        "Vientos": {
+            titulo: "Hojas de Partituras & Cifrado de Arreglos",
+            descripcion: "Líneas melódicas exactas, unísonos y contracantos orquestales obligatorios.",
+            items: [
+                { cancion: "Preciosa Sangre", detalle: "Partitura en Si Bemol (Bb) para Sección de Trompetas - Introducción y Coda final", archivo: "Trompeta_Arreglo_Intro.pdf" },
+                { cancion: "Digno es el Cordero", detalle: "Cifrado melódico detallado y unísonos de vientos-cuerdas en el interludio", archivo: "Arreglo_Seccion_Cuerdas.pdf" }
+            ]
+        }
+    };
+
+    // Obtener los datos según el rol detectado (si es Bajo, usamos la entrada "Bajo"; si no, la que tenemos)
+    const data = recursosPorInstrumento[rolUsuario] || recursosPorInstrumento["Guitarra"];
+    // Para el caso de Bajo, aseguramos que se muestre bien
+    const rolMostrado = (rolUsuario === "Bajo") ? "Bajo" : (rolUsuario === "Voces" ? "Voces" : (rolUsuario === "Vientos" ? "Vientos" : "Guitarra"));
+
+    const html = `
+    <div id="gpraise-gnotes-shield">
+        <style>
+            /* ESCUDO CSS ABSOLUTO - DISEÑO MINIMALISTA Y ELEGANTE */
+            #gpraise-gnotes-shield {
+                all: initial;
+                display: block !important;
+                font-family: 'Inter', sans-serif !important;
+                background: #0B1329 !important;
+                border-radius: 1rem !important;
+                overflow: hidden !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+                color: #F8FAFC !important;
+            }
+            #gpraise-gnotes-shield * {
+                box-sizing: border-box !important;
+            }
+            /* Cabecera */
+            .gnotes-header {
+                background: #070C19 !important;
+                padding: 1.5rem 2rem !important;
+                border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                flex-wrap: wrap !important;
+                gap: 1rem !important;
+            }
+            .gnotes-title {
+                font-size: 1.5rem !important;
+                font-weight: 800 !important;
+                letter-spacing: -0.5px !important;
+                background: linear-gradient(135deg, #FFF, #C8972A) !important;
+                -webkit-background-clip: text !important;
+                background-clip: text !important;
+                color: transparent !important;
+            }
+            .gnotes-badge {
+                background: rgba(200, 151, 42, 0.15) !important;
+                color: #C8972A !important;
+                padding: 0.25rem 1rem !important;
+                border-radius: 99px !important;
+                font-size: 0.75rem !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+            }
+            /* Contenido */
+            .gnotes-body {
+                padding: 2rem !important;
+            }
+            .gnotes-card {
+                background: rgba(255,255,255,0.02) !important;
+                border: 1px solid rgba(255,255,255,0.05) !important;
+                border-radius: 0.75rem !important;
+                padding: 1.5rem !important;
+                margin-bottom: 1.5rem !important;
+            }
+            .gnotes-card h3 {
+                font-size: 1.25rem !important;
+                font-weight: 700 !important;
+                color: #C8972A !important;
+                margin-bottom: 0.5rem !important;
+            }
+            .gnotes-card p {
+                font-size: 0.8rem !important;
+                color: #94A3B8 !important;
+                margin-bottom: 1.5rem !important;
+            }
+            /* Lista de recursos */
+            .gnotes-resource {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                padding: 1rem !important;
+                background: rgba(255,255,255,0.01) !important;
+                border: 1px solid rgba(255,255,255,0.03) !important;
+                border-radius: 0.5rem !important;
+                margin-bottom: 0.75rem !important;
+                transition: 0.2s !important;
+                flex-wrap: wrap !important;
+                gap: 0.75rem !important;
+            }
+            .gnotes-resource:hover {
+                background: rgba(255,255,255,0.03) !important;
+                border-color: #C8972A !important;
+            }
+            .gnotes-resource-info strong {
+                font-size: 0.9rem !important;
+                color: white !important;
+            }
+            .gnotes-resource-info div {
+                font-size: 0.7rem !important;
+                color: #64748B !important;
+                margin-top: 0.2rem !important;
+            }
+            .gnotes-btn {
+                background: #C8972A !important;
+                color: #070C19 !important;
+                border: none !important;
+                padding: 0.4rem 1rem !important;
+                border-radius: 0.375rem !important;
+                font-weight: 600 !important;
+                font-size: 0.7rem !important;
+                cursor: pointer !important;
+                transition: 0.2s !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+            }
+            .gnotes-btn:hover {
+                opacity: 0.9 !important;
+                transform: translateY(-1px) !important;
+            }
+            @media (max-width: 640px) {
+                .gnotes-header { flex-direction: column; text-align: center; }
+                .gnotes-resource { flex-direction: column; align-items: flex-start; }
+                .gnotes-btn { align-self: flex-end; }
+            }
+        </style>
+
+        <div class="gnotes-header">
+            <div class="gnotes-title">G‑NOTES</div>
+            <div class="gnotes-badge"><i class="fas fa-microphone-alt"></i> Rol detectado: ${rolMostrado}</div>
+        </div>
+        <div class="gnotes-body">
+            <div class="gnotes-card">
+                <h3>${data.titulo}</h3>
+                <p>${data.descripcion}</p>
+                <div id="gnotes-recursos-list">
+                    ${data.items.map(item => `
+                        <div class="gnotes-resource">
+                            <div class="gnotes-resource-info">
+                                <strong>${item.cancion}</strong>
+                                <div><i class="fas fa-circle-info"></i> ${item.detalle}</div>
+                            </div>
+                            <button class="gnotes-btn" onclick="descargarRecursoGnotes('${item.archivo}')">
+                                <i class="fas fa-download"></i> Obtener recurso
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+// Función auxiliar para la descarga (por ahora solo alerta, luego conectar a Supabase Storage)
+window.descargarRecursoGnotes = (archivo) => {
+    alert(`🔧 En una versión posterior podrás descargar "${archivo}" directamente desde Supabase Storage.`);
+};
+    
+    
 // ========== RECURSOS ==========
+    
 function renderResources() { document.getElementById('actionHeader').innerHTML = ''; document.getElementById('mainContent').innerHTML = `<div class="grid"><div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll"></i><h3>Teleprompter</h3></div><div class="card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Backup</h3></div><div class="card" onclick="openEquiposView()"><i class="fas fa-users"></i><h3>Equipos</h3></div><div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3></div><div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3></div><div class="card" onclick="viewMyShifts()"><i class="fas fa-calendar-alt"></i><h3>Mis Turnos</h3></div></div>`; }
 async function openEquiposView() { const tree = buildDepartmentTree(departamentos); let html = `<h3>🎭 Equipos de la Iglesia - ${currentIglesiaData?.nombre}</h3>`; html += renderDepartmentTree(tree, 0); html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
 function buildDepartmentTree(deptos) { const map = new Map(); const roots = []; deptos.forEach(d=>{ map.set(d.id, {...d, children:[]}); }); deptos.forEach(d=>{ if(d.padre_id) { const parent = map.get(d.padre_id); if(parent) parent.children.push(map.get(d.id)); } else roots.push(map.get(d.id)); }); return roots; }
