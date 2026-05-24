@@ -1573,13 +1573,67 @@ function editUserProfile() { showModal(`<h3>Editar perfil</h3><div class="form-g
     
 // ========== ADMINISTRACIÓN CON SELECTOR DE IGLESIAS Y DEPARTAMENTO JERÁRQUICO ==========
 function renderAdmin() {
-    if (!isAdminUser && !isIglesiaAdmin) { document.getElementById('mainContent').innerHTML = '<p>No tienes permisos de administrador.</p>'; return; }
-    document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`; <div class="card" onclick="deleteAllSongs()" style="background:#EF4444; color:white;">
-    <i class="fas fa-trash-alt"></i>
-    <h3>Eliminar TODAS las canciones</h3>
-    <p>Peligro: borra todo el cancionero</p>
-</div>
-    document.getElementById('mainContent').innerHTML = `<div id="adminIglesiaSelectorContainer"></div><div class="grid"><div class="card" onclick="adminAttendance()"><i class="fas fa-user-check"></i><h3>Control de Asistencia</h3><p>Registrar puntualidad</p></div><div class="card" onclick="adminShifts()"><i class="fas fa-calendar-week"></i><h3>Gestión de Turnos</h3><p>Asignar fechas</p></div><div class="card" onclick="openEquiposView()"><i class="fas fa-users"></i><h3>Equipos</h3></div><div class="card" onclick="adminActividades()"><i class="fas fa-calendar-plus"></i><h3>Eventos Especiales</h3><p>Gestionar invitaciones y actividades</p></div><div class="card" onclick="adminCourses()"><i class="fas fa-chalkboard-user"></i><h3>Gestionar Cursos</h3><p>Crear/editar cursos, lecciones y contenido</p></div><div class="card" onclick="adminExams()"><i class="fas fa-file-alt"></i><h3>Gestionar Exámenes</h3><p>Crear preguntas, tiempos, etc.</p></div><div class="card" onclick="showEstadisticas()"><i class="fas fa-chart-line"></i><h3>Estadísticas de Uso</h3><p>Visualiza métricas de la app</p></div><div class="card" onclick="adminUserManagement()"><i class="fas fa-users-cog"></i><h3>Gestionar Usuarios</h3><p>Asignar departamento, roles, etc.</p></div></div>`;
+    if (!isAdminUser && !isIglesiaAdmin) { 
+        document.getElementById('mainContent').innerHTML = '<p>No tienes permisos de administrador.</p>'; 
+        return; 
+    }
+    document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
+    
+    // Construimos el grid con todas las tarjetas, incluyendo la nueva
+    let gridHtml = `
+        <div id="adminIglesiaSelectorContainer"></div>
+        <div class="grid">
+            <div class="card" onclick="adminAttendance()">
+                <i class="fas fa-user-check"></i>
+                <h3>Control de Asistencia</h3>
+                <p>Registrar puntualidad</p>
+            </div>
+            <div class="card" onclick="adminShifts()">
+                <i class="fas fa-calendar-week"></i>
+                <h3>Gestión de Turnos</h3>
+                <p>Asignar fechas</p>
+            </div>
+            <div class="card" onclick="openEquiposView()">
+                <i class="fas fa-users"></i>
+                <h3>Equipos</h3>
+            </div>
+            <div class="card" onclick="adminActividades()">
+                <i class="fas fa-calendar-plus"></i>
+                <h3>Eventos Especiales</h3>
+                <p>Gestionar invitaciones y actividades</p>
+            </div>
+            <div class="card" onclick="adminCourses()">
+                <i class="fas fa-chalkboard-user"></i>
+                <h3>Gestionar Cursos</h3>
+                <p>Crear/editar cursos, lecciones y contenido</p>
+            </div>
+            <div class="card" onclick="adminExams()">
+                <i class="fas fa-file-alt"></i>
+                <h3>Gestionar Exámenes</h3>
+                <p>Crear preguntas, tiempos, etc.</p>
+            </div>
+            <div class="card" onclick="showEstadisticas()">
+                <i class="fas fa-chart-line"></i>
+                <h3>Estadísticas de Uso</h3>
+                <p>Visualiza métricas de la app</p>
+            </div>
+            <div class="card" onclick="adminUserManagement()">
+                <i class="fas fa-users-cog"></i>
+                <h3>Gestionar Usuarios</h3>
+                <p>Asignar departamento, roles, etc.</p>
+            </div>
+            <!-- NUEVA TARJETA PARA ELIMINAR TODAS LAS CANCIONES -->
+            <div class="card" onclick="deleteAllSongs()" style="background:#EF4444; color:white;">
+                <i class="fas fa-trash-alt"></i>
+                <h3>Eliminar TODAS las canciones</h3>
+                <p>Peligro: borra todo el cancionero</p>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('mainContent').innerHTML = gridHtml;
+    
+    // El selector de iglesias para el admin global se mantiene igual
     if (isAdminUser) {
         (async () => {
             const { data: iglesiasList, error } = await supabaseClient.from('iglesias').select('id, nombre');
