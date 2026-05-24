@@ -1254,8 +1254,94 @@ function openTeleprompter() { const selectSongs = songs.map(s=>`<option value="$
 function openBackupModal() { showModal(`<h3>Importar/Exportar datos</h3><button class="btn btn-primary" style="margin:0.5rem;" onclick="exportBackup()"><i class="fas fa-download"></i> Exportar respaldo JSON</button><button class="btn btn-primary" style="margin:0.5rem;" onclick="importSongBookZip()"><i class="fas fa-file-archive"></i> Importar desde ZIP (.cho)</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`); }
 function exportBackup() { const data = { songs, lists, attendance, shifts, cursos, modulosList, examenes, preguntas, departamentos, usuariosIglesia }; const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `praise_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); }
 async function importSongBookZip() { const input = document.createElement('input'); input.type='file'; input.accept='.zip'; input.onchange=async(e)=>{ const file=e.target.files[0]; if(!file) return; try { const zip=await JSZip.loadAsync(file); const files=Object.values(zip.files).filter(f=>!f.dir && f.name.toLowerCase().endsWith('.cho')); if(files.length===0) throw new Error("No se encontraron archivos .cho"); const cancionesTemp=[]; for(let zipFile of files){ const content=await zipFile.async('text'); const songData=parseChoFile(content,zipFile.name); cancionesTemp.push(songData); } showImportEditModal(cancionesTemp); } catch(err){ alert("Error al procesar el ZIP: "+err.message); } }; input.click(); }
-function parseChoFile(content,filename) { const lines=content.split(/\r?\n/); let metadata={}, lyrics=[]; for(let line of lines){ const metaMatch=line.match(/^\{(t|st|key|tempo):(.*)\}$/i); if(metaMatch){ const key=metaMatch[1].toLowerCase(); let value=metaMatch[2].trim(); if(key==='tempo') value=parseInt(value)||80; metadata[key]=value; continue; } let cleanLine=line.replace(/\{[^}]*\}/g,'').trim(); if(cleanLine!==''||line.trim()!=='') lyrics.push(cleanLine!==''?cleanLine:line.trim()); } return { selected:true, title:metadata.t||filename.replace(/\.cho$/i,''), category:'Adoración', key:metadata.key||'C', bpm:metadata.tempo||80, lyrics:lyrics.join('\n'), chordsData:'', chordsUrl:'', originalFilename:filename }; }
-function showImportEditModal(cancionesTemp) { let html=`<h3>Revisar canciones a importar (${cancionesTemp.length})</h3><div style="max-height:60vh;overflow-y:auto;margin-bottom:1rem;">`; cancionesTemp.forEach((c,idx)=>{ html+=`<div class="card" style="margin-bottom:1rem;cursor:pointer;" onclick="toggleSongSelection(${idx})"><div style="display:flex;align-items:center;gap:0.5rem;"><input type="checkbox" id="chk_${idx}" ${c.selected?'checked':''} onclick="event.stopPropagation(); toggleSongSelection(${idx})"><strong>${escapeHtml(c.title)}</strong> (${c.key}) - ${c.bpm} BPM</div><div id="edit_${idx}" style="display:none;margin-top:0.5rem;border-top:1px solid var(--border);padding-top:0.5rem;"><div class="form-group"><label>Título</label><input id="title_${idx}" class="form-control" value="${escapeHtml(c.title)}"></div><div class="form-group"><label>Categoría</label><select id="cat_${idx}" class="form-control"><option ${c.category==='Adoración'?'selected':''}>Adoración</option><option ${c.category==='Exaltación'?'selected':''}>Exaltación</option><option ${c.category==='Júbilo'?'selected':''}>Júbilo</option></select></div><div class="form-group"><label>Tonalidad</label><select id="key_${idx}" class="form-control">${keys.map(k=>`<option ${c.key===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group"><label>BPM</label><input id="bpm_${idx}" type="number" class="form-control" value="${c.bpm}"></div><div class="form-group"><label>Letra (con acordes [Acorde])</label><textarea id="lyrics_${idx}" rows="4" class="form-control">${escapeHtml(c.lyrics)}</textarea></div></div></div>`; }); html+=`</div><button class="btn btn-primary" onclick="saveSelectedSongs(${JSON.stringify(cancionesTemp).replace(/"/g,'&quot;')})">Guardar seleccionadas</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`; showModal(html); window.toggleSongSelection = (idx)=>{ const chk=document.getElementById(`chk_${idx}`); const editDiv=document.getElementById(`edit_${idx}`); chk.checked=!chk.checked; if(editDiv) editDiv.style.display=chk.checked?'block':'none'; }; cancionesTemp.forEach((_,idx)=>{ const card=document.querySelector(`.card:has(#chk_${idx})`); if(card){ card.addEventListener('click',(e)=>{ if(e.target.closest('.form-control')||e.target.closest('select')) return; toggleSongSelection(idx); }); } }); }
+
+    function parseChoFile(content, filename) {
+    const lines = content.split(/\r?\n/);
+    let metadata = {
+        title: filename.replace(/\.cho$/i, ''),
+        artist: '',
+        key: 'C',
+        tempo: 80
+    };
+    
+    let lyricsLines = [];
+    
+    for (let rawLine of lines) {
+        let line = rawLine.trim();
+        if (line === '') {
+            lyricsLines.push('');
+            continue;
+        }
+
+        // 1. Extraer Metadatos y Comentarios (Tags { })
+        if (line.startsWith('{') && line.endsWith('}')) {
+            const inner = line.slice(1, -1);
+            const lowerInner = inner.toLowerCase();
+            if (lowerInner.startsWith('title:')) metadata.title = inner.substring(6).trim();
+            else if (lowerInner.startsWith('artist:')) metadata.artist = inner.substring(7).trim();
+            else if (lowerInner.startsWith('key:')) metadata.key = inner.substring(4).trim();
+            else if (lowerInner.startsWith('tempo:')) metadata.tempo = parseInt(inner.substring(6).trim()) || 80;
+            else if (lowerInner.startsWith('c:')) {
+                // Comentarios se muestran como texto
+                const comment = inner.substring(2).trim();
+                if (comment) lyricsLines.push(comment.toUpperCase());
+            }
+            continue;
+        }
+
+        // 2. Limpiar barras dobles de repetición '//'
+        line = line.replace(/\/\//g, '').trim();
+        if (line === '') continue;
+
+        // 3. Separar Acordes arriba y Letra abajo
+        if (line.includes('[')) {
+            let chordLine = '';
+            let textLine = '';
+            let currentTextLength = 0;
+            
+            const regex = /([^\[]*)\[([^\]]+)\]/g;
+            let match;
+            let lastIndex = 0;
+
+            while ((match = regex.exec(line)) !== null) {
+                const textBeforeChord = match[1];
+                const chord = match[2];
+                
+                textLine += textBeforeChord;
+                currentTextLength += textBeforeChord.length;
+                
+                while (chordLine.length < currentTextLength) {
+                    chordLine += ' ';
+                }
+                chordLine += chord;
+                lastIndex = regex.lastIndex;
+            }
+            
+            const remainingText = line.substring(lastIndex);
+            textLine += remainingText;
+
+            if (chordLine.trim() !== '') lyricsLines.push(chordLine);
+            if (textLine.trim() !== '') lyricsLines.push(textLine);
+        } else {
+            // Línea sin acordes
+            lyricsLines.push(line);
+        }
+    }
+
+    return {
+        selected: true,
+        title: metadata.title,
+        category: metadata.artist || 'Adoración',
+        key: metadata.key,
+        bpm: metadata.tempo,
+        lyrics: lyricsLines.join('\n'),
+        chordsData: '',
+        chordsUrl: '',
+        originalFilename: filename
+    };
+}
+    
+    function showImportEditModal(cancionesTemp) { let html=`<h3>Revisar canciones a importar (${cancionesTemp.length})</h3><div style="max-height:60vh;overflow-y:auto;margin-bottom:1rem;">`; cancionesTemp.forEach((c,idx)=>{ html+=`<div class="card" style="margin-bottom:1rem;cursor:pointer;" onclick="toggleSongSelection(${idx})"><div style="display:flex;align-items:center;gap:0.5rem;"><input type="checkbox" id="chk_${idx}" ${c.selected?'checked':''} onclick="event.stopPropagation(); toggleSongSelection(${idx})"><strong>${escapeHtml(c.title)}</strong> (${c.key}) - ${c.bpm} BPM</div><div id="edit_${idx}" style="display:none;margin-top:0.5rem;border-top:1px solid var(--border);padding-top:0.5rem;"><div class="form-group"><label>Título</label><input id="title_${idx}" class="form-control" value="${escapeHtml(c.title)}"></div><div class="form-group"><label>Categoría</label><select id="cat_${idx}" class="form-control"><option ${c.category==='Adoración'?'selected':''}>Adoración</option><option ${c.category==='Exaltación'?'selected':''}>Exaltación</option><option ${c.category==='Júbilo'?'selected':''}>Júbilo</option></select></div><div class="form-group"><label>Tonalidad</label><select id="key_${idx}" class="form-control">${keys.map(k=>`<option ${c.key===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group"><label>BPM</label><input id="bpm_${idx}" type="number" class="form-control" value="${c.bpm}"></div><div class="form-group"><label>Letra (con acordes [Acorde])</label><textarea id="lyrics_${idx}" rows="4" class="form-control">${escapeHtml(c.lyrics)}</textarea></div></div></div>`; }); html+=`</div><button class="btn btn-primary" onclick="saveSelectedSongs(${JSON.stringify(cancionesTemp).replace(/"/g,'&quot;')})">Guardar seleccionadas</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`; showModal(html); window.toggleSongSelection = (idx)=>{ const chk=document.getElementById(`chk_${idx}`); const editDiv=document.getElementById(`edit_${idx}`); chk.checked=!chk.checked; if(editDiv) editDiv.style.display=chk.checked?'block':'none'; }; cancionesTemp.forEach((_,idx)=>{ const card=document.querySelector(`.card:has(#chk_${idx})`); if(card){ card.addEventListener('click',(e)=>{ if(e.target.closest('.form-control')||e.target.closest('select')) return; toggleSongSelection(idx); }); } }); }
 window.saveSelectedSongs = async (cancionesTemp) => { if(!isAdminUser && !isIglesiaAdmin) return alert("Solo administrador puede importar canciones."); const progressModal = document.createElement('div'); progressModal.id='importProgress'; progressModal.className='modal'; progressModal.style.display='flex'; progressModal.innerHTML=`<div class="modal-content" style="text-align:center;"><h3>Importando canciones...</h3><div style="width:100%;background:#ddd;border-radius:10px;margin:1rem 0;"><div id="progressBarFill" style="width:0%;height:20px;background:var(--primary);border-radius:10px;"></div></div><p id="progressStatus">Preparando...</p></div>`; document.body.appendChild(progressModal); let saved=0, errors=0, skipped=0; const totalToSave = cancionesTemp.filter((_,i)=>document.getElementById(`chk_${i}`)?.checked).length; for(let i=0;i<cancionesTemp.length;i++){ const chk=document.getElementById(`chk_${i}`); if(!chk||!chk.checked) continue; const title = document.getElementById(`title_${i}`).value.trim(); if(!title){ errors++; continue; } const exists = songs.some(s=>s.title.toLowerCase()===title.toLowerCase()); if(exists){ if(confirm(`La canción "${title}" ya existe. ¿Deseas sobrescribirla?`)){ const existingSong = songs.find(s=>s.title.toLowerCase()===title.toLowerCase()); if(existingSong){ const category = document.getElementById(`cat_${i}`).value; const key = document.getElementById(`key_${i}`).value; const bpm = parseInt(document.getElementById(`bpm_${i}`).value)||80; const lyrics = document.getElementById(`lyrics_${i}`).value; existingSong.title=title; existingSong.category=category; existingSong.key=key; existingSong.bpm=bpm; existingSong.lyrics=lyrics; await saveSong(existingSong); saved++; } else { const success = await saveSong(createSongObject(i,cancionesTemp)); if(success) saved++; else errors++; } } else { skipped++; } } else { const success = await saveSong(createSongObject(i,cancionesTemp)); if(success) saved++; else errors++; } const completed = saved+errors+skipped; const percent = (completed/totalToSave)*100; document.getElementById('progressBarFill').style.width=`${percent}%`; document.getElementById('progressStatus').innerText=`Procesando: ${completed} de ${totalToSave} (${saved} guardadas, ${errors} errores, ${skipped} omitidas)`; } setTimeout(()=>{ progressModal.remove(); alert(`Importación finalizada:\n✅ Guardadas: ${saved}\n❌ Errores: ${errors}\n⏭️ Omitidas: ${skipped}`); closeModal(); renderCurrentView(); },500); };
 function createSongObject(index,cancionesTemp) { return { id:generateUniqueId(), title:document.getElementById(`title_${index}`).value.trim(), category:document.getElementById(`cat_${index}`).value, key:document.getElementById(`key_${index}`).value, bpm:parseInt(document.getElementById(`bpm_${index}`).value)||80, lyrics:document.getElementById(`lyrics_${index}`).value, chordsUrl:'', chordsData:'', youtube:'' }; }
 
