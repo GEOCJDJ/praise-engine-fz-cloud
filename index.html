@@ -1599,6 +1599,7 @@ let devocionalGemini = null;
 let examenesPendientesCount = 0;
 let tareasCount = 0;
 
+// ========== AULA VIRTUAL CON DISEÑO GEMINI ORIGINAL (INTACTO) + SUPABASE ==========
 async function renderMoodle() {
     const container = document.getElementById('mainContent');
     const actionHeader = document.getElementById('actionHeader');
@@ -1606,144 +1607,228 @@ async function renderMoodle() {
         ? `<button class="btn btn-primary" onclick="openAdminAulaVirtual()"><i class="fas fa-chalkboard-user"></i> Gestionar Aula Virtual</button>`
         : '';
 
-    // Cargar datos del usuario
-    await cargarProgresoGemini();
+    // Cargar datos necesarios
+    await cargarDatosAula();
+    await cargarProgresoUsuario();
     await cargarDevocionalHoy();
-    await cargarContadores();
+    await cargarCursos();
+    await cargarExamenes();
+    await cargarTareas();
 
-    // HTML COMPLETO DEL DISEÑO ORIGINAL DE GEMINI (sin cambios)
-    const html = `
+    // HTML IDÉNTICO al original de Gemini (respetando todas las clases y estructura)
+    const htmlOriginal = `
     <style>
-        /* Responsive para móvil */
+        /* ESTILOS COMPLETOS DEL ORIGINAL (sin pérdidas) */
+        :root {
+            --av-gold: #C8972A;
+            --av-gold-light: #F5D97A;
+            --av-navy: #1E3A8A;
+            --av-soft: #F8FAFC;
+            --av-card: #ffffff;
+            --av-border: #E2E8F0;
+            --av-text: #0F172A;
+            --av-muted: #64748B;
+        }
+        .av-verse { font-size: 14px; color: #E2E8F0; font-style: italic; margin-bottom: 0.75rem; max-width: 460px; line-height: 1.6; }
+        .av-verse strong { color: var(--av-gold-light); font-style: normal; }
+        .av-welcome-title { font-size: 26px; font-weight: 700; color: white; margin: 1rem 0 0.25rem; }
+        .av-welcome-sub { font-size: 15px; color: #94A3B8; margin-bottom: 2rem; }
+        .av-today-card { background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.25rem; display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; width: 100%; max-width: 480px; color: white; transition: 0.3s; }
+        .av-today-card:hover { background: rgba(255,255,255,0.1); border-color: var(--av-gold-light); }
+        .av-today-icon { font-size: 32px; }
+        .av-today-info { text-align: left; flex: 1; }
+        .av-today-info p { font-size: 12px; color: #94A3B8; }
+        .av-today-info strong { font-size: 15px; color: white; font-weight: 600; }
+        .av-streak { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #FB923C; }
+        .av-enter-btn { background: var(--av-gold); color: #0F172A; border: none; border-radius: 2rem; padding: 0.85rem 3rem; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-bottom: 0.75rem; width: 100%; max-width: 320px; box-shadow: 0 4px 14px rgba(200,151,42,0.4); }
+        .av-enter-btn:hover { background: var(--av-gold-light); transform: translateY(-1px); }
+        .av-skip { font-size: 13px; color: #94A3B8; cursor: pointer; text-decoration: underline; }
+        .wl-game-opt { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 13px; text-align: center; transition: 0.2s; }
+        .wl-game-opt:hover { background: rgba(255,255,255,0.2); }
+        .wl-game-opt.correct { background: #10B981 !important; color: white; }
+        .wl-game-opt.wrong { background: #EF4444 !important; color: white; }
+        .av-sidebar { width: 260px; background: #0F172A; color: white; display: flex; flex-direction: column; }
+        .av-sidebar-item { display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; font-size: 14px; font-weight: 500; cursor: pointer; transition: 0.2s; border-left: 4px solid transparent; }
+        .av-sidebar-item:hover { background: #1E293B; color: white; }
+        .av-sidebar-item.active { background: #1E293B; color: white; border-left-color: var(--av-gold); }
+        .av-header-title { font-size: 16px; font-weight: 600; color: var(--av-text); display: flex; align-items: center; gap: 8px; }
+        .av-header-title span { font-size: 12px; font-weight: 400; color: var(--av-muted); background: #F1F5F9; padding: 2px 8px; border-radius: 4px; }
+        .av-xp-bar-wrap { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 240px; }
+        .av-xp-label { font-size: 12px; font-weight: 600; color: var(--av-muted); white-space: nowrap; }
+        .av-xp-bar { flex: 1; height: 8px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
+        .av-xp-fill { height: 100%; background: linear-gradient(90deg, var(--av-gold) 0%, #EAB308 100%); transition: width 0.5s ease; }
+        .av-tabs { display: flex; border-bottom: 1px solid var(--av-border); background: white; padding: 0 1.5rem; overflow-x: auto; }
+        .av-tab { padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; color: var(--av-muted); cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 6px; transition: 0.15s; }
+        .av-tab:hover { color: var(--av-text); }
+        .av-tab.active { color: var(--av-navy); border-bottom-color: var(--av-navy); font-weight: 600; }
+        .av-tab .av-badge-num { background: #EF4444; color: white; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 99px; }
+        .av-body { padding: 1.5rem; overflow-y: auto; flex: 1; display: none; }
+        .av-body.active { display: block; }
+        .av-course-card, .av-eval-card, .av-task-card { background: white; border: 1px solid var(--av-border); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; transition: all 0.2s; }
+        .av-course-card:hover, .av-eval-card:hover { transform: translateY(-2px); border-color: #CBD5E1; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .av-course-icon { width: 48px; height: 48px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+        .av-cat { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; margin-bottom: 6px; text-transform: uppercase; }
+        .av-cat-blue { background: #EFF6FF; color: #1D4ED8; }
+        .av-cat-amber { background: #FEF3C7; color: #B45309; }
+        .av-progress-bar { margin-top: 8px; height: 6px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
+        .av-upload-area { border: 2px dashed #CBD5E1; border-radius: 0.5rem; padding: 1.25rem; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 0.75rem; }
+        .av-upload-area:hover { border-color: var(--av-navy); background: #F8FAFC; }
+        .timer-ring-container { position: relative; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+        .timer-text { font-size: 16px; font-weight: 700; color: #EF4444; position: absolute; }
+        .quiz-opt { background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: 0.2s; font-size: 14px; }
+        .quiz-opt:hover { background: #E2E8F0; }
+        .quiz-opt.selected { background: #3B82F6; color: white; }
+        .av-file-pill { display: inline-flex; align-items: center; gap: 6px; background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 0.375rem; padding: 4px 10px; font-size: 12px; margin: 4px; }
         @media (max-width: 768px) {
-            .av-main-gemini { flex-direction: column !important; }
-            .av-sidebar-gemini { width: 100% !important; border-right: none !important; border-bottom: 1px solid #1E293B; }
-            .av-content-gemini { padding: 0.5rem !important; }
-            .av-tabs-gemini { flex-wrap: wrap; gap: 0.25rem; }
-            .av-tab-gemini { padding: 0.5rem 0.75rem !important; font-size: 12px !important; }
+            .av-sidebar { width: 100% !important; border-right: none !important; border-bottom: 1px solid #1E293B; }
+            .av-main-flex { flex-direction: column !important; }
+            .av-tabs { padding: 0 0.5rem; }
+            .av-tab { padding: 0.5rem 0.75rem; font-size: 12px; }
             .grid-cols-3 { grid-template-columns: 1fr !important; }
+            .av-body { padding: 1rem; }
         }
     </style>
-    <div style="position: relative;">
-        <!-- PANTALLA DE BIENVENIDA (original) -->
-        <div id="av-welcome-gemini" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 60; background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); overflow-y: auto;">
-            <div id="starsContainer" style="position: absolute; inset: 0; pointer-events: none;"></div>
-            <div style="max-width: 480px; margin: 0 auto; z-index: 10; text-align: center; padding: 1rem;">
-                <div style="width: 64px; height: 64px; background: #C8972A; border-radius: 1rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-                    <i class="ti ti-crown" style="font-size: 2rem; color: #0F172A;"></i>
-                </div>
-                <p class="av-verse">"Servir a Dios en la alabanza no es un pasatiempo, <strong style="color: #F5D97A;">es un alto privilegio y un servicio de amor hacia el Señor</strong>."</p>
-                <h2 style="font-size: 26px; font-weight: 700; color: white;">Campus Virtual G-Praise</h2>
-                <p style="color: #94A3B8; margin-bottom: 2rem;">Plataforma de Capacitación y Discipulado de Alabanza</p>
 
-                <!-- Reto ministerial -->
-                <div id="wlGameCard" style="background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1rem; cursor: pointer;">
-                    <div style="display: flex; align-items: center; gap: 1rem;" onclick="toggleWelcomeGameGemini()">
-                        <div style="font-size: 32px;">⚡</div>
-                        <div style="flex:1; text-align: left;">
-                            <p style="font-size: 12px; color: #94A3B8;">Reto ministerial rápido — Responde antes de entrar</p>
-                            <strong style="color: white;">¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong>
+    <div id="av-root" style="display: flex; flex-direction: column; background: #F1F5F9; border-radius: 1rem; overflow: hidden;">
+        <!-- Pantalla de bienvenida (exactamente igual al original) -->
+        <div id="av-welcome" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 50; text-align: center; padding: 2rem; background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); overflow-y: auto;">
+            <div class="stars" id="starsContainer"></div>
+            <div class="w-full max-w-md mx-auto z-10 flex flex-col items-center">
+                <div class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-slate-900 text-3xl shadow-lg mb-4">
+                    <i class="ti ti-crown"></i>
+                </div>
+                <p class="av-verse">"Servir a Dios en la alabanza no es un pasatiempo, <strong>es un alto privilegio y un servicio de amor hacia el Señor</strong>."</p>
+                <h2 class="av-welcome-title">Campus Virtual G-Praise</h2>
+                <p class="av-welcome-sub">Plataforma de Capacitación y Discipulado de Alabanza</p>
+
+                <div class="av-today-card flex-col gap-2 cursor-pointer" id="wlGameCard">
+                    <div class="flex items-center gap-3 w-full" onclick="toggleWelcomeGame()">
+                        <div class="av-today-icon">⚡</div>
+                        <div class="av-today-info">
+                            <p>Reto ministerial rápido — Responde antes de entrar</p>
+                            <strong id="wlGameQuestion">¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong>
                         </div>
-                        <i class="ti ti-chevron-down" style="color: #94A3B8;"></i>
+                        <i class="ti ti-chevron-down text-slate-400 text-lg"></i>
                     </div>
-                    <div id="av-welcome-game" style="display: none; margin-top: 0.75rem;">
-                        <div id="wlGameOptions" class="grid grid-cols-2 gap-2"></div>
-                        <div id="wlGameFeedback" class="text-xs text-center mt-2"></div>
+                    <div id="av-welcome-game" class="w-full" style="display: none;">
+                        <div class="grid grid-cols-2 gap-2" id="wlGameOptions"></div>
+                        <div id="wlGameFeedback" class="text-xs text-center mt-2 font-medium min-h-[16px]"></div>
                     </div>
                 </div>
 
-                <!-- Tareas pendientes -->
-                <div style="background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="font-size: 32px;">📚</div>
-                        <div style="text-align: left;">
-                            <p style="font-size: 12px; color: #94A3B8;">Tareas ministeriales de la semana</p>
-                            <strong style="color: white;">${tareasCount} asignaciones pendientes por subir</strong>
+                <div class="av-today-card justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="av-today-icon">📚</div>
+                        <div class="av-today-info">
+                            <p>Tareas ministeriales de la semana</p>
+                            <strong id="welcomeTareasCount">${window.tareasCantidad || 0} asignaciones pendientes por subir</strong>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 6px; color: #FB923C;"><i class="ti ti-flame"></i> Racha: ${rachaGemini} días</div>
+                    <div class="av-streak"><i class="ti ti-flame"></i> Racha: <span id="welcomeRacha">${window.rachaUsuario || 0}</span> días</div>
                 </div>
 
-                <button id="enterAppBtn" style="background: #C8972A; border: none; border-radius: 2rem; padding: 0.85rem 2rem; font-weight: 600; cursor: pointer; width: 100%; max-width: 320px; margin-bottom: 0.75rem;">Entrar al Aula</button>
-                <button id="skipWelcomeBtn" style="background: transparent; border: none; color: #94A3B8; text-decoration: underline; cursor: pointer;">Omitir e ingresar directamente</button>
+                <button class="av-enter-btn shadow-md w-full max-w-xs" onclick="enterApp()">
+                    <i class="ti ti-door-enter mr-2"></i>Entrar al Aula
+                </button>
+                <span class="av-skip mt-2" onclick="enterApp()">Omitir e ingresar directamente</span>
             </div>
         </div>
 
-        <!-- APLICACIÓN PRINCIPAL (oculta inicialmente) -->
-        <div id="av-main-layout-gemini" style="display: none; background: #F8FAFC; border-radius: 1rem; overflow: hidden;">
-            <div class="av-main-gemini" style="display: flex;">
+        <!-- Aplicación principal (oculta inicialmente) -->
+        <div id="av-main-layout" style="display: none; width: 100%; height: auto; flex: 1;">
+            <div class="flex av-main-flex">
                 <!-- Sidebar -->
-                <aside class="av-sidebar-gemini" style="width: 260px; background: #0F172A; color: white; flex-shrink: 0;">
-                    <div style="padding: 1.5rem; border-bottom: 1px solid #1E293B;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #C8972A, #F5D97A); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
-                                <i class="ti ti-school" style="color: #0F172A;"></i>
-                            </div>
-                            <div><h1 style="font-weight: bold;">G-CAMPUS</h1><p style="font-size: 10px; color: #94A3B8;">Ministerio de Alabanza</p></div>
+                <aside class="av-sidebar shadow-xl z-20">
+                    <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+                        <div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-md">
+                            <i class="ti ti-school text-slate-900 text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="font-bold text-base tracking-wide text-white">G-CAMPUS</h1>
+                            <p class="text-xs text-slate-400">Ministerio de Alabanza</p>
                         </div>
                     </div>
-                    <nav style="padding: 1rem 0;">
-                        <div class="av-sidebar-item-gemini" data-nav="inicio" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-layout-dashboard"></i> Tablero Principal</div>
-                        <div class="av-sidebar-item-gemini" data-nav="cursos" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-book-open"></i> Mis Cursos Activos</div>
-                        <div class="av-sidebar-item-gemini" data-nav="evaluaciones" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-clipboard-check"></i> Cuestionarios y Quices</div>
-                        <div class="av-sidebar-item-gemini" data-nav="tareas" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-file-upload"></i> Entregas y Enlaces</div>
-                        <div class="av-sidebar-item-gemini" data-nav="devocional" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-feather"></i> Devocionales Diarios</div>
-                        <div class="av-sidebar-item-gemini" data-nav="retos" style="display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem; color: #94A3B8; cursor: pointer; border-left: 4px solid transparent;"><i class="ti ti-swords"></i> Retos de Equipo</div>
+                    <nav class="flex-1 py-4 space-y-1">
+                        <div class="av-sidebar-item active" data-nav="inicio"><i class="ti ti-layout-dashboard text-lg"></i> Tablero Principal</div>
+                        <div class="av-sidebar-item" data-nav="cursos"><i class="ti ti-book-open text-lg"></i> Mis Cursos Activos</div>
+                        <div class="av-sidebar-item" data-nav="evaluaciones"><i class="ti ti-clipboard-check text-lg"></i> Cuestionarios y Quices</div>
+                        <div class="av-sidebar-item" data-nav="tareas"><i class="ti ti-file-upload text-lg"></i> Entregas y Enlaces</div>
+                        <div class="av-sidebar-item" data-nav="devocional"><i class="ti ti-feather text-lg"></i> Devocionales Diarios</div>
+                        <div class="av-sidebar-item" data-nav="retos"><i class="ti ti-swords text-lg"></i> Retos de Equipo</div>
                     </nav>
-                    <div style="padding: 1rem; border-top: 1px solid #1E293B;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div style="width: 36px; height: 36px; background: #C8972A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">${currentUser?.email?.charAt(0).toUpperCase() || 'U'}</div>
-                            <div><p style="font-size: 10px; color: #94A3B8;">Rango de Servicio</p><p style="font-size: 14px; font-weight: bold;">Nivel ${Math.floor(xpGemini/500)+1} · Levita</p></div>
+                    <div class="p-4 border-t border-slate-800 bg-slate-900/50">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 flex items-center justify-center font-bold text-sm">
+                                ${currentUser?.email?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400">Rango de Servicio</p>
+                                <p class="text-sm font-semibold text-white" id="userRank">Nivel ${Math.floor((window.xpUsuario || 0)/500)+1} · Levita</p>
+                            </div>
                         </div>
                     </div>
                 </aside>
 
                 <!-- Contenido principal -->
-                <div class="av-content-gemini" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-                    <div style="background: white; padding: 1rem 1.5rem; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                        <div><i class="ti ti-building-church" style="color: #1E3A8A;"></i> <span style="font-weight: 600;">Aula de Capacitación Ministerial</span> <span style="font-size: 12px; background: #F1F5F9; padding: 2px 8px; border-radius: 4px;">IEC Central</span></div>
-                        <div style="display: flex; align-items: center; gap: 10px;"><span style="font-size: 12px;">XP ${xpGemini} / 500</span><div style="width: 120px; height: 8px; background: #E2E8F0; border-radius: 99px;"><div id="xpFillGemini" style="width: ${(xpGemini/500)*100}%; height: 100%; background: linear-gradient(90deg, #C8972A, #EAB308);"></div></div></div>
+                <div class="av-content-area" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="av-header">
+                        <div class="av-header-title">
+                            <i class="ti ti-building-church text-xl text-blue-900"></i>
+                            Aula de Capacitación Ministerial <span>IEC Central</span>
+                        </div>
+                        <div class="av-xp-bar-wrap">
+                            <span class="av-xp-label" id="xpText">XP ${window.xpUsuario || 0} / 500</span>
+                            <div class="av-xp-bar"><div class="av-xp-fill" id="xpFill" style="width: ${((window.xpUsuario || 0)/500)*100}%;"></div></div>
+                        </div>
                     </div>
 
-                    <div class="av-tabs-gemini" style="display: flex; background: white; border-bottom: 1px solid #E2E8F0; padding: 0 1rem; overflow-x: auto;">
-                        <div class="av-tab-gemini active" data-tab="inicio" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid #1E3A8A; color: #1E3A8A;"><i class="ti ti-smart-home"></i> Inicio</div>
-                        <div class="av-tab-gemini" data-tab="cursos" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-notebook"></i> Cursos <span id="cursosBadgeGemini" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">0</span></div>
-                        <div class="av-tab-gemini" data-tab="evaluaciones" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-device-laptop"></i> Evaluaciones <span id="quizBadgeGemini" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">${examenesPendientesCount}</span></div>
-                        <div class="av-tab-gemini" data-tab="tareas" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-cloud-upload"></i> Tareas <span id="tareasBadgeGemini" style="background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px; margin-left: 6px;">${tareasCount}</span></div>
-                        <div class="av-tab-gemini" data-tab="devocional" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-heart-handshake"></i> Devocional</div>
-                        <div class="av-tab-gemini" data-tab="retos" style="padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: #64748B;"><i class="ti ti-trophy"></i> Retos</div>
+                    <div class="av-tabs">
+                        <div class="av-tab active" data-tab="inicio"><i class="ti ti-smart-home"></i> Inicio</div>
+                        <div class="av-tab" data-tab="cursos"><i class="ti ti-notebook"></i> Cursos <span class="av-badge-num" id="cursosBadge">0</span></div>
+                        <div class="av-tab" data-tab="evaluaciones"><i class="ti ti-device-laptop"></i> Evaluaciones <span class="av-badge-num" id="evaluacionesBadge">0</span></div>
+                        <div class="av-tab" data-tab="tareas"><i class="ti ti-cloud-upload"></i> Tareas <span class="av-badge-num" id="tareasBadge">0</span></div>
+                        <div class="av-tab" data-tab="devocional"><i class="ti ti-heart-handshake"></i> Devocional</div>
+                        <div class="av-tab" data-tab="retos"><i class="ti ti-trophy"></i> Retos</div>
                     </div>
 
-                    <div id="av-dynamic-content-gemini" style="padding: 1.5rem; overflow-y: auto; flex: 1; background: #F8FAFC; min-height: 400px;">Cargando...</div>
+                    <div class="av-body active" id="tab-inicio"><!-- contenido dinámico --></div>
+                    <div class="av-body" id="tab-cursos"></div>
+                    <div class="av-body" id="tab-evaluaciones"></div>
+                    <div class="av-body" id="tab-tareas"></div>
+                    <div class="av-body" id="tab-devocional"></div>
+                    <div class="av-body" id="tab-retos"></div>
                 </div>
             </div>
         </div>
     </div>
     `;
 
-    container.innerHTML = html;
+    container.innerHTML = htmlOriginal;
 
-    // Inicializar elementos
-    generarEstrellasGemini();
+    // Generar estrellas
+    generarEstrellas();
+
+    // Construir juego de bienvenida
     construirJuegoBienvenida();
-    document.getElementById('enterAppBtn').addEventListener('click', () => entrarAppGemini());
-    document.getElementById('skipWelcomeBtn').addEventListener('click', () => entrarAppGemini());
 
-    // Eventos de navegación
-    document.querySelectorAll('.av-sidebar-item-gemini').forEach(el => {
-        el.addEventListener('click', () => navegarGemini(el.getAttribute('data-nav')));
-    });
-    document.querySelectorAll('.av-tab-gemini').forEach(el => {
-        el.addEventListener('click', () => navegarGemini(el.getAttribute('data-tab')));
-    });
+    // Cargar contenido inicial de los tabs
+    await cargarTabInicio();
+    await cargarTabCursos();
+    await cargarTabEvaluaciones();
+    await cargarTabTareas();
+    await cargarTabDevocional();
+    await cargarTabRetos();
 
-    // Cargar contenido inicial cuando se entra
-    window.entrarAppGemini = async () => {
-        document.getElementById('av-welcome-gemini').style.display = 'none';
-        document.getElementById('av-main-layout-gemini').style.display = 'block';
-        await cargarTabInicio();
-        await actualizarBadges();
-    };
+    // Actualizar badges
+    actualizarBadges();
+
+    // Vincular eventos
+    document.querySelectorAll('.av-sidebar-item, .av-tab').forEach(el => {
+        el.addEventListener('click', () => {
+            const tab = el.getAttribute('data-tab') || el.getAttribute('data-nav');
+            cambiarTab(tab);
+        });
+    });
 }
     
 // Función para generar estrellas
