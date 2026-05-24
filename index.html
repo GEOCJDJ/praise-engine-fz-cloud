@@ -349,11 +349,14 @@ body.dark .chord {
             <button onclick="changeScrollSpeedCifra(1)">+</button>
             <button id="btnPlayScrollCifra" class="cifra-btn" onclick="toggleAutoScrollCifra()"><i class="fa-solid fa-play"></i> Iniciar</button>
         </div>
-        <div class="tool-group">
-            <span>BPM:</span>
-            <input type="number" id="cifraBpmInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()">
-            <div class="bpm-indicator" id="bpmDot"></div>
-        </div>
+      <div class="tool-group">
+    <span>BPM:</span>
+    <input type="number" id="cifraBpmInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()">
+    <div class="bpm-indicator" id="bpmDot"></div>
+    <button id="toggleMetronomeBtn" class="cifra-btn" style="margin-left:8px;" onclick="toggleMetronome()">
+        <i class="fas fa-play"></i> Metro
+    </button>
+</div>
         <div class="tool-group">
             <span>Capo:</span>
             <input type="text" id="cifraCapoInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" placeholder="Ej: 2">
@@ -392,6 +395,7 @@ let adminSelectedIglesiaId = null;
 let originalSongContent = "";  // Almacena el texto limpio y original de la canción activa
 let currentTransposeOffset = 0; // Lleva el control acumulado de tonos (+1, -2, 0, etc.)
 let currentFontSize = 16;       // Tamaño de letra por defecto
+let isMetronomeRunning = false;   // controla si el metrónomo está activo
 
 const NOTE_TO_INDEX = {
     'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4,
@@ -457,14 +461,17 @@ function openCifraViewer(songId, index) {
     document.getElementById('cifraCapoDisplay').innerText = song.capo ? `Capo: ${song.capo}` : '';
     // Renderizar con offset actual (0)
     applyTransposition(0);
-    startMetronomeVisual(song.bpm);
     document.getElementById('cifraClubModal').style.display = 'flex';
+    isMetronomeRunning = false;
+const metroBtn = document.getElementById('toggleMetronomeBtn');
+if (metroBtn) metroBtn.innerHTML = '<i class="fas fa-play"></i> Metro';
 }
 
 function closeCifraViewer() {
     if (cifraScrollInterval) clearInterval(cifraScrollInterval);
     if (cifraMetronomeInterval) clearInterval(cifraMetronomeInterval);
     document.getElementById('cifraClubModal').style.display = 'none';
+    isMetronomeRunning = false;
 }
 
 function renderCifraFromText(content) {
@@ -610,17 +617,54 @@ function updateSongBpm() {
     }
 }
 
+// Inicia o detiene el metrónomo visual (sin vibración)
 function startMetronomeVisual(bpm) {
     if (cifraMetronomeInterval) clearInterval(cifraMetronomeInterval);
     const dot = document.getElementById('bpmDot');
     if (!dot) return;
     dot.classList.remove('beat');
+    if (!isMetronomeRunning) return;   // no arrancar si no está activado
     if (!bpm || bpm <= 0) return;
     cifraMetronomeInterval = setInterval(() => {
         dot.classList.add('beat');
         setTimeout(() => dot.classList.remove('beat'), 150);
-        if (navigator.vibrate) navigator.vibrate(30);
+        // Si quieres vibración opcional, descomenta la siguiente línea
+        // if (navigator.vibrate) navigator.vibrate(30);
     }, 60000 / bpm);
+}
+
+// Alterna el metrónomo (encendido/apagado)
+function toggleMetronome() {
+    const btn = document.getElementById('toggleMetronomeBtn');
+    if (isMetronomeRunning) {
+        // Detener
+        if (cifraMetronomeInterval) {
+            clearInterval(cifraMetronomeInterval);
+            cifraMetronomeInterval = null;
+        }
+        isMetronomeRunning = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Metro';
+        // Apagar el puntito visual
+        const dot = document.getElementById('bpmDot');
+        if (dot) dot.classList.remove('beat');
+    } else {
+        // Iniciar
+        isMetronomeRunning = true;
+        const bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+        startMetronomeVisual(bpm);
+        btn.innerHTML = '<i class="fas fa-stop"></i> Parar';
+    }
+}
+
+// Actualiza el BPM cuando el usuario cambia el valor
+function updateSongBpm() {
+    if (cifraCurrentSong) {
+        cifraCurrentSong.bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
+        // Si el metrónomo está corriendo, lo reiniciamos con el nuevo BPM
+        if (isMetronomeRunning) {
+            startMetronomeVisual(cifraCurrentSong.bpm);
+        }
+    }
 }
 
 function toggleAutoScrollCifra() {
