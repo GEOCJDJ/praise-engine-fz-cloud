@@ -1697,7 +1697,7 @@ async function viewMyShifts() {
     
     function openTuner() { showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const noteElem=document.getElementById('tunerNote'), needleElem=document.getElementById('tunerNeedle'); if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ noteElem.innerText="Sin micrófono"; return; } navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{ const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const source=audioCtx.createMediaStreamSource(stream); const analyser=audioCtx.createAnalyser(); analyser.fftSize=2048; source.connect(analyser); const bufferLength=analyser.frequencyBinCount; const dataArray=new Float32Array(bufferLength); const detectPitch=()=>{ if(!document.getElementById('tunerNote')) return; analyser.getFloatTimeDomainData(dataArray); let maxSample=0; for(let i=0;i<bufferLength;i++) if(Math.abs(dataArray[i])>maxSample) maxSample=Math.abs(dataArray[i]); if(maxSample<0.01){ requestAnimationFrame(detectPitch); return; } let autocorr=new Array(bufferLength); for(let lag=0;lag<bufferLength;lag++){ let sum=0; for(let i=0;i<bufferLength-lag;i++) sum+=dataArray[i]*dataArray[i+lag]; autocorr[lag]=sum; } let maxVal=-1, maxLag=0; for(let lag=20;lag<bufferLength/2;lag++) if(autocorr[lag]>maxVal){ maxVal=autocorr[lag]; maxLag=lag; } let freq=audioCtx.sampleRate/maxLag; let noteNum=12*Math.log2(freq/440)+69; let roundedNote=Math.round(noteNum); let cents=Math.round((noteNum-roundedNote)*100); let note=noteNames[roundedNote%12]; if(freq>50&&freq<600){ noteElem.innerText=`${note} (${cents>0?'+':''}${cents}¢)`; let percent=Math.min(100,Math.max(0,50+(cents/50)*50)); needleElem.style.width=`${percent}%`; needleElem.style.background=Math.abs(cents)<5?"#10B981":"#F59E0B"; } else { noteElem.innerText="--"; needleElem.style.width="0%"; } requestAnimationFrame(detectPitch); }; detectPitch(); }).catch(()=>{ if(noteElem) noteElem.innerText="Permiso denegado"; }); }
 
-// ========== AULA VIRTUAL CON ESCUDO DE ESTILOS Y MENÚ COLAPSABLE ==========
+// ========== AULA VIRTUAL CON ESCUDO DE ESTILOS Y MENÚ COLAPSABLE (VERSIÓN LIMPIA Y CORREGIDA) ==========
 let xpGemini = 0;
 let rachaGemini = 0;
 let devocionalGemini = null;
@@ -1710,16 +1710,13 @@ async function renderMoodle() {
         ? `<button class="btn btn-primary" onclick="openAdminAulaVirtual()"><i class="fas fa-chalkboard-user"></i> Gestionar Aula Virtual</button>`
         : '';
 
-    // Cargar datos del usuario
     await cargarProgresoGemini();
     await cargarDevocionalGemini();
     await cargarContadoresGemini();
 
-    // HTML del Aula Virtual con escudo de estilos
-    const html = `
-    <div id="gpraise-aula-shield">
+    const html = `<div id="gpraise-aula-shield">
         <style>
-            /* ESCUDO DE CSS ABSOLUTO: Nada de afuera puede alterar esto */
+            /* ===== ESCUDO DE ESTILOS (idéntico al que te funciona) ===== */
             #gpraise-aula-shield {
                 all: initial;
                 display: block !important;
@@ -1729,9 +1726,7 @@ async function renderMoodle() {
                 overflow: hidden !important;
                 position: relative !important;
             }
-            #gpraise-aula-shield * {
-                box-sizing: border-box !important;
-            }
+            #gpraise-aula-shield * { box-sizing: border-box !important; }
             /* Pantalla de bienvenida */
             #gpraise-aula-shield .av-welcome {
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1782,7 +1777,6 @@ async function renderMoodle() {
             #gpraise-aula-shield .wl-game-opt:hover { background: rgba(255,255,255,0.2); }
             #gpraise-aula-shield .wl-game-opt.correct { background: #10B981 !important; color: white; }
             #gpraise-aula-shield .wl-game-opt.wrong { background: #EF4444 !important; color: white; }
-            
             /* Sidebar colapsable */
             #gpraise-aula-shield .av-main-layout {
                 display: none; background: #F1F5F9; width: 100%;
@@ -1802,13 +1796,12 @@ async function renderMoodle() {
                 overflow: hidden;
             }
             #gpraise-aula-shield .av-sidebar-item {
-                display: flex; align-items: center; gap: 10px; padding: 0.85rem 1.5rem;
+                display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem;
                 color: #94A3B8; font-size: 14px; font-weight: 500; cursor: pointer;
                 transition: 0.2s; border-left: 4px solid transparent;
             }
             #gpraise-aula-shield .av-sidebar-item:hover { background: #1E293B; color: white; }
             #gpraise-aula-shield .av-sidebar-item.active { background: #1E293B; color: white; border-left-color: #C8972A; }
-            
             #gpraise-aula-shield .av-content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
             #gpraise-aula-shield .av-header {
                 background: white; border-bottom: 1px solid #E2E8F0; padding: 1rem 1.5rem;
@@ -1830,7 +1823,6 @@ async function renderMoodle() {
                 height: 100%; background: linear-gradient(90deg, #C8972A 0%, #EAB308 100%);
                 transition: width 0.5s ease;
             }
-            /* Botón hamburguesa */
             #gpraise-aula-shield .av-menu-toggle {
                 background: #F1F5F9; border: 1px solid #E2E8F0; color: #1E3A8A;
                 font-size: 1.2rem; cursor: pointer; padding: 0.5rem 0.75rem;
@@ -1838,7 +1830,6 @@ async function renderMoodle() {
                 transition: 0.2s; margin-right: 1rem;
             }
             #gpraise-aula-shield .av-menu-toggle:hover { background: #E2E8F0; }
-            
             #gpraise-aula-shield .av-tabs {
                 display: flex; border-bottom: 1px solid #E2E8F0; background: white;
                 padding: 0 1.5rem; overflow-x: auto; gap: 0.5rem;
@@ -1888,9 +1879,7 @@ async function renderMoodle() {
         <div id="av-welcome" class="av-welcome">
             <div id="starsContainer" class="stars-container"></div>
             <div class="w-full max-w-md mx-auto z-10 flex flex-col items-center">
-                <div class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-slate-900 text-3xl shadow-lg mb-4">
-                    <i class="ti ti-crown"></i>
-                </div>
+                <div class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-slate-900 text-3xl shadow-lg mb-4"><i class="ti ti-crown"></i></div>
                 <p class="av-verse">"Servir a Dios en la alabanza no es un pasatiempo, <strong>es un alto privilegio y un servicio de amor hacia el Señor</strong>."</p>
                 <h2 class="av-welcome-title">Campus Virtual G-Praise</h2>
                 <p class="av-welcome-sub">Plataforma de Capacitación y Discipulado de Alabanza</p>
@@ -1898,10 +1887,7 @@ async function renderMoodle() {
                 <div class="av-today-card flex-col gap-2 cursor-pointer" id="wlGameCard">
                     <div class="flex items-center gap-3 w-full" onclick="toggleWelcomeGame()">
                         <div class="av-today-icon">⚡</div>
-                        <div class="av-today-info">
-                            <p>Reto ministerial rápido — Responde antes de entrar</p>
-                            <strong>¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong>
-                        </div>
+                        <div class="av-today-info"><p>Reto ministerial rápido — Responde antes de entrar</p><strong>¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong></div>
                         <i class="ti ti-chevron-down text-slate-400 text-lg"></i>
                     </div>
                     <div id="av-welcome-game" class="w-full" style="display: none;">
@@ -1913,17 +1899,12 @@ async function renderMoodle() {
                 <div class="av-today-card justify-between items-center">
                     <div class="flex items-center gap-3">
                         <div class="av-today-icon">📚</div>
-                        <div class="av-today-info">
-                            <p>Tareas ministeriales de la semana</p>
-                            <strong id="welcomeTareasCount">${window.tareasCount || 0} asignaciones pendientes por subir</strong>
-                        </div>
+                        <div class="av-today-info"><p>Tareas ministeriales de la semana</p><strong id="welcomeTareasCount">${window.tareasCount || 0} asignaciones pendientes por subir</strong></div>
                     </div>
                     <div class="av-streak"><i class="ti ti-flame"></i> Racha: <span id="welcomeRacha">${rachaGemini}</span> días</div>
                 </div>
 
-                <button class="av-enter-btn shadow-md w-full max-w-xs" onclick="enterApp()">
-                    <i class="ti ti-door-enter mr-2"></i>Entrar al Aula
-                </button>
+                <button class="av-enter-btn shadow-md w-full max-w-xs" onclick="enterApp()"><i class="ti ti-door-enter mr-2"></i>Entrar al Aula</button>
                 <span class="av-skip mt-2" onclick="enterApp()">Omitir e ingresar directamente</span>
             </div>
         </div>
@@ -1931,16 +1912,10 @@ async function renderMoodle() {
         <!-- Aplicación principal (oculta inicialmente) -->
         <div id="av-main-layout" class="av-main-layout">
             <div class="av-main-flex">
-                <!-- Sidebar colapsable -->
                 <aside class="av-sidebar collapsed" id="avSidebar">
-                    <div class="p-6 flex items-center gap-3 border-b border-slate-500">
-                        <div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-md">
-                            <i class="ti ti-school text-slate-900 text-xl"></i>
-                        </div>
-                        <div>
-                            <h1 class="font-bold text-base tracking-wide text-white">G-CAMPUS</h1>
-                            <p class="text-xs text-slate-400">Ministerio de Alabanza</p>
-                        </div>
+                    <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+                        <div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-md"><i class="ti ti-school text-slate-900 text-xl"></i></div>
+                        <div><h1 class="font-bold text-base tracking-wide text-white">G-CAMPUS</h1><p class="text-xs text-slate-400">Ministerio de Alabanza</p></div>
                     </div>
                     <nav class="flex-1 py-4 space-y-1">
                         <div class="av-sidebar-item active" data-nav="inicio"><i class="ti ti-layout-dashboard text-lg"></i> Tablero Principal</div>
@@ -1952,31 +1927,19 @@ async function renderMoodle() {
                     </nav>
                     <div class="p-4 border-t border-slate-800 bg-slate-900/50">
                         <div class="flex items-center gap-3 mb-2">
-                            <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 flex items-center justify-center font-bold text-sm">
-                                ${currentUser?.email?.charAt(0).toUpperCase() || 'U'}
-                            </div>
-                            <div>
-                                <p class="text-xs text-slate-400">Rango de Servicio</p>
-                                <p class="text-sm font-semibold text-white" id="userRank">Nivel ${Math.floor(xpGemini/500)+1} · Levita</p>
-                            </div>
+                            <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 flex items-center justify-center font-bold text-sm">${currentUser?.email?.charAt(0).toUpperCase() || 'U'}</div>
+                            <div><p class="text-xs text-slate-400">Rango de Servicio</p><p class="text-sm font-semibold text-white" id="userRank">Nivel ${Math.floor(xpGemini/500)+1} · Levita</p></div>
                         </div>
                     </div>
                 </aside>
 
-                <!-- Contenido principal -->
                 <div class="av-content-area">
                     <div class="av-header">
                         <div class="av-header-title">
-                            <button class="av-menu-toggle" onclick="toggleAulaSidebar()">
-                                <i class="fas fa-bars"></i>
-                            </button>
-                            <i class="ti ti-building-church text-xl text-blue-900"></i>
-                            Aula de Capacitación Ministerial <span>IEC Central</span>
+                            <button class="av-menu-toggle" onclick="toggleAulaSidebar()"><i class="fas fa-bars"></i></button>
+                            <i class="ti ti-building-church text-xl text-blue-900"></i> Aula de Capacitación Ministerial <span>IEC Central</span>
                         </div>
-                        <div class="av-xp-bar-wrap">
-                            <span class="av-xp-label" id="xpText">XP ${xpGemini} / 500</span>
-                            <div class="av-xp-bar"><div class="av-xp-fill" id="xpFill" style="width: ${(xpGemini/500)*100}%;"></div></div>
-                        </div>
+                        <div class="av-xp-bar-wrap"><span class="av-xp-label" id="xpText">XP ${xpGemini} / 500</span><div class="av-xp-bar"><div class="av-xp-fill" id="xpFill" style="width: ${(xpGemini/500)*100}%;"></div></div></div>
                     </div>
 
                     <div class="av-tabs">
@@ -1997,48 +1960,25 @@ async function renderMoodle() {
                 </div>
             </div>
         </div>
-    </div>
-    `;
+    </div>`;
     container.innerHTML = html;
 
-    // Generar estrellas
     generarEstrellasGemini();
-    // Construir juego de bienvenida
     construirJuegoBienvenida();
-    
-    // Función global para colapsar sidebar
-    window.toggleAulaSidebar = () => {
-        const sidebar = document.getElementById('avSidebar');
-        if (sidebar) sidebar.classList.toggle('collapsed');
-    };
-    
-    // Entrar a la app
+    window.toggleAulaSidebar = () => document.getElementById('avSidebar')?.classList.toggle('collapsed');
     window.enterApp = () => {
         document.getElementById('av-welcome').style.display = 'none';
         document.getElementById('av-main-layout').style.display = 'block';
         cargarTab('inicio');
         actualizarBadgesGemini();
     };
-    
-    // Vincular navegación
     document.querySelectorAll('#gpraise-aula-shield .av-sidebar-item, #gpraise-aula-shield .av-tab').forEach(el => {
-        el.addEventListener('click', () => {
-            const tab = el.getAttribute('data-nav') || el.getAttribute('data-tab');
-            cambiarTabGemini(tab);
-        });
+        el.addEventListener('click', () => cambiarTabGemini(el.getAttribute('data-nav') || el.getAttribute('data-tab')));
     });
-    
-    // Precargar contenido de los tabs
-    await Promise.all([
-        cargarCursosGemini(),
-        cargarEvaluacionesGemini(),
-        cargarTareasGemini(),
-        cargarDevocionalUI(),
-        cargarRetosGemini()
-    ]);
+    await Promise.all([cargarCursosGemini(), cargarEvaluacionesGemini(), cargarTareasGemini(), cargarDevocionalUI(), cargarRetosGemini()]);
 }
 
-// ========== FUNCIONES AUXILIARES DE GEMINI (con nombres únicos) ==========
+// ========== FUNCIONES AUXILIARES ==========
 function generarEstrellasGemini() {
     const cont = document.getElementById('starsContainer');
     if (!cont) return;
@@ -2138,8 +2078,7 @@ async function actualizarBadgesGemini() {
 }
 
 async function cambiarTabGemini(tab) {
-    document.querySelectorAll('#gpraise-aula-shield .av-sidebar-item').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('#gpraise-aula-shield .av-tab').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('#gpraise-aula-shield .av-sidebar-item, #gpraise-aula-shield .av-tab').forEach(el => el.classList.remove('active'));
     document.querySelectorAll(`#gpraise-aula-shield .av-sidebar-item[data-nav="${tab}"], #gpraise-aula-shield .av-tab[data-tab="${tab}"]`).forEach(el => el.classList.add('active'));
     document.querySelectorAll('#gpraise-aula-shield .av-body').forEach(el => el.classList.remove('active'));
     const targetBody = document.getElementById(`tab-${tab}`);
@@ -2152,35 +2091,14 @@ async function cargarInicioGemini() {
     const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
     container.innerHTML = `
         <div class="grid grid-cols-3 gap-4 mb-5">
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
-                <span class="text-xs font-medium text-slate-400 uppercase">Materias en Curso</span>
-                <strong class="text-2xl font-bold mt-1 text-slate-800">${cursos || 0}</strong>
-                <small class="text-xs text-amber-600 font-medium mt-1"><i class="ti ti-point-filled"></i> Capacitación activa</small>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
-                <span class="text-xs font-medium text-slate-400 uppercase">Calificación Promedio</span>
-                <strong class="text-2xl font-bold mt-1 text-emerald-600">94 / 100</strong>
-                <small class="text-xs text-slate-400 mt-1">Nivel de excelencia alto</small>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
-                <span class="text-xs font-medium text-slate-400 uppercase">Consistencia Devocional</span>
-                <strong class="text-2xl font-bold mt-1 text-orange-500">${rachaGemini} Días</strong>
-                <small class="text-xs text-orange-400 font-medium mt-1"><i class="ti ti-flame"></i> ¡Sigue así!</small>
-            </div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col"><span class="text-xs font-medium text-slate-400 uppercase">Materias en Curso</span><strong class="text-2xl font-bold mt-1 text-slate-800">${cursos || 0}</strong><small class="text-xs text-amber-600 font-medium mt-1"><i class="ti ti-point-filled"></i> Capacitación activa</small></div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col"><span class="text-xs font-medium text-slate-400 uppercase">Calificación Promedio</span><strong class="text-2xl font-bold mt-1 text-emerald-600">94 / 100</strong><small class="text-xs text-slate-400 mt-1">Nivel de excelencia alto</small></div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col"><span class="text-xs font-medium text-slate-400 uppercase">Consistencia Devocional</span><strong class="text-2xl font-bold mt-1 text-orange-500">${rachaGemini} Días</strong><small class="text-xs text-orange-400 font-medium mt-1"><i class="ti ti-flame"></i> ¡Sigue así!</small></div>
         </div>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Enfoque de Estudio de Hoy</p>
         <div class="av-course-card flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="av-course-icon bg-blue-50 text-blue-700">✨</div>
-                <div>
-                    <span class="av-cat av-cat-blue">Teología de la Adoración</span>
-                    <h3 class="text-sm font-bold text-slate-800">Módulo 1: Fundamentos del Altar</h3>
-                    <p class="text-xs text-slate-500">Próxima Lección: Talento vs Unción</p>
-                </div>
-            </div>
-            <button class="bg-slate-100 p-2 rounded-full text-slate-700 hover:bg-slate-200 transition" onclick="cambiarTabGemini('cursos')">
-                <i class="ti ti-player-play-filled"></i>
-            </button>
+            <div class="flex items-center gap-4"><div class="av-course-icon bg-blue-50 text-blue-700">✨</div><div><span class="av-cat av-cat-blue">Teología de la Adoración</span><h3 class="text-sm font-bold text-slate-800">Módulo 1: Fundamentos del Altar</h3><p class="text-xs text-slate-500">Próxima Lección: Talento vs Unción</p></div></div>
+            <button class="bg-slate-100 p-2 rounded-full text-slate-700 hover:bg-slate-200 transition" onclick="cambiarTabGemini('cursos')"><i class="ti ti-player-play-filled"></i></button>
         </div>
     `;
 }
@@ -2188,26 +2106,11 @@ async function cargarInicioGemini() {
 async function cargarCursosGemini() {
     const container = document.getElementById('tab-cursos');
     const { data: cursos } = await supabaseClient.from('cursos').select('*').eq('entidad_id', currentIglesiaId);
-    if (!cursos || cursos.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-500">No hay cursos disponibles.</p>';
-        return;
-    }
+    if (!cursos || cursos.length === 0) { container.innerHTML = '<p class="text-center text-slate-500">No hay cursos disponibles.</p>'; return; }
     let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Currículum del Ministerio</p>`;
     for (let c of cursos) {
         const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', c.id);
-        html += `
-            <div class="av-course-card">
-                <span class="av-cat av-cat-blue">Módulo Principal</span>
-                <h3 class="text-base font-bold text-slate-800">${c.titulo}</h3>
-                <p class="text-xs text-slate-500 mt-1">${c.descripcion || ''}</p>
-                <div class="av-progress-bar"><div class="av-progress-fill" style="width: 45%; background: #1E3A8A;"></div></div>
-                <div class="flex justify-between items-center mt-3 text-xs text-slate-400">
-                    <span>Progreso: 45% Realizado</span>
-                    <span class="text-blue-700 font-semibold cursor-pointer hover:underline">Ver apuntes de clase</span>
-                </div>
-                <div class="mt-2">${modulos?.map(m => `<span class="inline-block bg-slate-100 rounded-full px-2 py-1 text-xs mr-1">${m.titulo}</span>`).join('') || ''}</div>
-            </div>
-        `;
+        html += `<div class="av-course-card"><span class="av-cat av-cat-blue">Módulo Principal</span><h3 class="text-base font-bold text-slate-800">${c.titulo}</h3><p class="text-xs text-slate-500 mt-1">${c.descripcion || ''}</p><div class="av-progress-bar"><div class="av-progress-fill" style="width: 45%; background: #1E3A8A;"></div></div><div class="flex justify-between items-center mt-3 text-xs text-slate-400"><span>Progreso: 45% Realizado</span><span class="text-blue-700 font-semibold cursor-pointer hover:underline">Ver apuntes de clase</span></div><div class="mt-2">${modulos?.map(m => `<span class="inline-block bg-slate-100 rounded-full px-2 py-1 text-xs mr-1">${m.titulo}</span>`).join('') || ''}</div></div>`;
     }
     container.innerHTML = html;
 }
@@ -2215,29 +2118,12 @@ async function cargarCursosGemini() {
 async function cargarEvaluacionesGemini() {
     const container = document.getElementById('tab-evaluaciones');
     const { data: examenes } = await supabaseClient.from('examenes').select('*, modulos(titulo)');
-    if (!examenes || examenes.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-500">No hay exámenes disponibles.</p>';
-        return;
-    }
+    if (!examenes || examenes.length === 0) { container.innerHTML = '<p class="text-center text-slate-500">No hay exámenes disponibles.</p>'; return; }
     let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Exámenes Teológicos Pendientes</p>`;
     for (let ex of examenes) {
         const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
         const realizado = !!intento;
-        html += `
-            <div class="av-eval-card flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="w-3 h-3 rounded-full ${realizado ? 'bg-emerald-500' : 'bg-red-500'}"></div>
-                    <div>
-                        <h4 class="text-sm font-bold text-slate-800">${ex.titulo}</h4>
-                        <p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p>
-                    </div>
-                </div>
-                ${realizado 
-                    ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded">Aprobado</span>`
-                    : `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">Iniciar Cuestionario</button>`
-                }
-            </div>
-        `;
+        html += `<div class="av-eval-card flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full ${realizado ? 'bg-emerald-500' : 'bg-red-500'}"></div><div><h4 class="text-sm font-bold text-slate-800">${ex.titulo}</h4><p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p></div></div>${realizado ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded">Aprobado</span>` : `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">Iniciar Cuestionario</button>`}</div>`;
     }
     container.innerHTML = html;
 }
@@ -2245,27 +2131,10 @@ async function cargarEvaluacionesGemini() {
 async function cargarTareasGemini() {
     const container = document.getElementById('tab-tareas');
     const { data: tareas } = await supabaseClient.from('tareas_aula').select('*').eq('iglesia_id', currentIglesiaId);
-    if (!tareas || tareas.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-500">No hay tareas asignadas.</p>';
-        return;
-    }
+    if (!tareas || tareas.length === 0) { container.innerHTML = '<p class="text-center text-slate-500">No hay tareas asignadas.</p>'; return; }
     let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Tareas de Investigación y Evidencia</p>`;
     for (let t of tareas) {
-        html += `
-            <div class="av-task-card bg-white border rounded-xl p-4 mb-3">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="av-cat av-cat-amber">Plazo: ${t.fecha_limite}</span>
-                        <h3 class="text-sm font-bold text-slate-800 mt-1">${t.titulo}</h3>
-                        <p class="text-xs text-slate-500 mt-1">${t.descripcion || ''}</p>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <input type="text" id="link_${t.id}" class="w-full border rounded p-2 text-sm" placeholder="Pega tu enlace de entrega (Drive, YouTube)">
-                    <button class="mt-2 bg-blue-900 text-white px-4 py-1 rounded text-xs" onclick="entregarTareaGemini('${t.id}', '${t.titulo}')">Entregar Tarea</button>
-                </div>
-            </div>
-        `;
+        html += `<div class="av-task-card bg-white border rounded-xl p-4 mb-3"><div class="flex justify-between items-start"><div><span class="av-cat av-cat-amber">Plazo: ${t.fecha_limite}</span><h3 class="text-sm font-bold text-slate-800 mt-1">${t.titulo}</h3><p class="text-xs text-slate-500 mt-1">${t.descripcion || ''}</p></div></div><div class="mt-2"><input type="text" id="link_${t.id}" class="w-full border rounded p-2 text-sm" placeholder="Pega tu enlace de entrega (Drive, YouTube)"><button class="mt-2 bg-blue-900 text-white px-4 py-1 rounded text-xs" onclick="entregarTareaGemini('${t.id}', '${t.titulo}')">Entregar Tarea</button></div></div>`;
     }
     container.innerHTML = html;
 }
@@ -2294,10 +2163,7 @@ async function cargarDevocionalUI() {
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Reflexión Personal Guiada:</label>
             <p class="text-sm text-slate-700 mb-3 font-medium">${reflexion}</p>
             <textarea id="devocionalTexto" rows="4" class="w-full text-sm border p-3 rounded-lg focus:outline-none focus:border-blue-900 bg-slate-50" placeholder="Escribe tu meditación diaria aquí..."></textarea>
-            <div class="flex justify-between items-center mt-3">
-                <div class="text-xs text-slate-500"><i class="ti ti-flame text-orange-500"></i> Racha actual: ${rachaGemini} días consecutivos</div>
-                <button class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="guardarDevocionalGemini()">Guardar Meditación e Incrementar Racha (+30 XP)</button>
-            </div>
+            <div class="flex justify-between items-center mt-3"><div class="text-xs text-slate-500"><i class="ti ti-flame text-orange-500"></i> Racha actual: ${rachaGemini} días consecutivos</div><button class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="guardarDevocionalGemini()">Guardar Meditación e Incrementar Racha (+30 XP)</button></div>
         </div>
     `;
 }
@@ -2320,20 +2186,36 @@ async function cargarRetosGemini() {
     const otros = usuariosIglesia.filter(u => u.user_id !== currentUser.id);
     const opciones = otros.map(u => `<option value="${u.user_id}">${u.perfiles?.nombre || 'Usuario'}</option>`).join('');
     let desafiosHtml = '<div class="space-y-2">';
-    const { data: pendientes } = await supabaseClient.from('desafios').select('*, de_usuario:perfiles!desafios_de_usuario_id_fkey(nombre)').eq('para_usuario_id', currentUser.id).eq('estado', 'pendiente');
-    if (pendientes?.length) {
+    // Consulta CORREGIDA (sin usar relaciones directas en el select, haremos dos consultas)
+    const { data: pendientes, error } = await supabaseClient
+        .from('desafios')
+        .select('*')
+        .eq('para_usuario_id', currentUser.id)
+        .eq('estado', 'pendiente')
+        .order('fecha_envio', { ascending: false });
+    
+    if (error) console.error("Error cargando desafíos:", error);
+    
+    if (pendientes && pendientes.length > 0) {
+        // Obtener los nombres de los usuarios que enviaron los desafíos
+        const deUsuariosIds = [...new Set(pendientes.map(d => d.de_usuario_id))];
+        const { data: perfiles } = await supabaseClient.from('perfiles').select('id, nombre').in('id', deUsuariosIds);
+        const perfilMap = Object.fromEntries((perfiles || []).map(p => [p.id, p.nombre]));
+        
         for (let d of pendientes) {
             desafiosHtml += `
                 <div class="border rounded-lg p-3 bg-slate-50 text-xs relative">
                     <span class="absolute top-1 right-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px]">PENDIENTE</span>
-                    <p class="font-bold">Enviado por: ${d.de_usuario?.nombre || 'Alguien'}</p>
+                    <p class="font-bold">Enviado por: ${perfilMap[d.de_usuario_id] || 'Alguien'}</p>
                     <p class="text-slate-500">Tema: ${d.tema || 'General'}</p>
                     <p class="text-amber-600 font-medium pt-1"><i class="ti ti-bolt"></i> Recompensa: +50 XP</p>
                     <button class="w-full bg-blue-900 text-white text-xs font-semibold py-1.5 rounded mt-2" onclick="responderRetoGemini('${d.id}')">Responder Desafío</button>
                 </div>
             `;
         }
-    } else desafiosHtml += '<p class="text-center text-slate-500 py-2">No hay desafíos pendientes.</p>';
+    } else {
+        desafiosHtml += '<p class="text-center text-slate-500 py-2">No hay desafíos pendientes.</p>';
+    }
     desafiosHtml += '</div>';
 
     container.innerHTML = `
@@ -2346,12 +2228,7 @@ async function cargarRetosGemini() {
                     <label class="block text-[11px] font-bold text-slate-400 uppercase">1. Seleccionar Hermano del Ministerio:</label>
                     <select id="challengeTarget" class="w-full border text-xs p-2 rounded bg-slate-50">${opciones}</select>
                     <label class="block text-[11px] font-bold text-slate-400 uppercase mt-2">2. Tema del Reto:</label>
-                    <select id="challengeTopic" class="w-full border text-xs p-2 rounded bg-slate-50">
-                        <option value="Armonía y Modulación Litúrgica">Armonía y Modulación Litúrgica</option>
-                        <option value="Historia del Canto Profético">Historia del Canto Profético</option>
-                        <option value="Sujeción Pastoral y Carácter">Sujeción Pastoral y Carácter</option>
-                        <option value="Teología de la Adoración">Teología de la Adoración</option>
-                    </select>
+                    <select id="challengeTopic" class="w-full border text-xs p-2 rounded bg-slate-50"><option value="Armonía y Modulación Litúrgica">Armonía y Modulación Litúrgica</option><option value="Historia del Canto Profético">Historia del Canto Profético</option><option value="Sujeción Pastoral y Carácter">Sujeción Pastoral y Carácter</option><option value="Teología de la Adoración">Teología de la Adoración</option></select>
                     <label class="block text-[11px] font-bold text-slate-400 uppercase mt-2">3. Pregunta / Desafío:</label>
                     <textarea id="challengeQuestion" rows="2" class="w-full border text-sm p-2 rounded" placeholder="Ej: ¿Cuál es el significado de la palabra 'Tehillah'?"></textarea>
                     <label class="block text-[11px] font-bold text-slate-400 uppercase mt-2">4. Respuesta correcta (se guarda en secreto):</label>
@@ -2395,133 +2272,9 @@ window.responderRetoGemini = async (id) => {
     await cargarRetosGemini();
 };
 
-function openAdminAulaVirtual() {
-    window.open('admin_aula.html', '_blank');
-}
-
-
-    
-// Motor de exámenes (reutiliza el sistema existente pero con preguntas de Supabase)
-async function startExamFromMoodleGemini(examenId) {
-    // Obtener preguntas del examen
-    const { data: preguntas } = await supabaseClient
-        .from('preguntas')
-        .select('*')
-        .eq('examen_id', examenId)
-        .order('orden_index', { ascending: true });
-    if (!preguntas || preguntas.length === 0) {
-        alert("Este examen no tiene preguntas aún.");
-        return;
-    }
-    currentExamQuestions = preguntas;
-    currentExamIndex = 0;
-    examScoreGemini = 0;
-    currentExamIdGemini = examenId;
-    // Mostrar modal de examen (lo haremos simple)
-    showExamModalGemini();
-}
-
-function showExamModalGemini() {
-    // Construir un modal flotante para el examen
-    const modalDiv = document.createElement('div');
-    modalDiv.id = 'examModalGemini';
-    modalDiv.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; align-items:center; justify-content:center;';
-    modalDiv.innerHTML = `
-        <div style="background: white; border-radius: 1rem; max-width: 600px; width: 90%; padding: 1.5rem; position: relative;">
-            <button onclick="closeExamModalGemini()" style="position: absolute; top: 0.5rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-            <div id="examContentGemini">
-                Cargando pregunta...
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modalDiv);
-    loadExamQuestionGemini();
-}
-
-function closeExamModalGemini() {
-    if (examTimerGemini) clearInterval(examTimerGemini);
-    const modal = document.getElementById('examModalGemini');
-    if (modal) modal.remove();
-}
-
-function loadExamQuestionGemini() {
-    if (currentExamIndex >= currentExamQuestions.length) {
-        finishExamGemini();
-        return;
-    }
-    const q = currentExamQuestions[currentExamIndex];
-    const container = document.getElementById('examContentGemini');
-    // Generar opciones según tipo (solo múltiple por ahora)
-    let optionsHtml = '';
-    if (q.tipo === 'multiple') {
-        const opciones = [q.opcion_a, q.opcion_b, q.opcion_c, q.opcion_d];
-        optionsHtml = opciones.map((opt, idx) => `
-            <div class="exam-option" data-opt="${idx}" style="background:#F1F5F9; border:1px solid #E2E8F0; border-radius:0.5rem; padding:0.75rem; margin-bottom:0.5rem; cursor:pointer;">
-                ${opt}
-            </div>
-        `).join('');
-    } else {
-        // Por simplicidad, solo múltiple
-        optionsHtml = '<p>Tipo de pregunta no soportado aún.</p>';
-    }
-    container.innerHTML = `
-        <h3 class="font-bold mb-2">Pregunta ${currentExamIndex+1} de ${currentExamQuestions.length}</h3>
-        <p class="mb-4">${q.enunciado}</p>
-        <div id="examOptionsContainer">${optionsHtml}</div>
-        <div class="mt-4 text-sm text-red-500">⏱️ Tiempo restante: <span id="examTimerText">${q.tiempo_segundos || 15}</span> segundos</div>
-    `;
-    // Vincular eventos a las opciones
-    document.querySelectorAll('.exam-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-            const selectedIdx = parseInt(opt.getAttribute('data-opt'));
-            const isCorrect = (selectedIdx === 0); // Asumimos que la opción A (índice 0) es la correcta
-            if (isCorrect) examScoreGemini++;
-            clearInterval(examTimerGemini);
-            currentExamIndex++;
-            loadExamQuestionGemini();
-        });
-    });
-    // Temporizador
-    let timeLeft = q.tiempo_segundos || 15;
-    const timerSpan = document.getElementById('examTimerText');
-    examTimerGemini = setInterval(() => {
-        timeLeft--;
-        if (timerSpan) timerSpan.innerText = timeLeft;
-        if (timeLeft <= 0) {
-            clearInterval(examTimerGemini);
-            currentExamIndex++;
-            loadExamQuestionGemini();
-        }
-    }, 1000);
-}
-
-async function finishExamGemini() {
-    clearInterval(examTimerGemini);
-    const puntaje = (examScoreGemini / currentExamQuestions.length) * 20;
-    await supabaseClient.from('intentos_examen').insert({
-        id: generateUniqueId(),
-        user_id: currentUser.id,
-        examen_id: currentExamIdGemini,
-        puntaje: puntaje.toFixed(2)
-    });
-    alert(`Examen finalizado. Puntaje: ${puntaje.toFixed(2)} / 20`);
-    await addExperiencePointsGemini(Math.round(puntaje * 2)); // 2 XP por punto
-    closeExamModalGemini();
-    await loadTabEvaluacionesGemini(); // refrescar
-}
-
-function triggerCelebrationConfettiGemini() {
-    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 }, colors: ['#C8972A', '#1E3A8A', '#10B981'] });
-}
+function openAdminAulaVirtual() { window.open('admin_aula.html', '_blank'); }
     
 
-// Función para iniciar examen desde el aula virtual
-async function startExamFromMoodle(examenId) {
-    await startExam(examenId);
-}
-
-// Función para abrir el panel de administración del aula
-function openAdminAulaVirtual() {
 
     // Abre el panel en una nueva pestaña (ajusta la ruta si está en otra carpeta)
     window.open('admin_aula.html', '_blank');
