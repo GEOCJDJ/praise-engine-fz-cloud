@@ -1973,7 +1973,7 @@ async function renderScriptura() {
     container.innerHTML = html;
 
     // Construir la lista completa de libros
-    buildBooksList();
+    ();
 
     // Cargar capítulo inicial
     await cargarCapitulo(scCurrentBook, scCurrentChapter);
@@ -2020,6 +2020,7 @@ function buildBooksList() {
             el.onclick = () => cargarCapitulo(book, 1);
             ntContainer.appendChild(el);
         });
+    }
     }
 // Buscador dinámico
 const searchInput = document.getElementById('bibleSearchInput');
