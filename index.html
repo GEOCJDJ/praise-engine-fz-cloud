@@ -2278,7 +2278,7 @@ function openAdminAulaVirtual() { window.open('admin_aula.html', '_blank'); }
 
     // Abre el panel en una nueva pestaña (ajusta la ruta si está en otra carpeta)
     window.open('admin_aula.html', '_blank');
-}
+
     
     
     function showModuleContent(moduleId) { const mod = modulosList.find(m=>m.id===moduleId); if(!mod||!mod.contenido) return; showModal(`<h3>${escapeHtml(mod.titulo)}</h3><div style="max-height:60vh;overflow-y:auto;">${mod.contenido}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`); }
