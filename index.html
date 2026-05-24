@@ -2101,11 +2101,11 @@ async function cargarTabRetos() {
                 <div class="border rounded-lg p-3 bg-slate-50 text-xs relative">
                     <span class="absolute top-1 right-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px]">PENDIENTE</span>
                     <p class="font-bold">Enviado por: ${d.de_usuario?.nombre || 'Alguien'}</p>
-                    <p class="text-slate-500">Materia: <span class="italic">${d.tema}</span></p>
-                    <p class="text-amber-600 font-medium pt-1"><i class="ti ti-bolt"></i> Recompensa: +100 XP</p>
+                    <p class="text-slate-500">Tema: <span class="italic">${d.tema || 'General'}</span></p>
+                    <p class="text-amber-600 font-medium pt-1"><i class="ti ti-bolt"></i> Recompensa: +50 XP</p>
                     <button class="w-full bg-blue-900 text-white text-xs font-semibold py-1.5 rounded mt-2" 
                             onclick="responderReto('${d.id}')">
-                        Aceptar y Responder Desafío
+                        Responder Desafío
                     </button>
                 </div>
             `;
@@ -2117,25 +2117,39 @@ async function cargarTabRetos() {
 
     const html = `
         <div class="grid md:grid-cols-2 gap-4">
+            <!-- Columna izquierda: Crear desafío -->
             <div class="bg-white border rounded-xl p-4">
                 <h4 class="font-bold flex items-center gap-2"><i class="ti ti-swords text-amber-600"></i> Crear Nuevo Desafío Bíblico</h4>
-                <div class="mt-3">
-                    <label class="block text-xs font-bold text-slate-400 uppercase">1. Seleccionar Hermano del Ministerio:</label>
-                    <select id="challengeTarget" class="w-full border text-xs p-2 rounded bg-slate-50">
-                        ${miembros.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('')}
-                    </select>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mt-2">2. Tema del Reto:</label>
-                    <select id="challengeTopic" class="w-full border text-xs p-2 rounded bg-slate-50">
-                        <option value="Armonía y Modulación Litúrgica">Armonía y Modulación Litúrgica</option>
-                        <option value="Historia del Canto Profético">Historia del Canto Profético</option>
-                        <option value="Sujeción Pastoral y Carácter">Sujeción Pastoral y Carácter</option>
-                        <option value="Teología de la Adoración">Teología de la Adoración</option>
-                    </select>
+                <div class="mt-3 space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase">1. Seleccionar Hermano del Ministerio:</label>
+                        <select id="challengeTarget" class="w-full border text-xs p-2 rounded bg-slate-50">
+                            ${miembros.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase">2. Tema del Reto (opcional):</label>
+                        <select id="challengeTopic" class="w-full border text-xs p-2 rounded bg-slate-50">
+                            <option value="Armonía y Modulación Litúrgica">Armonía y Modulación Litúrgica</option>
+                            <option value="Historia del Canto Profético">Historia del Canto Profético</option>
+                            <option value="Sujeción Pastoral y Carácter">Sujeción Pastoral y Carácter</option>
+                            <option value="Teología de la Adoración">Teología de la Adoración</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase">3. Pregunta / Desafío:</label>
+                        <textarea id="challengeQuestion" rows="3" class="w-full border text-sm p-2 rounded" placeholder="Ej: ¿Cuál es el significado de la palabra 'Tehillah'?"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase">4. Respuesta correcta (se guarda en secreto):</label>
+                        <input type="text" id="challengeAnswer" class="w-full border text-sm p-2 rounded" placeholder="Ej: Canto de alabanza espontáneo">
+                    </div>
                 </div>
                 <button class="w-full bg-slate-900 text-white text-xs font-bold py-2 rounded-md mt-4" onclick="enviarReto()">
-                    Enviar Reto en Vivo por Red (+40 XP)
+                    Enviar Reto (+50 XP para quien responda bien)
                 </button>
             </div>
+            <!-- Columna derecha: Desafíos pendientes -->
             <div class="bg-white border rounded-xl p-4">
                 <h4 class="font-bold flex items-center gap-2"><i class="ti ti-bell-ringing text-blue-800"></i> Desafíos Pendientes por Responder</h4>
                 ${desafiosHtml}
@@ -2144,15 +2158,21 @@ async function cargarTabRetos() {
     `;
     container.innerHTML = html;
 }
-
+    
 async function enviarReto() {
     const select = document.getElementById('challengeTarget');
     const targetId = select.value;
     const targetName = select.options[select.selectedIndex]?.text;
-    const topic = document.getElementById('challengeTopic').value;
+    const tema = document.getElementById('challengeTopic').value;
+    const pregunta = document.getElementById('challengeQuestion').value.trim();
+    const respuestaCorrecta = document.getElementById('challengeAnswer').value.trim();
 
     if (!targetId) {
         alert("Selecciona un destinatario");
+        return;
+    }
+    if (!pregunta || !respuestaCorrecta) {
+        alert("Escribe una pregunta y su respuesta correcta");
         return;
     }
 
@@ -2162,7 +2182,9 @@ async function enviarReto() {
             id: generateUniqueId(),
             de_usuario_id: currentUser.id,
             para_usuario_id: targetId,
-            tema: topic,
+            tema: tema,
+            pregunta: pregunta,
+            respuesta_correcta: respuestaCorrecta,
             estado: 'pendiente'
         });
 
@@ -2171,8 +2193,9 @@ async function enviarReto() {
         return;
     }
 
-    alert(`✅ Reto sobre "${topic}" enviado a ${targetName}. +40 XP`);
-    await agregarXP(40);
+    alert(`✅ Reto enviado a ${targetName}. ¡Espera que lo responda!`);
+    // Recargar la pestaña para ver el reto enviado (opcional)
+    await cargarTabRetos();
 }
 
 function aceptarRetoPendiente() {
@@ -2181,33 +2204,95 @@ function aceptarRetoPendiente() {
     document.getElementById('desafioPendiente').innerHTML = '<p class="text-emerald-600">✅ Desafío completado con éxito.</p>';
 }
     async function responderReto(desafioId) {
-    // Aquí podrías mostrar un modal con una pregunta o simplemente dar XP
-    // Por simplicidad, asumimos que el usuario acepta y automáticamente gana XP
-    const confirmar = confirm("¿Aceptas el desafío? Ganarás +100 XP al responder.");
-    if (!confirmar) return;
-
-    // Opcional: podrías pedir una respuesta abierta o una pregunta específica
-    const respuesta = prompt("Escribe tu respuesta al desafío (para el registro):");
-    
-    const { error } = await supabaseClient
+    // Obtener los datos del desafío
+    const { data: reto, error } = await supabaseClient
         .from('desafios')
-        .update({
-            estado: 'respondido',
-            fecha_respuesta: new Date().toISOString(),
-            respuesta: respuesta || ''
-        })
-        .eq('id', desafioId);
+        .select('*, de_usuario:perfiles!desafios_de_usuario_id_fkey(nombre)')
+        .eq('id', desafioId)
+        .single();
 
-    if (error) {
-        alert("Error al responder: " + error.message);
+    if (error || !reto) {
+        alert("No se pudo cargar el desafío");
         return;
     }
 
-    await agregarXP(100);
-    alert("🎉 ¡Respuesta registrada! Has ganado +100 XP.");
-    
-    // Recargar la pestaña de retos para actualizar la lista
-    await cargarTabRetos();
+    // Crear modal flotante
+    const modalDiv = document.createElement('div');
+    modalDiv.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4';
+    modalDiv.innerHTML = `
+        <div class="bg-white rounded-xl max-w-lg w-full p-5 shadow-2xl">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-lg">📖 Desafío de ${reto.de_usuario?.nombre || 'Alguien'}</h3>
+                <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+            </div>
+            <div class="mb-4">
+                <p class="text-sm text-amber-600 font-semibold">Tema: ${reto.tema || 'General'}</p>
+                <p class="mt-2 font-medium">${reto.pregunta}</p>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-slate-600 mb-1">Tu respuesta:</label>
+                <textarea id="respuestaUsuario" rows="3" class="w-full border rounded p-2" placeholder="Escribe tu respuesta..."></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="this.closest('.fixed').remove()" class="btn btn-ghost">Cancelar</button>
+                <button onclick="enviarRespuestaDesafio('${desafioId}')" class="btn btn-primary">Enviar Respuesta</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modalDiv);
+}
+
+async function enviarRespuestaDesafio(desafioId) {
+    const modal = document.querySelector('.fixed.bg-black\\/70');
+    const respuesta = modal?.querySelector('#respuestaUsuario')?.value.trim();
+    if (!respuesta) {
+        alert("Escribe una respuesta antes de enviar.");
+        return;
+    }
+
+    // Obtener el desafío para comparar
+    const { data: reto, error } = await supabaseClient
+        .from('desafios')
+        .select('*')
+        .eq('id', desafioId)
+        .single();
+
+    if (error || !reto) {
+        alert("Error al validar el desafío.");
+        return;
+    }
+
+    // Comparar respuestas (ignorando mayúsculas, tildes y espacios extras)
+    const normalizar = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const esCorrecta = normalizar(respuesta) === normalizar(reto.respuesta_correcta);
+
+    if (!esCorrecta) {
+        alert("❌ Respuesta incorrecta. ¡Sigue intentando!");
+        modal?.remove();
+        return;
+    }
+
+    // Marcar como completado y otorgar XP
+    const { error: updateError } = await supabaseClient
+        .from('desafios')
+        .update({
+            estado: 'completado',
+            fecha_respuesta: new Date().toISOString(),
+            respuesta_usuario: respuesta,
+            xp_otorgado: true
+        })
+        .eq('id', desafioId);
+
+    if (updateError) {
+        alert("Error al registrar la respuesta: " + updateError.message);
+        return;
+    }
+
+    // Otorgar XP al respondedor
+    await agregarXP(50);
+    alert("🎉 ¡Respuesta correcta! Has ganado +50 XP.");
+    modal?.remove();
+    await cargarTabRetos(); // Refrescar la lista
 }
     
 // Motor de exámenes (reutiliza el sistema existente pero con preguntas de Supabase)
@@ -2566,14 +2651,16 @@ window.showEstadisticas = showEstadisticas;
         html += `
             <div class="bg-white border rounded p-3 text-sm">
                 <div><strong>De:</strong> ${d.de_usuario?.nombre || '?'} &nbsp;→&nbsp; <strong>Para:</strong> ${d.para_usuario?.nombre || '?'}</div>
-                <div><strong>Tema:</strong> ${d.tema}</div>
+                <div><strong>Tema:</strong> ${d.tema || 'General'}</div>
+                <div><strong>Pregunta:</strong> ${d.pregunta}</div>
+                <div><strong>Respuesta correcta:</strong> ${d.respuesta_correcta}</div>
                 <div><strong>Estado:</strong> 
                     <span class="px-2 py-0.5 rounded text-xs ${d.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
                         ${d.estado}
                     </span>
                 </div>
                 <div><strong>Fecha:</strong> ${new Date(d.fecha_envio).toLocaleString()}</div>
-                ${d.respuesta ? `<div><strong>Respuesta:</strong> ${d.respuesta}</div>` : ''}
+                ${d.respuesta_usuario ? `<div><strong>Respuesta del usuario:</strong> ${d.respuesta_usuario}</div>` : ''}
                 <button class="btn-icon text-red-500 mt-1" onclick="eliminarDesafioAdmin('${d.id}')"><i class="fas fa-trash"></i></button>
             </div>
         `;
