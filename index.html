@@ -2411,10 +2411,8 @@ async function buildBooksList() {
   if (!otContainer || !ntContainer) return;
   otContainer.innerHTML = '';
   ntContainer.innerHTML = '';
-  
   const librosExistentes = await cargarLibrosDisponibles();
   const existingSet = new Set(librosExistentes);
-  
   for (let book of OT_BOOKS) {
     if (existingSet.has(book)) {
       const li = document.createElement('li');
@@ -2423,8 +2421,7 @@ async function buildBooksList() {
       li.innerHTML = `<i class="fa-solid fa-book-open"></i> ${book}`;
       li.onclick = () => {
         obtenerCapitulosDisponibles(book).then(caps => {
-          const primerCapitulo = caps.length ? caps[0] : 1;
-          cargarCapitulo(book, primerCapitulo);
+          cargarCapitulo(book, caps.length ? caps[0] : 1);
         });
       };
       otContainer.appendChild(li);
@@ -2438,23 +2435,7 @@ async function buildBooksList() {
       li.innerHTML = `<i class="fa-solid fa-book-open"></i> ${book}`;
       li.onclick = () => {
         obtenerCapitulosDisponibles(book).then(caps => {
-          const primerCapitulo = caps.length ? caps[0] : 1;
-          cargarCapitulo(book, primerCapitulo);
-        });
-      };
-      ntContainer.appendChild(li);
-    }
-  }
-  for (let book of NT_BOOKS) {
-    if (existingSet.has(book)) {
-      const li = document.createElement('li');
-      li.className = 'sc-book-item';
-      li.setAttribute('data-book', book);
-      li.innerHTML = `<i class="fa-solid fa-book-open"></i> ${book}`;
-      li.onclick = () => {
-        obtenerCapitulosDisponibles(book).then(caps => {
-          const primerCapitulo = caps.length ? caps[0] : 1;
-          cargarCapitulo(book, primerCapitulo);
+          cargarCapitulo(book, caps.length ? caps[0] : 1);
         });
       };
       ntContainer.appendChild(li);
@@ -2552,79 +2533,59 @@ async function renderScriptura() {
     </div>
   </div>`;
   container.innerHTML = html;
+// --- Cargar favoritos y resaltados del usuario ---
 await cargarFavoritosUsuario();
-  // Sidebar toggle
-  const toggleBtn = document.getElementById('sc-menu-toggle');
-  const sidebar = document.getElementById('sc-sidebar');
-  if (toggleBtn && sidebar) {
-    toggleBtn.onclick = (e) => { e.stopPropagation(); sidebar.classList.toggle('collapsed'); };
-    document.addEventListener('click', (e) => {
-      if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target))
-        sidebar.classList.add('collapsed');
-    });
-  }
-  if (sidebar && window.innerWidth <= 768) sidebar.classList.add('collapsed');
-  else if (sidebar) sidebar.classList.remove('collapsed');
 
-  // Tabs
-  document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const view = btn.getAttribute('data-view');
-      document.querySelectorAll('#gpraise-scriptura-shield .sc-pane').forEach(p => p.classList.remove('active'));
-      document.getElementById(`sc-pane-${view}`)?.classList.add('active');
-      document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-      // --- Tabs del sidebar ---
+// --- Sidebar toggle ---
+const toggleBtn = document.getElementById('sc-menu-toggle');
+const sidebar = document.getElementById('sc-sidebar');
+if (toggleBtn && sidebar) {
+  toggleBtn.onclick = (e) => { e.stopPropagation(); sidebar.classList.toggle('collapsed'); };
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target))
+      sidebar.classList.add('collapsed');
+  });
+}
+if (sidebar && window.innerWidth <= 768) sidebar.classList.add('collapsed');
+else if (sidebar) sidebar.classList.remove('collapsed');
+
+// --- Tabs del sidebar ---
 document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const view = btn.getAttribute('data-view');
-    // Cambiar clase active en los paneles
     document.querySelectorAll('#gpraise-scriptura-shield .sc-pane').forEach(p => p.classList.remove('active'));
     document.getElementById(`sc-pane-${view}`)?.classList.add('active');
-    // Cambiar clase active en los botones
     document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    // Si la vista es favs, forzar renderizado (por si acaso)
-    if (view === 'favs') {
-      renderFavoritesSidebar();
-    }
+    if (view === 'favs') renderFavoritesSidebar();
   });
 });
-      
-      const container = document.getElementById('sc-favs-dynamic-list');
-if (!container) {
-  console.error('No se encontró el contenedor #sc-favs-dynamic-list');
-  return;
-}
-  });
 
-  // Cargar datos
-  await cargarLibrosDisponibles();
-  await buildBooksList();
-  const capitulosIniciales = await obtenerCapitulosDisponibles(scCurrentBook);
-  const primerCap = capitulosIniciales.length ? capitulosIniciales[0] : 1;
-  await cargarCapitulo(scCurrentBook, primerCap);
+// --- Cargar libros y capítulo inicial ---
+await cargarLibrosDisponibles();
+await buildBooksList();
+const capitulosIniciales = await obtenerCapitulosDisponibles(scCurrentBook);
+const primerCap = capitulosIniciales.length ? capitulosIniciales[0] : 1;
+await cargarCapitulo(scCurrentBook, primerCap);
 
-  // Navegación
-  const prevBtn = document.getElementById('sc-prev-chapter');
-  const nextBtn = document.getElementById('sc-next-chapter');
-  const chapterSelect = document.getElementById('sc-chapter-select');
-  if (prevBtn) prevBtn.onclick = async () => {
-    const caps = await obtenerCapitulosDisponibles(scCurrentBook);
-    const idx = caps.indexOf(scCurrentChapter);
-    if (idx > 0) cargarCapitulo(scCurrentBook, caps[idx-1]);
-  };
-  if (nextBtn) nextBtn.onclick = async () => {
-    const caps = await obtenerCapitulosDisponibles(scCurrentBook);
-    const idx = caps.indexOf(scCurrentChapter);
-    if (idx < caps.length-1) cargarCapitulo(scCurrentBook, caps[idx+1]);
-  };
-  if (chapterSelect) chapterSelect.onchange = (e) => {
-    const newChap = parseInt(e.target.value);
-    if (!isNaN(newChap)) cargarCapitulo(scCurrentBook, newChap);
-  };
-}
+// --- Navegación de capítulos ---
+const prevBtn = document.getElementById('sc-prev-chapter');
+const nextBtn = document.getElementById('sc-next-chapter');
+const chapterSelect = document.getElementById('sc-chapter-select');
+if (prevBtn) prevBtn.onclick = async () => {
+  const caps = await obtenerCapitulosDisponibles(scCurrentBook);
+  const idx = caps.indexOf(scCurrentChapter);
+  if (idx > 0) cargarCapitulo(scCurrentBook, caps[idx-1]);
+};
+if (nextBtn) nextBtn.onclick = async () => {
+  const caps = await obtenerCapitulosDisponibles(scCurrentBook);
+  const idx = caps.indexOf(scCurrentChapter);
+  if (idx < caps.length-1) cargarCapitulo(scCurrentBook, caps[idx+1]);
+};
+if (chapterSelect) chapterSelect.onchange = (e) => {
+  const newChap = parseInt(e.target.value);
+  if (!isNaN(newChap)) cargarCapitulo(scCurrentBook, newChap);
+};
     
 // ========== RECURSOS ==========
     
@@ -3141,7 +3102,7 @@ async function renderMoodle() {
                     <div class="av-header">
                         <div class="av-header-title">
                             <button class="av-menu-toggle" onclick="toggleAulaSidebar()"><i class="fas fa-bars"></i></button>
-                            <i class="ti ti-building-church text-xl text-blue-900"></i> Aula de Capacitación Ministerial <span>${currentIglesiaData?.nombre || ${currentIglesiaData?.nombre}</span>
+                            <i class="ti ti-building-church text-xl text-blue-900"></i> Aula de Capacitación Ministerial <span>${currentIglesiaData?.nombre || 'IEC Fortaleza Sur'}</span>
                         </div>
                         <div class="av-xp-bar-wrap"><span class="av-xp-label" id="xpText">XP ${xpGemini} / 500</span><div class="av-xp-bar"><div class="av-xp-fill" id="xpFill" style="width: ${(xpGemini/500)*100}%;"></div></div></div>
                     </div>
