@@ -727,22 +727,21 @@ body.stage-mode pre {
 #gpraise-scriptura-shield .verse-block.hl-sapphire { background: rgba(37,99,235,0.25); border-left: 3px solid #2563EB; padding-left: 0.5rem; }
 #gpraise-scriptura-shield .verse-block.hl-ruby { background: rgba(225,29,72,0.25); border-left: 3px solid #E11D48; padding-left: 0.5rem; }
 
-/* Panel contextual */
 #gpraise-scriptura-shield .sc-ctx-panel {
-    position: absolute;
-    bottom: -320px;
+    position: fixed;
+    bottom: -380px;
     left: 0;
     right: 0;
     background: #090F1F;
-    border-top: 1px solid rgba(200,151,42,0.3);
+    border-top: 2px solid #C8972A;
     transition: bottom 0.3s ease;
-    z-index: 20;
+    z-index: 1000;
     padding: 0.75rem;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
 }
 #gpraise-scriptura-shield .sc-ctx-panel.open {
     bottom: 0;
 }
-/* ... resto del panel (color dots, etc.) ya lo tienes */
 
 /* ========== SIDEBAR (escritorio: siempre visible) ========== */
 #gpraise-scriptura-shield .sc-sidebar {
@@ -2377,6 +2376,7 @@ async function openVersePremiumPanel(verseNum) {
     const indicator = document.getElementById('sc-ctx-verse-indicator');
     if (indicator) indicator.innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${verseNum}`;
 
+    // Actualizar estado del botón favorito
     const isFav = scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === verseNum);
     const favBtn = document.getElementById('sc-btn-fav');
     if (favBtn) {
@@ -2391,7 +2391,6 @@ async function openVersePremiumPanel(verseNum) {
 
     const verseObj = bibleData.find(v => v.book === scCurrentBook && v.chapter === scCurrentChapter && v.verse === verseNum);
     const verseText = verseObj ? verseObj.text : '';
-
     const compView = document.getElementById('scComparisonView');
     if (compView) {
         compView.innerHTML = `
