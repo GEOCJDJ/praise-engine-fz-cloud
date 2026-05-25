@@ -1735,18 +1735,28 @@ const NT_BOOKS = [
 // Cargar el JSON de la Biblia
 async function cargarBibliaJson() {
     try {
-        // 🔁 Cambia esta ruta si tu JSON está en otro lugar
         const response = await fetch('./rvr1960.json');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        bibleData = await response.json();
+        const rawData = await response.json();
+        
+        // Normalizar: convertir a minúsculas los nombres de los campos para que el resto del código funcione sin cambios
+        bibleData = rawData.map(v => ({
+            ...v,
+            book: v.Book,
+            chapter: v.Chapter,
+            verse: v.Verse,
+            text: v.Text,
+            testament: v.Testament
+        }));
+        
         console.log(`✅ Biblia cargada: ${bibleData.length} versículos`);
-
-        // Extraer lista única de libros que existen en el JSON (para validar)
+        
+        // Extraer lista única de libros (usando el campo 'book' ya normalizado)
         const booksSet = new Set();
         bibleData.forEach(v => booksSet.add(v.book));
         bibleBooks = Array.from(booksSet).sort((a,b) => a.localeCompare(b));
         
-        // Cargar el capítulo inicial
+        // Cargar el capítulo inicial (Génesis 1 por defecto)
         await cargarCapitulo(scCurrentBook, scCurrentChapter);
     } catch (error) {
         console.error("Error cargando el JSON bíblico:", error);
@@ -1818,34 +1828,38 @@ function buildBooksList() {
     otContainer.innerHTML = '';
     ntContainer.innerHTML = '';
 
-    // Usamos las listas fijas OT_BOOKS y NT_BOOKS para asegurar orden y existencia
-    const allBooksSet = new Set(bibleBooks);
-    
-    OT_BOOKS.forEach(book => {
-        if (allBooksSet.has(book) || book === "Salmos") { // Si el JSON tiene el libro, lo mostramos
-            const el = document.createElement('div');
-            el.className = 'sc-book-item';
-            el.setAttribute('data-book', book);
-            el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
-            el.onclick = () => cargarCapitulo(book, 1);
+    // Agrupar libros por testamento usando el primer versículo de cada libro
+    const booksTestament = new Map(); // libro -> testament
+    for (let v of bibleData) {
+        if (!booksTestament.has(v.book)) {
+            booksTestament.set(v.book, v.testament);
+        }
+    }
+
+    // Ordenar libros alfabéticamente (opcional, puedes mantener el orden del JSON)
+    const sortedBooks = Array.from(booksTestament.keys()).sort((a,b) => a.localeCompare(b));
+
+    for (let book of sortedBooks) {
+        const testament = booksTestament.get(book);
+        const el = document.createElement('div');
+        el.className = 'sc-book-item';
+        el.setAttribute('data-book', book);
+        el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
+        el.onclick = () => cargarCapitulo(book, 1);
+        
+        if (testament === 'Antiguo') {
+            otContainer.appendChild(el);
+        } else if (testament === 'Nuevo') {
+            ntContainer.appendChild(el);
+        } else {
+            // Si no tiene testamento definido, lo pongo en Antiguo por defecto
             otContainer.appendChild(el);
         }
-    });
+    }
 
-    NT_BOOKS.forEach(book => {
-        if (allBooksSet.has(book) || book === "Mateo") {
-            const el = document.createElement('div');
-            el.className = 'sc-book-item';
-            el.setAttribute('data-book', book);
-            el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
-            el.onclick = () => cargarCapitulo(book, 1);
-            ntContainer.appendChild(el);
-        }
-    });
-
-    // Si no hay libros del AT o NT porque el JSON no los contiene, mostramos un mensaje
-    if (otContainer.children.length === 0) otContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Antiguo Testamento en el JSON.</div>';
-    if (ntContainer.children.length === 0) ntContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Nuevo Testamento en el JSON.</div>';
+    // Mensajes si no hay libros
+    if (otContainer.children.length === 0) otContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Antiguo Testamento.</div>';
+    if (ntContainer.children.length === 0) ntContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Nuevo Testamento.</div>';
 
     // Buscador de libros
     const searchInput = document.getElementById('bibleSearchInput');
