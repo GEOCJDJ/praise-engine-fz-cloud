@@ -3141,7 +3141,7 @@ async function renderMoodle() {
                     <div class="av-header">
                         <div class="av-header-title">
                             <button class="av-menu-toggle" onclick="toggleAulaSidebar()"><i class="fas fa-bars"></i></button>
-                            <i class="ti ti-building-church text-xl text-blue-900"></i> Aula de Capacitación Ministerial <span>IEC Central</span>
+                            <i class="ti ti-building-church text-xl text-blue-900"></i> Aula de Capacitación Ministerial <span>${currentIglesiaData?.nombre || ${currentIglesiaData?.nombre}</span>
                         </div>
                         <div class="av-xp-bar-wrap"><span class="av-xp-label" id="xpText">XP ${xpGemini} / 500</span><div class="av-xp-bar"><div class="av-xp-fill" id="xpFill" style="width: ${(xpGemini/500)*100}%;"></div></div></div>
                     </div>
