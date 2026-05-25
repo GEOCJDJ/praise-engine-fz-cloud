@@ -774,21 +774,6 @@ body.stage-mode pre {
     <div class="exam-card"><div style="display:flex;justify-content:space-between;align-items:center;"><h2 id="examProgressTitle">Pregunta 1 de X</h2><div style="font-size:1.2rem;">⏱️ <span id="examTimerDisplay">0s</span></div></div><div style="width:100%; background:#ddd; border-radius:10px; margin:10px 0;"><div id="timerBarFill" style="width:100%; height:8px; background:var(--primary); border-radius:10px;"></div></div><div id="examQuestionText" style="font-size:1.2rem; margin:20px 0;"></div><div id="examOptionsContainer"></div><div style="margin-top:20px; text-align:right;"><button class="btn btn-ghost" onclick="closeExam()">Cancelar</button></div></div>
 </div>
     
-document.getElementById('moreOptionsBtn')?.addEventListener('click', function(e) {
-    e.stopPropagation();
-    const menu = document.getElementById('cifraFloatingMenu');
-    if (menu) {
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-    }
-});
-// Cerrar menú al hacer clic fuera
-document.addEventListener('click', function(e) {
-    const menu = document.getElementById('cifraFloatingMenu');
-    const btn = document.getElementById('moreOptionsBtn');
-    if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
-        menu.style.display = 'none';
-    }
-});
 <script>
 // ==================== CONFIGURACIÓN SUPABASE ====================
 const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
