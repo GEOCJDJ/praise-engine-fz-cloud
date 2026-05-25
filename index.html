@@ -2532,60 +2532,63 @@ async function renderScriptura() {
       <div id="scComparisonView" class="sc-comparison-engine"></div>
     </div>
   </div>`;
+
   container.innerHTML = html;
-// --- Cargar favoritos y resaltados del usuario ---
-await cargarFavoritosUsuario();
 
-// --- Sidebar toggle ---
-const toggleBtn = document.getElementById('sc-menu-toggle');
-const sidebar = document.getElementById('sc-sidebar');
-if (toggleBtn && sidebar) {
-  toggleBtn.onclick = (e) => { e.stopPropagation(); sidebar.classList.toggle('collapsed'); };
-  document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target))
-      sidebar.classList.add('collapsed');
+  // --- Cargar favoritos y resaltados del usuario ---
+  await cargarFavoritosUsuario();
+
+  // --- Sidebar toggle ---
+  const toggleBtn = document.getElementById('sc-menu-toggle');
+  const sidebar = document.getElementById('sc-sidebar');
+  if (toggleBtn && sidebar) {
+    toggleBtn.onclick = (e) => { e.stopPropagation(); sidebar.classList.toggle('collapsed'); };
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target))
+        sidebar.classList.add('collapsed');
+    });
+  }
+  if (sidebar && window.innerWidth <= 768) sidebar.classList.add('collapsed');
+  else if (sidebar) sidebar.classList.remove('collapsed');
+
+  // --- Tabs del sidebar ---
+  document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.getAttribute('data-view');
+      document.querySelectorAll('#gpraise-scriptura-shield .sc-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById(`sc-pane-${view}`)?.classList.add('active');
+      document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (view === 'favs') renderFavoritesSidebar();
+    });
   });
+
+  // --- Cargar libros y capítulo inicial ---
+  await cargarLibrosDisponibles();
+  await buildBooksList();
+  const capitulosIniciales = await obtenerCapitulosDisponibles(scCurrentBook);
+  const primerCap = capitulosIniciales.length ? capitulosIniciales[0] : 1;
+  await cargarCapitulo(scCurrentBook, primerCap);
+
+  // --- Navegación de capítulos ---
+  const prevBtn = document.getElementById('sc-prev-chapter');
+  const nextBtn = document.getElementById('sc-next-chapter');
+  const chapterSelect = document.getElementById('sc-chapter-select');
+  if (prevBtn) prevBtn.onclick = async () => {
+    const caps = await obtenerCapitulosDisponibles(scCurrentBook);
+    const idx = caps.indexOf(scCurrentChapter);
+    if (idx > 0) cargarCapitulo(scCurrentBook, caps[idx-1]);
+  };
+  if (nextBtn) nextBtn.onclick = async () => {
+    const caps = await obtenerCapitulosDisponibles(scCurrentBook);
+    const idx = caps.indexOf(scCurrentChapter);
+    if (idx < caps.length-1) cargarCapitulo(scCurrentBook, caps[idx+1]);
+  };
+  if (chapterSelect) chapterSelect.onchange = (e) => {
+    const newChap = parseInt(e.target.value);
+    if (!isNaN(newChap)) cargarCapitulo(scCurrentBook, newChap);
+  };
 }
-if (sidebar && window.innerWidth <= 768) sidebar.classList.add('collapsed');
-else if (sidebar) sidebar.classList.remove('collapsed');
-
-// --- Tabs del sidebar ---
-document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const view = btn.getAttribute('data-view');
-    document.querySelectorAll('#gpraise-scriptura-shield .sc-pane').forEach(p => p.classList.remove('active'));
-    document.getElementById(`sc-pane-${view}`)?.classList.add('active');
-    document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    if (view === 'favs') renderFavoritesSidebar();
-  });
-});
-
-// --- Cargar libros y capítulo inicial ---
-await cargarLibrosDisponibles();
-await buildBooksList();
-const capitulosIniciales = await obtenerCapitulosDisponibles(scCurrentBook);
-const primerCap = capitulosIniciales.length ? capitulosIniciales[0] : 1;
-await cargarCapitulo(scCurrentBook, primerCap);
-
-// --- Navegación de capítulos ---
-const prevBtn = document.getElementById('sc-prev-chapter');
-const nextBtn = document.getElementById('sc-next-chapter');
-const chapterSelect = document.getElementById('sc-chapter-select');
-if (prevBtn) prevBtn.onclick = async () => {
-  const caps = await obtenerCapitulosDisponibles(scCurrentBook);
-  const idx = caps.indexOf(scCurrentChapter);
-  if (idx > 0) cargarCapitulo(scCurrentBook, caps[idx-1]);
-};
-if (nextBtn) nextBtn.onclick = async () => {
-  const caps = await obtenerCapitulosDisponibles(scCurrentBook);
-  const idx = caps.indexOf(scCurrentChapter);
-  if (idx < caps.length-1) cargarCapitulo(scCurrentBook, caps[idx+1]);
-};
-if (chapterSelect) chapterSelect.onchange = (e) => {
-  const newChap = parseInt(e.target.value);
-  if (!isNaN(newChap)) cargarCapitulo(scCurrentBook, newChap);
-};
     
 // ========== RECURSOS ==========
     
