@@ -425,6 +425,17 @@ body.stage-mode pre {
 #gpraise-scriptura-shield .verse-block.hl-sapphire { background: rgba(37,99,235,0.25); border-left: 4px solid #2563EB; padding-left: 8px; }
 #gpraise-scriptura-shield .verse-block.hl-ruby { background: rgba(225,29,72,0.25); border-left: 4px solid #E11D48; padding-left: 8px; }
 
+        @media (max-width: 640px) {
+    #gpraise-scriptura-shield .sc-reader-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #gpraise-scriptura-shield #sc-chapter-select {
+        width: 100% !important;
+        margin-top: 0.5rem;
+    }
+}
+        
         
 /* ===== ARREGLAR COLORES DEL DEVOCIONAL ===== */
 #gpraise-aula-shield .bg-gradient-to-r.from-slate-900,
@@ -1776,6 +1787,31 @@ async function cargarBibliaJson() {
 function getVersiculos(book, chapter) {
     return bibleData.filter(v => v.book === book && v.chapter === chapter);
 }
+// Obtiene la lista de números de capítulo disponibles para un libro (ordenada)
+function obtenerCapitulosDisponibles(book) {
+    const chaptersSet = new Set();
+    bibleData.forEach(v => {
+        if (v.book === book) chaptersSet.add(v.chapter);
+    });
+    return Array.from(chaptersSet).sort((a,b) => a - b);
+}
+
+function actualizarSelectorCapitulos() {
+    const selector = document.getElementById('sc-chapter-select');
+    if (!selector) return;
+    const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
+    selector.innerHTML = '';
+    capitulos.forEach(ch => {
+        const option = document.createElement('option');
+        option.value = ch;
+        option.textContent = `Capítulo ${ch}`;
+        if (ch === scCurrentChapter) option.selected = true;
+        selector.appendChild(option);
+    });
+    selector.style.display = capitulos.length > 1 ? 'inline-block' : 'none';
+}
+
+    
 
 function renderChapterContent(book, chapter) {
     const versiculos = getVersiculos(book, chapter);
@@ -1865,6 +1901,9 @@ async function cargarCapitulo(book, chapter) {
     if (titleElem) titleElem.innerText = `${book} ${chapter}`;
     highlightActiveBook(book);
     renderChapterContent(book, chapter);
+    
+    // Actualizar el selector de capítulos
+    actualizarSelectorCapitulos();
 }
 
 function highlightActiveBook(book) {
@@ -1892,7 +1931,11 @@ function buildBooksList() {
             el.className = 'sc-book-item';
             el.setAttribute('data-book', book);
             el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
-            el.onclick = () => cargarCapitulo(book, 1);
+            el.onclick = () => {
+    const capitulos = obtenerCapitulosDisponibles(book);
+    const primerCapitulo = capitulos.length ? capitulos[0] : 1;
+    cargarCapitulo(book, primerCapitulo);
+};
             otContainer.appendChild(el);
         }
     }
@@ -1903,7 +1946,11 @@ function buildBooksList() {
             el.className = 'sc-book-item';
             el.setAttribute('data-book', book);
             el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
-            el.onclick = () => cargarCapitulo(book, 1);
+           el.onclick = () => {
+    const capitulos = obtenerCapitulosDisponibles(book);
+    const primerCapitulo = capitulos.length ? capitulos[0] : 1;
+    cargarCapitulo(book, primerCapitulo);
+};
             ntContainer.appendChild(el);
         }
     }
@@ -2353,10 +2400,17 @@ async function renderScriptura() {
         </aside>
 
         <main class="sc-main-reader">
-            <header class="sc-reader-header">
-                <div class="sc-current-location" id="sc-header-title">Cargando...</div>
-                <div class="sc-version-pill">REINA VALERA 1960</div>
-            </header>
+            `<header class="sc-reader-header">
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div class="sc-current-location" id="sc-header-title">Cargando...</div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button id="sc-prev-chapter" class="sc-tool-btn" style="padding: 4px 8px;"><i class="fa-solid fa-chevron-left"></i> Ant.</button>
+            <select id="sc-chapter-select" class="form-control" style="width: auto; background: #0D142A; color: white; border: 1px solid #C8972A;"></select>
+            <button id="sc-next-chapter" class="sc-tool-btn" style="padding: 4px 8px;">Sig. <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+    </div>
+    <div class="sc-version-pill">REINA VALERA 1960</div>
+</header>`
             <div class="sc-reader-body" id="sc-bible-text-flow">
                 <div style="text-align:center; color:#64748B;">Cargando Escrituras...</div>
             </div>
@@ -2382,7 +2436,37 @@ async function renderScriptura() {
     </div>
     `;
     container.innerHTML = html;
+// ==== ACTIVAR CONTROLES DE CAPÍTULOS ====
+const prevBtn = document.getElementById('sc-prev-chapter');
+const nextBtn = document.getElementById('sc-next-chapter');
+const chapterSelect = document.getElementById('sc-chapter-select');
 
+if (prevBtn) {
+    prevBtn.onclick = () => {
+        const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
+        const currentIndex = capitulos.indexOf(scCurrentChapter);
+        if (currentIndex > 0) {
+            cargarCapitulo(scCurrentBook, capitulos[currentIndex - 1]);
+        }
+    };
+}
+if (nextBtn) {
+    nextBtn.onclick = () => {
+        const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
+        const currentIndex = capitulos.indexOf(scCurrentChapter);
+        if (currentIndex < capitulos.length - 1) {
+            cargarCapitulo(scCurrentBook, capitulos[currentIndex + 1]);
+        }
+    };
+}
+if (chapterSelect) {
+    chapterSelect.onchange = (e) => {
+        const newChapter = parseInt(e.target.value);
+        if (!isNaN(newChapter)) {
+            cargarCapitulo(scCurrentBook, newChapter);
+        }
+    };
+}
     // Cargar el JSON de la Biblia
     await cargarBibliaJson();
 
