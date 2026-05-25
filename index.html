@@ -2391,11 +2391,11 @@ async function cargarFavoritosUsuario() {
 function renderFavoritesSidebar() {
   const container = document.getElementById('sc-favs-dynamic-list');
   if (!container) {
-    console.warn('No se encontró el contenedor de favoritos');
+    console.error('❌ No se encontró #sc-favs-dynamic-list');
     return;
   }
   if (scFavorites.length === 0) {
-    container.innerHTML = '<div class="empty-favs">✨ No has guardado joyas aún. Selecciona uno o más versículos y toca la estrella.</div>';
+    container.innerHTML = '<div class="empty-favs">✨ No has guardado versículos favoritos aún. Selecciona uno o más versículos y toca la estrella.</div>';
     return;
   }
   container.innerHTML = scFavorites.map(f => {
@@ -2575,6 +2575,23 @@ await cargarFavoritosUsuario();
       document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
+      // --- Tabs del sidebar ---
+document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const view = btn.getAttribute('data-view');
+    // Cambiar clase active en los paneles
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`sc-pane-${view}`)?.classList.add('active');
+    // Cambiar clase active en los botones
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Si la vista es favs, forzar renderizado (por si acaso)
+    if (view === 'favs') {
+      renderFavoritesSidebar();
+    }
+  });
+});
+      
       const container = document.getElementById('sc-favs-dynamic-list');
 if (!container) {
   console.error('No se encontró el contenedor #sc-favs-dynamic-list');
