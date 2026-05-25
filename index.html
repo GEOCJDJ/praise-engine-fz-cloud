@@ -3491,9 +3491,125 @@ function openAdminAulaVirtual() {
 function openCreateCourseModal() { if(!isAdminUser && !isIglesiaAdmin) return; const title = prompt("Nombre del curso:"); if(title) supabaseClient.from('cursos').insert([{ titulo:title, creado_por:currentUser.id, entidad_tipo:'iglesia', entidad_id:currentIglesiaId }]).then(()=>{ loadUserData(); renderMoodle(); }); }
 async function openAddModuleModal(cursoId) { const title = prompt("Título del módulo:"); if(title) await supabaseClient.from('modulos').insert([{ curso_id:cursoId, titulo:title, orden_index:1 }]); await loadUserData(); renderMoodle(); }
 async function startExam(examenId) { const { data: existing } = await supabaseClient.from('intentos_examen').select('*').eq('user_id',currentUser.id).eq('examen_id',examenId).single(); if(existing){ alert("Ya completaste este examen."); return; } const qs = preguntas.filter(q=>q.examen_id===examenId).sort((a,b)=>a.orden_index-b.orden_index); if(qs.length===0){ alert("Este examen no tiene preguntas."); return; } examQuestions=qs; examCurrentIndex=0; examScore=0; currentExamId=examenId; document.getElementById('examOverlay').style.display='block'; loadExamQuestion(); }
-function loadExamQuestion() { if(examCurrentIndex>=examQuestions.length){ finishExam(); return; } const q=examQuestions[examCurrentIndex]; document.getElementById('examProgressTitle').innerText=`Pregunta ${examCurrentIndex+1} de ${examQuestions.length}`; document.getElementById('examQuestionText').innerText=q.enunciado; let optionsHtml=''; if(q.tipo==='vf'){ optionsHtml=`<button class="option-btn" onclick="selectExamOption('Verdadero',this)"><strong>Verdadero</strong></button><button class="option-btn" onclick="selectExamOption('Falso',this)"><strong>Falso</strong></button>`; } else if(q.tipo==='completar'){ optionsHtml=`<input type="text" id="completarInput" class="form-control" placeholder="Escribe tu respuesta"><button class="btn btn-primary" onclick="submitCompletar()">Responder</button>`; window.submitCompletar=()=>{ const respuesta=document.getElementById('completarInput').value.trim(); if(respuesta.toLowerCase()===q.opcion_correcta.toLowerCase()) examScore++; examCurrentIndex++; loadExamQuestion(); }; } else { optionsHtml=`<button class="option-btn" onclick="selectExamOption('A',this)"><strong>A.</strong> ${escapeHtml(q.opcion_a)}</button><button class="option-btn" onclick="selectExamOption('B',this)"><strong>B.</strong> ${escapeHtml(q.opcion_b)}</button><button class="option-btn" onclick="selectExamOption('C',this)"><strong>C.</strong> ${escapeHtml(q.opcion_c)}</button><button class="option-btn" onclick="selectExamOption('D',this)"><strong>D.</strong> ${escapeHtml(q.opcion_d)}</button>`; } document.getElementById('examOptionsContainer').innerHTML=optionsHtml; selectedOption=null; const timeLimit=q.tiempo_segundos||15; examTimeLeft=timeLimit; document.getElementById('examTimerDisplay').innerText=`${examTimeLeft}s`; document.getElementById('timerBarFill').style.width='100%'; if(examTimer) clearInterval(examTimer); examTimer=setInterval(()=>{ examTimeLeft--; document.getElementById('examTimerDisplay').innerText=`${examTimeLeft}s`; document.getElementById('timerBarFill').style.width=`${(examTimeLeft/timeLimit)*100}%`; if(examTimeLeft<=0){ clearInterval(examTimer); submitSelectedAnswer(); } },1000); window.selectExamOption=(letter,element)=>{ selectedOption=letter; document.querySelectorAll('.option-btn').forEach(btn=>btn.classList.remove('selected')); element.classList.add('selected'); }; window.submitSelectedAnswer=()=>{ clearInterval(examTimer); const currentQ=examQuestions[examCurrentIndex]; if(selectedOption && selectedOption===currentQ.opcion_correcta) examScore++; examCurrentIndex++; loadExamQuestion(); }; }
-async function finishExam() { let finalScore=(examScore/examQuestions.length)*20; const { error } = await supabaseClient.from('intentos_examen').insert([{ user_id:currentUser.id, examen_id:currentExamId, puntaje:finalScore.toFixed(2) }]); if(error) alert("Error al guardar el examen: "+error.message); else alert(`Examen finalizado. Puntaje: ${finalScore.toFixed(2)} / 20`); document.getElementById('examOverlay').style.display='none'; await loadUserData(); if(currentTab==='profile') renderUserProfile(); else renderMoodle(); }
-function closeExam() { if(examTimer) clearInterval(examTimer); document.getElementById('examOverlay').style.display='none'; }
+
+    function loadExamQuestion() {
+  if (examCurrentIndex >= examQuestions.length) {
+    finishExam();
+    return;
+  }
+  const q = examQuestions[examCurrentIndex];
+  document.getElementById('examProgressTitle').innerText = `Pregunta ${examCurrentIndex + 1} de ${examQuestions.length}`;
+  document.getElementById('examQuestionText').innerText = q.enunciado;
+  let optionsHtml = '';
+  if (q.tipo === 'vf') {
+    optionsHtml = `<button class="option-btn" data-value="V" onclick="selectExamOption('V', this)"><strong>Verdadero</strong></button>
+                   <button class="option-btn" data-value="F" onclick="selectExamOption('F', this)"><strong>Falso</strong></button>`;
+  } else if (q.tipo === 'completar') {
+    optionsHtml = `<input type="text" id="completarInput" class="form-control" placeholder="Escribe tu respuesta">
+                   <button class="btn btn-primary" onclick="submitCompletar()">Responder</button>`;
+    window.submitCompletar = () => {
+      const respuesta = document.getElementById('completarInput').value.trim();
+      if (respuesta.toLowerCase() === q.opcion_correcta.toLowerCase()) examScore++;
+      examCurrentIndex++;
+      loadExamQuestion();
+    };
+  } else if (q.tipo === 'multiple') {
+    // Detectar si es selección múltiple (opcion_correcta tiene más de una letra)
+    const isMulti = q.opcion_correcta && q.opcion_correcta.length > 1;
+    if (isMulti) {
+      // Mostrar checkboxes
+      optionsHtml = `
+        <div class="multi-options">
+          <label class="option-btn" style="display: block; text-align: left;"><input type="checkbox" value="A"> <strong>A.</strong> ${escapeHtml(q.opcion_a)}</label>
+          <label class="option-btn" style="display: block; text-align: left;"><input type="checkbox" value="B"> <strong>B.</strong> ${escapeHtml(q.opcion_b)}</label>
+          <label class="option-btn" style="display: block; text-align: left;"><input type="checkbox" value="C"> <strong>C.</strong> ${escapeHtml(q.opcion_c)}</label>
+          <label class="option-btn" style="display: block; text-align: left;"><input type="checkbox" value="D"> <strong>D.</strong> ${escapeHtml(q.opcion_d)}</label>
+        </div>
+        <button class="btn btn-primary" onclick="submitMultiAnswer()">Responder</button>
+      `;
+      window.submitMultiAnswer = () => {
+        const checkboxes = document.querySelectorAll('.multi-options input:checked');
+        const selectedLetters = Array.from(checkboxes).map(cb => cb.value).sort().join('');
+        const correctLetters = q.opcion_correcta.split('').sort().join('');
+        if (selectedLetters === correctLetters) examScore++;
+        examCurrentIndex++;
+        loadExamQuestion();
+      };
+    } else {
+      // Selección simple (radio)
+      optionsHtml = `
+        <button class="option-btn" data-value="A" onclick="selectExamOption('A', this)"><strong>A.</strong> ${escapeHtml(q.opcion_a)}</button>
+        <button class="option-btn" data-value="B" onclick="selectExamOption('B', this)"><strong>B.</strong> ${escapeHtml(q.opcion_b)}</button>
+        <button class="option-btn" data-value="C" onclick="selectExamOption('C', this)"><strong>C.</strong> ${escapeHtml(q.opcion_c)}</button>
+        <button class="option-btn" data-value="D" onclick="selectExamOption('D', this)"><strong>D.</strong> ${escapeHtml(q.opcion_d)}</button>
+      `;
+    }
+  }
+  document.getElementById('examOptionsContainer').innerHTML = optionsHtml;
+  selectedOption = null;
+
+  // Temporizador
+  const timeLimit = q.tiempo_segundos || 15;
+  examTimeLeft = timeLimit;
+  document.getElementById('examTimerDisplay').innerText = `${examTimeLeft}s`;
+  document.getElementById('timerBarFill').style.width = '100%';
+  if (examTimer) clearInterval(examTimer);
+  examTimer = setInterval(() => {
+    examTimeLeft--;
+    document.getElementById('examTimerDisplay').innerText = `${examTimeLeft}s`;
+    document.getElementById('timerBarFill').style.width = `${(examTimeLeft / timeLimit) * 100}%`;
+    if (examTimeLeft <= 0) {
+      clearInterval(examTimer);
+      if (q.tipo === 'multiple' && q.opcion_correcta.length > 1) {
+        // No se ha respondido, pasar sin sumar
+        examCurrentIndex++;
+        loadExamQuestion();
+      } else {
+        submitSelectedAnswer();
+      }
+    }
+  }, 1000);
+
+  window.selectExamOption = (letter, element) => {
+    selectedOption = letter;
+    document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('selected'));
+    element.classList.add('selected');
+  };
+
+  window.submitSelectedAnswer = () => {
+    clearInterval(examTimer);
+    const currentQ = examQuestions[examCurrentIndex];
+    if (selectedOption && selectedOption === currentQ.opcion_correcta) examScore++;
+    examCurrentIndex++;
+    loadExamQuestion();
+  };
+}
+    
+    async function finishExam() { let finalScore=(examScore/examQuestions.length)*20; const { error } = await supabaseClient.from('intentos_examen').insert([{ user_id:currentUser.id, examen_id:currentExamId, puntaje:finalScore.toFixed(2) }]); if(error) alert("Error al guardar el examen: "+error.message); else alert(`Examen finalizado. Puntaje: ${finalScore.toFixed(2)} / 20`); document.getElementById('examOverlay').style.display='none'; await loadUserData(); if(currentTab==='profile') renderUserProfile(); else renderMoodle(); }
+
+    async function closeExam() {
+  if (examTimer) clearInterval(examTimer);
+  // Guardar el intento con las respuestas que ya se han contestado (hasta el índice actual)
+  if (currentExamId && examCurrentIndex > 0) {
+    const puntajeParcial = (examScore / examQuestions.length) * 20;
+    const { error } = await supabaseClient.from('intentos_examen').insert({
+      user_id: currentUser.id,
+      examen_id: currentExamId,
+      puntaje: puntajeParcial.toFixed(2),
+      completado: false,   // marcamos como no completado
+      respuestas: JSON.stringify({
+        indice: examCurrentIndex,
+        score: examScore
+      })
+    });
+    if (error) console.error('Error guardando progreso parcial:', error);
+    else alert(`Examen guardado con puntaje parcial: ${puntajeParcial.toFixed(2)}/20. Puedes continuar después.`);
+  }
+  document.getElementById('examOverlay').style.display = 'none';
+  await loadUserData();
+  if (currentTab === 'profile') renderUserProfile();
+  else renderMoodle();
+}
 
 // ========== PERFIL DE USUARIO ==========
 let progressChart = null;
