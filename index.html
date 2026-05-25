@@ -1368,7 +1368,7 @@ async function renderHome() {
     <div class="card" style="background:linear-gradient(135deg,#10B981,#34D399);color:white;"><h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : `<ul>${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`}</div>
     <div class="card quick-access-card" onclick="navigateTo('scriptura')">
     <i class="fas fa-bible" style="color: #C8972A;"></i>
-    <h3>Scriptura</h3>
+    <h3>Super Libro</h3>
     <p>Lectura bíblica interactiva</p>
 </div>
     <div class="grid" style="margin-top:1.5rem;"><div class="card quick-access-card" onclick="navigateTo('profile')"><i class="fas fa-user" style="color:var(--primary);"></i><h3>Mi perfil</h3></div><div class="card quick-access-card" onclick="navigateTo('myShifts')"><i class="fas fa-calendar-alt" style="color:#F59E0B;"></i><h3>Mis turnos</h3></div>
