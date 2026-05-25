@@ -289,7 +289,15 @@ body.dark .bpm-indicator.beat {
     background: #475569;
 }
         
-
+@media (max-width: 768px) {
+    #cifraFloatingMenu {
+        top: 70px !important;
+        right: 5px !important;
+        left: auto !important;
+        width: calc(100% - 20px);
+        max-width: 280px;
+    }
+}
 
        /* ========== ESTILOS OBLIGATORIOS PARA EL VISOR ========== */
 /* Forzar alineación izquierda y monoespaciado en el contenedor y todos sus hijos */
@@ -509,7 +517,79 @@ body.stage-mode pre {
 #gpraise-aula-shield #tab-devocional .bg-white .text-slate-600 {
     color: #475569 !important;
 }
-        
+
+/* Sidebar flotante para móvil */
+.sc-sidebar-drawer {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100%;
+    background: #0A0F1E;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(200,151,42,0.2);
+}
+.sc-sidebar-drawer.open {
+    left: 0;
+}
+.sc-close-drawer {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.8rem;
+    cursor: pointer;
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+}
+.sc-menu-btn {
+    background: transparent;
+    border: none;
+    color: #C8972A;
+    font-size: 1.4rem;
+    cursor: pointer;
+    margin-right: 0.5rem;
+    display: none;
+}
+.sc-chapter-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: auto;
+}
+@media (max-width: 768px) {
+    .sc-sidebar-drawer {
+        width: 85%;
+        max-width: 280px;
+    }
+    .sc-menu-btn {
+        display: block;
+    }
+    .sc-main-reader {
+        width: 100%;
+    }
+    .sc-reader-header {
+        flex-wrap: wrap;
+        padding: 0.75rem;
+    }
+    .sc-current-location {
+        font-size: 1rem;
+        order: 1;
+    }
+    .sc-chapter-controls {
+        order: 2;
+        margin-left: auto;
+    }
+    .sc-version-pill {
+        order: 3;
+        width: 100%;
+        text-align: right;
+        margin-top: 0.25rem;
+    }
+}
     
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -526,47 +606,48 @@ body.stage-mode pre {
         </div>
         <button class="cifra-btn cifra-btn-close" onclick="closeCifraViewer()"><i class="fa-solid fa-xmark"></i> Salir</button>
     </div>
-    <!-- Primera toolbar (escritorio) + botón menú móvil -->
-<div class="cifra-toolbar" style="display: flex; justify-content: space-between;">
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button onclick="toggleDarkModeCifra()"><i class="fa-solid fa-moon"></i> Modo Oscuro</button>
-        <button onclick="transposeCifra(-1)">-½ Tono</button>
-        <span id="currentToneDisplay" style="min-width:35px; text-align:center; color:#f59e0b;">Orig</span>
-        <button onclick="transposeCifra(1)">+½ Tono</button>
-        <button onclick="changeFontSizeCifra(-2)">A-</button>
-        <button onclick="changeFontSizeCifra(2)">A+</button>
-        <button onclick="toggleColumnsCifra()"><i class="fa-solid fa-columns"></i> Columnas</button>
-        <button class="cifra-btn" onclick="printCifra()"><i class="fa-solid fa-print"></i> Imprimir</button>
-        <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
-        <button class="cifra-btn" onclick="openLyricsEditor(cifraCurrentSong ? cifraCurrentSong.id : songs[currentSongIndex]?.id)" style="background:#3b82f6;"><i class="fa-solid fa-pen"></i> Editar</button>
+  <!-- BARRA PRINCIPAL (siempre visible) -->
+<div class="cifra-toolbar main-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+    <div style="display: flex; gap: 0.3rem;">
+        <button class="cifra-btn" onclick="navigateSong(-1)">◀ Ant</button>
+        <button class="cifra-btn" onclick="navigateSong(1)">Sig ▶</button>
     </div>
-    <div>
-        <button id="prevSongBtn" onclick="navigateSong(-1)">◀ Anterior</button>
-        <button id="nextSongBtn" onclick="navigateSong(1)">Siguiente ▶</button>
-        <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i> Más</button>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span>BPM:</span>
+        <input type="number" id="cifraBpmInput" style="width: 55px;" min="40" max="250" onchange="updateSongBpm()">
+        <div class="bpm-indicator" id="bpmDot"></div>
+        <button id="toggleMetronomeBtn" class="cifra-btn" onclick="toggleMetronome()"><i class="fas fa-play"></i> Metro</button>
+    </div>
+    <div style="display: flex; gap: 0.3rem;">
+        <button class="cifra-btn" onclick="toggleAutoScrollCifra()" id="btnPlayScrollCifra"><i class="fa-solid fa-play"></i> Auto</button>
+        <button class="cifra-btn" id="moreOptionsBtn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
     </div>
 </div>
 
-<!-- Segunda toolbar (BPM, auto-scroll, capo) -->
-<div class="cifra-toolbar" style="border-top:1px solid #334155;">
-    <div class="tool-group">
-        <span>Auto-Scroll:</span>
-        <button onclick="changeScrollSpeedCifra(-1)">-</button>
-        <span id="speedDisplayCifra" style="width:20px; text-align:center;">3</span>
-        <button onclick="changeScrollSpeedCifra(1)">+</button>
-        <button id="btnPlayScrollCifra" class="cifra-btn" onclick="toggleAutoScrollCifra()"><i class="fa-solid fa-play"></i> Iniciar</button>
-    </div>
-    <div class="tool-group">
-        <span>BPM:</span>
-        <input type="number" id="cifraBpmInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" min="40" max="250" onchange="updateSongBpm()">
-        <div class="bpm-indicator" id="bpmDot"></div>
-        <button id="toggleMetronomeBtn" class="cifra-btn" style="margin-left:8px;" onclick="toggleMetronome()">
-            <i class="fas fa-play"></i> Metro
-        </button>
-    </div>
-    <div class="tool-group">
-        <span>Capo:</span>
-        <input type="text" id="cifraCapoInput" style="width:55px; background:#1e293b; border:1px solid #475569; color:white; padding:4px; border-radius:4px; text-align:center;" placeholder="Ej: 2">
+<!-- MENÚ FLOTANTE (oculto por defecto) -->
+<div id="cifraFloatingMenu" style="display: none; position: absolute; top: 60px; right: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; padding: 0.8rem; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 180px;">
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <button class="cifra-btn" onclick="toggleDarkModeCifra()"><i class="fa-solid fa-moon"></i> Modo Oscuro</button>
+        <div style="display: flex; gap: 0.3rem; justify-content: space-between;">
+            <button class="cifra-btn" onclick="transposeCifra(-1)">-½</button>
+            <span id="currentToneDisplay" style="color:#f59e0b;">Orig</span>
+            <button class="cifra-btn" onclick="transposeCifra(1)">+½</button>
+        </div>
+        <div style="display: flex; gap: 0.3rem;">
+            <button class="cifra-btn" onclick="changeFontSizeCifra(-2)">A-</button>
+            <button class="cifra-btn" onclick="changeFontSizeCifra(2)">A+</button>
+        </div>
+        <button class="cifra-btn" onclick="toggleColumnsCifra()"><i class="fa-solid fa-columns"></i> Columnas</button>
+        <button class="cifra-btn" onclick="printCifra()"><i class="fa-solid fa-print"></i> Imprimir</button>
+        <button class="cifra-btn" style="background:#10b981;" onclick="saveCifraStateToServer()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+        <button class="cifra-btn" onclick="openLyricsEditor(cifraCurrentSong?.id)" style="background:#3b82f6;"><i class="fa-solid fa-pen"></i> Editar</button>
+        <div style="margin-top: 0.3rem;">
+            <span>Auto-Scroll:</span>
+            <button onclick="changeScrollSpeedCifra(-1)">-</button>
+            <span id="speedDisplayCifra">3</span>
+            <button onclick="changeScrollSpeedCifra(1)">+</button>
+        </div>
+        <div>Capo: <input type="text" id="cifraCapoInput" style="width: 50px;" placeholder="Ej: 2"></div>
     </div>
 </div>
 
@@ -582,7 +663,22 @@ body.stage-mode pre {
 <div id="examOverlay" class="exam-overlay">
     <div class="exam-card"><div style="display:flex;justify-content:space-between;align-items:center;"><h2 id="examProgressTitle">Pregunta 1 de X</h2><div style="font-size:1.2rem;">⏱️ <span id="examTimerDisplay">0s</span></div></div><div style="width:100%; background:#ddd; border-radius:10px; margin:10px 0;"><div id="timerBarFill" style="width:100%; height:8px; background:var(--primary); border-radius:10px;"></div></div><div id="examQuestionText" style="font-size:1.2rem; margin:20px 0;"></div><div id="examOptionsContainer"></div><div style="margin-top:20px; text-align:right;"><button class="btn btn-ghost" onclick="closeExam()">Cancelar</button></div></div>
 </div>
-
+    
+document.getElementById('moreOptionsBtn')?.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('cifraFloatingMenu');
+    if (menu) {
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+});
+// Cerrar menú al hacer clic fuera
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('cifraFloatingMenu');
+    const btn = document.getElementById('moreOptionsBtn');
+    if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.style.display = 'none';
+    }
+});
 <script>
 // ==================== CONFIGURACIÓN SUPABASE ====================
 const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
@@ -2454,42 +2550,47 @@ async function renderScriptura() {
             }
         </style>
 
-        <aside class="sc-sidebar">
-            <div class="sc-sidebar-header">
-                <div class="sc-brand">Ecosistema Digital</div>
-                <h2 class="sc-app-title">MI BIBLIA</h2>
-            </div>
-            <div class="sc-tabs-nav">
-                <button class="sc-tab-btn active" id="btn-tab-libros" onclick="switchSidebarView('libros')">Libros</button>
-                <button class="sc-tab-btn" id="btn-tab-favs" onclick="switchSidebarView('favs')">Favoritos</button>
-            </div>
-            <div class="sc-sidebar-scroll">
-                <div class="sc-sidebar-pane active" id="sc-pane-libros">
-                    <div class="sc-search-box" style="margin-bottom: 1rem; padding: 0 0.5rem;">
-                        <input type="text" id="bibleSearchInput" class="sc-search-input" placeholder="🔍 Buscar libro... (ej: Salmos, Juan, Romanos)">
-                    </div>
-                    <div class="sc-list-group-title">Antiguo Testamento</div>
-                    <div id="ot-books-list"></div>
-                    <div class="sc-list-group-title" style="margin-top: 1rem;">Nuevo Testamento</div>
-                    <div id="nt-books-list"></div>
-                </div>
-                <div class="sc-sidebar-pane" id="sc-pane-favs">
-                    <div id="sc-favs-dynamic-list"></div>
-                </div>
-            </div>
-        </aside>
-
-        <main class="sc-main-reader">
-            <header class="sc-reader-header">
-    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-        <div class="sc-current-location" id="sc-header-title">Cargando...</div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <button id="sc-prev-chapter" class="sc-tool-btn" style="padding: 4px 8px;"><i class="fa-solid fa-chevron-left"></i> Ant.</button>
-            <select id="sc-chapter-select" class="form-control" style="width: auto; background: #0D142A; color: white; border: 1px solid #C8972A;"></select>
-            <button id="sc-next-chapter" class="sc-tool-btn" style="padding: 4px 8px;">Sig. <i class="fa-solid fa-chevron-right"></i></button>
+       <div id="gpraise-scriptura-shield" style="position: relative;">
+    <!-- Sidebar flotante (oculto en móvil) -->
+    <aside id="sc-sidebar-drawer" class="sc-sidebar-drawer">
+        <div class="sc-sidebar-header">
+            <div class="sc-brand">Ecosistema Digital</div>
+            <h2 class="sc-app-title">MI BIBLIA</h2>
+            <button id="closeDrawerBtn" class="sc-close-drawer">&times;</button>
         </div>
-    </div>
-    <div class="sc-version-pill">REINA VALERA 1960</div>
+        <div class="sc-tabs-nav">
+            <button class="sc-tab-btn active" data-view="libros">Libros</button>
+            <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
+        </div>
+        <div class="sc-sidebar-scroll">
+            <div class="sc-sidebar-pane active" id="sc-pane-libros">
+                <div class="sc-search-box"><input type="text" id="bibleSearchInput" class="sc-search-input" placeholder="🔍 Buscar libro..."></div>
+                <div class="sc-list-group-title">Antiguo Testamento</div>
+                <div id="ot-books-list"></div>
+                <div class="sc-list-group-title">Nuevo Testamento</div>
+                <div id="nt-books-list"></div>
+            </div>
+            <div class="sc-sidebar-pane" id="sc-pane-favs">
+                <div id="sc-favs-dynamic-list"></div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="sc-main-reader">
+        <header class="sc-reader-header">
+            <button id="openDrawerBtn" class="sc-menu-btn"><i class="fas fa-bars"></i></button>
+            <div class="sc-current-location" id="sc-header-title">Cargando...</div>
+            <div class="sc-chapter-controls">
+                <button id="sc-prev-chapter" class="sc-tool-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                <select id="sc-chapter-select" class="form-control"></select>
+                <button id="sc-next-chapter" class="sc-tool-btn"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="sc-version-pill">RVR1960</div>
+        </header>
+        <div class="sc-reader-body" id="sc-bible-text-flow"></div>
+        <div class="sc-ctx-panel" id="scCtxPanel">...</div>
+    </main>
+</div>
 </header>
             <div class="sc-reader-body" id="sc-bible-text-flow">
                 <div style="text-align:center; color:#64748B;">Cargando Escrituras...</div>
@@ -2516,6 +2617,33 @@ async function renderScriptura() {
     </div>
     `;
     container.innerHTML = html;
+    // Abrir drawer
+document.getElementById('openDrawerBtn')?.addEventListener('click', () => {
+    document.getElementById('sc-sidebar-drawer')?.classList.add('open');
+});
+// Cerrar drawer
+document.getElementById('closeDrawerBtn')?.addEventListener('click', () => {
+    document.getElementById('sc-sidebar-drawer')?.classList.remove('open');
+});
+// Cerrar al hacer clic fuera (opcional)
+document.addEventListener('click', (e) => {
+    const drawer = document.getElementById('sc-sidebar-drawer');
+    const openBtn = document.getElementById('openDrawerBtn');
+    if (drawer?.classList.contains('open') && !drawer.contains(e.target) && !openBtn?.contains(e.target)) {
+        drawer.classList.remove('open');
+    }
+});
+// Cambio de tabs en el sidebar (Libros / Favoritos)
+document.querySelectorAll('.sc-tab-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const view = btn.getAttribute('data-view');
+        document.querySelectorAll('.sc-sidebar-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById(`sc-pane-${view}`)?.classList.add('active');
+        document.querySelectorAll('.sc-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    });
+});
+    
 // ==== ACTIVAR CONTROLES DE CAPÍTULOS ====
 const prevBtn = document.getElementById('sc-prev-chapter');
 const nextBtn = document.getElementById('sc-next-chapter');
