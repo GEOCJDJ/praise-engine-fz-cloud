@@ -2224,11 +2224,19 @@ function cerrarPanelContextual() {
 
 // ========== RESALTADO Y FAVORITOS EN SUPABASE ==========
 async function applyHighlightToSelected(hlClass) {
-  if (scSelectedVerses.length === 0) return;
+  if (!currentUser) {
+    alert('Debes iniciar sesión para resaltar');
+    return;
+  }
+  if (scSelectedVerses.length === 0) {
+    alert('Selecciona uno o más versículos');
+    return;
+  }
   for (let verseNum of scSelectedVerses) {
     const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${verseNum}`;
     const target = document.getElementById(`vbox-${uniqueKey}`);
     if (!target) continue;
+    // Quitar clases anteriores
     target.classList.remove('hl-gold', 'hl-emerald', 'hl-sapphire', 'hl-ruby');
     if (hlClass !== 'clear') {
       target.classList.add(hlClass);
@@ -2236,31 +2244,38 @@ async function applyHighlightToSelected(hlClass) {
     } else {
       delete scHighlights[uniqueKey];
     }
-    // Guardar en Supabase
-    if (currentUser) {
-      await supabaseClient.from('biblia_progreso').upsert({
-        user_id: currentUser.id,
-        libro: scCurrentBook,
-        capitulo: scCurrentChapter,
-        versiculo: verseNum,
-        resaltado_color: hlClass !== 'clear' ? hlClass : null,
-        es_favorito: scFavorites.some(f =>
-          f.book === scCurrentBook && f.chapter === scCurrentChapter &&
-          f.verseStart <= verseNum && f.verseEnd >= verseNum
-        )
-      }, { onConflict: 'user_id, libro, capitulo, versiculo' });
-    }
+    // Guardar en Supabase (upsert)
+    const { error } = await supabaseClient.from('biblia_progreso').upsert({
+      user_id: currentUser.id,
+      libro: scCurrentBook,
+      capitulo: scCurrentChapter,
+      versiculo: verseNum,
+      resaltado_color: hlClass !== 'clear' ? hlClass : null,
+      es_favorito: scFavorites.some(f =>
+        f.book === scCurrentBook && f.chapter === scCurrentChapter &&
+        f.verseStart <= verseNum && f.verseEnd >= verseNum
+      )
+    }, { onConflict: 'user_id, libro, capitulo, versiculo' });
+    if (error) console.error('Error guardando resaltado:', error);
+    else console.log(`Resaltado guardado para ${scCurrentBook} ${scCurrentChapter}:${verseNum}`);
   }
 }
 
 async function toggleFavoriteSelected() {
+  if (!currentUser) {
+    alert('Debes iniciar sesión');
+    return;
+  }
   if (scSelectedVerses.length === 0) return;
+
   const verseStart = Math.min(...scSelectedVerses);
   const verseEnd = Math.max(...scSelectedVerses);
   const existingIndex = scFavorites.findIndex(f =>
     f.book === scCurrentBook && f.chapter === scCurrentChapter &&
     f.verseStart === verseStart && f.verseEnd === verseEnd
   );
+
+  // Obtener el texto de los versículos seleccionados
   const versiculos = await getVersiculos(scCurrentBook, scCurrentChapter);
   const textos = scSelectedVerses.map(v => {
     const vObj = versiculos.find(vv => vv.versiculo === v);
@@ -2269,17 +2284,19 @@ async function toggleFavoriteSelected() {
   const textoCompleto = textos.join(' ');
 
   if (existingIndex > -1) {
+    // Eliminar favorito
     scFavorites.splice(existingIndex, 1);
-    if (currentUser) {
-      for (let v = verseStart; v <= verseEnd; v++) {
-        await supabaseClient.from('biblia_progreso').update({ es_favorito: false })
-          .eq('user_id', currentUser.id)
-          .eq('libro', scCurrentBook)
-          .eq('capitulo', scCurrentChapter)
-          .eq('versiculo', v);
-      }
+    for (let v = verseStart; v <= verseEnd; v++) {
+      const { error } = await supabaseClient.from('biblia_progreso')
+        .update({ es_favorito: false })
+        .eq('user_id', currentUser.id)
+        .eq('libro', scCurrentBook)
+        .eq('capitulo', scCurrentChapter)
+        .eq('versiculo', v);
+      if (error) console.error('Error eliminando favorito:', error);
     }
   } else {
+    // Agregar favorito
     scFavorites.push({
       book: scCurrentBook,
       chapter: scCurrentChapter,
@@ -2287,22 +2304,21 @@ async function toggleFavoriteSelected() {
       verseEnd,
       text: textoCompleto
     });
-    if (currentUser) {
-      for (let v = verseStart; v <= verseEnd; v++) {
-        const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${v}`;
-        await supabaseClient.from('biblia_progreso').upsert({
-          user_id: currentUser.id,
-          libro: scCurrentBook,
-          capitulo: scCurrentChapter,
-          versiculo: v,
-          es_favorito: true,
-          resaltado_color: scHighlights[uniqueKey] || null
-        }, { onConflict: 'user_id, libro, capitulo, versiculo' });
-      }
+    for (let v = verseStart; v <= verseEnd; v++) {
+      const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${v}`;
+      const { error } = await supabaseClient.from('biblia_progreso').upsert({
+        user_id: currentUser.id,
+        libro: scCurrentBook,
+        capitulo: scCurrentChapter,
+        versiculo: v,
+        es_favorito: true,
+        resaltado_color: scHighlights[uniqueKey] || null
+      }, { onConflict: 'user_id, libro, capitulo, versiculo' });
+      if (error) console.error('Error guardando favorito:', error);
     }
   }
+  // Refrescar panel y sidebar
   abrirPanelContextual();
-  await cargarFavoritosUsuario();
   renderFavoritesSidebar();
 }
 
@@ -2326,12 +2342,19 @@ function shareVerseAction() {
 
 // ========== CARGA DE FAVORITOS Y RESALTADOS DEL USUARIO ==========
 async function cargarFavoritosUsuario() {
-  if (!currentUser) return;
+  if (!currentUser) {
+    console.log('No hay usuario logueado, no se cargan favoritos');
+    return;
+  }
   const { data, error } = await supabaseClient
     .from('biblia_progreso')
     .select('*')
     .eq('user_id', currentUser.id);
-  if (error) return;
+  if (error) {
+    console.error('Error cargando favoritos:', error);
+    return;
+  }
+  console.log('Datos de biblia_progreso:', data); // Ver qué trae
   scHighlights = {};
   const favMap = new Map();
   for (let item of data) {
@@ -2361,12 +2384,16 @@ async function cargarFavoritosUsuario() {
     }
     scFavorites.push({ book: libro, chapter: parseInt(capitulo), verseStart: start, verseEnd: end, text: '' });
   }
+  console.log('scFavorites cargados:', scFavorites);
   renderFavoritesSidebar();
 }
 
 function renderFavoritesSidebar() {
   const container = document.getElementById('sc-favs-dynamic-list');
-  if (!container) return;
+  if (!container) {
+    console.warn('No se encontró el contenedor de favoritos');
+    return;
+  }
   if (scFavorites.length === 0) {
     container.innerHTML = '<div class="empty-favs">✨ No has guardado joyas aún. Selecciona uno o más versículos y toca la estrella.</div>';
     return;
@@ -2481,7 +2508,7 @@ async function renderScriptura() {
       <aside id="sc-sidebar" class="sc-sidebar">
         <div class="sc-sidebar-tabs">
           <button class="sc-tab-btn active" data-view="libros">Libros</button>
-          <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
+          <button class="sc-tab-btn" data-view="favs">Mis versículos</button>
         </div>
         <div class="sc-sidebar-content">
           <div id="sc-pane-libros" class="sc-pane active">
