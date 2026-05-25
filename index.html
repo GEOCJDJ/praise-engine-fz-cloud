@@ -756,6 +756,7 @@ body.stage-mode pre {
     border-right: 1px solid rgba(200,151,42,0.2);
 }
 
+
 /* En móvil: sidebar oculto por defecto, se despliega con botón */
 @media (max-width: 768px) {
     #gpraise-scriptura-shield .sc-sidebar {
@@ -2533,7 +2534,7 @@ async function renderScriptura() {
         </div>
 
         <div class="sc-main-container">
-            <aside id="sc-sidebar" class="sc-sidebar collapsed">
+            <aside id="sc-sidebar" class="sc-sidebar">
                 <div class="sc-sidebar-tabs">
                     <button class="sc-tab-btn active" data-view="libros">Libros</button>
                     <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
@@ -2587,29 +2588,29 @@ async function renderScriptura() {
     container.innerHTML = html;
 
     // --- Control del sidebar (toggle) ---
-    // Dentro de renderScriptura, después de container.innerHTML = html
-const sidebar = document.getElementById('sc-sidebar');
+     // --- Control del sidebar (toggle) ---
+const toggleBtn = document.getElementById('sc-menu-toggle');
+const sidebar = document.getElementById('sc-sidebar'); // ← esta es la ÚNICA declaración
+
+if (toggleBtn && sidebar) {
+    toggleBtn.onclick = (e) => {
+        e.stopPropagation();
+        sidebar.classList.toggle('collapsed');
+    };
+    // Cerrar sidebar al hacer clic fuera en móvil
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+            sidebar.classList.add('collapsed');
+        }
+    });
+}
+
+// Ajuste inicial según ancho de pantalla (usamos la misma variable sidebar, no redeclaramos)
 if (sidebar && window.innerWidth <= 768) {
     sidebar.classList.add('collapsed');
 } else if (sidebar) {
     sidebar.classList.remove('collapsed');
 }
-    
-    const toggleBtn = document.getElementById('sc-menu-toggle');
-    const sidebar = document.getElementById('sc-sidebar');
-    if (toggleBtn && sidebar) {
-        toggleBtn.onclick = (e) => {
-            e.stopPropagation();
-            sidebar.classList.toggle('collapsed');
-        };
-        // Cerrar sidebar al hacer clic fuera en móvil
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-                sidebar.classList.add('collapsed');
-            }
-        });
-    }
-
     // --- Tabs del sidebar ---
     document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
