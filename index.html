@@ -456,12 +456,6 @@ body.stage-mode pre {
 #gpraise-aula-shield .from-slate-900 { --tw-gradient-from: #0f172a !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
 #gpraise-aula-shield .to-indigo-950 { --tw-gradient-to: #1e1b4b !important; }        
 
-
-  #gpraise-scriptura-shield .verse-block.hl-gold { background: rgba(200,151,42,0.25); border-left: 4px solid #C8972A; padding-left: 8px; }
-#gpraise-scriptura-shield .verse-block.hl-emerald { background: rgba(16,185,129,0.25); border-left: 4px solid #10B981; padding-left: 8px; }
-#gpraise-scriptura-shield .verse-block.hl-sapphire { background: rgba(37,99,235,0.25); border-left: 4px solid #2563EB; padding-left: 8px; }
-#gpraise-scriptura-shield .verse-block.hl-ruby { background: rgba(225,29,72,0.25); border-left: 4px solid #E11D48; padding-left: 8px; }
-
         @media (max-width: 640px) {
     #gpraise-scriptura-shield .sc-reader-header {
         flex-direction: column;
@@ -492,22 +486,6 @@ body.stage-mode pre {
 #gpraise-aula-shield .bg-gradient-to-r .text-right .text-xs {
     color: #FCD34D !important;
 }
-/* Buscador */
-#gpraise-scriptura-shield .sc-search-input {
-    width: 100% !important;
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    border-radius: 6px !important;
-    padding: 0.5rem !important;
-    color: #F8FAFC !important;
-    font-size: 13px !important;
-    transition: all 0.2s !important;
-}
-#gpraise-scriptura-shield .sc-search-input:focus {
-    outline: none !important;
-    border-color: #C8972A !important;
-    background: rgba(255,255,255,0.1) !important;
-}
         
 #gpraise-aula-shield #tab-devocional .bg-white p,
 #gpraise-aula-shield #tab-devocional .bg-white .font-medium,
@@ -517,7 +495,146 @@ body.stage-mode pre {
 #gpraise-aula-shield #tab-devocional .bg-white .text-slate-600 {
     color: #475569 !important;
 }
-/* Cabecera mejorada */
+
+/* ========== ESTILOS COMPLETOS PARA SCRIPTURA (NUEVO) ========== */
+#gpraise-scriptura-shield {
+    all: initial;
+    display: flex !important;
+    position: relative;
+    width: 100%;
+    min-height: 650px;
+    background: #050811;
+    border-radius: 1rem;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    color: #E2E8F0;
+}
+
+/* ========== DRAWER (SIDEBAR FLOTANTE) ========== */
+#gpraise-scriptura-shield .sc-sidebar-drawer {
+    position: fixed;
+    top: 0;
+    left: -320px;
+    width: 280px;
+    height: 100%;
+    background: #0A0F1E;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(200,151,42,0.2);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+}
+#gpraise-scriptura-shield .sc-sidebar-drawer.open {
+    left: 0;
+}
+#gpraise-scriptura-shield .sc-drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid #1E293B;
+}
+#gpraise-scriptura-shield .sc-drawer-header h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    color: #C8972A;
+}
+#gpraise-scriptura-shield .sc-close-drawer {
+    background: none;
+    border: none;
+    color: #94A3B8;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+#gpraise-scriptura-shield .sc-tabs {
+    display: flex;
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+    border-bottom: 1px solid #1E293B;
+}
+#gpraise-scriptura-shield .sc-tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #64748B;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    text-transform: uppercase;
+}
+#gpraise-scriptura-shield .sc-tab-btn.active {
+    background: rgba(200,151,42,0.15);
+    color: #C8972A;
+}
+#gpraise-scriptura-shield .sc-drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+#gpraise-scriptura-shield .sc-pane {
+    display: none;
+}
+#gpraise-scriptura-shield .sc-pane.active {
+    display: block;
+}
+#gpraise-scriptura-shield .sc-search-input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #2D3A5E;
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
+    color: white;
+    font-size: 0.8rem;
+    margin-bottom: 1.2rem;
+}
+#gpraise-scriptura-shield .sc-book-section {
+    margin-bottom: 1.5rem;
+}
+#gpraise-scriptura-shield .sc-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #C8972A;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    border-left: 3px solid #C8972A;
+    padding-left: 0.5rem;
+}
+#gpraise-scriptura-shield .sc-book-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+#gpraise-scriptura-shield .sc-book-list li {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 2px;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #94A3B8;
+    transition: all 0.1s;
+}
+#gpraise-scriptura-shield .sc-book-list li:hover,
+#gpraise-scriptura-shield .sc-book-list li.active {
+    background: rgba(200,151,42,0.1);
+    color: #F5D97A;
+}
+
+/* ========== MAIN READER ========== */
+#gpraise-scriptura-shield .sc-main-reader {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #050811;
+    width: 100%;
+    min-height: 650px;
+}
 #gpraise-scriptura-shield .sc-reader-header {
     display: flex;
     flex-wrap: wrap;
@@ -525,60 +642,157 @@ body.stage-mode pre {
     justify-content: space-between;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     background: #060A15;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
 }
-#gpraise-scriptura-shield .sc-header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+#gpraise-scriptura-shield .sc-menu-btn {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #C8972A;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.5rem;
+    display: none;
+}
+#gpraise-scriptura-shield .sc-current-location {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: white;
 }
 #gpraise-scriptura-shield .sc-chapter-controls {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    background: rgba(0,0,0,0.2);
-    padding: 0.2rem 0.5rem;
-    border-radius: 2rem;
 }
 #gpraise-scriptura-shield .sc-chapter-select {
-    width: auto;
-    min-width: 100px;
     background: #0D142A;
     color: white;
-    border: 1px solid #C8972A;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.9rem;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+    width: auto;
 }
 #gpraise-scriptura-shield .sc-tool-btn {
-    background: #1E293B;
-    padding: 0.3rem 0.6rem;
+    background: #0D142A;
+    border: 1px solid #334155;
+    color: #94A3B8;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
     font-size: 0.75rem;
+    transition: 0.2s;
 }
-/* Sidebar flotante para móvil */
+#gpraise-scriptura-shield .sc-tool-btn:hover {
+    background: #1E293B;
+    color: #C8972A;
+}
+#gpraise-scriptura-shield .sc-version-pill {
+    background: linear-gradient(135deg, #C8972A, #A6761E);
+    color: #050811;
+    padding: 0.2rem 0.8rem;
+    border-radius: 2rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+#gpraise-scriptura-shield .sc-reader-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    font-family: 'Georgia', serif;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #CBD5E1;
+    text-align: justify;
+}
+/* Versículos */
+#gpraise-scriptura-shield .verse-block {
+    margin-bottom: 0.75rem;
+    padding: 0.2rem 0;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+#gpraise-scriptura-shield .verse-number {
+    font-weight: bold;
+    color: #C8972A;
+    font-size: 0.85rem;
+    margin-right: 0.75rem;
+    display: inline-block;
+    min-width: 2rem;
+}
+/* Resaltados */
+#gpraise-scriptura-shield .verse-block.hl-gold { background: rgba(200,151,42,0.25); border-left: 3px solid #C8972A; padding-left: 0.5rem; }
+#gpraise-scriptura-shield .verse-block.hl-emerald { background: rgba(16,185,129,0.25); border-left: 3px solid #10B981; padding-left: 0.5rem; }
+#gpraise-scriptura-shield .verse-block.hl-sapphire { background: rgba(37,99,235,0.25); border-left: 3px solid #2563EB; padding-left: 0.5rem; }
+#gpraise-scriptura-shield .verse-block.hl-ruby { background: rgba(225,29,72,0.25); border-left: 3px solid #E11D48; padding-left: 0.5rem; }
+
+/* Panel contextual */
+#gpraise-scriptura-shield .sc-ctx-panel {
+    position: fixed;
+    bottom: -320px;
+    left: 0;
+    right: 0;
+    background: #090F1F;
+    border-top: 1px solid rgba(200,151,42,0.3);
+    transition: bottom 0.3s ease;
+    z-index: 200;
+    padding: 0.75rem;
+}
+#gpraise-scriptura-shield .sc-ctx-panel.open {
+    bottom: 0;
+}
+#gpraise-scriptura-shield .sc-ctx-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+#gpraise-scriptura-shield .sc-ctx-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+#gpraise-scriptura-shield .sc-color-dots {
+    display: flex;
+    gap: 0.3rem;
+}
+#gpraise-scriptura-shield .sc-color-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+#gpraise-scriptura-shield .sc-color-dot.gold { background: #C8972A; }
+#gpraise-scriptura-shield .sc-color-dot.emerald { background: #10B981; }
+#gpraise-scriptura-shield .sc-color-dot.sapphire { background: #2563EB; }
+#gpraise-scriptura-shield .sc-color-dot.ruby { background: #E11D48; }
+#gpraise-scriptura-shield .sc-color-dot.clear { background: transparent; border: 1px dashed #64748B; display: inline-flex; align-items: center; justify-content: center; }
+#gpraise-scriptura-shield .sc-comparison-engine {
+    background: #060A15;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* ========== RESPONSIVE (MÓVIL) ========== */
 @media (max-width: 768px) {
-    #gpraise-scriptura-shield .sc-sidebar-drawer {
-        position: fixed;
-        top: 0;
-        left: -280px;
-        width: 280px;
-        height: 100%;
-        z-index: 1000;
-        transition: left 0.3s ease;
-        background: #0A0F1E;
-        border-right: 1px solid #C8972A;
-    }
-    #gpraise-scriptura-shield .sc-sidebar-drawer.open {
-        left: 0;
-    }
     #gpraise-scriptura-shield .sc-menu-btn {
         display: block;
     }
-    #gpraise-scriptura-shield .sc-sidebar {
-        display: none; /* Ocultamos el sidebar original en móvil */
+    #gpraise-scriptura-shield .sc-sidebar-drawer {
+        width: 85%;
+        max-width: 280px;
     }
     #gpraise-scriptura-shield .sc-reader-header {
-        flex-wrap: wrap;
+        padding: 0.5rem 1rem;
+    }
+    #gpraise-scriptura-shield .sc-current-location {
+        font-size: 1rem;
+        order: 1;
     }
     #gpraise-scriptura-shield .sc-chapter-controls {
         order: 2;
@@ -590,116 +804,15 @@ body.stage-mode pre {
         text-align: right;
         margin-top: 0.25rem;
     }
-}
-        
-/* Sidebar flotante para móvil */
-.sc-sidebar-drawer {
-    position: fixed;
-    top: 0;
-    left: -280px;
-    width: 280px;
-    height: 100%;
-    background: #0A0F1E;
-    z-index: 1000;
-    transition: left 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid rgba(200,151,42,0.2);
-}
-.sc-sidebar-drawer.open {
-    left: 0;
-}
-.sc-close-drawer {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.8rem;
-    cursor: pointer;
-    position: absolute;
-    right: 1rem;
-    top: 1rem;
-}
-.sc-menu-btn {
-    background: transparent;
-    border: none;
-    color: #C8972A;
-    font-size: 1.4rem;
-    cursor: pointer;
-    margin-right: 0.5rem;
-    display: none;
-}
-.sc-chapter-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    margin-left: auto;
-}
-@media (max-width: 768px) {
-    .sc-sidebar-drawer {
-        width: 85%;
-        max-width: 280px;
+    #gpraise-scriptura-shield .sc-reader-body {
+        padding: 1rem;
+        font-size: 0.9rem;
     }
-    .sc-menu-btn {
-        display: block;
-    }
-    .sc-main-reader {
-        width: 100%;
-    }
-    .sc-reader-header {
+    #gpraise-scriptura-shield .sc-ctx-actions {
         flex-wrap: wrap;
-        padding: 0.75rem;
     }
-    .sc-current-location {
-        font-size: 1rem;
-        order: 1;
-    }
-    .sc-chapter-controls {
-        order: 2;
-        margin-left: auto;
-    }
-    .sc-version-pill {
-        order: 3;
-        width: 100%;
-        text-align: right;
-        margin-top: 0.25rem;
-    }
-}
-    /* Cabecera mejorada */
-#gpraise-scriptura-shield .sc-reader-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-}
-#gpraise-scriptura-shield .sc-header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-#gpraise-scriptura-shield .sc-chapter-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: rgba(0,0,0,0.2);
-    padding: 0.2rem 0.5rem;
-    border-radius: 2rem;
-}
-#gpraise-scriptura-shield .sc-chapter-select {
-    width: auto;
-    min-width: 100px;
-    background: #0D142A;
-    color: white;
-    border: 1px solid #C8972A;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.9rem;
-}
-#gpraise-scriptura-shield .sc-tool-btn {
-    background: #1E293B;
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
-}
+}        
+  
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -2061,11 +2174,9 @@ function getVersiculos(book, chapter) {
 }
 // Obtiene la lista de números de capítulo disponibles para un libro (ordenada)
 function obtenerCapitulosDisponibles(book) {
-    const chaptersSet = new Set();
-    bibleData.forEach(v => {
-        if (v.book === book) chaptersSet.add(v.chapter);
-    });
-    return Array.from(chaptersSet).sort((a,b) => a - b);
+    const chapters = new Set();
+    bibleData.forEach(v => { if (v.book === book) chapters.add(v.chapter); });
+    return Array.from(chapters).sort((a,b) => a-b);
 }
 
 function actualizarSelectorCapitulos() {
@@ -2074,13 +2185,25 @@ function actualizarSelectorCapitulos() {
     const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
     selector.innerHTML = '';
     capitulos.forEach(ch => {
-        const option = document.createElement('option');
-        option.value = ch;
-        option.textContent = `Capítulo ${ch}`;
-        if (ch === scCurrentChapter) option.selected = true;
-        selector.appendChild(option);
+        const opt = document.createElement('option');
+        opt.value = ch;
+        opt.textContent = `Capítulo ${ch}`;
+        if (ch === scCurrentChapter) opt.selected = true;
+        selector.appendChild(opt);
     });
     selector.style.display = capitulos.length > 1 ? 'inline-block' : 'none';
+}
+
+// Modifica cargarCapitulo para que llame a actualizarSelectorCapitulos()
+async function cargarCapitulo(book, chapter) {
+    scCurrentBook = book;
+    scCurrentChapter = chapter;
+    scSelectedVerseNum = null;
+    closeScripturaCtx();
+    document.getElementById('sc-header-title').innerText = `${book} ${chapter}`;
+    highlightActiveBook(book);
+    renderChapterContent(book, chapter);
+    actualizarSelectorCapitulos();
 }
 
     
@@ -2447,328 +2570,128 @@ async function renderScriptura() {
 
     const html = `
     <div id="gpraise-scriptura-shield">
-        <style>
-            /* ===== ESTILOS COMPLETOS PARA SCRIPTURA ===== */
-            #gpraise-scriptura-shield {
-                all: initial;
-                display: grid !important;
-                grid-template-columns: 280px 1fr !important;
-                width: 100% !important;
-                height: 750px !important;
-                background-color: #050811 !important;
-                border-radius: 1rem !important;
-                overflow: hidden !important;
-                font-family: 'Inter', sans-serif !important;
-                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important;
-                color: #E2E8F0 !important;
-                position: relative !important;
-            }
-            #gpraise-scriptura-shield * { box-sizing: border-box !important; }
-            /* Sidebar */
-            #gpraise-scriptura-shield .sc-sidebar {
-                background-color: #0A0F1E !important;
-                border-right: 1px solid rgba(200,151,42,0.08) !important;
-                display: flex !important;
-                flex-direction: column !important;
-                overflow: hidden !important;
-            }
-            #gpraise-scriptura-shield .sc-sidebar-header {
-                padding: 1.5rem !important;
-                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
-                background: linear-gradient(180deg, #0A0F1E 0%, #060A15 100%) !important;
-            }
-            #gpraise-scriptura-shield .sc-brand {
-                font-size: 11px !important; color: #C8972A !important;
-                font-weight: 700 !important; letter-spacing: 2px !important;
-                text-transform: uppercase !important;
-            }
-            #gpraise-scriptura-shield .sc-app-title {
-                font-size: 20px !important; font-weight: 800 !important;
-                color: #FFFFFF !important; margin: 2px 0 0 0 !important;
-                letter-spacing: -0.5px !important;
-            }
-            #gpraise-scriptura-shield .sc-tabs-nav {
-                display: flex !important; padding: 0.5rem 1rem !important;
-                gap: 5px !important; background: rgba(0,0,0,0.2) !important;
-                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
-            }
-            #gpraise-scriptura-shield .sc-tab-btn {
-                flex: 1 !important; background: transparent !important; border: none !important;
-                color: #64748B !important; font-size: 11px !important; font-weight: 700 !important;
-                padding: 0.5rem !important; cursor: pointer !important; border-radius: 6px !important;
-                text-transform: uppercase !important; transition: 0.2s !important;
-            }
-            #gpraise-scriptura-shield .sc-tab-btn.active {
-                background: rgba(255,255,255,0.03) !important; color: #C8972A !important;
-            }
-            #gpraise-scriptura-shield .sc-sidebar-scroll {
-                flex: 1 !important; overflow-y: auto !important; padding: 1rem !important;
-            }
-            #gpraise-scriptura-shield .sc-sidebar-pane { display: none !important; }
-            #gpraise-scriptura-shield .sc-sidebar-pane.active { display: block !important; }
-            #gpraise-scriptura-shield .sc-list-group-title {
-                font-size: 10px !important; font-weight: 700 !important; color: #475569 !important;
-                text-transform: uppercase !important; letter-spacing: 1px !important;
-                margin: 1rem 0 0.5rem 0 !important;
-            }
-            #gpraise-scriptura-shield .sc-book-item {
-                padding: 0.65rem 0.85rem !important; font-size: 13px !important;
-                color: #94A3B8 !important; border-radius: 6px !important;
-                cursor: pointer !important; display: flex !important;
-                justify-content: space-between !important; align-items: center !important;
-                transition: 0.15s !important; margin-bottom: 2px !important;
-            }
-            #gpraise-scriptura-shield .sc-book-item:hover,
-            #gpraise-scriptura-shield .sc-book-item.active {
-                background: rgba(200,151,42,0.08) !important;
-                color: #F5D97A !important;
-            }
-            #gpraise-scriptura-shield .sc-book-item.active {
-                font-weight: 600 !important; border-left: 3px solid #C8972A !important;
-            }
-            #gpraise-scriptura-shield .sc-fav-item {
-                background: rgba(255,255,255,0.01) !important;
-                border: 1px solid rgba(255,255,255,0.03) !important;
-                border-radius: 6px !important; padding: 0.75rem !important;
-                margin-bottom: 0.5rem !important; font-size: 12px !important;
-                cursor: pointer !important;
-            }
-            #gpraise-scriptura-shield .sc-fav-item:hover { border-color: #C8972A !important; }
-            /* Área del lector */
-            #gpraise-scriptura-shield .sc-main-reader {
-                display: flex !important; flex-direction: column !important;
-                overflow: hidden !important; background-color: #050811 !important;
-            }
-            #gpraise-scriptura-shield .sc-reader-header {
-                padding: 1.5rem 2rem !important;
-                border-bottom: 1px solid rgba(255,255,255,0.03) !important;
-                display: flex !important; justify-content: space-between !important;
-                align-items: center !important; background: #060A15 !important;
-            }
-            #gpraise-scriptura-shield .sc-current-location {
-                font-size: 22px !important; font-weight: 700 !important;
-                color: #FFFFFF !important; display: flex !important;
-                align-items: center !important; gap: 10px !important;
-            }
-            #gpraise-scriptura-shield .sc-version-pill {
-                background: linear-gradient(135deg, #C8972A 0%, #A6761E 100%) !important;
-                color: #050811 !important; padding: 4px 12px !important;
-                border-radius: 99px !important; font-size: 11px !important;
-                font-weight: 800 !important;
-            }
-            #gpraise-scriptura-shield .sc-reader-body {
-                flex: 1 !important; overflow-y: auto !important;
-                padding: 3rem !important; line-height: 1.85 !important;
-                font-size: 18px !important; color: #CBD5E1 !important;
-                max-width: 840px !important; margin: 0 auto !important;
-                width: 100% !important;
-            }
-            #gpraise-scriptura-shield .v-box {
-                cursor: pointer !important; padding: 4px 6px !important;
-                border-radius: 4px !important; transition: background 0.2s ease !important;
-                display: inline !important;
-            }
-            #gpraise-scriptura-shield .v-box:hover {
-                background: rgba(255,255,255,0.05) !important;
-            }
-            #gpraise-scriptura-shield .v-num {
-                font-size: 12px !important; font-weight: 700 !important;
-                color: #C8972A !important; margin-right: 6px !important;
-                vertical-align: super !important;
-            }
-            /* Resaltados */
-            #gpraise-scriptura-shield .hl-gold { background: rgba(200,151,42,0.25) !important; border-bottom: 2px dashed #C8972A !important; }
-            #gpraise-scriptura-shield .hl-emerald { background: rgba(16,185,129,0.25) !important; border-bottom: 2px dashed #10B981 !important; }
-            #gpraise-scriptura-shield .hl-sapphire { background: rgba(37,99,235,0.25) !important; border-bottom: 2px dashed #2563EB !important; }
-            #gpraise-scriptura-shield .hl-ruby { background: rgba(225,29,72,0.25) !important; border-bottom: 2px dashed #E11D48 !important; }
-            /* Panel contextual */
-            #gpraise-scriptura-shield .sc-ctx-panel {
-                position: absolute !important; bottom: -400px !important;
-                left: 280px !important; right: 0 !important; height: 340px !important;
-                background: #090F1F !important; border-top: 1px solid rgba(200,151,42,0.2) !important;
-                transition: bottom 0.3s cubic-bezier(0.4,0,0.2,1) !important;
-                display: grid !important; grid-template-rows: auto 1fr !important;
-                z-index: 100 !important;
-            }
-            #gpraise-scriptura-shield .sc-ctx-panel.open { bottom: 0 !important; }
-            #gpraise-scriptura-shield .sc-ctx-header {
-                background: #0D142A !important; padding: 0.75rem 1.5rem !important;
-                display: flex !important; justify-content: space-between !important;
-                align-items: center !important; border-bottom: 1px solid rgba(255,255,255,0.03) !important;
-            }
-            #gpraise-scriptura-shield .sc-action-row {
-                display: flex !important; align-items: center !important; gap: 15px !important;
-            }
-            #gpraise-scriptura-shield .sc-color-dot {
-                width: 22px !important; height: 22px !important; border-radius: 50% !important;
-                cursor: pointer !important; border: 2px solid transparent !important;
-                transition: transform 0.1s !important;
-            }
-            #gpraise-scriptura-shield .sc-color-dot:hover { transform: scale(1.15) !important; }
-            #gpraise-scriptura-shield .sc-tool-btn {
-                background: rgba(255,255,255,0.03) !important;
-                border: 1px solid rgba(255,255,255,0.05) !important;
-                color: #94A3B8 !important; padding: 6px 12px !important;
-                border-radius: 6px !important; font-size: 12px !important;
-                font-weight: 600 !important; cursor: pointer !important;
-                display: inline-flex !important; align-items: center !important; gap: 6px !important;
-            }
-            #gpraise-scriptura-shield .sc-tool-btn:hover {
-                background: rgba(200,151,42,0.1) !important; color: #F5D97A !important;
-            }
-            #gpraise-scriptura-shield .sc-tool-btn.active {
-                background: #C8972A !important; color: #050811 !important;
-            }
-            #gpraise-scriptura-shield .sc-comparison-engine {
-                display: grid !important; grid-template-columns: repeat(4, 1fr) !important;
-                gap: 1rem !important; padding: 1.25rem !important;
-                overflow-x: auto !important; background: #060A15 !important;
-            }
-            #gpraise-scriptura-shield .sc-version-card {
-                background: #0D142A !important;
-                border: 1px solid rgba(255,255,255,0.03) !important;
-                border-radius: 8px !important; padding: 1rem !important;
-                display: flex !important; flex-direction: column !important; gap: 6px !important;
-            }
-            #gpraise-scriptura-shield .sc-v-title {
-                font-size: 11px !important; font-weight: 800 !important; color: #C8972A !important;
-                text-transform: uppercase !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-                padding-bottom: 4px !important;
-            }
-            #gpraise-scriptura-shield .sc-v-text {
-                font-size: 13.5px !important; line-height: 1.6 !important; color: #94A3B8 !important;
-            }
-            @media (max-width: 768px) {
-                #gpraise-scriptura-shield { grid-template-columns: 1fr !important; }
-                #gpraise-scriptura-shield .sc-ctx-panel { left: 0 !important; }
-                #gpraise-scriptura-shield .sc-comparison-engine { grid-template-columns: 1fr !important; }
-                #gpraise-scriptura-shield .sc-reader-body { padding: 1.5rem !important; font-size: 16px !important; }
-            }
-        </style>
-
-       <div id="gpraise-scriptura-shield" style="position: relative;">
-    <!-- Sidebar flotante (oculto en móvil) -->
-    <aside id="sc-sidebar-drawer" class="sc-sidebar-drawer">
-        <div class="sc-sidebar-header">
-            <div class="sc-brand">Ecosistema Digital</div>
-            <h2 class="sc-app-title">MI BIBLIA</h2>
-            <button id="closeDrawerBtn" class="sc-close-drawer">&times;</button>
-        </div>
-        <div class="sc-tabs-nav">
-            <button class="sc-tab-btn active" data-view="libros">Libros</button>
-            <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
-        </div>
-        <div class="sc-sidebar-scroll">
-            <div class="sc-sidebar-pane active" id="sc-pane-libros">
-                <div class="sc-search-box"><input type="text" id="bibleSearchInput" class="sc-search-input" placeholder="🔍 Buscar libro..."></div>
-                <div class="sc-list-group-title">Antiguo Testamento</div>
-                <div id="ot-books-list"></div>
-                <div class="sc-list-group-title">Nuevo Testamento</div>
-                <div id="nt-books-list"></div>
+        <aside id="sc-sidebar-drawer" class="sc-sidebar-drawer">
+            <div class="sc-drawer-header">
+                <h2>MI BIBLIA</h2>
+                <button id="closeDrawerBtn" class="sc-close-drawer">✕</button>
             </div>
-            <div class="sc-sidebar-pane" id="sc-pane-favs">
-                <div id="sc-favs-dynamic-list"></div>
+            <div class="sc-tabs">
+                <button class="sc-tab-btn active" data-view="libros">Libros</button>
+                <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
             </div>
-        </div>
-    </aside>
+            <div class="sc-drawer-content">
+                <div id="sc-pane-libros" class="sc-pane active">
+                    <input type="text" id="bibleSearchInput" class="sc-search-input" placeholder="🔍 Buscar libro...">
+                    <div class="sc-book-section">
+                        <div class="sc-section-title">ANTIGUO TESTAMENTO</div>
+                        <ul id="ot-books-list" class="sc-book-list"></ul>
+                    </div>
+                    <div class="sc-book-section">
+                        <div class="sc-section-title">NUEVO TESTAMENTO</div>
+                        <ul id="nt-books-list" class="sc-book-list"></ul>
+                    </div>
+                </div>
+                <div id="sc-pane-favs" class="sc-pane">
+                    <div id="sc-favs-dynamic-list"></div>
+                </div>
+            </div>
+        </aside>
 
-    <main class="sc-main-reader">
-        <header class="sc-reader-header">
-    <div class="sc-header-left">
-        <button id="openDrawerBtn" class="sc-menu-btn"><i class="fas fa-bars"></i></button>
-        <div class="sc-current-location" id="sc-header-title">Cargando...</div>
-    </div>
-    <div class="sc-chapter-controls">
-        <button id="sc-prev-chapter" class="sc-tool-btn"><i class="fa-solid fa-chevron-left"></i> Ant.</button>
-        <select id="sc-chapter-select" class="form-control sc-chapter-select"></select>
-        <button id="sc-next-chapter" class="sc-tool-btn">Sig. <i class="fa-solid fa-chevron-right"></i></button>
-    </div>
-    <div class="sc-version-pill">RVR1960</div>
-</main>
-</div>
-</header>
+        <main class="sc-main-reader">
+            <header class="sc-reader-header">
+                <button id="openDrawerBtn" class="sc-menu-btn"><i class="fas fa-bars"></i></button>
+                <div class="sc-current-location" id="sc-header-title">Cargando...</div>
+                <div class="sc-chapter-controls">
+                    <button id="sc-prev-chapter" class="sc-tool-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                    <select id="sc-chapter-select" class="sc-chapter-select"></select>
+                    <button id="sc-next-chapter" class="sc-tool-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="sc-version-pill">RVR1960</div>
+            </header>
             <div class="sc-reader-body" id="sc-bible-text-flow">
                 <div style="text-align:center; color:#64748B;">Cargando Escrituras...</div>
             </div>
             <div class="sc-ctx-panel" id="scCtxPanel">
                 <div class="sc-ctx-header">
-                    <div style="font-size:12px; font-weight:700;" id="sc-ctx-verse-indicator">Versículo Seleccionado</div>
-                    <div class="sc-action-row">
-                        <div style="display:flex; gap:6px; align-items:center; margin-right:10px;">
-                            <div class="sc-color-dot" style="background:#C8972A;" onclick="applyHighlightToSelected('hl-gold')"></div>
-                            <div class="sc-color-dot" style="background:#10B981;" onclick="applyHighlightToSelected('hl-emerald')"></div>
-                            <div class="sc-color-dot" style="background:#2563EB;" onclick="applyHighlightToSelected('hl-sapphire')"></div>
-                            <div class="sc-color-dot" style="background:#E11D48;" onclick="applyHighlightToSelected('hl-ruby')"></div>
-                            <div class="sc-color-dot" style="background:transparent; border:1px dashed #64748B; display:flex; align-items:center; justify-content:center; color:#64748B; font-size:10px;" onclick="applyHighlightToSelected('clear')"><i class="fa-solid fa-eraser"></i></div>
+                    <span id="sc-ctx-verse-indicator"></span>
+                    <div class="sc-ctx-actions">
+                        <div class="sc-color-dots">
+                            <div class="sc-color-dot gold" onclick="applyHighlightToSelected('hl-gold')"></div>
+                            <div class="sc-color-dot emerald" onclick="applyHighlightToSelected('hl-emerald')"></div>
+                            <div class="sc-color-dot sapphire" onclick="applyHighlightToSelected('hl-sapphire')"></div>
+                            <div class="sc-color-dot ruby" onclick="applyHighlightToSelected('hl-ruby')"></div>
+                            <div class="sc-color-dot clear" onclick="applyHighlightToSelected('clear')"><i class="fa-solid fa-eraser"></i></div>
                         </div>
-                        <button class="sc-tool-btn" id="sc-btn-fav" onclick="toggleFavoriteSelected()"><i class="fa-solid fa-star"></i> Favorito</button>
+                        <button id="sc-btn-fav" class="sc-tool-btn" onclick="toggleFavoriteSelected()"><i class="fa-solid fa-star"></i> Favorito</button>
                         <button class="sc-tool-btn" onclick="shareVerseAction()"><i class="fa-solid fa-share-nodes"></i> Copiar</button>
-                        <button class="sc-tool-btn" style="background:rgba(225,29,72,0.1); color:#E11D48;" onclick="closeScripturaCtx()"><i class="fa-solid fa-xmark"></i></button>
+                        <button class="sc-tool-btn close" onclick="closeScripturaCtx()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
-                <div class="sc-comparison-engine" id="scComparisonView"></div>
+                <div id="scComparisonView" class="sc-comparison-engine"></div>
             </div>
         </main>
     </div>
     `;
-    container.innerHTML = html;
-    // Abrir drawer
-document.getElementById('openDrawerBtn')?.addEventListener('click', () => {
-    document.getElementById('sc-sidebar-drawer')?.classList.add('open');
-});
-// Cerrar drawer
-document.getElementById('closeDrawerBtn')?.addEventListener('click', () => {
-    document.getElementById('sc-sidebar-drawer')?.classList.remove('open');
-});
-// Cerrar al hacer clic fuera (opcional)
-document.addEventListener('click', (e) => {
-    const drawer = document.getElementById('sc-sidebar-drawer');
-    const openBtn = document.getElementById('openDrawerBtn');
-    if (drawer?.classList.contains('open') && !drawer.contains(e.target) && !openBtn?.contains(e.target)) {
-        drawer.classList.remove('open');
-    }
-});
-// Cambio de tabs en el sidebar (Libros / Favoritos)
-document.querySelectorAll('.sc-tab-btn[data-view]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const view = btn.getAttribute('data-view');
-        document.querySelectorAll('.sc-sidebar-pane').forEach(p => p.classList.remove('active'));
-        document.getElementById(`sc-pane-${view}`)?.classList.add('active');
-        document.querySelectorAll('.sc-tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    });
-});
-    
-// ==== ACTIVAR CONTROLES DE CAPÍTULOS ====
-const prevBtn = document.getElementById('sc-prev-chapter');
-const nextBtn = document.getElementById('sc-next-chapter');
-const chapterSelect = document.getElementById('sc-chapter-select');
 
-if (prevBtn) {
-    prevBtn.onclick = () => {
-        const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
-        const currentIndex = capitulos.indexOf(scCurrentChapter);
-        if (currentIndex > 0) {
-            cargarCapitulo(scCurrentBook, capitulos[currentIndex - 1]);
+    container.innerHTML = html;
+
+    // --- Eventos del drawer ---
+    const openBtn = document.getElementById('openDrawerBtn');
+    const closeBtn = document.getElementById('closeDrawerBtn');
+    const drawer = document.getElementById('sc-sidebar-drawer');
+    if (openBtn && drawer) {
+        openBtn.onclick = () => drawer.classList.add('open');
+    }
+    if (closeBtn && drawer) {
+        closeBtn.onclick = () => drawer.classList.remove('open');
+    }
+    // Cerrar al hacer clic fuera del drawer en móvil
+    document.addEventListener('click', (e) => {
+        if (drawer && drawer.classList.contains('open') && !drawer.contains(e.target) && !openBtn?.contains(e.target)) {
+            drawer.classList.remove('open');
         }
-    };
-}
-if (nextBtn) {
-    nextBtn.onclick = () => {
-        const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
-        const currentIndex = capitulos.indexOf(scCurrentChapter);
-        if (currentIndex < capitulos.length - 1) {
-            cargarCapitulo(scCurrentBook, capitulos[currentIndex + 1]);
-        }
-    };
-}
-if (chapterSelect) {
-    chapterSelect.onchange = (e) => {
-        const newChapter = parseInt(e.target.value);
-        if (!isNaN(newChapter)) {
-            cargarCapitulo(scCurrentBook, newChapter);
-        }
-    };
+    });
+
+    // --- Tabs del sidebar ---
+    document.querySelectorAll('.sc-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const view = btn.getAttribute('data-view');
+            document.querySelectorAll('.sc-pane').forEach(pane => pane.classList.remove('active'));
+            document.getElementById(`sc-pane-${view}`)?.classList.add('active');
+            document.querySelectorAll('.sc-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+
+    // --- Cargar datos bíblicos ---
+    await cargarBibliaJson();
+    buildBooksList();
+
+    // --- Navegación de capítulos ---
+    const prevBtn = document.getElementById('sc-prev-chapter');
+    const nextBtn = document.getElementById('sc-next-chapter');
+    const chapterSelect = document.getElementById('sc-chapter-select');
+
+    if (prevBtn) {
+        prevBtn.onclick = () => {
+            const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
+            const idx = capitulos.indexOf(scCurrentChapter);
+            if (idx > 0) cargarCapitulo(scCurrentBook, capitulos[idx-1]);
+        };
+    }
+    if (nextBtn) {
+        nextBtn.onclick = () => {
+            const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
+            const idx = capitulos.indexOf(scCurrentChapter);
+            if (idx < capitulos.length-1) cargarCapitulo(scCurrentBook, capitulos[idx+1]);
+        };
+    }
+    if (chapterSelect) {
+        chapterSelect.onchange = (e) => {
+            const newChap = parseInt(e.target.value);
+            if (!isNaN(newChap)) cargarCapitulo(scCurrentBook, newChap);
+        };
+    }
 }
     // Cargar el JSON de la Biblia
     await cargarBibliaJson();
