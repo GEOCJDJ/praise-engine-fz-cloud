@@ -744,11 +744,20 @@ body.stage-mode pre {
 }
 /* ... resto del panel (color dots, etc.) ya lo tienes */
 
-/* ========== RESPONSIVE (MÓVIL) ========== */
+/* ========== SIDEBAR (escritorio: siempre visible) ========== */
+#gpraise-scriptura-shield .sc-sidebar {
+    width: 280px;
+    background: #0A0F1E;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+    transform: translateX(0);
+    z-index: 10;
+    border-right: 1px solid rgba(200,151,42,0.2);
+}
+
+/* En móvil: sidebar oculto por defecto, se despliega con botón */
 @media (max-width: 768px) {
-    #gpraise-scriptura-shield .sc-menu-btn {
-        display: block;
-    }
     #gpraise-scriptura-shield .sc-sidebar {
         position: absolute;
         left: 0;
@@ -763,17 +772,8 @@ body.stage-mode pre {
     #gpraise-scriptura-shield .sc-sidebar:not(.collapsed) {
         transform: translateX(0);
     }
-    #gpraise-scriptura-shield .sc-reader-body {
-        padding: 1rem;
-        font-size: 0.9rem;
-    }
-    #gpraise-scriptura-shield .sc-chapter-controls {
-        gap: 0.2rem;
-        padding: 0.2rem 0.4rem;
-    }
-    #gpraise-scriptura-shield .sc-chapter-btn {
-        padding: 0.2rem 0.6rem;
-        font-size: 0.8rem;
+    #gpraise-scriptura-shield .sc-menu-btn {
+        display: block;
     }
 }
   
@@ -2587,6 +2587,14 @@ async function renderScriptura() {
     container.innerHTML = html;
 
     // --- Control del sidebar (toggle) ---
+    // Dentro de renderScriptura, después de container.innerHTML = html
+const sidebar = document.getElementById('sc-sidebar');
+if (sidebar && window.innerWidth <= 768) {
+    sidebar.classList.add('collapsed');
+} else if (sidebar) {
+    sidebar.classList.remove('collapsed');
+}
+    
     const toggleBtn = document.getElementById('sc-menu-toggle');
     const sidebar = document.getElementById('sc-sidebar');
     if (toggleBtn && sidebar) {
