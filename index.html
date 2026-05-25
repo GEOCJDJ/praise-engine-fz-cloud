@@ -614,6 +614,8 @@ body.stage-mode pre {
   overflow-y: auto;
   padding: 2rem;
 }
+       #gpraise-scriptura-shield .verse-block.hl-gold { background: rgba(200,151,42,0.3) !important; border-left: 3px solid #C8972A !important; }
+        
 #gpraise-scriptura-shield .verse-block {
   margin-bottom: 0.75rem;
   padding: 0.2rem 0;
@@ -2023,11 +2025,10 @@ async function cargarLibrosDisponibles() {
   const { data, error } = await supabaseClient
     .from('versiculos_biblia')
     .select('libro')
-    .order('libro');
+    .limit(100000); // Forzar a traer muchos
   if (error) throw error;
   const unique = [...new Set(data.map(v => v.libro))];
-  bibleBooksList = unique;
-  return unique;
+  return unique.sort((a,b) => a.localeCompare(b));
 }
 
 async function obtenerCapitulosDisponibles(book) {
@@ -2384,9 +2385,10 @@ async function buildBooksList() {
   if (!otContainer || !ntContainer) return;
   otContainer.innerHTML = '';
   ntContainer.innerHTML = '';
-  // Obtener libros reales desde Supabase
-  const { data: librosExistentes } = await supabaseClient.from('versiculos_biblia').select('libro');
-  const existingSet = new Set(librosExistentes.map(l => l.libro));
+  
+  const librosExistentes = await cargarLibrosDisponibles();
+  const existingSet = new Set(librosExistentes);
+  
   for (let book of OT_BOOKS) {
     if (existingSet.has(book)) {
       const li = document.createElement('li');
@@ -2400,6 +2402,21 @@ async function buildBooksList() {
         });
       };
       otContainer.appendChild(li);
+    }
+  }
+  for (let book of NT_BOOKS) {
+    if (existingSet.has(book)) {
+      const li = document.createElement('li');
+      li.className = 'sc-book-item';
+      li.setAttribute('data-book', book);
+      li.innerHTML = `<i class="fa-solid fa-book-open"></i> ${book}`;
+      li.onclick = () => {
+        obtenerCapitulosDisponibles(book).then(caps => {
+          const primerCapitulo = caps.length ? caps[0] : 1;
+          cargarCapitulo(book, primerCapitulo);
+        });
+      };
+      ntContainer.appendChild(li);
     }
   }
   for (let book of NT_BOOKS) {
