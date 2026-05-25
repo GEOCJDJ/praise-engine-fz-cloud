@@ -418,6 +418,14 @@ body.stage-mode pre {
 #gpraise-aula-shield .bg-gradient-to-r { background-image: linear-gradient(to right, var(--tw-gradient-stops)) !important; }
 #gpraise-aula-shield .from-slate-900 { --tw-gradient-from: #0f172a !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
 #gpraise-aula-shield .to-indigo-950 { --tw-gradient-to: #1e1b4b !important; }        
+
+
+  #gpraise-scriptura-shield .verse-block.hl-gold { background: rgba(200,151,42,0.25); border-left: 4px solid #C8972A; padding-left: 8px; }
+#gpraise-scriptura-shield .verse-block.hl-emerald { background: rgba(16,185,129,0.25); border-left: 4px solid #10B981; padding-left: 8px; }
+#gpraise-scriptura-shield .verse-block.hl-sapphire { background: rgba(37,99,235,0.25); border-left: 4px solid #2563EB; padding-left: 8px; }
+#gpraise-scriptura-shield .verse-block.hl-ruby { background: rgba(225,29,72,0.25); border-left: 4px solid #E11D48; padding-left: 8px; }
+
+        
 /* ===== ARREGLAR COLORES DEL DEVOCIONAL ===== */
 #gpraise-aula-shield .bg-gradient-to-r.from-slate-900,
 #gpraise-aula-shield .bg-gradient-to-r {
@@ -1772,6 +1780,23 @@ function getVersiculos(book, chapter) {
 function renderChapterContent(book, chapter) {
     const versiculos = getVersiculos(book, chapter);
     const container = document.getElementById('sc-bible-text-flow');
+// Al inicio, después de limpiar container, ver si hay un título único del capítulo
+const chapterTitle = versiculos[0]?.Title;
+if (chapterTitle && chapterTitle.trim() !== "") {
+    const titleElem = document.createElement('h3');
+    titleElem.innerText = chapterTitle;
+    titleElem.style.fontFamily = "'Georgia', serif";
+    titleElem.style.fontSize = "1.3rem";
+    titleElem.style.fontWeight = "bold";
+    titleElem.style.color = "#F5D97A";
+    titleElem.style.marginBottom = "1rem";
+    titleElem.style.borderBottom = "1px solid rgba(200,151,42,0.3)";
+    titleElem.style.display = "inline-block";
+    titleElem.style.paddingBottom = "0.25rem";
+    container.appendChild(titleElem);
+}
+
+    
     if (!container) return;
     container.innerHTML = '';
 
@@ -1780,25 +1805,54 @@ function renderChapterContent(book, chapter) {
         return;
     }
 
+    // Estilos específicos para el texto bíblico (dentro del contenedor)
+    container.style.fontFamily = "'Georgia', 'Times New Roman', serif";
+    container.style.fontSize = "1.1rem";
+    container.style.lineHeight = "1.8";
+    container.style.color = "#E2E8F0";
+    container.style.textAlign = "justify";
+
     for (let v of versiculos) {
         const verseNum = v.verse;
         const verseText = v.text;
         const uniqueKey = `${book}_${chapter}_${verseNum}`;
         const savedClass = scHighlights[uniqueKey] || '';
 
-        const verseElement = document.createElement('span');
-        verseElement.className = `v-box ${savedClass}`;
-        verseElement.id = `vbox-${uniqueKey}`;
-        verseElement.setAttribute('onclick', `openVersePremiumPanel(${verseNum})`);
+        // Contenedor para cada versículo (como bloque)
+        const verseWrapper = document.createElement('div');
+        verseWrapper.className = `verse-block ${savedClass}`;
+        verseWrapper.style.marginBottom = "0.75rem";
+        verseWrapper.style.padding = "0.2rem 0";
+        verseWrapper.style.borderRadius = "0.25rem";
+        verseWrapper.style.cursor = "pointer";
+        verseWrapper.setAttribute('onclick', `openVersePremiumPanel(${verseNum})`);
+        verseWrapper.id = `vbox-${uniqueKey}`;
 
+        // Número de versículo (más grande y en color dorado)
         const numSpan = document.createElement('span');
-        numSpan.className = 'v-num';
+        numSpan.className = 'verse-number';
         numSpan.innerText = verseNum;
+        numSpan.style.fontWeight = "bold";
+        numSpan.style.color = "#C8972A";
+        numSpan.style.fontSize = "1rem";
+        numSpan.style.marginRight = "0.75rem";
+        numSpan.style.verticalAlign = "baseline";
+        numSpan.style.display = "inline-block";
+        numSpan.style.minWidth = "2rem";
 
-        verseElement.appendChild(numSpan);
-        verseElement.appendChild(document.createTextNode(' ' + verseText));
-        container.appendChild(verseElement);
+        // Texto del versículo
+        const textSpan = document.createElement('span');
+        textSpan.innerText = verseText;
+        textSpan.style.display = "inline";
+
+        verseWrapper.appendChild(numSpan);
+        verseWrapper.appendChild(textSpan);
+        container.appendChild(verseWrapper);
     }
+
+    // Aplicar resaltados previamente guardados (por si la clase ya estaba en el wrapper)
+    // Nota: Los resaltados se aplican al verseWrapper, no a un span interno.
+    // Asegurar que los estilos de resaltado funcionen correctamente (definidos en CSS global)
 }
 
 async function cargarCapitulo(book, chapter) {
@@ -1828,47 +1882,43 @@ function buildBooksList() {
     otContainer.innerHTML = '';
     ntContainer.innerHTML = '';
 
-    // Agrupar libros por testamento usando el primer versículo de cada libro
-    const booksTestament = new Map(); // libro -> testament
-    for (let v of bibleData) {
-        if (!booksTestament.has(v.book)) {
-            booksTestament.set(v.book, v.testament);
+    // Obtener conjunto de libros que realmente existen en el JSON
+    const existingBooks = new Set(bibleData.map(v => v.book));
+
+    // Recorrer listas canónicas y mostrar solo los que existen
+    for (let book of OT_BOOKS) {
+        if (existingBooks.has(book)) {
+            const el = document.createElement('div');
+            el.className = 'sc-book-item';
+            el.setAttribute('data-book', book);
+            el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
+            el.onclick = () => cargarCapitulo(book, 1);
+            otContainer.appendChild(el);
         }
     }
 
-    // Ordenar libros alfabéticamente (opcional, puedes mantener el orden del JSON)
-    const sortedBooks = Array.from(booksTestament.keys()).sort((a,b) => a.localeCompare(b));
-
-    for (let book of sortedBooks) {
-        const testament = booksTestament.get(book);
-        const el = document.createElement('div');
-        el.className = 'sc-book-item';
-        el.setAttribute('data-book', book);
-        el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
-        el.onclick = () => cargarCapitulo(book, 1);
-        
-        if (testament === 'Antiguo') {
-            otContainer.appendChild(el);
-        } else if (testament === 'Nuevo') {
+    for (let book of NT_BOOKS) {
+        if (existingBooks.has(book)) {
+            const el = document.createElement('div');
+            el.className = 'sc-book-item';
+            el.setAttribute('data-book', book);
+            el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
+            el.onclick = () => cargarCapitulo(book, 1);
             ntContainer.appendChild(el);
-        } else {
-            // Si no tiene testamento definido, lo pongo en Antiguo por defecto
-            otContainer.appendChild(el);
         }
     }
 
-    // Mensajes si no hay libros
-    if (otContainer.children.length === 0) otContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Antiguo Testamento.</div>';
-    if (ntContainer.children.length === 0) ntContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Nuevo Testamento.</div>';
+    // Mensajes si no hay libros en alguna sección
+    if (otContainer.children.length === 0) otContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Antiguo Testamento en el JSON.</div>';
+    if (ntContainer.children.length === 0) ntContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Nuevo Testamento en el JSON.</div>';
 
-    // Buscador de libros
+    // Buscador de libros (mantiene funcionalidad)
     const searchInput = document.getElementById('bibleSearchInput');
     if (searchInput) {
         searchInput.removeEventListener('input', handleBookSearch);
         searchInput.addEventListener('input', handleBookSearch);
     }
 }
-
 function handleBookSearch(e) {
     const term = e.target.value.toLowerCase().trim();
     const allBooks = document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item');
