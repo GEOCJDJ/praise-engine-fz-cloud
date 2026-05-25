@@ -2488,7 +2488,6 @@ async function renderScriptura() {
   const actionHeader = document.getElementById('actionHeader');
   if (!container) return;
   actionHeader.innerHTML = '';
-  await cargarFavoritosUsuario();
 
   const html = `
   <div id="gpraise-scriptura-shield">
@@ -2553,7 +2552,7 @@ async function renderScriptura() {
     </div>
   </div>`;
   container.innerHTML = html;
-
+await cargarFavoritosUsuario();
   // Sidebar toggle
   const toggleBtn = document.getElementById('sc-menu-toggle');
   const sidebar = document.getElementById('sc-sidebar');
@@ -2576,6 +2575,11 @@ async function renderScriptura() {
       document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
+      const container = document.getElementById('sc-favs-dynamic-list');
+if (!container) {
+  console.error('No se encontró el contenedor #sc-favs-dynamic-list');
+  return;
+}
   });
 
   // Cargar datos
