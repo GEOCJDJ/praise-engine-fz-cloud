@@ -496,61 +496,114 @@ body.stage-mode pre {
     color: #475569 !important;
 }
 
-/* ========== ESTILOS COMPLETOS PARA SCRIPTURA (NUEVO) ========== */
+/* ========== ESTILOS COMPLETOS PARA SCRIPTURA (REDISEÑO) ========== */
 #gpraise-scriptura-shield {
     all: initial;
-    display: flex !important;
+    display: flex;
+    flex-direction: column;
     position: relative;
     width: 100%;
     min-height: 650px;
     background: #050811;
     border-radius: 1rem;
-    overflow: hidden;
     font-family: 'Inter', sans-serif;
     color: #E2E8F0;
+    overflow: hidden;
 }
 
-/* ========== DRAWER (SIDEBAR FLOTANTE) ========== */
-#gpraise-scriptura-shield .sc-sidebar-drawer {
-    position: fixed;
-    top: 0;
-    left: -320px;
-    width: 280px;
-    height: 100%;
-    background: #0A0F1E;
-    z-index: 1000;
-    transition: left 0.3s ease;
+/* ========== HEADER PRINCIPAL ========== */
+#gpraise-scriptura-shield .sc-header {
     display: flex;
-    flex-direction: column;
-    border-right: 1px solid rgba(200,151,42,0.2);
-    box-shadow: 2px 0 10px rgba(0,0,0,0.3);
-}
-#gpraise-scriptura-shield .sc-sidebar-drawer.open {
-    left: 0;
-}
-#gpraise-scriptura-shield .sc-drawer-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.2rem;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: #060A15;
     border-bottom: 1px solid #1E293B;
+    flex-wrap: wrap;
 }
-#gpraise-scriptura-shield .sc-drawer-header h2 {
+#gpraise-scriptura-shield .sc-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+#gpraise-scriptura-shield .sc-menu-btn {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #C8972A;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.5rem;
+    display: none;
+}
+#gpraise-scriptura-shield .sc-current-location {
     font-size: 1.2rem;
     font-weight: 700;
-    margin: 0;
-    color: #C8972A;
+    color: white;
 }
-#gpraise-scriptura-shield .sc-close-drawer {
-    background: none;
+#gpraise-scriptura-shield .sc-chapter-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #0D142A;
+    padding: 0.3rem 0.6rem;
+    border-radius: 2rem;
+    border: 1px solid #334155;
+}
+#gpraise-scriptura-shield .sc-chapter-btn {
+    background: #1E293B;
     border: none;
-    color: #94A3B8;
-    font-size: 1.5rem;
+    color: #C8972A;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 0.3rem 0.8rem;
+    border-radius: 1.5rem;
     cursor: pointer;
-    padding: 0;
-    line-height: 1;
 }
-#gpraise-scriptura-shield .sc-tabs {
+#gpraise-scriptura-shield .sc-chapter-select {
+    background: #0D142A;
+    color: white;
+    border: none;
+    font-size: 0.9rem;
+    padding: 0.3rem;
+    border-radius: 0.3rem;
+    font-weight: 600;
+}
+#gpraise-scriptura-shield .sc-version-pill {
+    background: linear-gradient(135deg, #C8972A, #A6761E);
+    color: #050811;
+    padding: 0.2rem 0.8rem;
+    border-radius: 2rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+/* ========== CONTENEDOR PRINCIPAL (sidebar + contenido) ========== */
+#gpraise-scriptura-shield .sc-main-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ========== SIDEBAR (drawer interno) ========== */
+#gpraise-scriptura-shield .sc-sidebar {
+    width: 280px;
+    background: #0A0F1E;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+    transform: translateX(0);
+    z-index: 10;
+    border-right: 1px solid rgba(200,151,42,0.2);
+}
+#gpraise-scriptura-shield .sc-sidebar.collapsed {
+    transform: translateX(-100%);
+    position: absolute;
+    height: 100%;
+}
+#gpraise-scriptura-shield .sc-sidebar-tabs {
     display: flex;
     padding: 0.5rem 1rem;
     gap: 0.5rem;
@@ -572,7 +625,7 @@ body.stage-mode pre {
     background: rgba(200,151,42,0.15);
     color: #C8972A;
 }
-#gpraise-scriptura-shield .sc-drawer-content {
+#gpraise-scriptura-shield .sc-sidebar-content {
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
@@ -625,76 +678,25 @@ body.stage-mode pre {
     background: rgba(200,151,42,0.1);
     color: #F5D97A;
 }
+#gpraise-scriptura-shield .sc-fav-item {
+    background: rgba(255,255,255,0.01);
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+#gpraise-scriptura-shield .sc-fav-item:hover {
+    border-color: #C8972A;
+}
 
-/* ========== MAIN READER ========== */
-#gpraise-scriptura-shield .sc-main-reader {
+/* ========== ÁREA DE LECTURA ========== */
+#gpraise-scriptura-shield .sc-reader-area {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: #050811;
-    width: 100%;
-    min-height: 650px;
-}
-#gpraise-scriptura-shield .sc-reader-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    background: #060A15;
-}
-#gpraise-scriptura-shield .sc-menu-btn {
-    background: transparent;
-    border: 1px solid #334155;
-    color: #C8972A;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0.3rem 0.7rem;
-    border-radius: 0.5rem;
-    display: none;
-}
-#gpraise-scriptura-shield .sc-current-location {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: white;
-}
-#gpraise-scriptura-shield .sc-chapter-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-#gpraise-scriptura-shield .sc-chapter-select {
-    background: #0D142A;
-    color: white;
-    border: 1px solid #334155;
-    border-radius: 0.5rem;
-    padding: 0.3rem 0.5rem;
-    font-size: 0.8rem;
-    width: auto;
-}
-#gpraise-scriptura-shield .sc-tool-btn {
-    background: #0D142A;
-    border: 1px solid #334155;
-    color: #94A3B8;
-    padding: 0.3rem 0.7rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-size: 0.75rem;
-    transition: 0.2s;
-}
-#gpraise-scriptura-shield .sc-tool-btn:hover {
-    background: #1E293B;
-    color: #C8972A;
-}
-#gpraise-scriptura-shield .sc-version-pill {
-    background: linear-gradient(135deg, #C8972A, #A6761E);
-    color: #050811;
-    padding: 0.2rem 0.8rem;
-    border-radius: 2rem;
-    font-size: 0.7rem;
-    font-weight: 800;
+    overflow: hidden;
 }
 #gpraise-scriptura-shield .sc-reader-body {
     flex: 1;
@@ -706,7 +708,6 @@ body.stage-mode pre {
     color: #CBD5E1;
     text-align: justify;
 }
-/* Versículos */
 #gpraise-scriptura-shield .verse-block {
     margin-bottom: 0.75rem;
     padding: 0.2rem 0;
@@ -721,7 +722,6 @@ body.stage-mode pre {
     display: inline-block;
     min-width: 2rem;
 }
-/* Resaltados */
 #gpraise-scriptura-shield .verse-block.hl-gold { background: rgba(200,151,42,0.25); border-left: 3px solid #C8972A; padding-left: 0.5rem; }
 #gpraise-scriptura-shield .verse-block.hl-emerald { background: rgba(16,185,129,0.25); border-left: 3px solid #10B981; padding-left: 0.5rem; }
 #gpraise-scriptura-shield .verse-block.hl-sapphire { background: rgba(37,99,235,0.25); border-left: 3px solid #2563EB; padding-left: 0.5rem; }
@@ -729,89 +729,53 @@ body.stage-mode pre {
 
 /* Panel contextual */
 #gpraise-scriptura-shield .sc-ctx-panel {
-    position: fixed;
+    position: absolute;
     bottom: -320px;
     left: 0;
     right: 0;
     background: #090F1F;
     border-top: 1px solid rgba(200,151,42,0.3);
     transition: bottom 0.3s ease;
-    z-index: 200;
+    z-index: 20;
     padding: 0.75rem;
 }
 #gpraise-scriptura-shield .sc-ctx-panel.open {
     bottom: 0;
 }
-#gpraise-scriptura-shield .sc-ctx-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-#gpraise-scriptura-shield .sc-ctx-actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-#gpraise-scriptura-shield .sc-color-dots {
-    display: flex;
-    gap: 0.3rem;
-}
-#gpraise-scriptura-shield .sc-color-dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-#gpraise-scriptura-shield .sc-color-dot.gold { background: #C8972A; }
-#gpraise-scriptura-shield .sc-color-dot.emerald { background: #10B981; }
-#gpraise-scriptura-shield .sc-color-dot.sapphire { background: #2563EB; }
-#gpraise-scriptura-shield .sc-color-dot.ruby { background: #E11D48; }
-#gpraise-scriptura-shield .sc-color-dot.clear { background: transparent; border: 1px dashed #64748B; display: inline-flex; align-items: center; justify-content: center; }
-#gpraise-scriptura-shield .sc-comparison-engine {
-    background: #060A15;
-    border-radius: 0.5rem;
-    padding: 0.5rem;
-    margin-top: 0.5rem;
-}
+/* ... resto del panel (color dots, etc.) ya lo tienes */
 
 /* ========== RESPONSIVE (MÓVIL) ========== */
 @media (max-width: 768px) {
     #gpraise-scriptura-shield .sc-menu-btn {
         display: block;
     }
-    #gpraise-scriptura-shield .sc-sidebar-drawer {
-        width: 85%;
-        max-width: 280px;
+    #gpraise-scriptura-shield .sc-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        transform: translateX(-100%);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.5);
     }
-    #gpraise-scriptura-shield .sc-reader-header {
-        padding: 0.5rem 1rem;
+    #gpraise-scriptura-shield .sc-sidebar.collapsed {
+        transform: translateX(-100%);
     }
-    #gpraise-scriptura-shield .sc-current-location {
-        font-size: 1rem;
-        order: 1;
-    }
-    #gpraise-scriptura-shield .sc-chapter-controls {
-        order: 2;
-        margin-left: auto;
-    }
-    #gpraise-scriptura-shield .sc-version-pill {
-        order: 3;
-        width: 100%;
-        text-align: right;
-        margin-top: 0.25rem;
+    #gpraise-scriptura-shield .sc-sidebar:not(.collapsed) {
+        transform: translateX(0);
     }
     #gpraise-scriptura-shield .sc-reader-body {
         padding: 1rem;
         font-size: 0.9rem;
     }
-    #gpraise-scriptura-shield .sc-ctx-actions {
-        flex-wrap: wrap;
+    #gpraise-scriptura-shield .sc-chapter-controls {
+        gap: 0.2rem;
+        padding: 0.2rem 0.4rem;
     }
-}        
+    #gpraise-scriptura-shield .sc-chapter-btn {
+        padding: 0.2rem 0.6rem;
+        font-size: 0.8rem;
+    }
+}
   
         
     </style>
@@ -2551,99 +2515,100 @@ async function renderScriptura() {
     const actionHeader = document.getElementById('actionHeader');
     if (!container) return;
     actionHeader.innerHTML = '';
-
     await cargarDatosScriptura();
 
     const html = `
     <div id="gpraise-scriptura-shield">
-        <aside id="sc-sidebar-drawer" class="sc-sidebar-drawer">
-            <div class="sc-drawer-header">
-                <h2>MI BIBLIA</h2>
-                <button id="closeDrawerBtn" class="sc-close-drawer">✕</button>
-            </div>
-            <div class="sc-tabs">
-                <button class="sc-tab-btn active" data-view="libros">Libros</button>
-                <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
-            </div>
-            <div class="sc-drawer-content">
-                <div id="sc-pane-libros" class="sc-pane active">
-                    <input type="text" id="bibleSearchInput" class="sc-search-input" placeholder="🔍 Buscar libro...">
-                    <div class="sc-book-section">
-                        <div class="sc-section-title">ANTIGUO TESTAMENTO</div>
-                        <ul id="ot-books-list" class="sc-book-list"></ul>
-                    </div>
-                    <div class="sc-book-section">
-                        <div class="sc-section-title">NUEVO TESTAMENTO</div>
-                        <ul id="nt-books-list" class="sc-book-list"></ul>
-                    </div>
-                </div>
-                <div id="sc-pane-favs" class="sc-pane">
-                    <div id="sc-favs-dynamic-list"></div>
-                </div>
-            </div>
-        </aside>
-
-        <main class="sc-main-reader">
-            <header class="sc-reader-header">
-                <button id="openDrawerBtn" class="sc-menu-btn"><i class="fas fa-bars"></i></button>
+        <div class="sc-header">
+            <div class="sc-header-left">
+                <button id="sc-menu-toggle" class="sc-menu-btn"><i class="fas fa-bars"></i></button>
                 <div class="sc-current-location" id="sc-header-title">Cargando...</div>
-                <div class="sc-chapter-controls">
-                    <button id="sc-prev-chapter" class="sc-tool-btn"><i class="fa-solid fa-chevron-left"></i></button>
-                    <select id="sc-chapter-select" class="sc-chapter-select"></select>
-                    <button id="sc-next-chapter" class="sc-tool-btn"><i class="fa-solid fa-chevron-right"></i></button>
-                </div>
-                <div class="sc-version-pill">RVR1960</div>
-            </header>
-            <div class="sc-reader-body" id="sc-bible-text-flow">
-                <div style="text-align:center; color:#64748B;">Cargando Escrituras...</div>
             </div>
-            <div class="sc-ctx-panel" id="scCtxPanel">
-                <div class="sc-ctx-header">
-                    <span id="sc-ctx-verse-indicator"></span>
-                    <div class="sc-ctx-actions">
-                        <div class="sc-color-dots">
-                            <div class="sc-color-dot gold" onclick="applyHighlightToSelected('hl-gold')"></div>
-                            <div class="sc-color-dot emerald" onclick="applyHighlightToSelected('hl-emerald')"></div>
-                            <div class="sc-color-dot sapphire" onclick="applyHighlightToSelected('hl-sapphire')"></div>
-                            <div class="sc-color-dot ruby" onclick="applyHighlightToSelected('hl-ruby')"></div>
-                            <div class="sc-color-dot clear" onclick="applyHighlightToSelected('clear')"><i class="fa-solid fa-eraser"></i></div>
+            <div class="sc-chapter-controls">
+                <button id="sc-prev-chapter" class="sc-chapter-btn"><i class="fa-solid fa-chevron-left"></i> Ant</button>
+                <select id="sc-chapter-select" class="sc-chapter-select"></select>
+                <button id="sc-next-chapter" class="sc-chapter-btn">Sig <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="sc-version-pill">RVR1960</div>
+        </div>
+
+        <div class="sc-main-container">
+            <aside id="sc-sidebar" class="sc-sidebar collapsed">
+                <div class="sc-sidebar-tabs">
+                    <button class="sc-tab-btn active" data-view="libros">Libros</button>
+                    <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
+                </div>
+                <div class="sc-sidebar-content">
+                    <div id="sc-pane-libros" class="sc-pane active">
+                        <input type="text" id="bibleSearchInput" class="sc-search-input" placeholder="🔍 Buscar libro...">
+                        <div class="sc-book-section">
+                            <div class="sc-section-title">ANTIGUO TESTAMENTO</div>
+                            <ul id="ot-books-list" class="sc-book-list"></ul>
                         </div>
-                        <button id="sc-btn-fav" class="sc-tool-btn" onclick="toggleFavoriteSelected()"><i class="fa-solid fa-star"></i> Favorito</button>
-                        <button class="sc-tool-btn" onclick="shareVerseAction()"><i class="fa-solid fa-share-nodes"></i> Copiar</button>
-                        <button class="sc-tool-btn close" onclick="closeScripturaCtx()"><i class="fa-solid fa-xmark"></i></button>
+                        <div class="sc-book-section">
+                            <div class="sc-section-title">NUEVO TESTAMENTO</div>
+                            <ul id="nt-books-list" class="sc-book-list"></ul>
+                        </div>
+                    </div>
+                    <div id="sc-pane-favs" class="sc-pane">
+                        <div id="sc-favs-dynamic-list"></div>
                     </div>
                 </div>
-                <div id="scComparisonView" class="sc-comparison-engine"></div>
+            </aside>
+
+            <main class="sc-reader-area">
+                <div class="sc-reader-body" id="sc-bible-text-flow">
+                    <div style="text-align:center; color:#64748B;">Cargando Escrituras...</div>
+                </div>
+            </main>
+        </div>
+
+        <div class="sc-ctx-panel" id="scCtxPanel">
+            <div class="sc-ctx-header">
+                <span id="sc-ctx-verse-indicator"></span>
+                <div class="sc-ctx-actions">
+                    <div class="sc-color-dots">
+                        <div class="sc-color-dot gold" onclick="applyHighlightToSelected('hl-gold')"></div>
+                        <div class="sc-color-dot emerald" onclick="applyHighlightToSelected('hl-emerald')"></div>
+                        <div class="sc-color-dot sapphire" onclick="applyHighlightToSelected('hl-sapphire')"></div>
+                        <div class="sc-color-dot ruby" onclick="applyHighlightToSelected('hl-ruby')"></div>
+                        <div class="sc-color-dot clear" onclick="applyHighlightToSelected('clear')"><i class="fa-solid fa-eraser"></i></div>
+                    </div>
+                    <button id="sc-btn-fav" class="sc-tool-btn" onclick="toggleFavoriteSelected()"><i class="fa-solid fa-star"></i> Favorito</button>
+                    <button class="sc-tool-btn" onclick="shareVerseAction()"><i class="fa-solid fa-share-nodes"></i> Copiar</button>
+                    <button class="sc-tool-btn close" onclick="closeScripturaCtx()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
-        </main>
+            <div id="scComparisonView" class="sc-comparison-engine"></div>
+        </div>
     </div>
     `;
 
     container.innerHTML = html;
 
-    // --- Eventos del drawer ---
-    const openBtn = document.getElementById('openDrawerBtn');
-    const closeBtn = document.getElementById('closeDrawerBtn');
-    const drawer = document.getElementById('sc-sidebar-drawer');
-    if (openBtn && drawer) {
-        openBtn.onclick = () => drawer.classList.add('open');
+    // --- Control del sidebar (toggle) ---
+    const toggleBtn = document.getElementById('sc-menu-toggle');
+    const sidebar = document.getElementById('sc-sidebar');
+    if (toggleBtn && sidebar) {
+        toggleBtn.onclick = (e) => {
+            e.stopPropagation();
+            sidebar.classList.toggle('collapsed');
+        };
+        // Cerrar sidebar al hacer clic fuera en móvil
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+                sidebar.classList.add('collapsed');
+            }
+        });
     }
-    if (closeBtn && drawer) {
-        closeBtn.onclick = () => drawer.classList.remove('open');
-    }
-    document.addEventListener('click', (e) => {
-        if (drawer && drawer.classList.contains('open') && !drawer.contains(e.target) && !openBtn?.contains(e.target)) {
-            drawer.classList.remove('open');
-        }
-    });
 
     // --- Tabs del sidebar ---
-    document.querySelectorAll('.sc-tab-btn').forEach(btn => {
+    document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const view = btn.getAttribute('data-view');
-            document.querySelectorAll('.sc-pane').forEach(pane => pane.classList.remove('active'));
+            document.querySelectorAll('#gpraise-scriptura-shield .sc-pane').forEach(p => p.classList.remove('active'));
             document.getElementById(`sc-pane-${view}`)?.classList.add('active');
-            document.querySelectorAll('.sc-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         });
     });
