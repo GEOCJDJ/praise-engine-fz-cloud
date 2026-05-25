@@ -2286,20 +2286,6 @@ if (chapterTitle && chapterTitle.trim() !== "") {
     // Asegurar que los estilos de resaltado funcionen correctamente (definidos en CSS global)
 }
 
-async function cargarCapitulo(book, chapter) {
-    scCurrentBook = book;
-    scCurrentChapter = chapter;
-    scSelectedVerseNum = null;
-    closeScripturaCtx();
-
-    const titleElem = document.getElementById('sc-header-title');
-    if (titleElem) titleElem.innerText = `${book} ${chapter}`;
-    highlightActiveBook(book);
-    renderChapterContent(book, chapter);
-    
-    // Actualizar el selector de capítulos
-    actualizarSelectorCapitulos();
-}
 
 function highlightActiveBook(book) {
     document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
@@ -2631,6 +2617,7 @@ async function renderScriptura() {
             </div>
         </main>
     </div>
+    `;
 
     container.innerHTML = html;
 
@@ -2644,7 +2631,6 @@ async function renderScriptura() {
     if (closeBtn && drawer) {
         closeBtn.onclick = () => drawer.classList.remove('open');
     }
-    // Cerrar al hacer clic fuera del drawer en móvil
     document.addEventListener('click', (e) => {
         if (drawer && drawer.classList.contains('open') && !drawer.contains(e.target) && !openBtn?.contains(e.target)) {
             drawer.classList.remove('open');
@@ -2692,8 +2678,6 @@ async function renderScriptura() {
         };
     }
 }
-
-
     
 // ========== RECURSOS ==========
     
