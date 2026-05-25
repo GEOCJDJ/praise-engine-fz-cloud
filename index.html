@@ -2024,12 +2024,10 @@ const NT_BOOKS = [ "Mateo", "Marcos", "Lucas", "Juan", "Hechos", "Romanos", "1 C
 
     async function cargarLibrosDisponibles() {
   const { data, error } = await supabaseClient
-    .from('versiculos_biblia')
-    .select('libro')
-    .limit(100000); // Forzar a traer muchos
+    .from('lista_libros')
+    .select('libro');
   if (error) throw error;
-  const unique = [...new Set(data.map(v => v.libro))];
-  return unique.sort((a,b) => a.localeCompare(b));
+  return data.map(v => v.libro);
 }
 
 async function obtenerCapitulosDisponibles(book) {
