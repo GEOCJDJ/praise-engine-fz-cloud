@@ -467,316 +467,247 @@ body.stage-mode pre {
     }
 }
         
-        
-/* ===== ARREGLAR COLORES DEL DEVOCIONAL ===== */
-#gpraise-aula-shield .bg-gradient-to-r.from-slate-900,
-#gpraise-aula-shield .bg-gradient-to-r {
-    color: #ffffff !important;
-}
-#gpraise-aula-shield .bg-gradient-to-r .text-amber-500,
-#gpraise-aula-shield .bg-gradient-to-r span.text-amber-500 {
-    color: #F59E0B !important;
-}
-#gpraise-aula-shield .bg-gradient-to-r p,
-#gpraise-aula-shield .bg-gradient-to-r .italic,
-#gpraise-aula-shield .bg-gradient-to-r .text-base {
-    color: #F1F5F9 !important;
-}
-#gpraise-aula-shield .bg-gradient-to-r .text-right,
-#gpraise-aula-shield .bg-gradient-to-r .text-right .text-xs {
-    color: #FCD34D !important;
-}
-        
-#gpraise-aula-shield #tab-devocional .bg-white p,
-#gpraise-aula-shield #tab-devocional .bg-white .font-medium,
-#gpraise-aula-shield #tab-devocional .bg-white .text-sm {
-    color: #0F172A !important; /* texto oscuro sobre fondo blanco, eso está bien */
-}
-#gpraise-aula-shield #tab-devocional .bg-white .text-slate-600 {
-    color: #475569 !important;
-}
-
-/* ========== ESTILOS COMPLETOS PARA SCRIPTURA (REDISEÑO) ========== */
+ /* ========== ESTILOS MODERNOS PARA SCRIPTURA ========== */
 #gpraise-scriptura-shield {
-    all: initial;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    width: 100%;
-    min-height: 650px;
-    background: #050811;
-    border-radius: 1rem;
-    font-family: 'Inter', sans-serif;
-    color: #E2E8F0;
-    overflow: hidden;
+  all: initial;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 650px;
+  background: var(--bg-app);
+  border-radius: 1.5rem;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-main);
+  overflow: hidden;
+  box-shadow: var(--shadow);
 }
-
-/* ========== HEADER PRINCIPAL ========== */
+/* Header */
 #gpraise-scriptura-shield .sc-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1.5rem;
-    background: #060A15;
-    border-bottom: 1px solid #1E293B;
-    flex-wrap: wrap;
-}
-#gpraise-scriptura-shield .sc-header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-#gpraise-scriptura-shield .sc-menu-btn {
-    background: transparent;
-    border: 1px solid #334155;
-    color: #C8972A;
-    font-size: 1.3rem;
-    cursor: pointer;
-    padding: 0.3rem 0.7rem;
-    border-radius: 0.5rem;
-    display: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 #gpraise-scriptura-shield .sc-current-location {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: white;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 #gpraise-scriptura-shield .sc-chapter-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #0D142A;
-    padding: 0.3rem 0.6rem;
-    border-radius: 2rem;
-    border: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-app);
+  padding: 0.3rem 0.6rem;
+  border-radius: 2rem;
+  border: 1px solid var(--border);
 }
 #gpraise-scriptura-shield .sc-chapter-btn {
-    background: #1E293B;
-    border: none;
-    color: #C8972A;
-    font-size: 1rem;
-    font-weight: bold;
-    padding: 0.3rem 0.8rem;
-    border-radius: 1.5rem;
-    cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 1.5rem;
+  cursor: pointer;
 }
 #gpraise-scriptura-shield .sc-chapter-select {
-    background: #0D142A;
-    color: white;
-    border: none;
-    font-size: 0.9rem;
-    padding: 0.3rem;
-    border-radius: 0.3rem;
-    font-weight: 600;
+  background: var(--surface);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.3rem;
 }
 #gpraise-scriptura-shield .sc-version-pill {
-    background: linear-gradient(135deg, #C8972A, #A6761E);
-    color: #050811;
-    padding: 0.2rem 0.8rem;
-    border-radius: 2rem;
-    font-size: 0.7rem;
-    font-weight: 800;
+  background: linear-gradient(135deg, #C8972A, #A6761E);
+  color: #050811;
+  padding: 0.2rem 0.8rem;
+  border-radius: 2rem;
+  font-size: 0.7rem;
+  font-weight: 800;
 }
-
-/* ========== CONTENEDOR PRINCIPAL (sidebar + contenido) ========== */
+/* Sidebar */
 #gpraise-scriptura-shield .sc-main-container {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    position: relative;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
 }
-
-/* ========== SIDEBAR (drawer interno) ========== */
 #gpraise-scriptura-shield .sc-sidebar {
-    width: 280px;
-    background: #0A0F1E;
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.3s ease;
-    transform: translateX(0);
-    z-index: 10;
-    border-right: 1px solid rgba(200,151,42,0.2);
-}
-#gpraise-scriptura-shield .sc-sidebar.collapsed {
-    transform: translateX(-100%);
-    position: absolute;
-    height: 100%;
+  width: 280px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+  z-index: 10;
 }
 #gpraise-scriptura-shield .sc-sidebar-tabs {
-    display: flex;
-    padding: 0.5rem 1rem;
-    gap: 0.5rem;
-    border-bottom: 1px solid #1E293B;
+  display: flex;
+  padding: 0.5rem 1rem;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
 }
 #gpraise-scriptura-shield .sc-tab-btn {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #64748B;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.5rem;
-    cursor: pointer;
-    border-radius: 0.375rem;
-    text-transform: uppercase;
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 0.5rem;
 }
 #gpraise-scriptura-shield .sc-tab-btn.active {
-    background: rgba(200,151,42,0.15);
-    color: #C8972A;
+  background: var(--primary);
+  color: white;
 }
 #gpraise-scriptura-shield .sc-sidebar-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem;
-}
-#gpraise-scriptura-shield .sc-pane {
-    display: none;
-}
-#gpraise-scriptura-shield .sc-pane.active {
-    display: block;
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }
 #gpraise-scriptura-shield .sc-search-input {
-    width: 100%;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid #2D3A5E;
-    border-radius: 2rem;
-    padding: 0.5rem 1rem;
-    color: white;
-    font-size: 0.8rem;
-    margin-bottom: 1.2rem;
-}
-#gpraise-scriptura-shield .sc-book-section {
-    margin-bottom: 1.5rem;
-}
-#gpraise-scriptura-shield .sc-section-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #C8972A;
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-    border-left: 3px solid #C8972A;
-    padding-left: 0.5rem;
+  width: 100%;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  padding: 0.5rem 1rem;
+  color: var(--text-main);
+  margin-bottom: 1rem;
 }
 #gpraise-scriptura-shield .sc-book-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0;
 }
 #gpraise-scriptura-shield .sc-book-list li {
-    padding: 0.5rem 0.75rem;
-    margin-bottom: 2px;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: #94A3B8;
-    transition: all 0.1s;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 2px;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
 }
 #gpraise-scriptura-shield .sc-book-list li:hover,
 #gpraise-scriptura-shield .sc-book-list li.active {
-    background: rgba(200,151,42,0.1);
-    color: #F5D97A;
+  background: var(--primary-light);
+  color: white;
 }
 #gpraise-scriptura-shield .sc-fav-item {
-    background: rgba(255,255,255,0.01);
-    border: 1px solid rgba(255,255,255,0.03);
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-    cursor: pointer;
-    font-size: 0.8rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
 }
-#gpraise-scriptura-shield .sc-fav-item:hover {
-    border-color: #C8972A;
-}
-
-/* ========== ÁREA DE LECTURA ========== */
+/* Área de lectura */
 #gpraise-scriptura-shield .sc-reader-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-#gpraise-scriptura-shield .sc-reader-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 2rem;
-    font-family: 'Georgia', serif;
-    font-size: 1rem;
-    line-height: 1.8;
-    color: #CBD5E1;
-    text-align: justify;
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
 }
 #gpraise-scriptura-shield .verse-block {
-    margin-bottom: 0.75rem;
-    padding: 0.2rem 0;
-    border-radius: 0.25rem;
-    cursor: pointer;
+  margin-bottom: 0.75rem;
+  padding: 0.2rem 0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+#gpraise-scriptura-shield .verse-block.selected-verse {
+  background: rgba(200,151,42,0.15);
+  border-left: 4px solid #C8972A;
+  padding-left: 0.5rem;
 }
 #gpraise-scriptura-shield .verse-number {
-    font-weight: bold;
-    color: #C8972A;
-    font-size: 0.85rem;
-    margin-right: 0.75rem;
-    display: inline-block;
-    min-width: 2rem;
+  font-weight: bold;
+  color: #C8972A;
+  margin-right: 0.75rem;
+  display: inline-block;
+  min-width: 2rem;
 }
-#gpraise-scriptura-shield .verse-block.hl-gold { background: rgba(200,151,42,0.25); border-left: 3px solid #C8972A; padding-left: 0.5rem; }
-#gpraise-scriptura-shield .verse-block.hl-emerald { background: rgba(16,185,129,0.25); border-left: 3px solid #10B981; padding-left: 0.5rem; }
-#gpraise-scriptura-shield .verse-block.hl-sapphire { background: rgba(37,99,235,0.25); border-left: 3px solid #2563EB; padding-left: 0.5rem; }
-#gpraise-scriptura-shield .verse-block.hl-ruby { background: rgba(225,29,72,0.25); border-left: 3px solid #E11D48; padding-left: 0.5rem; }
-
+#gpraise-scriptura-shield .hl-gold { background: rgba(200,151,42,0.3); border-left: 3px solid #C8972A; }
+#gpraise-scriptura-shield .hl-emerald { background: rgba(16,185,129,0.3); border-left: 3px solid #10B981; }
+#gpraise-scriptura-shield .hl-sapphire { background: rgba(37,99,235,0.3); border-left: 3px solid #2563EB; }
+#gpraise-scriptura-shield .hl-ruby { background: rgba(225,29,72,0.3); border-left: 3px solid #E11D48; }
+/* Panel contextual */
 #gpraise-scriptura-shield .sc-ctx-panel {
-    position: fixed;
-    bottom: -380px;
-    left: 0;
-    right: 0;
-    background: #090F1F;
-    border-top: 2px solid #C8972A;
-    transition: bottom 0.3s ease;
-    z-index: 1000;
-    padding: 0.75rem;
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+  position: fixed;
+  bottom: -380px;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 2px solid #C8972A;
+  transition: bottom 0.3s ease;
+  z-index: 1000;
+  padding: 0.75rem;
+  box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
 }
-#gpraise-scriptura-shield .sc-ctx-panel.open {
-    bottom: 0;
+#gpraise-scriptura-shield .sc-ctx-panel.open { bottom: 0; }
+#gpraise-scriptura-shield .sc-ctx-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
-
-/* ========== SIDEBAR (escritorio: siempre visible) ========== */
-#gpraise-scriptura-shield .sc-sidebar {
-    width: 280px;
-    background: #0A0F1E;
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.3s ease;
-    transform: translateX(0);
-    z-index: 10;
-    border-right: 1px solid rgba(200,151,42,0.2);
+#gpraise-scriptura-shield .sc-color-dots {
+  display: flex;
+  gap: 0.3rem;
 }
-
-
-/* En móvil: sidebar oculto por defecto, se despliega con botón */
+#gpraise-scriptura-shield .sc-color-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+#gpraise-scriptura-shield .sc-color-dot.gold { background: #C8972A; }
+#gpraise-scriptura-shield .sc-color-dot.emerald { background: #10B981; }
+#gpraise-scriptura-shield .sc-color-dot.sapphire { background: #2563EB; }
+#gpraise-scriptura-shield .sc-color-dot.ruby { background: #E11D48; }
+#gpraise-scriptura-shield .sc-color-dot.clear { background: transparent; border: 1px dashed var(--text-muted); display: inline-flex; align-items: center; justify-content: center; }
+#gpraise-scriptura-shield .sc-tool-btn {
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 0.3rem 0.7rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+#gpraise-scriptura-shield .sc-tool-btn.active {
+  background: #C8972A;
+  color: #050811;
+}
+#gpraise-scriptura-shield .sc-comparison-engine {
+  margin-top: 0.5rem;
+  background: var(--bg-app);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+/* Responsive */
 @media (max-width: 768px) {
-    #gpraise-scriptura-shield .sc-sidebar {
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        transform: translateX(-100%);
-        box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-    }
-    #gpraise-scriptura-shield .sc-sidebar.collapsed {
-        transform: translateX(-100%);
-    }
-    #gpraise-scriptura-shield .sc-sidebar:not(.collapsed) {
-        transform: translateX(0);
-    }
-    #gpraise-scriptura-shield .sc-menu-btn {
-        display: block;
-    }
+  #gpraise-scriptura-shield .sc-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+  }
+  #gpraise-scriptura-shield .sc-sidebar.collapsed { transform: translateX(-100%); }
+  #gpraise-scriptura-shield .sc-sidebar:not(.collapsed) { transform: translateX(0); }
+  #gpraise-scriptura-shield .sc-menu-btn { display: block; }
+  #gpraise-scriptura-shield .sc-reader-area { padding: 1rem; }
 }
-  
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -2075,581 +2006,560 @@ window.descargarRecursoGnotes = (archivo) => {
     alert(`🔧 En una versión posterior podrás descargar "${archivo}" directamente desde Supabase Storage.`);
 };
 
-// ========== MÓDULO SCRIPTURA CON JSON LOCAL ==========
+// ========== MÓDULO BIBLIA (CON SUPABASE) ==========
 let scCurrentBook = "Génesis";
 let scCurrentChapter = 1;
-let scSelectedVerseNum = null;
-let scFavorites = [];
-let scHighlights = {};
-let bibleData = [];
-let bibleBooks = [];
+let scSelectedVerses = [];      // Array de números de versículo seleccionados
+let scFavorites = [];           // Array de objetos { book, chapter, verseStart, verseEnd, text }
+let scHighlights = {};          // Clave: "book_chapter_verse" -> color
+let bibleBooksList = [];        // Lista de libros disponibles en la BD
 
-// LISTAS FIJAS DE LIBROS DEL ANTIGUO Y NUEVO TESTAMENTO (en orden)
-const OT_BOOKS = [
-    "Génesis", "Éxodo", "Levítico", "Números", "Deuteronomio", "Josué", "Jueces", "Rut",
-    "1 Samuel", "2 Samuel", "1 Reyes", "2 Reyes", "1 Crónicas", "2 Crónicas", "Esdras",
-    "Nehemías", "Ester", "Job", "Salmos", "Proverbios", "Eclesiastés", "Cantares", "Isaías",
-    "Jeremías", "Lamentaciones", "Ezequiel", "Daniel", "Oseas", "Joel", "Amós", "Abdías",
-    "Jonás", "Miqueas", "Nahúm", "Habacuc", "Sofonías", "Hageo", "Zacarías", "Malaquías"
-];
-const NT_BOOKS = [
-    "Mateo", "Marcos", "Lucas", "Juan", "Hechos", "Romanos", "1 Corintios", "2 Corintios",
-    "Gálatas", "Efesios", "Filipenses", "Colosenses", "1 Tesalonicenses", "2 Tesalonicenses",
-    "1 Timoteo", "2 Timoteo", "Tito", "Filemón", "Hebreos", "Santiago", "1 Pedro", "2 Pedro",
-    "1 Juan", "2 Juan", "3 Juan", "Judas", "Apocalipsis"
-];
+// Listas canónicas para orden
+const OT_BOOKS = [ "Génesis", "Éxodo", "Levítico", "Números", "Deuteronomio", "Josué", "Jueces", "Rut", "1 Samuel", "2 Samuel", "1 Reyes", "2 Reyes", "1 Crónicas", "2 Crónicas", "Esdras", "Nehemías", "Ester", "Job", "Salmos", "Proverbios", "Eclesiastés", "Cantares", "Isaías", "Jeremías", "Lamentaciones", "Ezequiel", "Daniel", "Oseas", "Joel", "Amós", "Abdías", "Jonás", "Miqueas", "Nahúm", "Habacuc", "Sofonías", "Hageo", "Zacarías", "Malaquías" ];
+const NT_BOOKS = [ "Mateo", "Marcos", "Lucas", "Juan", "Hechos", "Romanos", "1 Corintios", "2 Corintios", "Gálatas", "Efesios", "Filipenses", "Colosenses", "1 Tesalonicenses", "2 Tesalonicenses", "1 Timoteo", "2 Timoteo", "Tito", "Filemón", "Hebreos", "Santiago", "1 Pedro", "2 Pedro", "1 Juan", "2 Juan", "3 Juan", "Judas", "Apocalipsis" ];
 
-// Cargar el JSON de la Biblia
-async function cargarBibliaJson() {
-    try {
-        const response = await fetch('./rvr1960.json');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const rawData = await response.json();
-        
-        // Normalizar: convertir a minúsculas los nombres de los campos para que el resto del código funcione sin cambios
-        bibleData = rawData.map(v => ({
-            ...v,
-            book: v.Book,
-            chapter: v.Chapter,
-            verse: v.Verse,
-            text: v.Text,
-            testament: v.Testament
-        }));
-        
-        console.log(`✅ Biblia cargada: ${bibleData.length} versículos`);
-        
-        
-        const booksSet = new Set();
-        bibleData.forEach(v => booksSet.add(v.book));
-        bibleBooks = Array.from(booksSet).sort((a,b) => a.localeCompare(b));
-        
-        
-await cargarCapitulo(scCurrentBook, scCurrentChapter);
-actualizarSelectorCapitulos();  // doble garantía
-    } catch (error) {
-        console.error("Error cargando el JSON bíblico:", error);
-        const flow = document.getElementById('sc-bible-text-flow');
-        if (flow) flow.innerHTML = '<div style="text-align:center; color:#EF4444;">⚠️ Error cargando la Biblia. Asegúrate de que el archivo "rvr1960.json" esté en la misma carpeta.</div>';
-    }
+// ========== FUNCIONES DE CARGA DESDE SUPABASE ==========
+async function cargarLibrosDisponibles() {
+  const { data, error } = await supabaseClient
+    .from('versiculos_biblia')
+    .select('libro')
+    .order('libro');
+  if (error) throw error;
+  const unique = [...new Set(data.map(v => v.libro))];
+  bibleBooksList = unique;
+  return unique;
 }
 
-function getVersiculos(book, chapter) {
-    return bibleData.filter(v => v.book === book && v.chapter === chapter);
-}
-// Obtiene la lista de números de capítulo disponibles para un libro (ordenada)
-function obtenerCapitulosDisponibles(book) {
-    const chapters = new Set();
-    bibleData.forEach(v => { if (v.book === book) chapters.add(v.chapter); });
-    return Array.from(chapters).sort((a,b) => a-b);
-}
-
-function actualizarSelectorCapitulos() {
-    const selector = document.getElementById('sc-chapter-select');
-    if (!selector) return;
-    const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
-    selector.innerHTML = '';
-    capitulos.forEach(ch => {
-        const opt = document.createElement('option');
-        opt.value = ch;
-        opt.textContent = `Capítulo ${ch}`;
-        if (ch === scCurrentChapter) opt.selected = true;
-        selector.appendChild(opt);
-    });
-    selector.style.display = capitulos.length > 1 ? 'inline-block' : 'none';
+async function obtenerCapitulosDisponibles(book) {
+  const { data, error } = await supabaseClient
+    .from('versiculos_biblia')
+    .select('capitulo')
+    .eq('libro', book)
+    .order('capitulo');
+  if (error) throw error;
+  const chapters = [...new Set(data.map(v => v.capitulo))];
+  return chapters.sort((a,b) => a-b);
 }
 
-// Modifica cargarCapitulo para que llame a actualizarSelectorCapitulos()
-async function cargarCapitulo(book, chapter) {
-    scCurrentBook = book;
-    scCurrentChapter = chapter;
-    scSelectedVerseNum = null;
-    closeScripturaCtx();
-    document.getElementById('sc-header-title').innerText = `${book} ${chapter}`;
-    highlightActiveBook(book);
-    renderChapterContent(book, chapter);
-    actualizarSelectorCapitulos();
+async function getVersiculos(book, chapter) {
+  const { data, error } = await supabaseClient
+    .from('versiculos_biblia')
+    .select('versiculo, texto')
+    .eq('libro', book)
+    .eq('capitulo', chapter)
+    .order('versiculo');
+  if (error) {
+    console.error(error);
+    return [];
+  }
+  return data;
 }
 
-    
-
-function renderChapterContent(book, chapter) {
-    const versiculos = getVersiculos(book, chapter);
-    const container = document.getElementById('sc-bible-text-flow');
-// Al inicio, después de limpiar container, ver si hay un título único del capítulo
-const chapterTitle = versiculos[0]?.Title;
-if (chapterTitle && chapterTitle.trim() !== "") {
-    const titleElem = document.createElement('h3');
-    titleElem.innerText = chapterTitle;
-    titleElem.style.fontFamily = "'Georgia', serif";
-    titleElem.style.fontSize = "1.3rem";
-    titleElem.style.fontWeight = "bold";
-    titleElem.style.color = "#F5D97A";
-    titleElem.style.marginBottom = "1rem";
-    titleElem.style.borderBottom = "1px solid rgba(200,151,42,0.3)";
-    titleElem.style.display = "inline-block";
-    titleElem.style.paddingBottom = "0.25rem";
-    container.appendChild(titleElem);
+    async function cargarCapitulo(book, chapter) {
+  scCurrentBook = book;
+  scCurrentChapter = chapter;
+  scSelectedVerses = [];
+  cerrarPanelContextual();
+  document.getElementById('sc-header-title').innerText = `${book} ${chapter}`;
+  highlightActiveBook(book);
+  await renderChapterContent(book, chapter);
+  await actualizarSelectorCapitulos();
 }
 
-    
-    if (!container) return;
-    container.innerHTML = '';
-
-    if (versiculos.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:#EF4444;">Capítulo no encontrado.</div>';
-        return;
-    }
-
-    // Estilos específicos para el texto bíblico (dentro del contenedor)
-    container.style.fontFamily = "'Georgia', 'Times New Roman', serif";
-    container.style.fontSize = "1.1rem";
-    container.style.lineHeight = "1.8";
-    container.style.color = "#E2E8F0";
-    container.style.textAlign = "justify";
-
-    for (let v of versiculos) {
-        const verseNum = v.verse;
-        const verseText = v.text;
-        const uniqueKey = `${book}_${chapter}_${verseNum}`;
-        const savedClass = scHighlights[uniqueKey] || '';
-
-        // Contenedor para cada versículo (como bloque)
-        const verseWrapper = document.createElement('div');
-        verseWrapper.className = `verse-block ${savedClass}`;
-        verseWrapper.style.marginBottom = "0.75rem";
-        verseWrapper.style.padding = "0.2rem 0";
-        verseWrapper.style.borderRadius = "0.25rem";
-        verseWrapper.style.cursor = "pointer";
-        verseWrapper.setAttribute('onclick', `openVersePremiumPanel(${verseNum})`);
-        verseWrapper.id = `vbox-${uniqueKey}`;
-
-        // Número de versículo (más grande y en color dorado)
-        const numSpan = document.createElement('span');
-        numSpan.className = 'verse-number';
-        numSpan.innerText = verseNum;
-        numSpan.style.fontWeight = "bold";
-        numSpan.style.color = "#C8972A";
-        numSpan.style.fontSize = "1rem";
-        numSpan.style.marginRight = "0.75rem";
-        numSpan.style.verticalAlign = "baseline";
-        numSpan.style.display = "inline-block";
-        numSpan.style.minWidth = "2rem";
-
-        // Texto del versículo
-        const textSpan = document.createElement('span');
-        textSpan.innerText = verseText;
-        textSpan.style.display = "inline";
-
-        verseWrapper.appendChild(numSpan);
-        verseWrapper.appendChild(textSpan);
-        container.appendChild(verseWrapper);
-    }
-
-    // Aplicar resaltados previamente guardados (por si la clase ya estaba en el wrapper)
-    // Nota: Los resaltados se aplican al verseWrapper, no a un span interno.
-    // Asegurar que los estilos de resaltado funcionen correctamente (definidos en CSS global)
+async function actualizarSelectorCapitulos() {
+  const selector = document.getElementById('sc-chapter-select');
+  if (!selector) return;
+  const capitulos = await obtenerCapitulosDisponibles(scCurrentBook);
+  selector.innerHTML = '';
+  capitulos.forEach(ch => {
+    const opt = document.createElement('option');
+    opt.value = ch;
+    opt.textContent = `Capítulo ${ch}`;
+    if (ch === scCurrentChapter) opt.selected = true;
+    selector.appendChild(opt);
+  });
+  selector.style.display = capitulos.length > 1 ? 'inline-block' : 'none';
 }
 
+// ========== RENDERIZADO DEL CAPÍTULO (MODERNO) ==========
+async function renderChapterContent(book, chapter) {
+  const container = document.getElementById('sc-bible-text-flow');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-pulse"></i> Cargando...</div>';
+  
+  const versiculos = await getVersiculos(book, chapter);
+  if (!versiculos.length) {
+    container.innerHTML = '<div class="empty-chapter">⚠️ Capítulo no encontrado.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  container.style.fontFamily = "'Georgia', 'Times New Roman', serif";
+  container.style.fontSize = "1.1rem";
+  container.style.lineHeight = "1.8";
+  container.style.color = "var(--text-main)";
 
-function highlightActiveBook(book) {
-    document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
-        if (el.getAttribute('data-book') === book) el.classList.add('active');
-        else el.classList.remove('active');
-    });
+  for (let v of versiculos) {
+    const verseNum = v.versiculo;
+    const verseText = v.texto;
+    const uniqueKey = `${book}_${chapter}_${verseNum}`;
+    const savedHighlight = scHighlights[uniqueKey] || '';
+    const isSelected = scSelectedVerses.includes(verseNum);
+
+    const verseWrapper = document.createElement('div');
+    verseWrapper.className = `verse-block ${savedHighlight} ${isSelected ? 'selected-verse' : ''}`;
+    verseWrapper.setAttribute('data-verse', verseNum);
+    verseWrapper.style.marginBottom = "0.75rem";
+    verseWrapper.style.padding = "0.3rem 0";
+    verseWrapper.style.borderRadius = "0.25rem";
+    verseWrapper.style.cursor = "pointer";
+    verseWrapper.onclick = (e) => seleccionarVersiculo(verseNum, e);
+    verseWrapper.id = `vbox-${uniqueKey}`;
+
+    const numSpan = document.createElement('span');
+    numSpan.className = 'verse-number';
+    numSpan.innerText = verseNum;
+    numSpan.style.fontWeight = "bold";
+    numSpan.style.color = "#C8972A";
+    numSpan.style.marginRight = "0.75rem";
+    numSpan.style.display = "inline-block";
+    numSpan.style.minWidth = "2rem";
+
+    const textSpan = document.createElement('span');
+    textSpan.innerText = verseText;
+    textSpan.style.display = "inline";
+
+    verseWrapper.appendChild(numSpan);
+    verseWrapper.appendChild(textSpan);
+    container.appendChild(verseWrapper);
+  }
 }
 
-function buildBooksList() {
-    const otContainer = document.getElementById('ot-books-list');
-    const ntContainer = document.getElementById('nt-books-list');
-    if (!otContainer || !ntContainer) return;
-
-    otContainer.innerHTML = '';
-    ntContainer.innerHTML = '';
-
-    // Obtener conjunto de libros que realmente existen en el JSON
-    const existingBooks = new Set(bibleData.map(v => v.book));
-
-    // Recorrer listas canónicas y mostrar solo los que existen
-    for (let book of OT_BOOKS) {
-        if (existingBooks.has(book)) {
-            const el = document.createElement('div');
-            el.className = 'sc-book-item';
-            el.setAttribute('data-book', book);
-            el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
-            el.onclick = () => {
-    const capitulos = obtenerCapitulosDisponibles(book);
-    const primerCapitulo = capitulos.length ? capitulos[0] : 1;
-    cargarCapitulo(book, primerCapitulo);
-};
-            otContainer.appendChild(el);
-        }
-    }
-
-    for (let book of NT_BOOKS) {
-        if (existingBooks.has(book)) {
-            const el = document.createElement('div');
-            el.className = 'sc-book-item';
-            el.setAttribute('data-book', book);
-            el.innerHTML = `<i class="fa-solid fa-book-open" style="margin-right:8px;"></i> ${book}`;
-           el.onclick = () => {
-    const capitulos = obtenerCapitulosDisponibles(book);
-    const primerCapitulo = capitulos.length ? capitulos[0] : 1;
-    cargarCapitulo(book, primerCapitulo);
-};
-            ntContainer.appendChild(el);
-        }
-    }
-
-    // Mensajes si no hay libros en alguna sección
-    if (otContainer.children.length === 0) otContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Antiguo Testamento en el JSON.</div>';
-    if (ntContainer.children.length === 0) ntContainer.innerHTML = '<div class="text-xs text-slate-500 p-2">No se encontraron libros del Nuevo Testamento en el JSON.</div>';
-
-    // Buscador de libros (mantiene funcionalidad)
-    const searchInput = document.getElementById('bibleSearchInput');
-    if (searchInput) {
-        searchInput.removeEventListener('input', handleBookSearch);
-        searchInput.addEventListener('input', handleBookSearch);
-    }
-}
-function handleBookSearch(e) {
-    const term = e.target.value.toLowerCase().trim();
-    const allBooks = document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item');
-    allBooks.forEach(bookEl => {
-        const bookName = bookEl.getAttribute('data-book').toLowerCase();
-        if (term === '' || bookName.includes(term)) {
-            bookEl.style.display = 'flex';
-        } else {
-            bookEl.style.display = 'none';
-        }
-    });
-}
-
-// ========== FUNCIONES PARA FAVORITOS Y RESALTADOS ==========
-async function cargarDatosScriptura() {
-    if (!currentUser) return;
-    const { data, error } = await supabaseClient
-        .from('biblia_progreso')
-        .select('*')
-        .eq('user_id', currentUser.id);
-    if (error) console.error('Error cargando datos bíblicos:', error);
-    else {
-        scFavorites = [];
-        scHighlights = {};
-        for (let item of data) {
-            if (item.es_favorito) {
-                scFavorites.push({
-                    book: item.libro,
-                    chapter: item.capitulo,
-                    verse: item.versiculo,
-                    text: ''
-                });
-            }
-            if (item.resaltado_color) {
-                const key = `${item.libro}_${item.capitulo}_${item.versiculo}`;
-                scHighlights[key] = item.resaltado_color;
-            }
-        }
-        renderFavoritesSidebar();
-    }
-}
-
-function renderFavoritesSidebar() {
-    const container = document.getElementById('sc-favs-dynamic-list');
-    if (!container) return;
-    if (scFavorites.length === 0) {
-        container.innerHTML = '<div style="font-size:11px; color:#64748B; text-align:center; padding:1rem;">No has guardado joyas aún.</div>';
-        return;
-    }
-    container.innerHTML = scFavorites.map(f => `
-        <div class="sc-fav-item" onclick="cargarCapitulo('${f.book}', ${f.chapter})">
-            <strong style="color:#C8972A; display:block; margin-bottom:2px;">${f.book} ${f.chapter}:${f.verse}</strong>
-            <span style="color:#94A3B8; font-style:italic; font-size:11px;">"${(f.text || '').substring(0, 100)}..."</span>
-        </div>
-    `).join('');
-}
-
-async function openVersePremiumPanel(verseNum) {
-    scSelectedVerseNum = verseNum;
-    const panel = document.getElementById('scCtxPanel');
-    if (panel) panel.classList.add('open');
-
-    const indicator = document.getElementById('sc-ctx-verse-indicator');
-    if (indicator) indicator.innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${verseNum}`;
-
-    // Actualizar estado del botón favorito
-    const isFav = scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === verseNum);
-    const favBtn = document.getElementById('sc-btn-fav');
-    if (favBtn) {
-        if (isFav) {
-            favBtn.classList.add('active');
-            favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Guardado en Joyas`;
-        } else {
-            favBtn.classList.remove('active');
-            favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Marcar Favorito`;
-        }
-    }
-
-    const verseObj = bibleData.find(v => v.book === scCurrentBook && v.chapter === scCurrentChapter && v.verse === verseNum);
-    const verseText = verseObj ? verseObj.text : '';
-    const compView = document.getElementById('scComparisonView');
-    if (compView) {
-        compView.innerHTML = `
-            <div class="sc-version-card">
-                <div class="sc-v-title">REINA VALERA 1960</div>
-                <div class="sc-v-text">${verseText}</div>
-            </div>
-        `;
-    }
-}
-
-async function applyHighlightToSelected(hlClass) {
-    if (!scSelectedVerseNum) return;
-    const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
-    const targetSpan = document.getElementById(`vbox-${uniqueKey}`);
-    if (!targetSpan) return;
-    targetSpan.classList.remove('hl-gold', 'hl-emerald', 'hl-sapphire', 'hl-ruby');
-    if (hlClass !== 'clear') {
-        targetSpan.classList.add(hlClass);
-        scHighlights[uniqueKey] = hlClass;
-        if (currentUser) {
-            await supabaseClient.from('biblia_progreso').upsert({
-                user_id: currentUser.id,
-                libro: scCurrentBook,
-                capitulo: scCurrentChapter,
-                versiculo: scSelectedVerseNum,
-                resaltado_color: hlClass,
-                es_favorito: scFavorites.some(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === scSelectedVerseNum)
-            }, { onConflict: 'user_id, libro, capitulo, versiculo' });
-        }
+// ========== SELECCIÓN MÚLTIPLE (CON SHIFT PARA RANGOS) ==========
+function seleccionarVersiculo(verseNum, event) {
+  if (event.shiftKey && scSelectedVerses.length > 0) {
+    const last = scSelectedVerses[scSelectedVerses.length - 1];
+    const start = Math.min(last, verseNum);
+    const end = Math.max(last, verseNum);
+    const newRange = [];
+    for (let i = start; i <= end; i++) newRange.push(i);
+    scSelectedVerses = newRange;
+  } else {
+    if (scSelectedVerses.includes(verseNum)) {
+      scSelectedVerses = scSelectedVerses.filter(v => v !== verseNum);
     } else {
-        delete scHighlights[uniqueKey];
-        if (currentUser) {
-            await supabaseClient.from('biblia_progreso').update({ resaltado_color: null })
-                .eq('user_id', currentUser.id)
-                .eq('libro', scCurrentBook)
-                .eq('capitulo', scCurrentChapter)
-                .eq('versiculo', scSelectedVerseNum);
-        }
+      scSelectedVerses.push(verseNum);
     }
+  }
+  // Actualizar UI resaltando los seleccionados
+  document.querySelectorAll('#sc-bible-text-flow .verse-block').forEach(el => {
+    const v = parseInt(el.getAttribute('data-verse'));
+    if (scSelectedVerses.includes(v)) {
+      el.classList.add('selected-verse');
+    } else {
+      el.classList.remove('selected-verse');
+    }
+  });
+  if (scSelectedVerses.length > 0) {
+    abrirPanelContextual();
+  } else {
+    cerrarPanelContextual();
+  }
+}
+
+function abrirPanelContextual() {
+  const panel = document.getElementById('scCtxPanel');
+  if (panel) panel.classList.add('open');
+  const indicator = document.getElementById('sc-ctx-verse-indicator');
+  if (indicator) {
+    if (scSelectedVerses.length === 1) {
+      indicator.innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${scSelectedVerses[0]}`;
+    } else {
+      const min = Math.min(...scSelectedVerses);
+      const max = Math.max(...scSelectedVerses);
+      indicator.innerHTML = `<i class="fa-solid fa-book-open"></i> ${scCurrentBook} ${scCurrentChapter}:${min}‑${max}`;
+    }
+  }
+  // Actualizar vista de comparación con el texto seleccionado
+  actualizarVistaComparacion();
+  // Actualizar botón de favorito
+  const esFavorito = scFavorites.some(f =>
+    f.book === scCurrentBook && f.chapter === scCurrentChapter &&
+    f.verseStart === Math.min(...scSelectedVerses) &&
+    f.verseEnd === Math.max(...scSelectedVerses)
+  );
+  const favBtn = document.getElementById('sc-btn-fav');
+  if (favBtn) {
+    if (esFavorito) {
+      favBtn.classList.add('active');
+      favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Guardado en Joyas`;
+    } else {
+      favBtn.classList.remove('active');
+      favBtn.innerHTML = `<i class="fa-solid fa-star"></i> Marcar Favorito`;
+    }
+  }
+}
+
+async function actualizarVistaComparacion() {
+  if (scSelectedVerses.length === 0) return;
+  const versiculos = await getVersiculos(scCurrentBook, scCurrentChapter);
+  const textos = scSelectedVerses.map(v => {
+    const vObj = versiculos.find(vv => vv.versiculo === v);
+    return vObj ? vObj.texto : '';
+  }).filter(t => t);
+  const compView = document.getElementById('scComparisonView');
+  if (compView) {
+    compView.innerHTML = `
+      <div class="sc-version-card">
+        <div class="sc-v-title">REINA VALERA 1960</div>
+        <div class="sc-v-text">${textos.join(' ')}</div>
+      </div>
+    `;
+  }
+}
+
+function cerrarPanelContextual() {
+  const panel = document.getElementById('scCtxPanel');
+  if (panel) panel.classList.remove('open');
+}
+
+// ========== RESALTADO Y FAVORITOS EN SUPABASE ==========
+async function applyHighlightToSelected(hlClass) {
+  if (scSelectedVerses.length === 0) return;
+  for (let verseNum of scSelectedVerses) {
+    const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${verseNum}`;
+    const target = document.getElementById(`vbox-${uniqueKey}`);
+    if (!target) continue;
+    target.classList.remove('hl-gold', 'hl-emerald', 'hl-sapphire', 'hl-ruby');
+    if (hlClass !== 'clear') {
+      target.classList.add(hlClass);
+      scHighlights[uniqueKey] = hlClass;
+    } else {
+      delete scHighlights[uniqueKey];
+    }
+    // Guardar en Supabase
+    if (currentUser) {
+      await supabaseClient.from('biblia_progreso').upsert({
+        user_id: currentUser.id,
+        libro: scCurrentBook,
+        capitulo: scCurrentChapter,
+        versiculo: verseNum,
+        resaltado_color: hlClass !== 'clear' ? hlClass : null,
+        es_favorito: scFavorites.some(f =>
+          f.book === scCurrentBook && f.chapter === scCurrentChapter &&
+          f.verseStart <= verseNum && f.verseEnd >= verseNum
+        )
+      }, { onConflict: 'user_id, libro, capitulo, versiculo' });
+    }
+  }
 }
 
 async function toggleFavoriteSelected() {
-    if (!scSelectedVerseNum) return;
-    const existingIndex = scFavorites.findIndex(f => f.book === scCurrentBook && f.chapter === scCurrentChapter && f.verse === scSelectedVerseNum);
-    const verseObj = bibleData.find(v => v.book === scCurrentBook && v.chapter === scCurrentChapter && v.verse === scSelectedVerseNum);
-    const verseText = verseObj ? verseObj.text : '';
+  if (scSelectedVerses.length === 0) return;
+  const verseStart = Math.min(...scSelectedVerses);
+  const verseEnd = Math.max(...scSelectedVerses);
+  const existingIndex = scFavorites.findIndex(f =>
+    f.book === scCurrentBook && f.chapter === scCurrentChapter &&
+    f.verseStart === verseStart && f.verseEnd === verseEnd
+  );
+  const versiculos = await getVersiculos(scCurrentBook, scCurrentChapter);
+  const textos = scSelectedVerses.map(v => {
+    const vObj = versiculos.find(vv => vv.versiculo === v);
+    return vObj ? vObj.texto : '';
+  }).filter(t => t);
+  const textoCompleto = textos.join(' ');
 
-    if (existingIndex > -1) {
-        scFavorites.splice(existingIndex, 1);
-        if (currentUser) {
-            await supabaseClient.from('biblia_progreso').update({ es_favorito: false })
-                .eq('user_id', currentUser.id)
-                .eq('libro', scCurrentBook)
-                .eq('capitulo', scCurrentChapter)
-                .eq('versiculo', scSelectedVerseNum);
-        }
-    } else {
-        scFavorites.push({
-            book: scCurrentBook,
-            chapter: scCurrentChapter,
-            verse: scSelectedVerseNum,
-            text: verseText
-        });
-        if (currentUser) {
-            const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
-            await supabaseClient.from('biblia_progreso').upsert({
-                user_id: currentUser.id,
-                libro: scCurrentBook,
-                capitulo: scCurrentChapter,
-                versiculo: scSelectedVerseNum,
-                es_favorito: true,
-                resaltado_color: scHighlights[uniqueKey] || null
-            }, { onConflict: 'user_id, libro, capitulo, versiculo' });
-        }
+  if (existingIndex > -1) {
+    scFavorites.splice(existingIndex, 1);
+    if (currentUser) {
+      for (let v = verseStart; v <= verseEnd; v++) {
+        await supabaseClient.from('biblia_progreso').update({ es_favorito: false })
+          .eq('user_id', currentUser.id)
+          .eq('libro', scCurrentBook)
+          .eq('capitulo', scCurrentChapter)
+          .eq('versiculo', v);
+      }
     }
-    openVersePremiumPanel(scSelectedVerseNum);
-    renderFavoritesSidebar();
-}
-
-function closeScripturaCtx() {
-    const panel = document.getElementById('scCtxPanel');
-    if (panel) panel.classList.remove('open');
-    scSelectedVerseNum = null;
+  } else {
+    scFavorites.push({
+      book: scCurrentBook,
+      chapter: scCurrentChapter,
+      verseStart,
+      verseEnd,
+      text: textoCompleto
+    });
+    if (currentUser) {
+      for (let v = verseStart; v <= verseEnd; v++) {
+        const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${v}`;
+        await supabaseClient.from('biblia_progreso').upsert({
+          user_id: currentUser.id,
+          libro: scCurrentBook,
+          capitulo: scCurrentChapter,
+          versiculo: v,
+          es_favorito: true,
+          resaltado_color: scHighlights[uniqueKey] || null
+        }, { onConflict: 'user_id, libro, capitulo, versiculo' });
+      }
+    }
+  }
+  abrirPanelContextual();
+  await cargarFavoritosUsuario();
+  renderFavoritesSidebar();
 }
 
 function shareVerseAction() {
-    if (!scSelectedVerseNum) return;
-    const uniqueKey = `${scCurrentBook}_${scCurrentChapter}_${scSelectedVerseNum}`;
-    const span = document.getElementById(`vbox-${uniqueKey}`);
-    if (!span) return;
-    const verseText = span.innerText.replace(/^\d+\s*/, '').trim();
-    const shareString = `"${verseText}" — ${scCurrentBook} ${scCurrentChapter}:${scSelectedVerseNum}`;
-    navigator.clipboard.writeText(shareString).then(() => {
-        alert('¡Versículo copiado al portapapeles!');
-    }).catch(() => alert('No se pudo copiar.'));
+  if (scSelectedVerses.length === 0) return;
+  const verseStart = Math.min(...scSelectedVerses);
+  const verseEnd = Math.max(...scSelectedVerses);
+  // No podemos obtener el texto aquí de forma síncrona; lo obtenemos desde el DOM o desde la variable global.
+  const compView = document.getElementById('scComparisonView');
+  const texto = compView?.querySelector('.sc-v-text')?.innerText || '';
+  let referencia;
+  if (scSelectedVerses.length === 1) {
+    referencia = `${scCurrentBook} ${scCurrentChapter}:${scSelectedVerses[0]}`;
+  } else {
+    referencia = `${scCurrentBook} ${scCurrentChapter}:${verseStart}‑${verseEnd}`;
+  }
+  const shareString = `"${texto}" — ${referencia}`;
+  navigator.clipboard.writeText(shareString);
+  alert('¡Versículo(s) copiado(s) al portapapeles!');
 }
 
-function switchSidebarView(view) {
-    const btnLibros = document.getElementById('btn-tab-libros');
-    const btnFavs = document.getElementById('btn-tab-favs');
-    const paneLibros = document.getElementById('sc-pane-libros');
-    const paneFavs = document.getElementById('sc-pane-favs');
-    if (!btnLibros || !btnFavs || !paneLibros || !paneFavs) return;
-    
-    if (view === 'libros') {
-        btnLibros.classList.add('active');
-        btnFavs.classList.remove('active');
-        paneLibros.classList.add('active');
-        paneFavs.classList.remove('active');
-    } else {
-        btnFavs.classList.add('active');
-        btnLibros.classList.remove('active');
-        paneFavs.classList.add('active');
-        paneLibros.classList.remove('active');
+// ========== CARGA DE FAVORITOS Y RESALTADOS DEL USUARIO ==========
+async function cargarFavoritosUsuario() {
+  if (!currentUser) return;
+  const { data, error } = await supabaseClient
+    .from('biblia_progreso')
+    .select('*')
+    .eq('user_id', currentUser.id);
+  if (error) return;
+  scHighlights = {};
+  const favMap = new Map();
+  for (let item of data) {
+    if (item.resaltado_color) {
+      const key = `${item.libro}_${item.capitulo}_${item.versiculo}`;
+      scHighlights[key] = item.resaltado_color;
     }
+    if (item.es_favorito) {
+      const key = `${item.libro}_${item.capitulo}`;
+      if (!favMap.has(key)) favMap.set(key, []);
+      favMap.get(key).push(item.versiculo);
+    }
+  }
+  scFavorites = [];
+  for (let [key, verses] of favMap.entries()) {
+    const [libro, capitulo] = key.split('_');
+    verses.sort((a,b) => a-b);
+    let start = verses[0];
+    let end = verses[0];
+    for (let i = 1; i < verses.length; i++) {
+      if (verses[i] === end + 1) end = verses[i];
+      else {
+        scFavorites.push({ book: libro, chapter: parseInt(capitulo), verseStart: start, verseEnd: end, text: '' });
+        start = verses[i];
+        end = verses[i];
+      }
+    }
+    scFavorites.push({ book: libro, chapter: parseInt(capitulo), verseStart: start, verseEnd: end, text: '' });
+  }
+  renderFavoritesSidebar();
 }
 
-// Render principal del módulo Scriptura
-async function renderScriptura() {
-    const container = document.getElementById('mainContent');
-    const actionHeader = document.getElementById('actionHeader');
-    if (!container) return;
-    actionHeader.innerHTML = '';
-    await cargarDatosScriptura();
-
-    const html = `
-    <div id="gpraise-scriptura-shield">
-        <div class="sc-header">
-            <div class="sc-header-left">
-                <button id="sc-menu-toggle" class="sc-menu-btn"><i class="fas fa-bars"></i></button>
-                <div class="sc-current-location" id="sc-header-title">Cargando...</div>
-            </div>
-            <div class="sc-chapter-controls">
-                <button id="sc-prev-chapter" class="sc-chapter-btn"><i class="fa-solid fa-chevron-left"></i> Ant</button>
-                <select id="sc-chapter-select" class="sc-chapter-select"></select>
-                <button id="sc-next-chapter" class="sc-chapter-btn">Sig <i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-            <div class="sc-version-pill">RVR1960</div>
-        </div>
-
-        <div class="sc-main-container">
-            <aside id="sc-sidebar" class="sc-sidebar">
-                <div class="sc-sidebar-tabs">
-                    <button class="sc-tab-btn active" data-view="libros">Libros</button>
-                    <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
-                </div>
-                <div class="sc-sidebar-content">
-                    <div id="sc-pane-libros" class="sc-pane active">
-                        <input type="text" id="bibleSearchInput" class="sc-search-input" placeholder="🔍 Buscar libro...">
-                        <div class="sc-book-section">
-                            <div class="sc-section-title">ANTIGUO TESTAMENTO</div>
-                            <ul id="ot-books-list" class="sc-book-list"></ul>
-                        </div>
-                        <div class="sc-book-section">
-                            <div class="sc-section-title">NUEVO TESTAMENTO</div>
-                            <ul id="nt-books-list" class="sc-book-list"></ul>
-                        </div>
-                    </div>
-                    <div id="sc-pane-favs" class="sc-pane">
-                        <div id="sc-favs-dynamic-list"></div>
-                    </div>
-                </div>
-            </aside>
-
-            <main class="sc-reader-area">
-                <div class="sc-reader-body" id="sc-bible-text-flow">
-                    <div style="text-align:center; color:#64748B;">Cargando Escrituras...</div>
-                </div>
-            </main>
-        </div>
-
-        <div class="sc-ctx-panel" id="scCtxPanel">
-            <div class="sc-ctx-header">
-                <span id="sc-ctx-verse-indicator"></span>
-                <div class="sc-ctx-actions">
-                    <div class="sc-color-dots">
-                        <div class="sc-color-dot gold" onclick="applyHighlightToSelected('hl-gold')"></div>
-                        <div class="sc-color-dot emerald" onclick="applyHighlightToSelected('hl-emerald')"></div>
-                        <div class="sc-color-dot sapphire" onclick="applyHighlightToSelected('hl-sapphire')"></div>
-                        <div class="sc-color-dot ruby" onclick="applyHighlightToSelected('hl-ruby')"></div>
-                        <div class="sc-color-dot clear" onclick="applyHighlightToSelected('clear')"><i class="fa-solid fa-eraser"></i></div>
-                    </div>
-                    <button id="sc-btn-fav" class="sc-tool-btn" onclick="toggleFavoriteSelected()"><i class="fa-solid fa-star"></i> Favorito</button>
-                    <button class="sc-tool-btn" onclick="shareVerseAction()"><i class="fa-solid fa-share-nodes"></i> Copiar</button>
-                    <button class="sc-tool-btn close" onclick="closeScripturaCtx()"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-            </div>
-            <div id="scComparisonView" class="sc-comparison-engine"></div>
-        </div>
-    </div>
-    `;
-
-    container.innerHTML = html;
-
-    // --- Control del sidebar (toggle) ---
-     // --- Control del sidebar (toggle) ---
-const toggleBtn = document.getElementById('sc-menu-toggle');
-const sidebar = document.getElementById('sc-sidebar'); // ← esta es la ÚNICA declaración
-
-if (toggleBtn && sidebar) {
-    toggleBtn.onclick = (e) => {
-        e.stopPropagation();
-        sidebar.classList.toggle('collapsed');
-    };
-    // Cerrar sidebar al hacer clic fuera en móvil
-    document.addEventListener('click', (e) => {
-        if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-            sidebar.classList.add('collapsed');
-        }
-    });
+function renderFavoritesSidebar() {
+  const container = document.getElementById('sc-favs-dynamic-list');
+  if (!container) return;
+  if (scFavorites.length === 0) {
+    container.innerHTML = '<div class="empty-favs">✨ No has guardado joyas aún. Selecciona uno o más versículos y toca la estrella.</div>';
+    return;
+  }
+  container.innerHTML = scFavorites.map(f => {
+    let ref = (f.verseStart === f.verseEnd) ? `${f.book} ${f.chapter}:${f.verseStart}` : `${f.book} ${f.chapter}:${f.verseStart}‑${f.verseEnd}`;
+    return `<div class="sc-fav-item" onclick="cargarCapitulo('${f.book}', ${f.chapter})"><strong>${ref}</strong><span>${(f.text || '').substring(0, 80)}...</span></div>`;
+  }).join('');
 }
 
-// Ajuste inicial según ancho de pantalla (usamos la misma variable sidebar, no redeclaramos)
-if (sidebar && window.innerWidth <= 768) {
-    sidebar.classList.add('collapsed');
-} else if (sidebar) {
-    sidebar.classList.remove('collapsed');
-}
-    // --- Tabs del sidebar ---
-    document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const view = btn.getAttribute('data-view');
-            document.querySelectorAll('#gpraise-scriptura-shield .sc-pane').forEach(p => p.classList.remove('active'));
-            document.getElementById(`sc-pane-${view}`)?.classList.add('active');
-            document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+// ========== CONSTRUCCIÓN DE LISTA DE LIBROS ==========
+async function buildBooksList() {
+  const otContainer = document.getElementById('ot-books-list');
+  const ntContainer = document.getElementById('nt-books-list');
+  if (!otContainer || !ntContainer) return;
+  otContainer.innerHTML = '';
+  ntContainer.innerHTML = '';
+  // Obtener libros reales desde Supabase
+  const { data: librosExistentes } = await supabaseClient.from('versiculos_biblia').select('libro');
+  const existingSet = new Set(librosExistentes.map(l => l.libro));
+  for (let book of OT_BOOKS) {
+    if (existingSet.has(book)) {
+      const li = document.createElement('li');
+      li.className = 'sc-book-item';
+      li.setAttribute('data-book', book);
+      li.innerHTML = `<i class="fa-solid fa-book-open"></i> ${book}`;
+      li.onclick = () => {
+        obtenerCapitulosDisponibles(book).then(caps => {
+          const primerCapitulo = caps.length ? caps[0] : 1;
+          cargarCapitulo(book, primerCapitulo);
         });
+      };
+      otContainer.appendChild(li);
+    }
+  }
+  for (let book of NT_BOOKS) {
+    if (existingSet.has(book)) {
+      const li = document.createElement('li');
+      li.className = 'sc-book-item';
+      li.setAttribute('data-book', book);
+      li.innerHTML = `<i class="fa-solid fa-book-open"></i> ${book}`;
+      li.onclick = () => {
+        obtenerCapitulosDisponibles(book).then(caps => {
+          const primerCapitulo = caps.length ? caps[0] : 1;
+          cargarCapitulo(book, primerCapitulo);
+        });
+      };
+      ntContainer.appendChild(li);
+    }
+  }
+  const searchInput = document.getElementById('bibleSearchInput');
+  if (searchInput) {
+    searchInput.removeEventListener('input', handleBookSearch);
+    searchInput.addEventListener('input', handleBookSearch);
+  }
+}
+
+function handleBookSearch(e) {
+  const term = e.target.value.toLowerCase().trim();
+  document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
+    const book = el.getAttribute('data-book').toLowerCase();
+    el.style.display = (term === '' || book.includes(term)) ? 'flex' : 'none';
+  });
+}
+
+function highlightActiveBook(book) {
+  document.querySelectorAll('#gpraise-scriptura-shield .sc-book-item').forEach(el => {
+    if (el.getAttribute('data-book') === book) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+}
+
+// ========== RENDER PRINCIPAL ==========
+async function renderScriptura() {
+  const container = document.getElementById('mainContent');
+  const actionHeader = document.getElementById('actionHeader');
+  if (!container) return;
+  actionHeader.innerHTML = '';
+  await cargarFavoritosUsuario();
+
+  const html = `
+  <div id="gpraise-scriptura-shield">
+    <div class="sc-header">
+      <div class="sc-header-left">
+        <button id="sc-menu-toggle" class="sc-menu-btn"><i class="fas fa-bars"></i></button>
+        <div class="sc-current-location" id="sc-header-title">Cargando...</div>
+      </div>
+      <div class="sc-chapter-controls">
+        <button id="sc-prev-chapter" class="sc-chapter-btn"><i class="fa-solid fa-chevron-left"></i> Ant</button>
+        <select id="sc-chapter-select" class="sc-chapter-select"></select>
+        <button id="sc-next-chapter" class="sc-chapter-btn">Sig <i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="sc-version-pill">RVR1960</div>
+    </div>
+    <div class="sc-main-container">
+      <aside id="sc-sidebar" class="sc-sidebar">
+        <div class="sc-sidebar-tabs">
+          <button class="sc-tab-btn active" data-view="libros">Libros</button>
+          <button class="sc-tab-btn" data-view="favs">Mis Joyas</button>
+        </div>
+        <div class="sc-sidebar-content">
+          <div id="sc-pane-libros" class="sc-pane active">
+            <input type="text" id="bibleSearchInput" class="sc-search-input" placeholder="🔍 Buscar libro...">
+            <div class="sc-book-section">
+              <div class="sc-section-title">ANTIGUO TESTAMENTO</div>
+              <ul id="ot-books-list" class="sc-book-list"></ul>
+            </div>
+            <div class="sc-book-section">
+              <div class="sc-section-title">NUEVO TESTAMENTO</div>
+              <ul id="nt-books-list" class="sc-book-list"></ul>
+            </div>
+          </div>
+          <div id="sc-pane-favs" class="sc-pane">
+            <div id="sc-favs-dynamic-list"></div>
+          </div>
+        </div>
+      </aside>
+      <main class="sc-reader-area">
+        <div class="sc-reader-body" id="sc-bible-text-flow">
+          <div class="loading-spinner"><i class="fas fa-spinner fa-pulse"></i> Cargando Escrituras...</div>
+        </div>
+      </main>
+    </div>
+    <div class="sc-ctx-panel" id="scCtxPanel">
+      <div class="sc-ctx-header">
+        <span id="sc-ctx-verse-indicator"></span>
+        <div class="sc-ctx-actions">
+          <div class="sc-color-dots">
+            <div class="sc-color-dot gold" onclick="applyHighlightToSelected('hl-gold')" title="Resaltar dorado"></div>
+            <div class="sc-color-dot emerald" onclick="applyHighlightToSelected('hl-emerald')" title="Resaltar verde"></div>
+            <div class="sc-color-dot sapphire" onclick="applyHighlightToSelected('hl-sapphire')" title="Resaltar azul"></div>
+            <div class="sc-color-dot ruby" onclick="applyHighlightToSelected('hl-ruby')" title="Resaltar rojo"></div>
+            <div class="sc-color-dot clear" onclick="applyHighlightToSelected('clear')" title="Quitar resaltado"><i class="fa-solid fa-eraser"></i></div>
+          </div>
+          <button id="sc-btn-fav" class="sc-tool-btn" onclick="toggleFavoriteSelected()"><i class="fa-solid fa-star"></i> Marcar Favorito</button>
+          <button class="sc-tool-btn" onclick="shareVerseAction()"><i class="fa-solid fa-share-nodes"></i> Copiar</button>
+          <button class="sc-tool-btn close" onclick="cerrarPanelContextual()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <div id="scComparisonView" class="sc-comparison-engine"></div>
+    </div>
+  </div>`;
+  container.innerHTML = html;
+
+  // Sidebar toggle
+  const toggleBtn = document.getElementById('sc-menu-toggle');
+  const sidebar = document.getElementById('sc-sidebar');
+  if (toggleBtn && sidebar) {
+    toggleBtn.onclick = (e) => { e.stopPropagation(); sidebar.classList.toggle('collapsed'); };
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target))
+        sidebar.classList.add('collapsed');
     });
+  }
+  if (sidebar && window.innerWidth <= 768) sidebar.classList.add('collapsed');
+  else if (sidebar) sidebar.classList.remove('collapsed');
 
-    // --- Cargar datos bíblicos ---
-    await cargarBibliaJson();
-    buildBooksList();
+  // Tabs
+  document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.getAttribute('data-view');
+      document.querySelectorAll('#gpraise-scriptura-shield .sc-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById(`sc-pane-${view}`)?.classList.add('active');
+      document.querySelectorAll('#gpraise-scriptura-shield .sc-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
 
-    // --- Navegación de capítulos ---
-    const prevBtn = document.getElementById('sc-prev-chapter');
-    const nextBtn = document.getElementById('sc-next-chapter');
-    const chapterSelect = document.getElementById('sc-chapter-select');
+  // Cargar datos
+  await cargarLibrosDisponibles();
+  await buildBooksList();
+  const capitulosIniciales = await obtenerCapitulosDisponibles(scCurrentBook);
+  const primerCap = capitulosIniciales.length ? capitulosIniciales[0] : 1;
+  await cargarCapitulo(scCurrentBook, primerCap);
 
-    if (prevBtn) {
-        prevBtn.onclick = () => {
-            const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
-            const idx = capitulos.indexOf(scCurrentChapter);
-            if (idx > 0) cargarCapitulo(scCurrentBook, capitulos[idx-1]);
-        };
-    }
-    if (nextBtn) {
-        nextBtn.onclick = () => {
-            const capitulos = obtenerCapitulosDisponibles(scCurrentBook);
-            const idx = capitulos.indexOf(scCurrentChapter);
-            if (idx < capitulos.length-1) cargarCapitulo(scCurrentBook, capitulos[idx+1]);
-        };
-    }
-    if (chapterSelect) {
-        chapterSelect.onchange = (e) => {
-            const newChap = parseInt(e.target.value);
-            if (!isNaN(newChap)) cargarCapitulo(scCurrentBook, newChap);
-        };
-    }
+  // Navegación
+  const prevBtn = document.getElementById('sc-prev-chapter');
+  const nextBtn = document.getElementById('sc-next-chapter');
+  const chapterSelect = document.getElementById('sc-chapter-select');
+  if (prevBtn) prevBtn.onclick = async () => {
+    const caps = await obtenerCapitulosDisponibles(scCurrentBook);
+    const idx = caps.indexOf(scCurrentChapter);
+    if (idx > 0) cargarCapitulo(scCurrentBook, caps[idx-1]);
+  };
+  if (nextBtn) nextBtn.onclick = async () => {
+    const caps = await obtenerCapitulosDisponibles(scCurrentBook);
+    const idx = caps.indexOf(scCurrentChapter);
+    if (idx < caps.length-1) cargarCapitulo(scCurrentBook, caps[idx+1]);
+  };
+  if (chapterSelect) chapterSelect.onchange = (e) => {
+    const newChap = parseInt(e.target.value);
+    if (!isNaN(newChap)) cargarCapitulo(scCurrentBook, newChap);
+  };
 }
     
 // ========== RECURSOS ==========
