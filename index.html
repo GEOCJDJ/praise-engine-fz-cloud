@@ -3364,6 +3364,7 @@ async function cargarEvaluacionesGemini() {
         const realizado = intentos && intentos.length > 0;
         let estadoHtml = '';
         let puntajeMostrado = '';
+        let botonHtml = '';
         
         if (realizado) {
             const ultimoIntento = intentos[0];
@@ -3373,6 +3374,9 @@ async function cargarEvaluacionesGemini() {
                             ${aprobado ? '✅ Aprobado' : '❌ Reprobado'}
                           </span>`;
             puntajeMostrado = `<div class="text-xs text-slate-500 mt-1">Nota: ${nota} / 20</div>`;
+            botonHtml = `<button class="bg-slate-600 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-slate-700 transition" onclick="verDetalleExamen('${ex.id}')">📋 Revisar</button>`;
+        } else {
+            botonHtml = `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">📝 Iniciar Cuestionario</button>`;
         }
         
         html += `<div class="av-eval-card">
@@ -3386,10 +3390,7 @@ async function cargarEvaluacionesGemini() {
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            ${realizado ? 
-                                `<button class="bg-slate-600 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-slate-700 transition" onclick="verDetalleExamen('${ex.id}')">📋 Revisar</button>` :
-                                `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">📝 Iniciar Cuestionario</button>`
-                            }
+                            ${botonHtml}
                             ${estadoHtml}
                         </div>
                     </div>
@@ -3397,6 +3398,8 @@ async function cargarEvaluacionesGemini() {
     }
     container.innerHTML = html;
 }
+
+    
     async function verDetalleExamen(examenId) {
     // Obtener el último intento
     const { data: intentos, error } = await supabaseClient
@@ -3422,7 +3425,7 @@ async function cargarEvaluacionesGemini() {
     respuestasExamen = JSON.parse(intento.respuestas);
     // Mostrar el modal de revisión
     mostrarRevisionExamen();
-    }
+}
     
 async function cargarTareasGemini() {
     const container = document.getElementById('tab-tareas');
