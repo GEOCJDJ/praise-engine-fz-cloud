@@ -844,6 +844,8 @@ let originalSongContent = "";  // Almacena el texto limpio y original de la canc
 let currentTransposeOffset = 0; // Lleva el control acumulado de tonos (+1, -2, 0, etc.)
 let currentFontSize = 16;       // Tamaño de letra por defecto
 let isMetronomeRunning = false;   // controla si el metrónomo está activo
+let respuestasExamen = [];   // Guardará { preguntaIndex, respuesta, esCorrecta }
+    
 
 const NOTE_TO_INDEX = {
     'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4,
@@ -3349,7 +3351,7 @@ async function cargarEvaluacionesGemini() {
     for (let ex of examenes) {
         const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
         const realizado = !!intento;
-        html += `<div class="av-eval-card flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full ${realizado ? 'bg-emerald-500' : 'bg-red-500'}"></div><div><h4 class="text-sm font-bold text-slate-800">${ex.titulo}</h4><p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p></div></div>${realizado ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded">Aprobado</span>` : `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">Iniciar Cuestionario</button>`}</div>`;
+        html += `<div class="av-eval-card flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full ${realizado ? 'bg-emerald-500' : 'bg-red-500'}"></div><div><h4 class="text-sm font-bold text-slate-800">${ex.titulo}</h4><p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p></div></div>${realizado ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded">Aprobado</span>` : `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="('${ex.id}')">Iniciar Cuestionario</button>`}</div>`;
     }
     container.innerHTML = html;
 }
@@ -3512,7 +3514,7 @@ function openAdminAulaVirtual() {
     function showModuleContent(moduleId) { const mod = modulosList.find(m=>m.id===moduleId); if(!mod||!mod.contenido) return; showModal(`<h3>${escapeHtml(mod.titulo)}</h3><div style="max-height:60vh;overflow-y:auto;">${mod.contenido}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`); }
 function openCreateCourseModal() { if(!isAdminUser && !isIglesiaAdmin) return; const title = prompt("Nombre del curso:"); if(title) supabaseClient.from('cursos').insert([{ titulo:title, creado_por:currentUser.id, entidad_tipo:'iglesia', entidad_id:currentIglesiaId }]).then(()=>{ loadUserData(); renderMoodle(); }); }
 async function openAddModuleModal(cursoId) { const title = prompt("Título del módulo:"); if(title) await supabaseClient.from('modulos').insert([{ curso_id:cursoId, titulo:title, orden_index:1 }]); await loadUserData(); renderMoodle(); }
-async function startExam(examenId) { const { data: existing } = await supabaseClient.from('intentos_examen').select('*').eq('user_id',currentUser.id).eq('examen_id',examenId).single(); if(existing){ alert("Ya completaste este examen."); return; } const qs = preguntas.filter(q=>q.examen_id===examenId).sort((a,b)=>a.orden_index-b.orden_index); if(qs.length===0){ alert("Este examen no tiene preguntas."); return; } examQuestions=qs; examCurrentIndex=0; examScore=0; currentExamId=examenId; document.getElementById('examOverlay').style.display='block'; loadExamQuestion(); }
+async function startExam(examenId) { const { data: existing } = await supabaseClient.from('intentos_examen').select('*').eq('user_id',currentUser.id).eq('examen_id',examenId).single(); if(existing){ alert("Ya completaste este examen."); return; } const qs = preguntas.filter(q=>q.examen_id===examenId).sort((a,b)=>a.orden_index-b.orden_index); if(qs.length===0){ alert("Este examen no tiene preguntas."); return; } examQuestions=qs; examCurrentIndex=0; examScore=0; currentExamId=examenId; document.getElementById('examOverlay').style.display='block'; respuestasExamen = [];examScore = 0; loadExamQuestion(); }
 
    function loadExamQuestion() {
   if (examCurrentIndex >= examQuestions.length) {
@@ -3547,8 +3549,18 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
     // Definir manejador para completar
     window.submitCompletar = () => {
       clearInterval(examTimer);
-      const respuesta = document.getElementById('completarInput').value.trim();
-      if (respuesta.toLowerCase() === q.opcion_correcta.toLowerCase()) examScore++;
+      const currentQ = examQuestions[examCurrentIndex];
+      const respuestaUsuario = document.getElementById('completarInput').value.trim();
+      const esCorrecta = (respuestaUsuario.toLowerCase() === currentQ.opcion_correcta.toLowerCase());
+      if (esCorrecta) examScore++;
+      respuestasExamen.push({
+        preguntaIndex: examCurrentIndex,
+        respuesta: respuestaUsuario,
+        esCorrecta: esCorrecta,
+        pregunta: currentQ.enunciado,
+        correctaEsperada: currentQ.opcion_correcta,
+        tipo: 'completar'
+      });
       examCurrentIndex++;
       loadExamQuestion();
     };
@@ -3572,10 +3584,26 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
       // Definir manejador para múltiple
       window.submitMultiAnswer = () => {
         clearInterval(examTimer);
+        const currentQ = examQuestions[examCurrentIndex];
         const checkboxes = document.querySelectorAll('.multi-options input:checked');
         const selectedLetters = Array.from(checkboxes).map(cb => cb.value).sort().join('');
-        const correctLetters = q.opcion_correcta.split('').sort().join('');
-        if (selectedLetters === correctLetters) examScore++;
+        const correctLetters = currentQ.opcion_correcta.split('').sort().join('');
+        const esCorrecta = (selectedLetters === correctLetters);
+        if (esCorrecta) examScore++;
+        respuestasExamen.push({
+          preguntaIndex: examCurrentIndex,
+          respuesta: selectedLetters,
+          esCorrecta: esCorrecta,
+          pregunta: currentQ.enunciado,
+          opciones: {
+            a: currentQ.opcion_a,
+            b: currentQ.opcion_b,
+            c: currentQ.opcion_c,
+            d: currentQ.opcion_d
+          },
+          correctaEsperada: currentQ.opcion_correcta,
+          tipo: 'multiple'
+        });
         examCurrentIndex++;
         loadExamQuestion();
       };
@@ -3614,17 +3642,35 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
       clearInterval(examTimer);
       // Según el tipo, ejecutar la acción correspondiente al terminar el tiempo
       if (q.tipo === 'completar') {
-        // Si no respondió, pasar sin sumar
+        // Si no respondió, pasar sin sumar (guardar como incorrecta)
+        const currentQ = examQuestions[examCurrentIndex];
+        respuestasExamen.push({
+          preguntaIndex: examCurrentIndex,
+          respuesta: null,
+          esCorrecta: false,
+          pregunta: currentQ.enunciado,
+          tipo: 'completar'
+        });
         examCurrentIndex++;
         loadExamQuestion();
       } 
       else if (q.tipo === 'multiple' && isMulti) {
-        // Para múltiple, llamar a la función que ya definimos (sin sumar puntos)
+        // Para múltiple, llamamos a submitMultiAnswer (que ya guarda respuestas)
+        // Pero si el tiempo expira sin marcar nada, submitMultiAnswer guardará cadena vacía
         window.submitMultiAnswer();
       } 
       else {
-        // Para vf, multiple simple: usar submitSelectedAnswer (que no sumará porque selectedOption = null)
-        window.submitSelectedAnswer();
+        // Para vf, multiple simple: guardamos respuesta vacía (incorrecta) y avanzamos
+        const currentQ = examQuestions[examCurrentIndex];
+        respuestasExamen.push({
+          preguntaIndex: examCurrentIndex,
+          respuesta: null,
+          esCorrecta: false,
+          pregunta: currentQ.enunciado,
+          tipo: currentQ.tipo || 'multiple'
+        });
+        examCurrentIndex++;
+        loadExamQuestion();
       }
     }
   }, 1000);
@@ -3637,21 +3683,133 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
   };
 
   window.submitSelectedAnswer = () => {
-    // Validar que se haya seleccionado una opción
     if (selectedOption === null) {
       alert("Por favor, selecciona una respuesta antes de continuar.");
       return;
     }
     clearInterval(examTimer);
     const currentQ = examQuestions[examCurrentIndex];
-    if (selectedOption === currentQ.opcion_correcta) examScore++;
+    const esCorrecta = (selectedOption === currentQ.opcion_correcta);
+    if (esCorrecta) examScore++;
+    // Guardar respuesta
+    respuestasExamen.push({
+      preguntaIndex: examCurrentIndex,
+      respuesta: selectedOption,
+      esCorrecta: esCorrecta,
+      pregunta: currentQ.enunciado,
+      opciones: {
+        a: currentQ.opcion_a,
+        b: currentQ.opcion_b,
+        c: currentQ.opcion_c,
+        d: currentQ.opcion_d
+      },
+      correctaEsperada: currentQ.opcion_correcta,
+      tipo: currentQ.tipo
+    });
     examCurrentIndex++;
     loadExamQuestion();
   };
 }
     
-    async function finishExam() { let finalScore=(examScore/examQuestions.length)*20; const { error } = await supabaseClient.from('intentos_examen').insert([{ user_id:currentUser.id, examen_id:currentExamId, puntaje:finalScore.toFixed(2) }]); if(error) alert("Error al guardar el examen: "+error.message); else alert(`Examen finalizado. Puntaje: ${finalScore.toFixed(2)} / 20`); document.getElementById('examOverlay').style.display='none'; await loadUserData(); if(currentTab==='profile') renderUserProfile(); else renderMoodle(); }
+    async function finishExam() {
+  // Calcular nota sobre 20 (cada pregunta vale 20/cantidad)
+  const notaFinal = (examScore / examQuestions.length) * 20;
+  const notaRedondeada = Math.round(notaFinal * 100) / 100;
+  const aprobado = notaRedondeada >= 14;
 
+  // Guardar en Supabase con las respuestas
+  const { error } = await supabaseClient.from('intentos_examen').insert({
+    user_id: currentUser.id,
+    examen_id: currentExamId,
+    puntaje: notaRedondeada,
+    respuestas: JSON.stringify(respuestasExamen),  // Guardar todo el detalle
+    completado: true
+  });
+
+  if (error) {
+    console.error("Error al guardar el examen:", error);
+    alert("Error al guardar: " + error.message);
+    return;
+  }
+
+  // Mostrar modal con resultado y botón de revisión
+  const mensajeEstado = aprobado ? '✅ APROBADO' : '❌ REPROBADO';
+  const colorEstado = aprobado ? '#10B981' : '#EF4444';
+  
+  const modalContent = `
+    <div style="text-align: center;">
+      <h2>Resultado del Examen</h2>
+      <p style="font-size: 2rem; font-weight: bold; color: ${colorEstado};">${notaRedondeada} / 20</p>
+      <p style="font-size: 1.2rem;">${mensajeEstado}</p>
+      <p>Respuestas correctas: ${examScore} de ${examQuestions.length}</p>
+      <hr style="margin: 1rem 0;">
+      <button class="btn btn-primary" onclick="mostrarRevisionExamen()">📋 Revisar mis respuestas</button>
+      <button class="btn btn-ghost" onclick="closeModal(); renderCurrentView();">Cerrar</button>
+    </div>
+  `;
+  showModal(modalContent);
+
+  // Limpiar variables del examen actual
+  examQuestions = [];
+  examCurrentIndex = 0;
+  examScore = 0;
+  currentExamId = null;
+  respuestasExamen = [];
+  document.getElementById('examOverlay').style.display = 'none';
+  await loadUserData();
+  if (currentTab === 'profile') renderUserProfile();
+  else renderMoodle();
+}
+    async function finishExam() {
+  // Calcular nota sobre 20 (cada pregunta vale 20/cantidad)
+  const notaFinal = (examScore / examQuestions.length) * 20;
+  const notaRedondeada = Math.round(notaFinal * 100) / 100;
+  const aprobado = notaRedondeada >= 14;
+
+  // Guardar en Supabase con las respuestas
+  const { error } = await supabaseClient.from('intentos_examen').insert({
+    user_id: currentUser.id,
+    examen_id: currentExamId,
+    puntaje: notaRedondeada,
+    respuestas: JSON.stringify(respuestasExamen),  // Guardar todo el detalle
+    completado: true
+  });
+
+  if (error) {
+    console.error("Error al guardar el examen:", error);
+    alert("Error al guardar: " + error.message);
+    return;
+  }
+
+  // Mostrar modal con resultado y botón de revisión
+  const mensajeEstado = aprobado ? '✅ APROBADO' : '❌ REPROBADO';
+  const colorEstado = aprobado ? '#10B981' : '#EF4444';
+  
+  const modalContent = `
+    <div style="text-align: center;">
+      <h2>Resultado del Examen</h2>
+      <p style="font-size: 2rem; font-weight: bold; color: ${colorEstado};">${notaRedondeada} / 20</p>
+      <p style="font-size: 1.2rem;">${mensajeEstado}</p>
+      <p>Respuestas correctas: ${examScore} de ${examQuestions.length}</p>
+      <hr style="margin: 1rem 0;">
+      <button class="btn btn-primary" onclick="mostrarRevisionExamen()">📋 Revisar mis respuestas</button>
+      <button class="btn btn-ghost" onclick="closeModal(); renderCurrentView();">Cerrar</button>
+    </div>
+  `;
+  showModal(modalContent);
+
+  // Limpiar variables del examen actual
+  examQuestions = [];
+  examCurrentIndex = 0;
+  examScore = 0;
+  currentExamId = null;
+  respuestasExamen = [];
+  document.getElementById('examOverlay').style.display = 'none';
+  await loadUserData();
+  if (currentTab === 'profile') renderUserProfile();
+  else renderMoodle();
+}
+       
     async function closeExam() {
   if (examTimer) clearInterval(examTimer);
   // Guardar el intento con las respuestas que ya se han contestado (hasta el índice actual)
