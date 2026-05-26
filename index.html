@@ -3529,12 +3529,21 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
 
   // 1. Generar el HTML de opciones según el tipo
   if (q.tipo === 'vf') {
-    optionsHtml = `<button class="option-btn" data-value="V" onclick="selectExamOption('V', this)"><strong>Verdadero</strong></button>
-                   <button class="option-btn" data-value="F" onclick="selectExamOption('F', this)"><strong>Falso</strong></button>`;
+    optionsHtml = `
+      <button class="option-btn" data-value="V" onclick="selectExamOption('V', this)"><strong>Verdadero</strong></button>
+      <button class="option-btn" data-value="F" onclick="selectExamOption('F', this)"><strong>Falso</strong></button>
+      <div style="margin-top: 1rem;">
+        <button class="btn btn-primary" onclick="submitSelectedAnswer()">Responder</button>
+      </div>
+    `;
   } 
   else if (q.tipo === 'completar') {
-    optionsHtml = `<input type="text" id="completarInput" class="form-control" placeholder="Escribe tu respuesta">
-                   <button class="btn btn-primary" onclick="submitCompletar()">Responder</button>`;
+    optionsHtml = `
+      <input type="text" id="completarInput" class="form-control" placeholder="Escribe tu respuesta">
+      <div style="margin-top: 1rem;">
+        <button class="btn btn-primary" onclick="submitCompletar()">Responder</button>
+      </div>
+    `;
     // Definir manejador para completar
     window.submitCompletar = () => {
       clearInterval(examTimer);
@@ -3556,7 +3565,9 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
           <label class="option-btn" style="display: block; text-align: left;"><input type="checkbox" value="C"> <strong>C.</strong> ${escapeHtml(q.opcion_c)}</label>
           <label class="option-btn" style="display: block; text-align: left;"><input type="checkbox" value="D"> <strong>D.</strong> ${escapeHtml(q.opcion_d)}</label>
         </div>
-        <button class="btn btn-primary" onclick="submitMultiAnswer()">Responder</button>
+        <div style="margin-top: 1rem;">
+          <button class="btn btn-primary" onclick="submitMultiAnswer()">Responder</button>
+        </div>
       `;
       // Definir manejador para múltiple
       window.submitMultiAnswer = () => {
@@ -3575,6 +3586,9 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
         <button class="option-btn" data-value="B" onclick="selectExamOption('B', this)"><strong>B.</strong> ${escapeHtml(q.opcion_b)}</button>
         <button class="option-btn" data-value="C" onclick="selectExamOption('C', this)"><strong>C.</strong> ${escapeHtml(q.opcion_c)}</button>
         <button class="option-btn" data-value="D" onclick="selectExamOption('D', this)"><strong>D.</strong> ${escapeHtml(q.opcion_d)}</button>
+        <div style="margin-top: 1rem;">
+          <button class="btn btn-primary" onclick="submitSelectedAnswer()">Responder</button>
+        </div>
       `;
     }
   }
@@ -3623,9 +3637,14 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
   };
 
   window.submitSelectedAnswer = () => {
+    // Validar que se haya seleccionado una opción
+    if (selectedOption === null) {
+      alert("Por favor, selecciona una respuesta antes de continuar.");
+      return;
+    }
     clearInterval(examTimer);
     const currentQ = examQuestions[examCurrentIndex];
-    if (selectedOption && selectedOption === currentQ.opcion_correcta) examScore++;
+    if (selectedOption === currentQ.opcion_correcta) examScore++;
     examCurrentIndex++;
     loadExamQuestion();
   };
