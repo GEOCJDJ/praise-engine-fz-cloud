@@ -3346,16 +3346,84 @@ window.verModulo = (moduloId) => {
 async function cargarEvaluacionesGemini() {
     const container = document.getElementById('tab-evaluaciones');
     const { data: examenes } = await supabaseClient.from('examenes').select('*, modulos(titulo)');
-    if (!examenes || examenes.length === 0) { container.innerHTML = '<p class="text-center text-slate-500">No hay exámenes disponibles.</p>'; return; }
+    if (!examenes || examenes.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500">No hay exámenes disponibles.</p>';
+        return;
+    }
     let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Exámenes Teológicos Pendientes</p>`;
     for (let ex of examenes) {
-        const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
-        const realizado = !!intento;
-        html += `<div class="av-eval-card flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full ${realizado ? 'bg-emerald-500' : 'bg-red-500'}"></div><div><h4 class="text-sm font-bold text-slate-800">${ex.titulo}</h4><p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p></div></div>${realizado ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded">Aprobado</span>` : `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">Iniciar Cuestionario</button>`}</div>`;
+        // Obtener el último intento del usuario para este examen
+        const { data: intentos, error } = await supabaseClient
+            .from('intentos_examen')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('examen_id', ex.id)
+            .order('fecha', { ascending: false })
+            .limit(1);
+        
+        const realizado = intentos && intentos.length > 0;
+        let estadoHtml = '';
+        let puntajeMostrado = '';
+        
+        if (realizado) {
+            const ultimoIntento = intentos[0];
+            const nota = parseFloat(ultimoIntento.puntaje);
+            const aprobado = nota >= 14;
+            estadoHtml = `<span class="text-xs font-bold px-3 py-1 rounded ${aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                            ${aprobado ? '✅ Aprobado' : '❌ Reprobado'}
+                          </span>`;
+            puntajeMostrado = `<div class="text-xs text-slate-500 mt-1">Nota: ${nota} / 20</div>`;
+        }
+        
+        html += `<div class="av-eval-card">
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full ${realizado ? (aprobado ? 'bg-emerald-500' : 'bg-red-500') : 'bg-red-500'}"></div>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-800">${escapeHtml(ex.titulo)}</h4>
+                                <p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p>
+                                ${puntajeMostrado}
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            ${realizado ? 
+                                `<button class="bg-slate-600 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-slate-700 transition" onclick="verDetalleExamen('${ex.id}')">📋 Revisar</button>` :
+                                `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">📝 Iniciar Cuestionario</button>`
+                            }
+                            ${estadoHtml}
+                        </div>
+                    </div>
+                </div>`;
     }
     container.innerHTML = html;
 }
-
+    async function verDetalleExamen(examenId) {
+    // Obtener el último intento
+    const { data: intentos, error } = await supabaseClient
+        .from('intentos_examen')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .eq('examen_id', examenId)
+        .order('fecha', { ascending: false })
+        .limit(1);
+    
+    if (!intentos || intentos.length === 0) {
+        alert("No se encontró un intento previo.");
+        return;
+    }
+    
+    const intento = intentos[0];
+    if (!intento.respuestas) {
+        alert("No hay detalle de respuestas guardado para este examen.");
+        return;
+    }
+    
+    // Cargar las respuestas guardadas en la variable global temporal
+    respuestasExamen = JSON.parse(intento.respuestas);
+    // Mostrar el modal de revisión
+    mostrarRevisionExamen();
+    }
+    
 async function cargarTareasGemini() {
     const container = document.getElementById('tab-tareas');
     const { data: tareas } = await supabaseClient.from('tareas_aula').select('*').eq('iglesia_id', currentIglesiaId);
@@ -3759,6 +3827,55 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
   await loadUserData();
   if (currentTab === 'profile') renderUserProfile();
   else renderMoodle();
+}
+
+function mostrarRevisionExamen() {
+  if (!respuestasExamen || respuestasExamen.length === 0) {
+    alert("No hay respuestas guardadas para revisar.");
+    return;
+  }
+
+  let html = `<h3>📝 Revisión del Examen</h3>
+              <div style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">`;
+
+  respuestasExamen.forEach((item, idx) => {
+    const num = idx + 1;
+    const acierto = item.esCorrecta ? '✅ Correcta' : '❌ Incorrecta';
+    const color = item.esCorrecta ? '#10B981' : '#EF4444';
+
+    html += `<div class="card" style="margin-bottom: 1rem; padding: 0.8rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <strong>Pregunta ${num}</strong>
+                <span style="color: ${color}; font-weight: bold;">${acierto}</span>
+              </div>
+              <p style="margin-top: 0.5rem;">${escapeHtml(item.pregunta)}</p>`;
+
+    if (item.tipo === 'completar') {
+      html += `<p><strong>Tu respuesta:</strong> ${escapeHtml(item.respuesta || '(no respondida)')}</p>
+               <p><strong>Respuesta correcta:</strong> ${escapeHtml(item.correctaEsperada)}</p>`;
+    } 
+    else if (item.tipo === 'multiple' && item.opciones) {
+      html += `<p><strong>Opciones:</strong><br>
+               A) ${escapeHtml(item.opciones.a)}<br>
+               B) ${escapeHtml(item.opciones.b)}<br>
+               C) ${escapeHtml(item.opciones.c)}<br>
+               D) ${escapeHtml(item.opciones.d)}</p>`;
+      html += `<p><strong>Tu selección:</strong> ${item.respuesta ? item.respuesta.split('').join(', ') : '(ninguna)'}</p>
+               <p><strong>Respuesta(s) correcta(s):</strong> ${item.correctaEsperada.split('').join(', ')}</p>`;
+    }
+    else {
+      html += `<p><strong>Tu respuesta:</strong> ${item.respuesta || '(no respondida)'}</p>
+               <p><strong>Respuesta correcta:</strong> ${item.correctaEsperada}</p>`;
+    }
+
+    html += `</div>`;
+  });
+
+  html += `</div><div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+          </div>`;
+
+  showModal(html);
 }
     
     async function closeExam() {
