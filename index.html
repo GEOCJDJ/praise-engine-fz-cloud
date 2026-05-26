@@ -3351,7 +3351,7 @@ async function cargarEvaluacionesGemini() {
     for (let ex of examenes) {
         const { data: intento } = await supabaseClient.from('intentos_examen').select('id').eq('user_id', currentUser.id).eq('examen_id', ex.id).single();
         const realizado = !!intento;
-        html += `<div class="av-eval-card flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full ${realizado ? 'bg-emerald-500' : 'bg-red-500'}"></div><div><h4 class="text-sm font-bold text-slate-800">${ex.titulo}</h4><p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p></div></div>${realizado ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded">Aprobado</span>` : `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="('${ex.id}')">Iniciar Cuestionario</button>`}</div>`;
+        html += `<div class="av-eval-card flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full ${realizado ? 'bg-emerald-500' : 'bg-red-500'}"></div><div><h4 class="text-sm font-bold text-slate-800">${ex.titulo}</h4><p class="text-xs text-slate-500">Módulo: ${ex.modulos?.titulo || 'General'} · <strong class="text-red-500">${ex.tiempo_por_pregunta} segundos por respuesta</strong></p></div></div>${realizado ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded">Aprobado</span>` : `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">Iniciar Cuestionario</button>`}</div>`;
     }
     container.innerHTML = html;
 }
@@ -3808,6 +3808,54 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
   await loadUserData();
   if (currentTab === 'profile') renderUserProfile();
   else renderMoodle();
+}
+    function mostrarRevisionExamen() {
+  if (!respuestasExamen || respuestasExamen.length === 0) {
+    alert("No hay respuestas guardadas para revisar.");
+    return;
+  }
+
+  let html = `<h3>📝 Revisión del Examen</h3>
+              <div style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">`;
+
+  respuestasExamen.forEach((item, idx) => {
+    const num = idx + 1;
+    const acierto = item.esCorrecta ? '✅ Correcta' : '❌ Incorrecta';
+    const color = item.esCorrecta ? '#10B981' : '#EF4444';
+
+    html += `<div class="card" style="margin-bottom: 1rem; padding: 0.8rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <strong>Pregunta ${num}</strong>
+                <span style="color: ${color}; font-weight: bold;">${acierto}</span>
+              </div>
+              <p style="margin-top: 0.5rem;">${escapeHtml(item.pregunta)}</p>`;
+
+    if (item.tipo === 'completar') {
+      html += `<p><strong>Tu respuesta:</strong> ${escapeHtml(item.respuesta || '(no respondida)')}</p>
+               <p><strong>Respuesta correcta:</strong> ${escapeHtml(item.correctaEsperada)}</p>`;
+    } 
+    else if (item.tipo === 'multiple' && item.opciones) {
+      html += `<p><strong>Opciones:</strong><br>
+               A) ${escapeHtml(item.opciones.a)}<br>
+               B) ${escapeHtml(item.opciones.b)}<br>
+               C) ${escapeHtml(item.opciones.c)}<br>
+               D) ${escapeHtml(item.opciones.d)}</p>`;
+      html += `<p><strong>Tu selección:</strong> ${item.respuesta ? item.respuesta.split('').join(', ') : '(ninguna)'}</p>
+               <p><strong>Respuesta(s) correcta(s):</strong> ${item.correctaEsperada.split('').join(', ')}</p>`;
+    }
+    else {
+      html += `<p><strong>Tu respuesta:</strong> ${item.respuesta || '(no respondida)'}</p>
+               <p><strong>Respuesta correcta:</strong> ${item.correctaEsperada}</p>`;
+    }
+
+    html += `</div>`;
+  });
+
+  html += `</div><div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+          </div>`;
+
+  showModal(html);
 }
        
     async function closeExam() {
