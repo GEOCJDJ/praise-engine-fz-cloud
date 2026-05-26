@@ -3352,8 +3352,7 @@ async function cargarEvaluacionesGemini() {
     }
     let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Exámenes Teológicos Pendientes</p>`;
     for (let ex of examenes) {
-        // Obtener el último intento del usuario para este examen
-        const { data: intentos, error } = await supabaseClient
+        const { data: intentos } = await supabaseClient
             .from('intentos_examen')
             .select('*')
             .eq('user_id', currentUser.id)
@@ -3365,11 +3364,12 @@ async function cargarEvaluacionesGemini() {
         let estadoHtml = '';
         let puntajeMostrado = '';
         let botonHtml = '';
+        let nota = 0;
+        let aprobado = false;
         
         if (realizado) {
-            const ultimoIntento = intentos[0];
-            const nota = parseFloat(ultimoIntento.puntaje);
-            const aprobado = nota >= 14;
+            nota = parseFloat(intentos[0].puntaje);
+            aprobado = nota >= 14;
             estadoHtml = `<span class="text-xs font-bold px-3 py-1 rounded ${aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
                             ${aprobado ? '✅ Aprobado' : '❌ Reprobado'}
                           </span>`;
@@ -3401,8 +3401,7 @@ async function cargarEvaluacionesGemini() {
 
     
     async function verDetalleExamen(examenId) {
-    // Obtener el último intento
-    const { data: intentos, error } = await supabaseClient
+    const { data: intentos } = await supabaseClient
         .from('intentos_examen')
         .select('*')
         .eq('user_id', currentUser.id)
@@ -3421,9 +3420,7 @@ async function cargarEvaluacionesGemini() {
         return;
     }
     
-    // Cargar las respuestas guardadas en la variable global temporal
     respuestasExamen = JSON.parse(intento.respuestas);
-    // Mostrar el modal de revisión
     mostrarRevisionExamen();
 }
     
@@ -3783,17 +3780,15 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
 }
     
     async function finishExam() {
-  // Calcular nota sobre 20 (cada pregunta vale 20/cantidad)
   const notaFinal = (examScore / examQuestions.length) * 20;
   const notaRedondeada = Math.round(notaFinal * 100) / 100;
   const aprobado = notaRedondeada >= 14;
 
-  // Guardar en Supabase con las respuestas
   const { error } = await supabaseClient.from('intentos_examen').insert({
     user_id: currentUser.id,
     examen_id: currentExamId,
     puntaje: notaRedondeada,
-    respuestas: JSON.stringify(respuestasExamen),  // Guardar todo el detalle
+    respuestas: JSON.stringify(respuestasExamen),
     completado: true
   });
 
@@ -3803,7 +3798,6 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
     return;
   }
 
-  // Mostrar modal con resultado y botón de revisión
   const mensajeEstado = aprobado ? '✅ APROBADO' : '❌ REPROBADO';
   const colorEstado = aprobado ? '#10B981' : '#EF4444';
   
@@ -3820,7 +3814,6 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
   `;
   showModal(modalContent);
 
-  // Limpiar variables del examen actual
   examQuestions = [];
   examCurrentIndex = 0;
   examScore = 0;
@@ -3831,70 +3824,42 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
   if (currentTab === 'profile') renderUserProfile();
   else renderMoodle();
 }
-
-function mostrarRevisionExamen() {
-  if (!respuestasExamen || respuestasExamen.length === 0) {
-    alert("No hay respuestas guardadas para revisar.");
-    return;
-  }
-
-  let html = `<h3>📝 Revisión del Examen</h3>
-              <div style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">`;
-
-  respuestasExamen.forEach((item, idx) => {
-    const num = idx + 1;
-    const acierto = item.esCorrecta ? '✅ Correcta' : '❌ Incorrecta';
-    const color = item.esCorrecta ? '#10B981' : '#EF4444';
-
-    html += `<div class="card" style="margin-bottom: 1rem; padding: 0.8rem;">
-              <div style="display: flex; justify-content: space-between;">
-                <strong>Pregunta ${num}</strong>
-                <span style="color: ${color}; font-weight: bold;">${acierto}</span>
-              </div>
-              <p style="margin-top: 0.5rem;">${escapeHtml(item.pregunta)}</p>`;
-
-    if (item.tipo === 'completar') {
-      html += `<p><strong>Tu respuesta:</strong> ${escapeHtml(item.respuesta || '(no respondida)')}</p>
-               <p><strong>Respuesta correcta:</strong> ${escapeHtml(item.correctaEsperada)}</p>`;
-    } 
-    else if (item.tipo === 'multiple' && item.opciones) {
-      html += `<p><strong>Opciones:</strong><br>
-               A) ${escapeHtml(item.opciones.a)}<br>
-               B) ${escapeHtml(item.opciones.b)}<br>
-               C) ${escapeHtml(item.opciones.c)}<br>
-               D) ${escapeHtml(item.opciones.d)}</p>`;
-      html += `<p><strong>Tu selección:</strong> ${item.respuesta ? item.respuesta.split('').join(', ') : '(ninguna)'}</p>
-               <p><strong>Respuesta(s) correcta(s):</strong> ${item.correctaEsperada.split('').join(', ')}</p>`;
-    }
-    else {
-      html += `<p><strong>Tu respuesta:</strong> ${item.respuesta || '(no respondida)'}</p>
-               <p><strong>Respuesta correcta:</strong> ${item.correctaEsperada}</p>`;
-    }
-
-    html += `</div>`;
-  });
-
-  html += `</div><div style="text-align: right; margin-top: 1rem;">
-            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
-          </div>`;
-
-  showModal(html);
-}
+async function verDetalleExamen(examenId) {
+    const { data: intentos } = await supabaseClient
+        .from('intentos_examen')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .eq('examen_id', examenId)
+        .order('fecha', { ascending: false })
+        .limit(1);
     
+    if (!intentos || intentos.length === 0) {
+        alert("No se encontró un intento previo.");
+        return;
+    }
+    
+    const intento = intentos[0];
+    if (!intento.respuestas) {
+        alert("No hay detalle de respuestas guardado para este examen.");
+        return;
+    }
+    
+    respuestasExamen = JSON.parse(intento.respuestas);
+    mostrarRevisionExamen();
+}
     async function closeExam() {
   if (examTimer) clearInterval(examTimer);
-  // Guardar el intento con las respuestas que ya se han contestado (hasta el índice actual)
   if (currentExamId && examCurrentIndex > 0) {
     const puntajeParcial = (examScore / examQuestions.length) * 20;
     const { error } = await supabaseClient.from('intentos_examen').insert({
       user_id: currentUser.id,
       examen_id: currentExamId,
       puntaje: puntajeParcial.toFixed(2),
-      completado: false,   // marcamos como no completado
       respuestas: JSON.stringify({
         indice: examCurrentIndex,
         score: examScore
-      })
+      }),
+      completado: false
     });
     if (error) console.error('Error guardando progreso parcial:', error);
     else alert(`Examen guardado con puntaje parcial: ${puntajeParcial.toFixed(2)}/20. Puedes continuar después.`);
@@ -3904,7 +3869,6 @@ function mostrarRevisionExamen() {
   if (currentTab === 'profile') renderUserProfile();
   else renderMoodle();
 }
-
 // ========== PERFIL DE USUARIO ==========
 let progressChart = null;
 async function renderUserProfile() { if(!currentProfile) return; const miembro = usuariosIglesia.find(m=>m.user_id===currentUser.id); const rolMusical = miembro?.rol_musical || 'No asignado'; let deptoNombre = ''; if(miembro?.departamento_id) { const depto = departamentos.find(d=>d.id===miembro.departamento_id); deptoNombre = depto ? depto.nombre : 'No especificado'; } const html = `<div class="card" style="max-width:700px;margin:0 auto;"><div class="profile-avatar" style="background:var(--primary);"><i class="fas fa-user fa-3x" style="color:white;"></i></div><h2>${escapeHtml(currentProfile.nombre||currentUser.email)}</h2><p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p><p><strong>Rol en la app:</strong> ${currentProfile.rol==='admin'?'Administrador':'Usuario'}</p><p><strong>Rol musical:</strong> ${escapeHtml(rolMusical)}</p><p><strong>Departamento/Equipo:</strong> ${escapeHtml(deptoNombre)}</p><p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono||'No especificado')}</p><p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento||'No especificada'}</p><p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion||'No especificada')}</p><hr><h3>📊 Estadísticas de aprendizaje</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;"><div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div><div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div></div><div id="chartContainer" style="margin:1rem 0;"><canvas id="progressChartCanvas" style="max-height:300px;width:100%;display:none;"></canvas><p id="noExamMessage" class="text-muted" style="text-align:center;display:none;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p></div><button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button></div>`; document.getElementById('mainContent').innerHTML=html; document.getElementById('actionHeader').innerHTML=''; const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).order('fecha',{ascending:true}); const total=intentos?.length||0; const promedio=(intentos&&intentos.length)?(intentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/intentos.length).toFixed(1):0; document.getElementById('statExamenes').innerText=total; document.getElementById('statPromedio').innerText=`${promedio}/20`; const chartCanvas=document.getElementById('progressChartCanvas'); const noExamMessage=document.getElementById('noExamMessage'); if(intentos&&intentos.length>0){ chartCanvas.style.display='block'; noExamMessage.style.display='none'; const fechas=intentos.map(i=>new Date(i.fecha).toLocaleDateString()); const puntajes=intentos.map(i=>parseFloat(i.puntaje)); const ctx=chartCanvas.getContext('2d'); if(progressChart) progressChart.destroy(); progressChart=new Chart(ctx,{type:'line',data:{labels:fechas,datasets:[{label:'Puntaje obtenido (sobre 20)',data:puntajes,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.2,fill:true,pointBackgroundColor:'#1E3A8A'}]},options:{responsive:true,maintainAspectRatio:true,scales:{y:{beginAtZero:true,max:20,title:{display:true,text:'Puntaje'}},x:{title:{display:true,text:'Fecha del examen'}}}} }); } else { chartCanvas.style.display='none'; noExamMessage.style.display='block'; } }
