@@ -4419,26 +4419,25 @@ async function renderUserProfile() {
         deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    // Obtener intentos completados (solo los que tienen puntaje numérico)
+  // Obtener TODOS los intentos (sin filtrar por completado, igual que en el Aula Virtual)
 const { data: intentos, error } = await supabaseClient
     .from('intentos_examen')
     .select('puntaje, fecha')
     .eq('user_id', currentUser.id)
-    .eq('completado', true)   // <-- importante: solo exámenes completados
     .order('fecha', { ascending: true });
 
-console.log('Intentos desde perfil (completados):', intentos); // Depuración
+console.log('Intentos desde perfil (sin filtrar):', intentos); // Depuración
 
-// Filtrar solo los que tienen puntaje válido (número y mayor que 0)
+// Filtrar solo los que tienen puntaje válido (número)
 const intentosValidos = (intentos || []).filter(i => {
-    const p = parseFloat(i.puntaje);
-    return !isNaN(p) && p > 0;
+    const p = Number(i.puntaje);
+    return !isNaN(p) && p > 0;  // Cambia a >=0 si quieres mostrar notas 0
 });
 
 const totalExamenes = intentosValidos.length;
 let promedio = 0;
 if (totalExamenes > 0) {
-    const suma = intentosValidos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
+    const suma = intentosValidos.reduce((acc, i) => acc + Number(i.puntaje), 0);
     promedio = (suma / totalExamenes).toFixed(1);
 }
     
