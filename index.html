@@ -788,10 +788,70 @@ body.tema-verde { --primary: #065F46; --primary-light: #10B981; }
 body.tema-morado { --primary: #5B21B6; --primary-light: #8B5CF6; }
 body.tema-rosa { --primary: #BE185D; --primary-light: #F472B6; }
 body.tema-naranja { --primary: #C2410C; --primary-light: #F97316; }        
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.toast {
+    background: var(--surface);
+    color: var(--text-main);
+    border-left: 4px solid;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    min-width: 200px;
+    max-width: 320px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideInRight 0.3s ease;
+    font-size: 0.85rem;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
+}
+.toast.success { border-left-color: #10B981; background: rgba(16,185,129,0.1); }
+.toast.error { border-left-color: #EF4444; background: rgba(239,68,68,0.1); }
+.toast.warning { border-left-color: #F59E0B; background: rgba(245,158,11,0.1); }
+.toast.info { border-left-color: #3B82F6; background: rgba(59,130,246,0.1); }
+.toast i:first-child { font-size: 1.1rem; }
+.toast .toast-close {
+    margin-left: auto;
+    cursor: pointer;
+    font-size: 0.9rem;
+    opacity: 0.7;
+    transition: 0.2s;
+}
+.toast .toast-close:hover { opacity: 1; }
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+        .footer-contact {
+    font-size: 0.8rem;
+}
+.footer-contact a:hover {
+    color: var(--primary) !important;
+    text-decoration: underline !important;
+}
+@media (max-width: 768px) {
+    .footer-contact {
+        order: 3;
+    }
+}
+        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
+    <div id="toastContainer" class="toast-container"></div>
 <body>
 <div id="appRoot"></div>
 
@@ -1005,6 +1065,25 @@ function aplicarTema(temaId) {
             break;
     }
 }
+    function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    let icon = '';
+    if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+    else if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
+    else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle"></i>';
+    else icon = '<i class="fas fa-info-circle"></i>';
+    toast.innerHTML = `${icon}<span>${escapeHtml(message)}</span><i class="fas fa-times toast-close"></i>`;
+    container.appendChild(toast);
+    const closeBtn = toast.querySelector('.toast-close');
+    closeBtn.addEventListener('click', () => toast.remove());
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 4000);
+}
+    
 function openCifraViewer(songId, index) {
     registrarVistaCancion(songId);
     currentSongIndex = index;
@@ -1382,7 +1461,7 @@ function getShiftedKey(origKey, shift) {
 async function saveCifraStateToServer() {
     if (!cifraCurrentSong) return;
     if (!isAdminUser && !isIglesiaAdmin) {
-        alert("Solo administrador puede guardar cambios permanentes.");
+        showToast("Solo administrador puede guardar cambios permanentes.");
         return;
     }
     let finalKey = getShiftedKey(cifraCurrentSong.key, cifraCurrentOffset);
@@ -1429,7 +1508,7 @@ async function saveCifraStateToServer() {
     cifraCurrentOffset = 0;
     document.getElementById('currentToneDisplay').innerText = finalKey;
     applyTransposition(0);
-    alert("¡Canción actualizada con el nuevo tono, BPM y Capo!");
+    showToast("¡Canción actualizada con el nuevo tono, BPM y Capo!");
 }
     
     function printCifra() {
@@ -1492,7 +1571,7 @@ async function saveCifraStateToServer() {
 }
     async function deleteAllSongs() {
     if (!isAdminUser && !isIglesiaAdmin) {
-        alert("No tienes permiso para eliminar todas las canciones.");
+        showToast("No tienes permiso para eliminar todas las canciones.");
         return;
     }
     const confirmMsg = "⚠️ ¡ATENCIÓN! Vas a ELIMINAR TODAS las canciones de esta iglesia. ¿Estás completamente seguro?";
@@ -1506,9 +1585,9 @@ async function saveCifraStateToServer() {
         .eq('iglesia_id', currentIglesiaId);
     
     if (error) {
-        alert("Error al eliminar: " + error.message);
+        showToast("Error al eliminar: " + error.message);
     } else {
-        alert("✅ Todas las canciones han sido eliminadas.");
+        showToast("✅ Todas las canciones han sido eliminadas.");
         await loadUserData();
         renderCurrentView();
     }
@@ -1674,14 +1753,14 @@ function renderChordsOverLyrics(text) {
     
     
 // ========== AUTENTICACIÓN Y PERFIL ==========
-async function login(email, password) { try { const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; currentUser = data.user; await loadProfile(); await loadUserIglesia(); await loadUserData(); renderApp(); registrarActividad('login', email); } catch (err) { alert("Error al iniciar sesión: " + err.message); } }
+async function login(email, password) { try { const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; currentUser = data.user; await loadProfile(); await loadUserIglesia(); await loadUserData(); renderApp(); registrarActividad('login', email); } catch (err) { showToast("Error al iniciar sesión: " + err.message); } }
 async function loadProfile() { if (!currentUser) return; const { data, error } = await supabaseClient.from('perfiles').select('*').eq('id', currentUser.id).single(); if (error && error.code !== 'PGRST116') console.error(error); currentProfile = data || { id: currentUser.id, nombre: currentUser.email, rol: 'user' }; isAdminUser = (currentUser.email === 'emilychuncha@gmail.com'); }
 async function loadUserIglesia() { const { data, error } = await supabaseClient.from('usuarios_iglesia').select('*, iglesias(*)').eq('user_id', currentUser.id).maybeSingle(); if (error) { console.error(error); currentIglesiaId = null; currentUserIglesia = null; return; } currentUserIglesia = data; if (data) { currentIglesiaId = data.iglesia_id; currentIglesiaData = data.iglesias; isIglesiaAdmin = data.es_admin_iglesia || false; isDeptAdmin = data.es_admin_departamento || false; } else { if (isAdminUser) { currentIglesiaId = null; isIglesiaAdmin = false; isDeptAdmin = false; } else { currentIglesiaId = null; isIglesiaAdmin = false; isDeptAdmin = false; } } }
-async function updateProfile(updates) { await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id); await loadProfile(); alert("Perfil actualizado"); }
-async function resetPassword(email) { try { await supabaseClient.auth.resetPasswordForEmail(email); alert("Se ha enviado un enlace a tu correo."); } catch(err) { alert("Error: " + err.message); } }
+async function updateProfile(updates) { await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id); await loadProfile(); showToast("Perfil actualizado"); }
+async function resetPassword(email) { try { await supabaseClient.auth.resetPasswordForEmail(email); showToast("Se ha enviado un enlace a tu correo."); } catch(err) { showToast("Error: " + err.message); } }
 async function logout() { await supabaseClient.auth.signOut(); currentUser = null; renderLogin(); }
 function renderRegister() { (async () => { const { data: iglesiasList, error } = await supabaseClient.from('iglesias').select('id, nombre'); if (error) console.error(error); const options = (iglesiasList || []).map(ig => `<option value="${ig.id}">${escapeHtml(ig.nombre)}</option>`).join(''); document.getElementById('appRoot').innerHTML = `<div class="login-container"><i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i><h2>Crear Cuenta</h2><div class="form-group"><input type="text" id="regName" class="form-control" placeholder="Nombre completo *" required></div><div class="form-group"><input type="email" id="regEmail" class="form-control" placeholder="Correo electrónico *" required></div><div class="form-group"><input type="date" id="regFecha" class="form-control" required></div><div class="form-group"><label>Iglesia a la que perteneces *</label><select id="regIglesia" class="form-control" required>${options}</select></div><div class="form-group"><input type="password" id="regPass" class="form-control" placeholder="Contraseña *" required></div><div class="form-group"><input type="password" id="regConfirmPass" class="form-control" placeholder="Confirmar contraseña *" required></div><button class="btn btn-primary w-100 mb-2" onclick="registerUser()">Registrarme</button><button class="btn btn-ghost w-100" onclick="renderLogin()">Volver al inicio</button></div>`; })(); }
-async function registerUser() { const name = document.getElementById('regName').value.trim(); const email = document.getElementById('regEmail').value.trim(); const fecha = document.getElementById('regFecha').value; const password = document.getElementById('regPass').value; const confirm = document.getElementById('regConfirmPass').value; const iglesiaId = document.getElementById('regIglesia').value; if (!name || !email || !fecha || !password || !iglesiaId) { alert("Completa todos los campos"); return; } if (password !== confirm) { alert("Las contraseñas no coinciden"); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password }); if (error) throw error; if (data.user) { await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, email: email, fecha_nacimiento: fecha, rol: 'user' }]); await supabaseClient.from('usuarios_iglesia').insert([{ user_id: data.user.id, iglesia_id: iglesiaId, departamento_id: null, es_admin_iglesia: false, es_admin_departamento: false, rol_musical: null }]); alert("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión."); renderLogin(); } } catch (err) { if (err.message.includes("User already registered")) alert("Este correo ya está registrado."); else alert("Error en el registro: " + err.message); } }
+async function registerUser() { const name = document.getElementById('regName').value.trim(); const email = document.getElementById('regEmail').value.trim(); const fecha = document.getElementById('regFecha').value; const password = document.getElementById('regPass').value; const confirm = document.getElementById('regConfirmPass').value; const iglesiaId = document.getElementById('regIglesia').value; if (!name || !email || !fecha || !password || !iglesiaId) { showToast("Completa todos los campos"); return; } if (password !== confirm) { showToast("Las contraseñas no coinciden"); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password }); if (error) throw error; if (data.user) { await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, email: email, fecha_nacimiento: fecha, rol: 'user' }]); await supabaseClient.from('usuarios_iglesia').insert([{ user_id: data.user.id, iglesia_id: iglesiaId, departamento_id: null, es_admin_iglesia: false, es_admin_departamento: false, rol_musical: null }]); showToast("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión."); renderLogin(); } } catch (err) { if (err.message.includes("User already registered")) showToast("Este correo ya está registrado."); else showToast("Error en el registro: " + err.message); } }
 function renderLogin() { document.getElementById('appRoot').innerHTML = `<div class="login-container"><i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i><h2>G-Praise® Cloud</h2><div class="form-group"><input type="email" id="loginEmail" class="form-control" placeholder="Email"></div><div class="form-group"><input type="password" id="loginPass" class="form-control" placeholder="Contraseña"></div><button class="btn btn-primary w-100 mb-2" onclick="login(loginEmail.value, loginPass.value)">Iniciar Sesión</button><button class="btn btn-ghost w-100 mb-2" onclick="renderRegister()">Registrarse</button><div style="text-align: center; margin-top: 10px;"><a href="#" onclick="showResetPassword()" class="text-accent small">¿Olvidaste tu contraseña?</a></div></div>`; window.showResetPassword = () => { const email = prompt("Introduce tu email:"); if(email) resetPassword(email); }; }
 async function registrarVistaCancion(songId) { if (!currentUser) return; try { await supabaseClient.from('estadisticas_canciones').insert({ song_id: songId, user_id: currentUser.id, iglesia_id: currentIglesiaId }); } catch(e) { console.error(e); } }
 async function registrarImpresionLista(listaId) { if (!currentUser) return; try { await supabaseClient.from('estadisticas_listas').insert({ lista_id: listaId, user_id: currentUser.id, iglesia_id: currentIglesiaId }); } catch(e) { console.error(e); } }
@@ -1733,14 +1812,14 @@ async function loadUserData() {
         
     } catch(e) {
         console.error(e);
-        alert("Error al cargar datos. Recarga la página.");
+        showToast("Error al cargar datos. Recarga la página.");
     }
 }
     
 // ========== GUARDADO ==========
-async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin) { alert("No tienes permiso para editar canciones."); return false; } try { const cleanSong = { id: song.id || generateUniqueId(), user_id: currentUser.id, title: song.title || "Sin título", category: song.category || "Adoración", key: song.key || "C", bpm: parseInt(song.bpm) || 80, chords_url: song.chordsUrl || "", chords_data: song.chordsData || "", lyrics: song.lyrics || "", youtube: song.youtube || "", iglesia_id: currentIglesiaId, capo: song.capo || "" }; const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' }); if (error) throw error; await loadUserData(); renderCurrentView(); return true; } catch (err) { console.error(err); alert("Error al guardar: " + err.message); return false; } }
+async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin) { showToast("No tienes permiso para editar canciones."); return false; } try { const cleanSong = { id: song.id || generateUniqueId(), user_id: currentUser.id, title: song.title || "Sin título", category: song.category || "Adoración", key: song.key || "C", bpm: parseInt(song.bpm) || 80, chords_url: song.chordsUrl || "", chords_data: song.chordsData || "", lyrics: song.lyrics || "", youtube: song.youtube || "", iglesia_id: currentIglesiaId, capo: song.capo || "" }; const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' }); if (error) throw error; await loadUserData(); renderCurrentView(); return true; } catch (err) { console.error(err); showToast("Error al guardar: " + err.message); return false; } }
 async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('canciones').delete().eq('id', id).eq('iglesia_id', currentIglesiaId); await loadUserData(); renderCurrentView(); }
-async function saveList(list) { if (!currentUser) return alert("Debes iniciar sesión."); try { if (list.id) { await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id); await supabaseClient.from('lista_items').delete().eq('lista_id', list.id); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } else { const newId = generateUniqueId(); await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date, iglesia_id: currentIglesiaId }); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } await loadUserData(); renderCurrentView(); } catch(e) { console.error(e); alert("Error guardando lista."); } }
+async function saveList(list) { if (!currentUser) return showToast("Debes iniciar sesión."); try { if (list.id) { await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id); await supabaseClient.from('lista_items').delete().eq('lista_id', list.id); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } else { const newId = generateUniqueId(); await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date, iglesia_id: currentIglesiaId }); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } await loadUserData(); renderCurrentView(); } catch(e) { console.error(e); showToast("Error guardando lista."); } }
 async function deleteList(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
 
 // ========== RENDER PRINCIPAL ==========
@@ -1834,7 +1913,7 @@ async function renderSongsGrid() { let favs = []; if (currentUser) { const { dat
 
     
     async function renderFavorites() { if (!currentUser) return; const { data: favoritos } = await supabaseClient.from('favoritos').select('song_id').eq('user_id', currentUser.id); const favIds = favoritos.map(f=>f.song_id); const filtered = songs.filter(s=>favIds.includes(s.id)); filtered.sort((a,b)=>a.title.localeCompare(b.title)); document.getElementById('actionHeader').innerHTML = `<span class="text-muted">Tus canciones favoritas</span>`; const container = document.getElementById('mainContent'); if (filtered.length===0) { container.innerHTML='<p>Marca la estrella ⭐ en cualquier canción del CANCIONERO.</p>'; return; } container.innerHTML = `<div class="grid">${filtered.map((s,idx)=>`<div class="card" onclick="openCifraViewer('${s.id}',${idx})"><div style="display:flex;justify-content:space-between;"><span class="card-category">${s.category}</span><i class="fas fa-star fav-icon" style="color:gold;cursor:pointer;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')"></i></div><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}</div></div>`).join('')}</div>`; }
-async function toggleFavorite(songId) { if (!currentUser) return alert("Inicia sesión"); const { data: exists } = await supabaseClient.from('favoritos').select('id').eq('user_id', currentUser.id).eq('song_id', songId).single(); if (exists) await supabaseClient.from('favoritos').delete().eq('id', exists.id); else await supabaseClient.from('favoritos').insert({ user_id: currentUser.id, song_id: songId }); if (currentTab === 'favorites') await renderFavorites(); else if (currentTab === 'songs') await renderSongsGrid(); }
+async function toggleFavorite(songId) { if (!currentUser) return showToast("Inicia sesión"); const { data: exists } = await supabaseClient.from('favoritos').select('id').eq('user_id', currentUser.id).eq('song_id', songId).single(); if (exists) await supabaseClient.from('favoritos').delete().eq('id', exists.id); else await supabaseClient.from('favoritos').insert({ user_id: currentUser.id, song_id: songId }); if (currentTab === 'favorites') await renderFavorites(); else if (currentTab === 'songs') await renderSongsGrid(); }
 async function deleteSongConfirm(id) { if (confirm("¿Eliminar?")) await deleteSong(id); }
 
     function openSongModal(id = null) {
@@ -1922,7 +2001,7 @@ async function deleteSongConfirm(id) { if (confirm("¿Eliminar?")) await deleteS
     };
     window.saveNewSong = async () => {
         const title = document.getElementById('editTitle').value.trim();
-        if (!title) return alert("El título es requerido");
+        if (!title) return showToast("El título es requerido");
         const artist = document.getElementById('editArtist').value;
         const bpm = parseInt(document.getElementById('editBpm').value) || 80;
         const key = document.getElementById('editKey').value;
@@ -1944,7 +2023,7 @@ async function deleteSongConfirm(id) { if (confirm("¿Eliminar?")) await deleteS
         closeModal();
     };
 }    
-    async function saveSongFromModal(id) { if (!isAdminUser && !isIglesiaAdmin) return; const title = document.getElementById('mTitle').value.trim(); if (!title) return alert("Título requerido"); const category = document.getElementById('mCat').value; const key = document.getElementById('mKey').value; const bpm = parseInt(document.getElementById('mBpm').value) || 80; const chordsUrl = document.getElementById('mChordsUrl').value.trim(); const lyrics = document.getElementById('mLyrics').value; let chordsData = ''; const file = document.getElementById('mChordsFile').files[0]; if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); } else if (id) { const existingSong = songs.find(s=>s.id===id); if (existingSong) chordsData = existingSong.chordsData || ''; } const song = { id: id || generateUniqueId(), title, category, key, bpm, chordsUrl, chordsData, lyrics, youtube: '' }; await saveSong(song); closeModal(); }
+    async function saveSongFromModal(id) { if (!isAdminUser && !isIglesiaAdmin) return; const title = document.getElementById('mTitle').value.trim(); if (!title) return showToast("Título requerido"); const category = document.getElementById('mCat').value; const key = document.getElementById('mKey').value; const bpm = parseInt(document.getElementById('mBpm').value) || 80; const chordsUrl = document.getElementById('mChordsUrl').value.trim(); const lyrics = document.getElementById('mLyrics').value; let chordsData = ''; const file = document.getElementById('mChordsFile').files[0]; if (file) { const reader = new FileReader(); await new Promise(resolve => { reader.onload = e => { chordsData = e.target.result; resolve(); }; reader.readAsDataURL(file); }); } else if (id) { const existingSong = songs.find(s=>s.id===id); if (existingSong) chordsData = existingSong.chordsData || ''; } const song = { id: id || generateUniqueId(), title, category, key, bpm, chordsUrl, chordsData, lyrics, youtube: '' }; await saveSong(song); closeModal(); }
     
     function openMetronome(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; const bpm = song.bpm||80; const intervalMs = 60000/bpm; if(metronomeInterval) clearInterval(metronomeInterval); showModal(`<div style="text-align:center"><h3>Metrónomo: ${escapeHtml(song.title)}</h3><div class="metronome-led" id="metroLed"></div><p style="font-size:1.5rem;">${bpm} BPM</p><button class="btn btn-primary" id="startMetroBtn">Iniciar</button><button class="btn btn-ghost" id="stopMetroBtn">Detener</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const led = document.getElementById('metroLed'), startBtn = document.getElementById('startMetroBtn'), stopBtn = document.getElementById('stopMetroBtn'); let isRunning = false; const tick = () => { led.style.background="#3B82F6"; if(navigator.vibrate) navigator.vibrate(40); setTimeout(()=>led.style.background="#475569",100); }; startBtn.onclick = () => { if(!isRunning) { isRunning=true; tick(); metronomeInterval = setInterval(()=>{ if(isRunning) tick(); }, intervalMs); } }; stopBtn.onclick = () => { if(metronomeInterval) clearInterval(metronomeInterval); isRunning=false; }; }
 function viewChords(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; let content = ''; if(song.chordsData) { const blob = dataURLtoBlob(song.chordsData); const url = URL.createObjectURL(blob); content = `<iframe src="${url}" style="width:100%;height:420px;border:none"></iframe><br><a href="${url}" download="acordes_${song.id}.pdf" class="btn btn-primary">Descargar Archivo</a>`; } else if(song.chordsUrl) { content = `<iframe src="${song.chordsUrl}" style="width:100%;height:420px;border:none"></iframe><br><a href="${song.chordsUrl}" target="_blank" class="btn btn-primary">Abrir enlace</a>`; } else content = `<p>No hay archivos adjuntos.</p>`; showModal(`<h3>Acordes: ${escapeHtml(song.title)}</h3>${content}<div style="margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); }
@@ -1956,15 +2035,15 @@ async function saveNewList() { const name = document.getElementById('lName').val
 async function editListName(id) { const list = lists.find(l=>l.id===id); const newName = prompt("Nuevo nombre:",list.name); if(newName) { list.name=newName; await saveList(list); } }
 async function renderListDetail() { const list = lists.find(l=>l.id===selectedListId); if(!list) { selectedListId=null; renderLists(); return; } document.getElementById('actionHeader').innerHTML = `<button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()"><i class="fas fa-arrow-left"></i> Volver</button><button class="btn btn-primary" onclick="openAddSongToListModal()"><i class="fas fa-plus"></i> Añadir Canción</button><button class="btn btn-ghost" onclick="printList('${list.id}')"><i class="fas fa-print"></i> Imprimir (12 copias)</button><button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')"><i class="fab fa-whatsapp"></i> WhatsApp</button><button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')"><i class="fas fa-file-excel"></i> Excel</button>`; const container = document.getElementById('mainContent'); container.innerHTML = `<div class="card" style="margin-bottom:1rem"><h2>${escapeHtml(list.name)}</h2><p>${list.date||''} • ${list.items?list.items.length:0} canciones</p></div><div id="dragArea"></div>`; const dragArea = document.getElementById('dragArea'); if(!list.items||list.items.length===0) dragArea.innerHTML=`<p style="padding:1rem;text-align:center;">No hay canciones agregadas.</p>`; else dragArea.innerHTML = list.items.map((item,idx)=>{ const song = songs.find(s=>s.id===(item.songId||item.song_id)); if(!song) return ''; let currentTone = item.keyOverride||item.key_override||song.key; return `<div class="card" data-idx="${idx}" style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.5rem;cursor:grab;"><i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i><div style="flex:1"><b style="color:var(--primary-light);">${escapeHtml(song.title)}</b><span class="card-category">${song.category}</span><div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm||'--'} BPM</div></div><div onclick="event.stopPropagation()" style="display:flex;gap:0.3rem;"><button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>${(isAdminUser||isIglesiaAdmin)?`<button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>`:''}</div></div>`; }).join(''); const commentsSection = document.createElement('div'); commentsSection.id='commentsSection'; commentsSection.style.marginTop='2rem'; commentsSection.innerHTML = `<h3>💬 Comentarios de la lista</h3><div id="commentsList"></div><textarea id="newComment" class="form-control" placeholder="Escribe un comentario..." rows="2"></textarea><button class="btn btn-primary" onclick="addComment('${list.id}')">Comentar</button>`; container.appendChild(commentsSection); await loadComments(list.id); if(sortableInstance) sortableInstance.destroy(); if((isAdminUser||isIglesiaAdmin) && list.items && list.items.length>0) { sortableInstance = new Sortable(dragArea, { handle:'.drag-handle', animation:200, onEnd:()=>{ const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el=>list.items[parseInt(el.dataset.idx)]); list.items = newOrder; saveList(list); } }); } }
 function openAddSongToListModal() { const list = lists.find(l=>l.id===selectedListId); if(!list) return; let songsHtml = ''; songs.forEach(song=>{ const alreadyInList = list.items.some(item=>(item.songId||item.song_id)===song.id); songsHtml += `<label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;cursor:pointer;"><input type="checkbox" class="song-checkbox" value="${song.id}" ${alreadyInList?'disabled':''}><span><b>${escapeHtml(song.title)}</b> (${song.key}) - ${song.category}</span>${alreadyInList?'<span style="color:green;"> ✓ Ya está</span>':''}</label>`; }); showModal(`<h3>Añadir canciones a "${escapeHtml(list.name)}"</h3><input type="text" id="filterSongsMulti" class="form-control" placeholder="Filtrar canciones..." style="margin-bottom:1rem"><div id="songsMultiList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);padding:0.5rem;border-radius:8px;">${songsHtml}</div><div style="margin-top:1rem;text-align:right;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addSelectedSongsToList('${list.id}')">Añadir seleccionadas</button></div>`); const filterInput = document.getElementById('filterSongsMulti'); if(filterInput) filterInput.addEventListener('input',(e)=>{ const term = e.target.value.toLowerCase(); const labels = document.querySelectorAll('#songsMultiList label'); labels.forEach(label=>{ const text = label.innerText.toLowerCase(); label.style.display = text.includes(term)?'flex':'none'; }); }); }
-async function addSelectedSongsToList(listId) { const list = lists.find(l=>l.id===listId); if(!list) return; const checkboxes = document.querySelectorAll('.song-checkbox:checked'); if(checkboxes.length===0){ alert("Selecciona al menos una canción."); return; } for(let cb of checkboxes){ const songId = cb.value; if(list.items.some(item=>(item.songId||item.song_id)===songId)) continue; list.items.push({ songId, keyOverride:null }); } await saveList(list); closeModal(); renderListDetail(); }
+async function addSelectedSongsToList(listId) { const list = lists.find(l=>l.id===listId); if(!list) return; const checkboxes = document.querySelectorAll('.song-checkbox:checked'); if(checkboxes.length===0){ showToast("Selecciona al menos una canción."); return; } for(let cb of checkboxes){ const songId = cb.value; if(list.items.some(item=>(item.songId||item.song_id)===songId)) continue; list.items.push({ songId, keyOverride:null }); } await saveList(list); closeModal(); renderListDetail(); }
 async function removeSongFromList(listId, idx) { if(confirm("¿Quitar canción?")) { const list = lists.find(l=>l.id===listId); list.items.splice(idx,1); await saveList(list); renderListDetail(); } }
-async function changeItemKey(listId, idx) { const list = lists.find(l=>l.id===listId); const item = list.items[idx]; const song = songs.find(s=>s.id===(item.songId||item.song_id)); const newKey = prompt(`Cambiar tonalidad de "${song.title}" para esta lista:`, item.keyOverride||item.key_override||song.key); if(newKey && keys.includes(newKey)) { item.keyOverride = newKey; await saveList(list); renderListDetail(); } else if(newKey) alert("Tonalidad no válida."); }
+async function changeItemKey(listId, idx) { const list = lists.find(l=>l.id===listId); const item = list.items[idx]; const song = songs.find(s=>s.id===(item.songId||item.song_id)); const newKey = prompt(`Cambiar tonalidad de "${song.title}" para esta lista:`, item.keyOverride||item.key_override||song.key); if(newKey && keys.includes(newKey)) { item.keyOverride = newKey; await saveList(list); renderListDetail(); } else if(newKey) showToast("Tonalidad no válida."); }
 function exportAllListsToExcel() { const data = [["Lista","Canción","Categoría","Tonalidad"]]; lists.forEach(list=>{ if(list.items) list.items.forEach(item=>{ const song = songs.find(s=>s.id===(item.songId||item.song_id)); if(song) data.push([list.name, song.title, song.category, item.keyOverride||item.key_override||song.key]); }); }); const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Todas_Listas"); XLSX.writeFile(wb, "todas_listas_iec.xlsx"); }
-function printList(listId) { registrarImpresionLista(listId); const list = lists.find(l=>l.id===listId); if(!list||!list.items||list.items.length===0) return alert("Lista vacía"); const win = window.open(); win.document.write(`<html><head><title>${escapeHtml(list.name)}</title><style>body{font-family:sans-serif;margin:0.2cm}.print-area{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.print-card{border:1px solid #000;border-radius:8px;padding:6px;break-inside:avoid}.print-title{font-weight:bold;text-align:center;border-bottom:1px solid #aaa;margin-bottom:4px}.print-song{font-size:8pt;margin:2px 0}.print-footer{font-size:6pt;text-align:center;margin-top:4px}</style></head><body><div class="print-area">`); for(let i=0;i<12;i++){ win.document.write(`<div class="print-card"><div class="print-title">${escapeHtml(list.name)}</div>`); list.items.forEach(item=>{ const s = songs.find(s=>s.id===(item.songId||item.song_id)); if(s) win.document.write(`<div class="print-song">🎵 ${escapeHtml(s.title)} (${item.keyOverride||item.key_override||s.key})</div>`); }); win.document.write(`<div class="print-footer">G-Praise®</div></div>`); } win.document.write('</div></body></html>'); win.document.close(); win.print(); }
+function printList(listId) { registrarImpresionLista(listId); const list = lists.find(l=>l.id===listId); if(!list||!list.items||list.items.length===0) return showToast("Lista vacía"); const win = window.open(); win.document.write(`<html><head><title>${escapeHtml(list.name)}</title><style>body{font-family:sans-serif;margin:0.2cm}.print-area{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.print-card{border:1px solid #000;border-radius:8px;padding:6px;break-inside:avoid}.print-title{font-weight:bold;text-align:center;border-bottom:1px solid #aaa;margin-bottom:4px}.print-song{font-size:8pt;margin:2px 0}.print-footer{font-size:6pt;text-align:center;margin-top:4px}</style></head><body><div class="print-area">`); for(let i=0;i<12;i++){ win.document.write(`<div class="print-card"><div class="print-title">${escapeHtml(list.name)}</div>`); list.items.forEach(item=>{ const s = songs.find(s=>s.id===(item.songId||item.song_id)); if(s) win.document.write(`<div class="print-song">🎵 ${escapeHtml(s.title)} (${item.keyOverride||item.key_override||s.key})</div>`); }); win.document.write(`<div class="print-footer">G-Praise®</div></div>`); } win.document.write('</div></body></html>'); win.document.close(); win.print(); }
 function exportListToExcel(listId) { const list = lists.find(l=>l.id===listId); const data = [["Canción","Tonalidad"]]; if(list.items) list.items.forEach(item=>{ const s = songs.find(s=>s.id===(item.songId||item.song_id)); if(s) data.push([s.title, item.keyOverride||item.key_override||s.key]); }); const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, list.name.slice(0,31)); XLSX.writeFile(wb, `${list.name.replace(/[^a-z0-9]/gi,'_')}.xlsx`); }
-function shareListWhatsApp(listId) { const list = lists.find(l=>l.id===listId); if(!list||!list.items||list.items.length===0) return alert("Lista vacía"); let message = `🎵 *${list.name}* 🎵\n📅 ${list.date||''}\n\n`; list.items.forEach((item,i)=>{ const song = songs.find(s=>s.id===(item.songId||item.song_id)); if(song) message += `${i+1}. ${song.title} (${item.keyOverride||item.key_override||song.key})\n`; }); window.open(`https://wa.me/?text=${encodeURIComponent(message)}`,'_blank'); }
+function shareListWhatsApp(listId) { const list = lists.find(l=>l.id===listId); if(!list||!list.items||list.items.length===0) return showToast("Lista vacía"); let message = `🎵 *${list.name}* 🎵\n📅 ${list.date||''}\n\n`; list.items.forEach((item,i)=>{ const song = songs.find(s=>s.id===(item.songId||item.song_id)); if(song) message += `${i+1}. ${song.title} (${item.keyOverride||item.key_override||song.key})\n`; }); window.open(`https://wa.me/?text=${encodeURIComponent(message)}`,'_blank'); }
 async function loadComments(listaId) { const { data: comments } = await supabaseClient.from('comentarios_lista').select('*, perfiles(nombre)').eq('lista_id', listaId).order('fecha',{ascending:false}); const container = document.getElementById('commentsList'); if(!container) return; container.innerHTML = comments.map(c=>`<div style="border-bottom:1px solid var(--border);padding:0.5rem;margin-bottom:0.5rem;"><strong>${escapeHtml(c.perfiles?.nombre||'Usuario')}</strong><small>${new Date(c.fecha).toLocaleString()}</small><p>${escapeHtml(c.contenido)}</p>${(isAdminUser||isIglesiaAdmin)?`<button class="btn-icon" onclick="deleteComment(${c.id},'${listaId}')"><i class="fas fa-trash"></i></button>`:''}</div>`).join('')||'<p>Sin comentarios. Sé el primero en comentar.</p>'; }
-async function addComment(listaId) { const contenido = document.getElementById('newComment').value.trim(); if(!contenido) return alert("Escribe un comentario"); const { error } = await supabaseClient.from('comentarios_lista').insert({ lista_id: listaId, user_id: currentUser.id, contenido }); if(error) alert("Error: " + error.message); else { document.getElementById('newComment').value=''; loadComments(listaId); } }
+async function addComment(listaId) { const contenido = document.getElementById('newComment').value.trim(); if(!contenido) return showToast("Escribe un comentario"); const { error } = await supabaseClient.from('comentarios_lista').insert({ lista_id: listaId, user_id: currentUser.id, contenido }); if(error) showToast("Error: " + error.message); else { document.getElementById('newComment').value=''; loadComments(listaId); } }
 async function deleteComment(commentId, listaId) { if(confirm("¿Eliminar comentario?")) { await supabaseClient.from('comentarios_lista').delete().eq('id',commentId); loadComments(listaId); } }
 
 // ========== MÓDULO G-NOTES (Recursos por Instrumento) ==========
@@ -2176,7 +2255,7 @@ async function renderGnotes() {
 
 // Función auxiliar para la descarga (por ahora solo alerta, luego conectar a Supabase Storage)
 window.descargarRecursoGnotes = (archivo) => {
-    alert(`🔧 En una versión posterior podrás descargar "${archivo}" directamente desde Supabase Storage.`);
+    showToast(`🔧 En una versión posterior podrás descargar "${archivo}" directamente desde Supabase Storage.`);
 };
 
 // ========== MÓDULO BIBLIA (CON SUPABASE) ==========
@@ -2396,11 +2475,11 @@ function cerrarPanelContextual() {
 // ========== RESALTADO Y FAVORITOS EN SUPABASE ==========
 async function applyHighlightToSelected(hlClass) {
   if (!currentUser) {
-    alert('Debes iniciar sesión para resaltar');
+    showToast('Debes iniciar sesión para resaltar');
     return;
   }
   if (scSelectedVerses.length === 0) {
-    alert('Selecciona uno o más versículos');
+    showToast('Selecciona uno o más versículos');
     return;
   }
   for (let verseNum of scSelectedVerses) {
@@ -2434,7 +2513,7 @@ async function applyHighlightToSelected(hlClass) {
 
 async function toggleFavoriteSelected() {
   if (!currentUser) {
-    alert('Debes iniciar sesión');
+    showToast('Debes iniciar sesión');
     return;
   }
   if (scSelectedVerses.length === 0) return;
@@ -2508,7 +2587,7 @@ function shareVerseAction() {
   }
   const shareString = `"${texto}" — ${referencia}`;
   navigator.clipboard.writeText(shareString);
-  alert('¡Versículo(s) copiado(s) al portapapeles!');
+  showToast('¡Versículo(s) copiado(s) al portapapeles!');
 }
 
 // ========== CARGA DE FAVORITOS Y RESALTADOS DEL USUARIO ==========
@@ -2771,7 +2850,7 @@ async function manageDepartmentMembers(deptId) { const miembrosEnDepto = usuario
 function openTeleprompter() { const selectSongs = songs.map(s=>`<option value="${s.id}">${escapeHtml(s.title)}</option>`).join(''); showModal(`<h3>Teleprompter</h3><select id="teleSongSelect" class="form-control"><option value="">Selecciona...</option>${selectSongs}</select><div id="teleLyricsDisplay" class="teleprompter-screen" style="margin-top:1rem;" onclick="advanceLyrics()">Selecciona una canción</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`); let currentLines=[], lineIndex=0; window.advanceLyrics = () => { if(currentLines.length) { lineIndex = (lineIndex+1)%currentLines.length; document.getElementById('teleLyricsDisplay').innerHTML = currentLines[lineIndex].replace(/\n/g,'<br>'); } }; document.getElementById('teleSongSelect').addEventListener('change',(e)=>{ const song = songs.find(s=>s.id===e.target.value); if(!song) return; let lyrics = song.lyrics||"Letra no disponible."; currentLines = lyrics.split('\n').filter(l=>l.trim()); lineIndex=0; document.getElementById('teleLyricsDisplay').innerHTML = currentLines[0]||"Sin letra"; }); }
 function openBackupModal() { showModal(`<h3>Importar/Exportar datos</h3><button class="btn btn-primary" style="margin:0.5rem;" onclick="exportBackup()"><i class="fas fa-download"></i> Exportar respaldo JSON</button><button class="btn btn-primary" style="margin:0.5rem;" onclick="importSongBookZip()"><i class="fas fa-file-archive"></i> Importar desde ZIP (.cho)</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`); }
 function exportBackup() { const data = { songs, lists, attendance, shifts, cursos, modulosList, examenes, preguntas, departamentos, usuariosIglesia }; const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `praise_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); }
-async function importSongBookZip() { const input = document.createElement('input'); input.type='file'; input.accept='.zip'; input.onchange=async(e)=>{ const file=e.target.files[0]; if(!file) return; try { const zip=await JSZip.loadAsync(file); const files=Object.values(zip.files).filter(f=>!f.dir && f.name.toLowerCase().endsWith('.cho')); if(files.length===0) throw new Error("No se encontraron archivos .cho"); const cancionesTemp=[]; for(let zipFile of files){ const content=await zipFile.async('text'); const songData=parseChoFile(content,zipFile.name); cancionesTemp.push(songData); } showImportEditModal(cancionesTemp); } catch(err){ alert("Error al procesar el ZIP: "+err.message); } }; input.click(); }
+async function importSongBookZip() { const input = document.createElement('input'); input.type='file'; input.accept='.zip'; input.onchange=async(e)=>{ const file=e.target.files[0]; if(!file) return; try { const zip=await JSZip.loadAsync(file); const files=Object.values(zip.files).filter(f=>!f.dir && f.name.toLowerCase().endsWith('.cho')); if(files.length===0) throw new Error("No se encontraron archivos .cho"); const cancionesTemp=[]; for(let zipFile of files){ const content=await zipFile.async('text'); const songData=parseChoFile(content,zipFile.name); cancionesTemp.push(songData); } showImportEditModal(cancionesTemp); } catch(err){ showToast("Error al procesar el ZIP: "+err.message); } }; input.click(); }
 
     function parseChoFile(content, filename) {
     const lines = content.split(/\r?\n/);
@@ -2860,7 +2939,7 @@ async function importSongBookZip() { const input = document.createElement('input
 }
     
     function showImportEditModal(cancionesTemp) { let html=`<h3>Revisar canciones a importar (${cancionesTemp.length})</h3><div style="max-height:60vh;overflow-y:auto;margin-bottom:1rem;">`; cancionesTemp.forEach((c,idx)=>{ html+=`<div class="card" style="margin-bottom:1rem;cursor:pointer;" onclick="toggleSongSelection(${idx})"><div style="display:flex;align-items:center;gap:0.5rem;"><input type="checkbox" id="chk_${idx}" ${c.selected?'checked':''} onclick="event.stopPropagation(); toggleSongSelection(${idx})"><strong>${escapeHtml(c.title)}</strong> (${c.key}) - ${c.bpm} BPM</div><div id="edit_${idx}" style="display:none;margin-top:0.5rem;border-top:1px solid var(--border);padding-top:0.5rem;"><div class="form-group"><label>Título</label><input id="title_${idx}" class="form-control" value="${escapeHtml(c.title)}"></div><div class="form-group"><label>Categoría</label><select id="cat_${idx}" class="form-control"><option ${c.category==='Adoración'?'selected':''}>Adoración</option><option ${c.category==='Exaltación'?'selected':''}>Exaltación</option><option ${c.category==='Júbilo'?'selected':''}>Júbilo</option></select></div><div class="form-group"><label>Tonalidad</label><select id="key_${idx}" class="form-control">${keys.map(k=>`<option ${c.key===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group"><label>BPM</label><input id="bpm_${idx}" type="number" class="form-control" value="${c.bpm}"></div><div class="form-group"><label>Letra (con acordes [Acorde])</label><textarea id="lyrics_${idx}" rows="4" class="form-control">${escapeHtml(c.lyrics)}</textarea></div></div></div>`; }); html+=`</div><button class="btn btn-primary" onclick="saveSelectedSongs(${JSON.stringify(cancionesTemp).replace(/"/g,'&quot;')})">Guardar seleccionadas</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`; showModal(html); window.toggleSongSelection = (idx)=>{ const chk=document.getElementById(`chk_${idx}`); const editDiv=document.getElementById(`edit_${idx}`); chk.checked=!chk.checked; if(editDiv) editDiv.style.display=chk.checked?'block':'none'; }; cancionesTemp.forEach((_,idx)=>{ const card=document.querySelector(`.card:has(#chk_${idx})`); if(card){ card.addEventListener('click',(e)=>{ if(e.target.closest('.form-control')||e.target.closest('select')) return; toggleSongSelection(idx); }); } }); }
-window.saveSelectedSongs = async (cancionesTemp) => { if(!isAdminUser && !isIglesiaAdmin) return alert("Solo administrador puede importar canciones."); const progressModal = document.createElement('div'); progressModal.id='importProgress'; progressModal.className='modal'; progressModal.style.display='flex'; progressModal.innerHTML=`<div class="modal-content" style="text-align:center;"><h3>Importando canciones...</h3><div style="width:100%;background:#ddd;border-radius:10px;margin:1rem 0;"><div id="progressBarFill" style="width:0%;height:20px;background:var(--primary);border-radius:10px;"></div></div><p id="progressStatus">Preparando...</p></div>`; document.body.appendChild(progressModal); let saved=0, errors=0, skipped=0; const totalToSave = cancionesTemp.filter((_,i)=>document.getElementById(`chk_${i}`)?.checked).length; for(let i=0;i<cancionesTemp.length;i++){ const chk=document.getElementById(`chk_${i}`); if(!chk||!chk.checked) continue; const title = document.getElementById(`title_${i}`).value.trim(); if(!title){ errors++; continue; } const exists = songs.some(s=>s.title.toLowerCase()===title.toLowerCase()); if(exists){ if(confirm(`La canción "${title}" ya existe. ¿Deseas sobrescribirla?`)){ const existingSong = songs.find(s=>s.title.toLowerCase()===title.toLowerCase()); if(existingSong){ const category = document.getElementById(`cat_${i}`).value; const key = document.getElementById(`key_${i}`).value; const bpm = parseInt(document.getElementById(`bpm_${i}`).value)||80; const lyrics = document.getElementById(`lyrics_${i}`).value; existingSong.title=title; existingSong.category=category; existingSong.key=key; existingSong.bpm=bpm; existingSong.lyrics=lyrics; await saveSong(existingSong); saved++; } else { const success = await saveSong(createSongObject(i,cancionesTemp)); if(success) saved++; else errors++; } } else { skipped++; } } else { const success = await saveSong(createSongObject(i,cancionesTemp)); if(success) saved++; else errors++; } const completed = saved+errors+skipped; const percent = (completed/totalToSave)*100; document.getElementById('progressBarFill').style.width=`${percent}%`; document.getElementById('progressStatus').innerText=`Procesando: ${completed} de ${totalToSave} (${saved} guardadas, ${errors} errores, ${skipped} omitidas)`; } setTimeout(()=>{ progressModal.remove(); alert(`Importación finalizada:\n✅ Guardadas: ${saved}\n❌ Errores: ${errors}\n⏭️ Omitidas: ${skipped}`); closeModal(); renderCurrentView(); },500); };
+window.saveSelectedSongs = async (cancionesTemp) => { if(!isAdminUser && !isIglesiaAdmin) return showToast("Solo administrador puede importar canciones."); const progressModal = document.createElement('div'); progressModal.id='importProgress'; progressModal.className='modal'; progressModal.style.display='flex'; progressModal.innerHTML=`<div class="modal-content" style="text-align:center;"><h3>Importando canciones...</h3><div style="width:100%;background:#ddd;border-radius:10px;margin:1rem 0;"><div id="progressBarFill" style="width:0%;height:20px;background:var(--primary);border-radius:10px;"></div></div><p id="progressStatus">Preparando...</p></div>`; document.body.appendChild(progressModal); let saved=0, errors=0, skipped=0; const totalToSave = cancionesTemp.filter((_,i)=>document.getElementById(`chk_${i}`)?.checked).length; for(let i=0;i<cancionesTemp.length;i++){ const chk=document.getElementById(`chk_${i}`); if(!chk||!chk.checked) continue; const title = document.getElementById(`title_${i}`).value.trim(); if(!title){ errors++; continue; } const exists = songs.some(s=>s.title.toLowerCase()===title.toLowerCase()); if(exists){ if(confirm(`La canción "${title}" ya existe. ¿Deseas sobrescribirla?`)){ const existingSong = songs.find(s=>s.title.toLowerCase()===title.toLowerCase()); if(existingSong){ const category = document.getElementById(`cat_${i}`).value; const key = document.getElementById(`key_${i}`).value; const bpm = parseInt(document.getElementById(`bpm_${i}`).value)||80; const lyrics = document.getElementById(`lyrics_${i}`).value; existingSong.title=title; existingSong.category=category; existingSong.key=key; existingSong.bpm=bpm; existingSong.lyrics=lyrics; await saveSong(existingSong); saved++; } else { const success = await saveSong(createSongObject(i,cancionesTemp)); if(success) saved++; else errors++; } } else { skipped++; } } else { const success = await saveSong(createSongObject(i,cancionesTemp)); if(success) saved++; else errors++; } const completed = saved+errors+skipped; const percent = (completed/totalToSave)*100; document.getElementById('progressBarFill').style.width=`${percent}%`; document.getElementById('progressStatus').innerText=`Procesando: ${completed} de ${totalToSave} (${saved} guardadas, ${errors} errores, ${skipped} omitidas)`; } setTimeout(()=>{ progressModal.remove(); showToast(`Importación finalizada:\n✅ Guardadas: ${saved}\n❌ Errores: ${errors}\n⏭️ Omitidas: ${skipped}`); closeModal(); renderCurrentView(); },500); };
 function createSongObject(index,cancionesTemp) { return { id:generateUniqueId(), title:document.getElementById(`title_${index}`).value.trim(), category:document.getElementById(`cat_${index}`).value, key:document.getElementById(`key_${index}`).value, bpm:parseInt(document.getElementById(`bpm_${index}`).value)||80, lyrics:document.getElementById(`lyrics_${index}`).value, chordsUrl:'', chordsData:'', youtube:'' }; }
 
 // ========== ASISTENCIA Y TURNOS ==========
@@ -2869,7 +2948,7 @@ function exportAttendanceExcel() { const data = [["Fecha","Miembro","Estado"]]; 
 async function viewMyShifts() {
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
     if (!miembro) {
-        alert("No tienes un rol asignado en el equipo. Contacta al administrador.");
+        showToast("No tienes un rol asignado en el equipo. Contacta al administrador.");
         return;
     }
     const misTurnos = shifts.filter(s => s.usuario_iglesia_id === miembro.id);
@@ -3446,7 +3525,7 @@ async function evaluarBienvenidaGemini(idx, el) {
         .single();
     
     if (yaRespondio) {
-        alert("Ya respondiste el reto de hoy. Vuelve mañana para más XP.");
+        showToast("Ya respondiste el reto de hoy. Vuelve mañana para más XP.");
         return;
     }
     
@@ -3526,7 +3605,7 @@ async function cargarProgresoGemini() {
 
 async function agregarXPGemini(puntos) {
     xpGemini += puntos;
-    if (xpGemini >= 500) { xpGemini -= 500; alert('🎉 ¡FELICIDADES! Has subido de nivel.'); }
+    if (xpGemini >= 500) { xpGemini -= 500; showToast('🎉 ¡FELICIDADES! Has subido de nivel.'); }
     await supabaseClient.from('progreso_usuario').update({ xp: xpGemini }).eq('user_id', currentUser.id);
     const fill = document.getElementById('xpFill');
     if (fill) fill.style.width = `${(xpGemini/500)*100}%`;
@@ -3669,11 +3748,11 @@ async function cargarCursosGemini() {
 window.verModulosCurso = async (cursoId) => {
     const { data: modulos, error } = await supabaseClient.from('modulos').select('*').eq('curso_id', cursoId);
     if (error) {
-        alert('Error al cargar los módulos: ' + error.message);
+        showToast('Error al cargar los módulos: ' + error.message);
         return;
     }
     if (!modulos || modulos.length === 0) {
-        alert('Este curso aún no tiene lecciones.');
+        showToast('Este curso aún no tiene lecciones.');
         return;
     }
     let html = `<h3>📚 Lecciones del curso</h3><div class="space-y-2">`;
@@ -3692,7 +3771,7 @@ window.verModulosCurso = async (cursoId) => {
 window.verModulo = (moduloId) => {
     const modulo = modulosList.find(m => m.id === moduloId);
     if (!modulo) {
-        alert('Módulo no encontrado.');
+        showToast('Módulo no encontrado.');
         return;
     }
     showModal(`
@@ -3773,13 +3852,13 @@ async function cargarEvaluacionesGemini() {
         .limit(1);
     
     if (!intentos || intentos.length === 0) {
-        alert("No se encontró un intento previo.");
+        showToast("No se encontró un intento previo.");
         return;
     }
     
     const intento = intentos[0];
     if (!intento.respuestas) {
-        alert("No hay detalle de respuestas guardado para este examen.");
+        showToast("No hay detalle de respuestas guardado para este examen.");
         return;
     }
     
@@ -3801,9 +3880,9 @@ async function cargarTareasGemini() {
 window.entregarTareaGemini = async (tareaId, titulo) => {
     const linkInput = document.getElementById(`link_${tareaId}`);
     const link = linkInput?.value.trim();
-    if (!link) return alert('Debes pegar un enlace de tu entrega.');
+    if (!link) return showToast('Debes pegar un enlace de tu entrega.');
     await supabaseClient.from('entregas_tareas').insert({ id: generateUniqueId(), tarea_id: tareaId, user_id: currentUser.id, enlace: link });
-    alert(`✅ Tarea "${titulo}" entregada. +50 XP`);
+    showToast(`✅ Tarea "${titulo}" entregada. +50 XP`);
     await agregarXPGemini(50);
     await cargarTareasGemini();
 };
@@ -3829,11 +3908,11 @@ async function cargarDevocionalUI() {
 
 window.guardarDevocionalGemini = async () => {
     const texto = document.getElementById('devocionalTexto')?.value.trim();
-    if (!texto) return alert('Escribe tu reflexión antes de guardar.');
+    if (!texto) return showToast('Escribe tu reflexión antes de guardar.');
     await agregarXPGemini(30);
     rachaGemini++;
     await supabaseClient.from('progreso_usuario').update({ racha: rachaGemini }).eq('user_id', currentUser.id);
-    alert('Meditación guardada. +30 XP');
+    showToast('Meditación guardada. +30 XP');
     document.getElementById('devocionalTexto').value = '';
     await cargarDevocionalUI();
     const welcomeRacha = document.getElementById('welcomeRacha');
@@ -4056,10 +4135,10 @@ window.enviarRetoGemini = async () => {
     const tema = document.getElementById('challengeTopic').value;
     const pregunta = document.getElementById('challengeQuestion').value.trim();
     const respuesta = document.getElementById('challengeAnswer').value.trim();
-    if (!para || !pregunta || !respuesta) return alert('Completa todos los campos');
+    if (!para || !pregunta || !respuesta) return showToast('Completa todos los campos');
     const { error } = await supabaseClient.from('desafios').insert({ de_usuario_id: currentUser.id, para_usuario_id: para, tema, pregunta, respuesta_correcta: respuesta, estado: 'pendiente' });
-    if (error) alert('Error: ' + error.message);
-    else alert('✅ Reto enviado');
+    if (error) showToast('Error: ' + error.message);
+    else showToast('✅ Reto enviado');
     await cargarRetosGemini();
 };
 
@@ -4070,12 +4149,12 @@ window.responderRetoGemini = async (id) => {
     if (!respuesta) return;
     const normalizar = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     if (normalizar(respuesta) !== normalizar(reto.respuesta_correcta)) {
-        alert('❌ Respuesta incorrecta. Sigue intentando.');
+        showToast('❌ Respuesta incorrecta. Sigue intentando.');
         return;
     }
     await supabaseClient.from('desafios').update({ estado: 'completado', respuesta_usuario: respuesta, fecha_respuesta: new Date().toISOString() }).eq('id', id);
     await agregarXPGemini(50);
-    alert('🎉 ¡Correcto! +50 XP');
+    showToast('🎉 ¡Correcto! +50 XP');
     await cargarRetosGemini();
     await agregarXPGemini(50);
 await verificarLogros();
@@ -4083,7 +4162,7 @@ await verificarLogros();
 
 function openAdminAulaVirtual() {
     if (!isAdminUser && !isIglesiaAdmin) {
-        alert("No tienes permisos de administrador.");
+        showToast("No tienes permisos de administrador.");
         return;
     }
     window.open('admin_aula.html', '_blank');
@@ -4095,7 +4174,7 @@ function openAdminAulaVirtual() {
     function showModuleContent(moduleId) { const mod = modulosList.find(m=>m.id===moduleId); if(!mod||!mod.contenido) return; showModal(`<h3>${escapeHtml(mod.titulo)}</h3><div style="max-height:60vh;overflow-y:auto;">${mod.contenido}</div><button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`); }
 function openCreateCourseModal() { if(!isAdminUser && !isIglesiaAdmin) return; const title = prompt("Nombre del curso:"); if(title) supabaseClient.from('cursos').insert([{ titulo:title, creado_por:currentUser.id, entidad_tipo:'iglesia', entidad_id:currentIglesiaId }]).then(()=>{ loadUserData(); renderMoodle(); }); }
 async function openAddModuleModal(cursoId) { const title = prompt("Título del módulo:"); if(title) await supabaseClient.from('modulos').insert([{ curso_id:cursoId, titulo:title, orden_index:1 }]); await loadUserData(); renderMoodle(); }
-async function startExam(examenId) { const { data: existing } = await supabaseClient.from('intentos_examen').select('*').eq('user_id',currentUser.id).eq('examen_id',examenId).single(); if(existing){ alert("Ya completaste este examen."); return; } const qs = preguntas.filter(q=>q.examen_id===examenId).sort((a,b)=>a.orden_index-b.orden_index); if(qs.length===0){ alert("Este examen no tiene preguntas."); return; } examQuestions=qs; examCurrentIndex=0; examScore=0; currentExamId=examenId; document.getElementById('examOverlay').style.display='block'; respuestasExamen = [];examScore = 0; loadExamQuestion(); }
+async function startExam(examenId) { const { data: existing } = await supabaseClient.from('intentos_examen').select('*').eq('user_id',currentUser.id).eq('examen_id',examenId).single(); if(existing){ showToast("Ya completaste este examen."); return; } const qs = preguntas.filter(q=>q.examen_id===examenId).sort((a,b)=>a.orden_index-b.orden_index); if(qs.length===0){ showToast("Este examen no tiene preguntas."); return; } examQuestions=qs; examCurrentIndex=0; examScore=0; currentExamId=examenId; document.getElementById('examOverlay').style.display='block'; respuestasExamen = [];examScore = 0; loadExamQuestion(); }
 
    function loadExamQuestion() {
   if (examCurrentIndex >= examQuestions.length) {
@@ -4265,7 +4344,7 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
 
   window.submitSelectedAnswer = () => {
     if (selectedOption === null) {
-      alert("Por favor, selecciona una respuesta antes de continuar.");
+      showToast("Por favor, selecciona una respuesta antes de continuar.");
       return;
     }
     clearInterval(examTimer);
@@ -4324,7 +4403,7 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
 
   if (error) {
     console.error("Error al guardar el examen:", error);
-    alert("Error al guardar: " + error.message);
+    showToast("Error al guardar: " + error.message);
     return;
   }
 
@@ -4368,7 +4447,7 @@ if (currentTab === 'moodle') {
 
 function mostrarRevisionExamen() {
   if (!respuestasExamen || respuestasExamen.length === 0) {
-    alert("No hay respuestas guardadas para revisar.");
+    showToast("No hay respuestas guardadas para revisar.");
     return;
   }
 
@@ -4425,13 +4504,13 @@ async function verDetalleExamen(examenId) {
         .limit(1);
     
     if (!intentos || intentos.length === 0) {
-        alert("No se encontró un intento previo.");
+        showToast("No se encontró un intento previo.");
         return;
     }
     
     const intento = intentos[0];
     if (!intento.respuestas) {
-        alert("No hay detalle de respuestas guardado para este examen.");
+        showToast("No hay detalle de respuestas guardado para este examen.");
         return;
     }
     
@@ -4453,7 +4532,7 @@ async function verDetalleExamen(examenId) {
       completado: false
     });
     if (error) console.error('Error guardando progreso parcial:', error);
-    else alert(`Examen guardado con puntaje parcial: ${puntajeParcial.toFixed(2)}/20. Puedes continuar después.`);
+    else showToast(`Examen guardado con puntaje parcial: ${puntajeParcial.toFixed(2)}/20. Puedes continuar después.`);
   }
   document.getElementById('examOverlay').style.display = 'none';
   await loadUserData();
@@ -4761,7 +4840,7 @@ async function saveUserProfileWithPhoto() {
     if (fotoFile) {
         // Validar tamaño (máximo 2MB)
         if (fotoFile.size > 2 * 1024 * 1024) {
-            alert('La foto es demasiado grande. Máximo 2MB.');
+            showToast('La foto es demasiado grande. Máximo 2MB.');
             return;
         }
         const fileExt = fotoFile.name.split('.').pop();
@@ -4770,7 +4849,7 @@ async function saveUserProfileWithPhoto() {
             .from('avatars')
             .upload(fileName, fotoFile);
         if (uploadError) {
-            alert('Error al subir la foto: ' + uploadError.message);
+            showToast('Error al subir la foto: ' + uploadError.message);
             return;
         }
         const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
@@ -4791,7 +4870,7 @@ async function saveUserProfileWithPhoto() {
         .eq('id', currentUser.id);
 
     if (error) {
-        alert('Error al guardar: ' + error.message);
+        showToast('Error al guardar: ' + error.message);
         return;
     }
 
@@ -4799,7 +4878,7 @@ async function saveUserProfileWithPhoto() {
     aplicarTema(tema);
     localStorage.setItem('user_theme', tema);
     
-    alert('✅ Perfil actualizado correctamente');
+    showToast('✅ Perfil actualizado correctamente');
     closeModal();
     await loadProfile();        // Recargar perfil
     await loadUserData();       // Recargar datos de usuario (por si cambió algo)
@@ -4998,7 +5077,7 @@ async function showEstadisticas() {
         showModal(html);
     } catch (error) {
         console.error("Error en estadísticas:", error);
-        alert("Error al cargar estadísticas: " + error.message);
+        showToast("Error al cargar estadísticas: " + error.message);
     }
 }
 
@@ -5012,7 +5091,7 @@ window.showEstadisticas = showEstadisticas;
         .order('fecha_envio', { ascending: false });
 
     if (error) {
-        alert("Error: " + error.message);
+        showToast("Error: " + error.message);
         return;
     }
 
@@ -5049,7 +5128,7 @@ async function eliminarDesafioAdmin(id) {
     
 async function adminUserManagement() {
     if (!currentIglesiaId) {
-        alert("Primero selecciona una iglesia en el panel de administración.");
+        showToast("Primero selecciona una iglesia en el panel de administración.");
         return;
     }
 
@@ -5065,7 +5144,7 @@ async function adminUserManagement() {
         .from('usuarios_iglesia')
         .select('*, perfiles(nombre, email, rol)')
         .eq('iglesia_id', currentIglesiaId);
-    if (error) return alert("Error: " + error.message);
+    if (error) return showToast("Error: " + error.message);
 
     // Obtener departamentos de la iglesia actual para los selectores
     const { data: deptosActuales } = await supabaseClient
@@ -5223,9 +5302,9 @@ async function adminUserManagement() {
                             .from('usuarios_iglesia')
                             .update({ iglesia_id: nuevaIglesiaId, departamento_id: null, rol_musical: null })
                             .eq('id', m.id);
-                        if (error) alert("Error al cambiar iglesia: " + error.message);
+                        if (error) showToast("Error al cambiar iglesia: " + error.message);
                         else {
-                            alert("Iglesia cambiada correctamente. Recargando panel...");
+                            showToast("Iglesia cambiada correctamente. Recargando panel...");
                             closeModal();
                             adminUserManagement();
                         }
@@ -5255,7 +5334,7 @@ window.updateUserByAdminNuevo = async (miembroId, userId) => {
     await supabaseClient.from('perfiles').update({ nombre, rol }).eq('id', userId);
     // Actualizar usuarios_iglesia
     await supabaseClient.from('usuarios_iglesia').update({ departamento_id: departamentoId, rol_musical: rolMusical, es_admin_iglesia: esAdminIglesia, es_admin_departamento: esAdminDepto }).eq('id', miembroId);
-    alert("Usuario actualizado correctamente");
+    showToast("Usuario actualizado correctamente");
     closeModal();
     adminUserManagement();
 };
@@ -5268,29 +5347,29 @@ window.deleteUserById = async (userId) => {
         await supabaseClient.from('estadisticas_usuarios').delete().eq('user_id',userId);
         await supabaseClient.from('usuarios_iglesia').delete().eq('user_id',userId).eq('iglesia_id',currentIglesiaId);
         await supabaseClient.from('perfiles').delete().eq('id',userId);
-        alert("Usuario eliminado.");
+        showToast("Usuario eliminado.");
         closeModal();
         await loadUserData();
         renderCurrentView();
-    } catch(err){ alert("Error al eliminar: "+err.message); }
+    } catch(err){ showToast("Error al eliminar: "+err.message); }
 };
    
     
-    async function adminActividades() { const { data: actividades, error } = await supabaseClient.from('actividades').select('*').eq('iglesia_id',currentIglesiaId).order('fecha',{ascending:true}); if(error){ alert("Error: "+error.message); return; } let html=`<h3>📅 Gestión de Eventos Especiales</h3><div style="margin-bottom:1rem;"><button class="btn btn-primary" onclick="showActividadForm()">➕ Nueva actividad</button></div><div style="display:flex;flex-direction:column;gap:1rem;">`; for(let act of actividades){ html+=`<div class="card" style="padding:1rem;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><strong>${escapeHtml(act.titulo)}</strong><br><span class="card-category">${act.tipo}</span><span class="card-category" style="background:#10B981;">${act.fecha}</span>${act.descripcion?`<p style="margin-top:0.5rem;">${escapeHtml(act.descripcion)}</p>`:''}</div><div><button class="btn-icon" onclick="editActividad('${act.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteActividad('${act.id}')" style="color:red;"><i class="fas fa-trash"></i></button></div></div></div>`; } html+=`</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); window.showActividadForm=(id=null)=>{ const actividad=id?actividades.find(a=>a.id===id):null; showModal(`<h3>${id?'Editar':'Nueva'} actividad</h3><div class="form-group"><label>Título</label><input id="actTitulo" class="form-control" value="${escapeHtml(actividad?.titulo||'')}"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="actDescripcion" rows="2" class="form-control">${escapeHtml(actividad?.descripcion||'')}</textarea></div><div class="form-group"><label>Fecha (dd/mm/aaaa)</label><input id="actFecha" class="form-control" value="${actividad?.fecha||''}" placeholder="31/12/2025"></div><div class="form-group"><label>Tipo</label><select id="actTipo" class="form-control"><option value="evento" ${actividad?.tipo==='evento'?'selected':''}>Evento</option><option value="invitacion" ${actividad?.tipo==='invitacion'?'selected':''}>Invitación externa</option><option value="reunion" ${actividad?.tipo==='reunion'?'selected':''}>Reunión</option></select></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal(); adminActividades();">Cancelar</button><button class="btn btn-primary" onclick="saveActividad('${id||''}')">Guardar</button></div>`); flatpickr("#actFecha",{dateFormat:"d/m/Y"}); }; window.saveActividad=async(id)=>{ const titulo=document.getElementById('actTitulo').value.trim(); const descripcion=document.getElementById('actDescripcion').value.trim(); const fecha=document.getElementById('actFecha').value; const tipo=document.getElementById('actTipo').value; if(!titulo||!fecha) return alert("Título y fecha son obligatorios"); const body={ titulo, descripcion, fecha, tipo, iglesia_id:currentIglesiaId }; if(id){ await supabaseClient.from('actividades').update(body).eq('id',id); } else { body.id=generateUniqueId(); body.creado_por=currentUser.id; await supabaseClient.from('actividades').insert(body); } closeModal(); adminActividades(); }; window.deleteActividad=async(id)=>{ if(confirm("¿Eliminar esta actividad?")){ await supabaseClient.from('actividades').delete().eq('id',id); closeModal(); adminActividades(); } }; }
+    async function adminActividades() { const { data: actividades, error } = await supabaseClient.from('actividades').select('*').eq('iglesia_id',currentIglesiaId).order('fecha',{ascending:true}); if(error){ showToast("Error: "+error.message); return; } let html=`<h3>📅 Gestión de Eventos Especiales</h3><div style="margin-bottom:1rem;"><button class="btn btn-primary" onclick="showActividadForm()">➕ Nueva actividad</button></div><div style="display:flex;flex-direction:column;gap:1rem;">`; for(let act of actividades){ html+=`<div class="card" style="padding:1rem;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><strong>${escapeHtml(act.titulo)}</strong><br><span class="card-category">${act.tipo}</span><span class="card-category" style="background:#10B981;">${act.fecha}</span>${act.descripcion?`<p style="margin-top:0.5rem;">${escapeHtml(act.descripcion)}</p>`:''}</div><div><button class="btn-icon" onclick="editActividad('${act.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteActividad('${act.id}')" style="color:red;"><i class="fas fa-trash"></i></button></div></div></div>`; } html+=`</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); window.showActividadForm=(id=null)=>{ const actividad=id?actividades.find(a=>a.id===id):null; showModal(`<h3>${id?'Editar':'Nueva'} actividad</h3><div class="form-group"><label>Título</label><input id="actTitulo" class="form-control" value="${escapeHtml(actividad?.titulo||'')}"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="actDescripcion" rows="2" class="form-control">${escapeHtml(actividad?.descripcion||'')}</textarea></div><div class="form-group"><label>Fecha (dd/mm/aaaa)</label><input id="actFecha" class="form-control" value="${actividad?.fecha||''}" placeholder="31/12/2025"></div><div class="form-group"><label>Tipo</label><select id="actTipo" class="form-control"><option value="evento" ${actividad?.tipo==='evento'?'selected':''}>Evento</option><option value="invitacion" ${actividad?.tipo==='invitacion'?'selected':''}>Invitación externa</option><option value="reunion" ${actividad?.tipo==='reunion'?'selected':''}>Reunión</option></select></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal(); adminActividades();">Cancelar</button><button class="btn btn-primary" onclick="saveActividad('${id||''}')">Guardar</button></div>`); flatpickr("#actFecha",{dateFormat:"d/m/Y"}); }; window.saveActividad=async(id)=>{ const titulo=document.getElementById('actTitulo').value.trim(); const descripcion=document.getElementById('actDescripcion').value.trim(); const fecha=document.getElementById('actFecha').value; const tipo=document.getElementById('actTipo').value; if(!titulo||!fecha) return showToast("Título y fecha son obligatorios"); const body={ titulo, descripcion, fecha, tipo, iglesia_id:currentIglesiaId }; if(id){ await supabaseClient.from('actividades').update(body).eq('id',id); } else { body.id=generateUniqueId(); body.creado_por=currentUser.id; await supabaseClient.from('actividades').insert(body); } closeModal(); adminActividades(); }; window.deleteActividad=async(id)=>{ if(confirm("¿Eliminar esta actividad?")){ await supabaseClient.from('actividades').delete().eq('id',id); closeModal(); adminActividades(); } }; }
     async function adminCourses() { let html=`<h3>Gestionar Cursos</h3>`; for(let curso of cursos){ html+=`<div class="card" style="margin-bottom:1rem;"><h4>${escapeHtml(curso.titulo)}</h4><p>${escapeHtml(curso.descripcion||'Sin descripción')}</p><button class="btn btn-primary" onclick="editCourse('${curso.id}')">Editar Curso</button><button class="btn btn-ghost" onclick="manageModules('${curso.id}')">Gestionar Lecciones</button></div>`; } html+=`<button class="btn btn-primary" onclick="createCourse()">➕ Nuevo Curso</button>`; showModal(html); }
     function createCourse() { showModal(`<h3>Nuevo Curso</h3><div class="form-group"><label>Título</label><input id="newCourseTitle" class="form-control"></div><div class="form-group"><label>Descripción</label><textarea id="newCourseDesc" rows="3" class="form-control"></textarea></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewCourse()">Guardar</button></div>`); }
-    async function saveNewCourse() { const titulo=document.getElementById('newCourseTitle').value.trim(); const descripcion=document.getElementById('newCourseDesc').value.trim(); if(!titulo) return alert("Título requerido"); await supabaseClient.from('cursos').insert([{ id:generateUniqueId(), titulo, descripcion, entidad_tipo:'iglesia', entidad_id:currentIglesiaId }]); await loadUserData(); closeModal(); adminCourses(); }
+    async function saveNewCourse() { const titulo=document.getElementById('newCourseTitle').value.trim(); const descripcion=document.getElementById('newCourseDesc').value.trim(); if(!titulo) return showToast("Título requerido"); await supabaseClient.from('cursos').insert([{ id:generateUniqueId(), titulo, descripcion, entidad_tipo:'iglesia', entidad_id:currentIglesiaId }]); await loadUserData(); closeModal(); adminCourses(); }
     async function editCourse(cursoId) { const curso=cursos.find(c=>c.id===cursoId); if(!curso) return; showModal(`<h3>Editar Curso</h3><div class="form-group"><label>Título</label><input id="editCourseTitle" class="form-control" value="${escapeHtml(curso.titulo)}"></div><div class="form-group"><label>Descripción</label><textarea id="editCourseDesc" rows="3" class="form-control">${escapeHtml(curso.descripcion||'')}</textarea></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="updateCourse('${cursoId}')">Actualizar</button></div>`); }
     async function updateCourse(cursoId) { const titulo=document.getElementById('editCourseTitle').value.trim(); const descripcion=document.getElementById('editCourseDesc').value.trim(); await supabaseClient.from('cursos').update({ titulo, descripcion }).eq('id',cursoId); await loadUserData(); closeModal(); adminCourses(); }
     async function manageModules(cursoId) { const mods=modulosList.filter(m=>m.curso_id===cursoId); let html=`<h3>Lecciones del curso</h3>`; mods.forEach(mod=>{ html+=`<div class="card" style="margin-bottom:0.5rem;"><b>${escapeHtml(mod.titulo)}</b> (orden ${mod.orden_index})<div style="margin-top:0.5rem;"><button class="btn btn-secondary" onclick="editModule('${mod.id}')">✏️ Editar</button><button class="btn btn-danger" onclick="deleteModule('${mod.id}')">🗑️ Eliminar</button></div></div>`; }); html+=`<button class="btn btn-primary" onclick="addModule('${cursoId}')">➕ Agregar Lección</button><br><br><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
     function addModule(cursoId) { showModal(`<h3>Nueva Lección</h3><div class="form-group"><label>Título</label><input id="modTitle" class="form-control"></div><div class="form-group"><label>Contenido (HTML o texto con enlaces)</label><textarea id="modContent" rows="6" class="form-control" placeholder="<h3>Introducción</h3><p>Texto...</p>"></textarea></div><div class="form-group"><label>Subir archivo (PDF, Word, Imagen)</label><input type="file" id="modFile" accept=".pdf,.docx,.jpg,.png,.jpeg"></div><div class="form-group"><label>Orden</label><input type="number" id="modOrder" class="form-control" value="1"></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveModuleWithFile('${cursoId}')">Guardar</button></div>`); }
-    async function saveModuleWithFile(cursoId) { const titulo=document.getElementById('modTitle').value.trim(); let contenido=document.getElementById('modContent').value; const orden=parseInt(document.getElementById('modOrder').value)||1; const file=document.getElementById('modFile').files[0]; if(!titulo) return alert("Título requerido"); if(file){ try{ const url=await uploadFileToStorage(file,'lecciones'); contenido+=`<br><a href="${url}" target="_blank">📎 Descargar material adjunto</a>`; } catch(e){ console.error(e); alert("Error al subir archivo: "+e.message); } } await supabaseClient.from('modulos').insert({ id:generateUniqueId(), curso_id:cursoId, titulo, contenido, orden_index:orden }); await loadUserData(); closeModal(); manageModules(cursoId); }
+    async function saveModuleWithFile(cursoId) { const titulo=document.getElementById('modTitle').value.trim(); let contenido=document.getElementById('modContent').value; const orden=parseInt(document.getElementById('modOrder').value)||1; const file=document.getElementById('modFile').files[0]; if(!titulo) return showToast("Título requerido"); if(file){ try{ const url=await uploadFileToStorage(file,'lecciones'); contenido+=`<br><a href="${url}" target="_blank">📎 Descargar material adjunto</a>`; } catch(e){ console.error(e); showToast("Error al subir archivo: "+e.message); } } await supabaseClient.from('modulos').insert({ id:generateUniqueId(), curso_id:cursoId, titulo, contenido, orden_index:orden }); await loadUserData(); closeModal(); manageModules(cursoId); }
     async function editModule(modId) { const mod=modulosList.find(m=>m.id===modId); if(!mod) return; showModal(`<h3>Editar Lección</h3><div class="form-group"><label>Título</label><input id="editModTitle" class="form-control" value="${escapeHtml(mod.titulo)}"></div><div class="form-group"><label>Contenido</label><textarea id="editModContent" rows="6" class="form-control">${escapeHtml(mod.contenido||'')}</textarea></div><div class="form-group"><label>Subir nuevo archivo (opcional)</label><input type="file" id="editModFile" accept=".pdf,.docx,.jpg,.png,.jpeg"></div><div class="form-group"><label>Orden</label><input type="number" id="editModOrder" class="form-control" value="${mod.orden_index||1}"></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="updateModuleWithFile('${modId}')">Actualizar</button></div>`); }
-    async function updateModuleWithFile(modId) { const titulo=document.getElementById('editModTitle').value.trim(); let contenido=document.getElementById('editModContent').value; const orden=parseInt(document.getElementById('editModOrder').value)||1; const file=document.getElementById('editModFile').files[0]; if(!titulo) return alert("Título requerido"); if(file){ try{ const url=await uploadFileToStorage(file,'lecciones'); contenido+=`<br><a href="${url}" target="_blank">📎 Material adjunto</a>`; } catch(e){ console.error(e); alert("Error al subir archivo: "+e.message); } } await supabaseClient.from('modulos').update({ titulo, contenido, orden_index:orden }).eq('id',modId); await loadUserData(); closeModal(); const cursoId=modulosList.find(m=>m.id===modId)?.curso_id; if(cursoId) manageModules(cursoId); }
+    async function updateModuleWithFile(modId) { const titulo=document.getElementById('editModTitle').value.trim(); let contenido=document.getElementById('editModContent').value; const orden=parseInt(document.getElementById('editModOrder').value)||1; const file=document.getElementById('editModFile').files[0]; if(!titulo) return showToast("Título requerido"); if(file){ try{ const url=await uploadFileToStorage(file,'lecciones'); contenido+=`<br><a href="${url}" target="_blank">📎 Material adjunto</a>`; } catch(e){ console.error(e); showToast("Error al subir archivo: "+e.message); } } await supabaseClient.from('modulos').update({ titulo, contenido, orden_index:orden }).eq('id',modId); await loadUserData(); closeModal(); const cursoId=modulosList.find(m=>m.id===modId)?.curso_id; if(cursoId) manageModules(cursoId); }
     async function deleteModule(modId) { if(confirm("¿Eliminar esta lección?")){ await supabaseClient.from('modulos').delete().eq('id',modId); await loadUserData(); closeModal(); adminCourses(); } }
     async function adminExams() { let html=`<h3>Exámenes</h3>`; for(let ex of examenes){ const modulo=modulosList.find(m=>m.id===ex.modulo_id); html+=`<div class="card" style="margin-bottom:1rem;"><b>${escapeHtml(ex.titulo)}</b><br>Módulo: ${modulo?modulo.titulo:'?'}<br>Tiempo por pregunta: ${ex.tiempo_por_pregunta} segundos<br><button class="btn btn-primary" onclick="editExam('${ex.id}')">✏️ Editar Examen</button><button class="btn btn-primary" onclick="manageQuestions('${ex.id}')">📋 Preguntas (${preguntas.filter(p=>p.examen_id===ex.id).length})</button><button class="btn btn-danger" onclick="deleteExam('${ex.id}')">🗑️ Eliminar</button></div>`; } html+=`<button class="btn btn-primary" onclick="createExam()">➕ Nuevo Examen</button>`; showModal(html); }
     function createExam() { let modOptions=modulosList.map(m=>`<option value="${m.id}">${escapeHtml(m.titulo)}</option>`).join(''); showModal(`<h3>Nuevo Examen</h3><div class="form-group"><label>Título</label><input id="examTitle" class="form-control"></div><div class="form-group"><label>Módulo</label><select id="examModulo" class="form-control">${modOptions}</select></div><div class="form-group"><label>Tiempo por pregunta (segundos)</label><input id="examTime" type="number" class="form-control" value="15"></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewExam()">Guardar</button></div>`); }
-    async function saveNewExam() { const titulo=document.getElementById('examTitle').value.trim(); const modulo_id=document.getElementById('examModulo').value; const tiempo=parseInt(document.getElementById('examTime').value)||15; if(!titulo) return alert("Título requerido"); await supabaseClient.from('examenes').insert([{ id:generateUniqueId(), modulo_id, titulo, tiempo_por_pregunta:tiempo }]); await loadUserData(); closeModal(); adminExams(); }
+    async function saveNewExam() { const titulo=document.getElementById('examTitle').value.trim(); const modulo_id=document.getElementById('examModulo').value; const tiempo=parseInt(document.getElementById('examTime').value)||15; if(!titulo) return showToast("Título requerido"); await supabaseClient.from('examenes').insert([{ id:generateUniqueId(), modulo_id, titulo, tiempo_por_pregunta:tiempo }]); await loadUserData(); closeModal(); adminExams(); }
     async function editExam(examId) { const exam=examenes.find(e=>e.id===examId); if(!exam) return; let modOptions=modulosList.map(m=>`<option value="${m.id}" ${m.id===exam.modulo_id?'selected':''}>${escapeHtml(m.titulo)}</option>`).join(''); showModal(`<h3>Editar Examen</h3><div class="form-group"><label>Título</label><input id="editExamTitle" class="form-control" value="${escapeHtml(exam.titulo)}"></div><div class="form-group"><label>Módulo</label><select id="editExamModulo" class="form-control">${modOptions}</select></div><div class="form-group"><label>Tiempo por pregunta (segundos)</label><input id="editExamTime" type="number" class="form-control" value="${exam.tiempo_por_pregunta||15}"></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="updateExam('${examId}')">Actualizar</button></div>`); }
     async function updateExam(examId) { const titulo=document.getElementById('editExamTitle').value.trim(); const modulo_id=document.getElementById('editExamModulo').value; const tiempo=parseInt(document.getElementById('editExamTime').value)||15; await supabaseClient.from('examenes').update({ titulo, modulo_id, tiempo_por_pregunta:tiempo }).eq('id',examId); await loadUserData(); closeModal(); adminExams(); }
     async function deleteExam(examId) { if(confirm("¿Eliminar este examen y todas sus preguntas?")){ await supabaseClient.from('preguntas').delete().eq('examen_id',examId); await supabaseClient.from('examenes').delete().eq('id',examId); await loadUserData(); adminExams(); } }
@@ -5298,11 +5377,11 @@ window.deleteUserById = async (userId) => {
     async function manageQuestions(examId) { currentExamId=examId; const existing=preguntas.filter(p=>p.examen_id===examId).sort((a,b)=>a.orden_index-b.orden_index); tempQuestions=existing.map(p=>({...p})); renderQuestionBuilder(); }
     function renderQuestionBuilder() { let html=`<h3>Constructor de Preguntas</h3><div id="questionsList">`; tempQuestions.forEach((q,idx)=>{ html+=`<div class="card" style="margin-bottom:0.5rem;"><b>Pregunta ${idx+1}:</b> ${escapeHtml(q.enunciado)}<br>Tipo: ${q.tipo||'multiple'} | Tiempo: ${q.tiempo_segundos||15}s<div style="margin-top:0.5rem;"><button class="btn btn-secondary" onclick="openQuestionModal(${idx})">✏️ Editar</button><button class="btn btn-danger" onclick="removeQuestion(${idx})">🗑️ Eliminar</button></div></div>`; }); html+=`</div><button class="btn btn-primary" onclick="openQuestionModal()">➕ Agregar Pregunta</button><button class="btn btn-success" onclick="saveAllQuestions()">💾 Guardar todas las preguntas</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>`; showModal(html); }
     function openQuestionModal(index=null) { const isEditing=(index!==null); const q=isEditing?tempQuestions[index]:null; window.toggleQuestionOptions=()=>{ const tipo=document.getElementById('qTipo').value; const container=document.getElementById('opcionesContainer'); if(tipo==='multiple'){ container.innerHTML=`<div class="form-group"><label>Opción A</label><input id="opA" class="form-control" value="${escapeHtml(q?.opcion_a||'')}"></div><div class="form-group"><label>Opción B</label><input id="opB" class="form-control" value="${escapeHtml(q?.opcion_b||'')}"></div><div class="form-group"><label>Opción C</label><input id="opC" class="form-control" value="${escapeHtml(q?.opcion_c||'')}"></div><div class="form-group"><label>Opción D</label><input id="opD" class="form-control" value="${escapeHtml(q?.opcion_d||'')}"></div><div class="form-group"><label>Respuesta correcta (letra)</label><select id="respCorrecta" class="form-control">${['A','B','C','D'].map(l=>`<option ${q?.opcion_correcta===l?'selected':''}>${l}</option>`).join('')}</select></div>`; } else if(tipo==='vf'){ container.innerHTML=`<div class="form-group"><label>Respuesta correcta</label><select id="respCorrectaVF" class="form-control"><option ${q?.opcion_correcta==='V'?'selected':''}>Verdadero</option><option ${q?.opcion_correcta==='F'?'selected':''}>Falso</option></select></div>`; } else { container.innerHTML=`<div class="form-group"><label>Respuesta exacta (texto)</label><input id="respCompletar" class="form-control" value="${escapeHtml(q?.opcion_correcta||'')}" placeholder="Ej: Shachah"></div>`; } }; const tipoActual=q?.tipo||'multiple'; const tiempoActual=q?.tiempo_segundos||15; const enunciadoActual=q?.enunciado||''; const modalContent=`<h3>${isEditing?'Editar':'Nueva'} Pregunta</h3><div class="form-group"><label>Enunciado</label><textarea id="qEnunciado" rows="2" class="form-control">${escapeHtml(enunciadoActual)}</textarea></div><div class="form-group"><label>Tipo</label><select id="qTipo" class="form-control" onchange="toggleQuestionOptions()"><option value="multiple" ${tipoActual==='multiple'?'selected':''}>Múltiple (A, B, C, D)</option><option value="vf" ${tipoActual==='vf'?'selected':''}>Verdadero / Falso</option><option value="completar" ${tipoActual==='completar'?'selected':''}>Completar (respuesta corta)</option></select></div><div id="opcionesContainer"></div><div class="form-group"><label>Tiempo para responder (segundos)</label><input id="qTiempo" type="number" class="form-control" value="${tiempoActual}"></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveQuestionFromModal(${isEditing?index:'null'})">Guardar</button></div>`; showModal(modalContent); window.toggleQuestionOptions(); }
-    function saveQuestionFromModal(index) { const enunciado=document.getElementById('qEnunciado').value.trim(); if(!enunciado) return alert("Enunciado requerido"); const tipo=document.getElementById('qTipo').value; const tiempo=parseInt(document.getElementById('qTiempo').value)||15; let opcion_a='',opcion_b='',opcion_c='',opcion_d='',opcion_correcta=''; if(tipo==='multiple'){ opcion_a=document.getElementById('opA').value; opcion_b=document.getElementById('opB').value; opcion_c=document.getElementById('opC').value; opcion_d=document.getElementById('opD').value; opcion_correcta=document.getElementById('respCorrecta').value; } else if(tipo==='vf'){ opcion_correcta=document.getElementById('respCorrectaVF').value==='Verdadero'?'V':'F'; opcion_a='Verdadero'; opcion_b='Falso'; } else { opcion_correcta=document.getElementById('respCompletar').value.trim(); } const questionData={ id:null, enunciado, tipo, opcion_a, opcion_b, opcion_c, opcion_d, opcion_correcta, tiempo_segundos:tiempo, orden_index:(index!==null)?tempQuestions[index]?.orden_index:tempQuestions.length }; if(index!==null){ tempQuestions[index]={...tempQuestions[index],...questionData}; } else { tempQuestions.push(questionData); } closeModal(); renderQuestionBuilder(); }
+    function saveQuestionFromModal(index) { const enunciado=document.getElementById('qEnunciado').value.trim(); if(!enunciado) return showToast("Enunciado requerido"); const tipo=document.getElementById('qTipo').value; const tiempo=parseInt(document.getElementById('qTiempo').value)||15; let opcion_a='',opcion_b='',opcion_c='',opcion_d='',opcion_correcta=''; if(tipo==='multiple'){ opcion_a=document.getElementById('opA').value; opcion_b=document.getElementById('opB').value; opcion_c=document.getElementById('opC').value; opcion_d=document.getElementById('opD').value; opcion_correcta=document.getElementById('respCorrecta').value; } else if(tipo==='vf'){ opcion_correcta=document.getElementById('respCorrectaVF').value==='Verdadero'?'V':'F'; opcion_a='Verdadero'; opcion_b='Falso'; } else { opcion_correcta=document.getElementById('respCompletar').value.trim(); } const questionData={ id:null, enunciado, tipo, opcion_a, opcion_b, opcion_c, opcion_d, opcion_correcta, tiempo_segundos:tiempo, orden_index:(index!==null)?tempQuestions[index]?.orden_index:tempQuestions.length }; if(index!==null){ tempQuestions[index]={...tempQuestions[index],...questionData}; } else { tempQuestions.push(questionData); } closeModal(); renderQuestionBuilder(); }
     function removeQuestion(idx) { if(confirm("¿Eliminar esta pregunta?")){ tempQuestions.splice(idx,1); tempQuestions.forEach((q,i)=>q.orden_index=i); renderQuestionBuilder(); } }
-    async function saveAllQuestions() { if(!currentExamId) return alert("No hay examen seleccionado"); await supabaseClient.from('preguntas').delete().eq('examen_id',currentExamId); for(let i=0;i<tempQuestions.length;i++){ const q=tempQuestions[i]; await supabaseClient.from('preguntas').insert({ id:generateUniqueId(), examen_id:currentExamId, enunciado:q.enunciado, tipo:q.tipo||'multiple', opcion_a:q.opcion_a||'', opcion_b:q.opcion_b||'', opcion_c:q.opcion_c||'', opcion_d:q.opcion_d||'', opcion_correcta:q.opcion_correcta, tiempo_segundos:q.tiempo_segundos, orden_index:i }); } await loadUserData(); alert("Preguntas guardadas correctamente"); closeModal(); adminExams(); }
-    function adminAttendance() { let html=`<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${usuariosIglesia.map(u=>`<option value="${u.id}">${escapeHtml(u.perfiles?.nombre)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); flatpickr("#attDate",{locale:"es",dateFormat:"d/m/Y",defaultDate:"today"}); const renderAttList=()=>{ const container=document.getElementById('attList'); if(container) container.innerHTML=attendance.map((a)=>{ const miembro=usuariosIglesia.find(u=>u.id===a.usuario_iglesia_id); return `<div>${a.fecha} - ${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`; }).join(''); }; window.saveAttendanceAdmin=async()=>{ const date=document.getElementById('attDate').value; const usuarioIglesiaId=document.getElementById('attMember').value; const status=document.getElementById('attStatus').value; if(!date||!usuarioIglesiaId) return alert("Completa los campos"); const { error } = await supabaseClient.from('asistencia').insert([{ fecha:date, usuario_iglesia_id:usuarioIglesiaId, estado:status }]); if(error) return alert("Error: "+error.message); await loadUserData(); renderAttList(); document.getElementById('attDate').value=''; }; window.deleteAttendanceAdmin=async(id)=>{ if(confirm("¿Eliminar este registro?")){ const { error } = await supabaseClient.from('asistencia').delete().eq('id',id); if(error) return alert("Error: "+error.message); await loadUserData(); renderAttList(); } }; renderAttList(); }
-    function adminShifts() { let currentDate=null; async function loadTurnosForDate(dateStr){ const { data, error } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(perfiles(nombre,email))').eq('fecha',dateStr); if(error){ console.error(error); return []; } return data; } async function showDateManagement(dateStr){ currentDate=dateStr; const turnos=await loadTurnosForDate(dateStr); const miembrosPorSubgrupo={}; for(let turno of turnos){ const miembro=usuariosIglesia.find(u=>u.id===turno.usuario_iglesia_id); if(!miembro) continue; const depto=departamentos.find(d=>d.id===miembro.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!miembrosPorSubgrupo[grupo]) miembrosPorSubgrupo[grupo]=[]; miembrosPorSubgrupo[grupo].push({ id:turno.id, nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } let html=`<h3>📅 Turnos del ${dateStr}</h3><div style="margin-bottom:1rem;">`; for(let [grupo,lista] of Object.entries(miembrosPorSubgrupo)){ if(lista.length===0) continue; html+=`<div class="card" style="margin-bottom:1rem;padding:0.8rem;"><h4>${grupo}</h4>`; for(let item of lista){ html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;"><div><strong>${escapeHtml(item.nombre)}</strong> (${escapeHtml(item.rol||'Sin rol')})</div><button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}','${dateStr}')" style="color:red;"><i class="fas fa-trash"></i></button></div>`; } html+=`</div>`; } html+=`<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button><button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button></div>`; showModal(html); } window.showAddMemberForm=async(dateStr)=>{ const turnosExistentes=await loadTurnosForDate(dateStr); const miembrosOcupados=turnosExistentes.map(t=>t.usuario_iglesia_id); const miembrosDisponibles=usuariosIglesia.filter(u=>!miembrosOcupados.includes(u.id)); if(miembrosDisponibles.length===0){ alert("Todos los miembros ya tienen turno asignado en esta fecha."); closeModal(); adminShifts(); return; } const porSubgrupo={}; for(let m of miembrosDisponibles){ const depto=departamentos.find(d=>d.id===m.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!porSubgrupo[grupo]) porSubgrupo[grupo]=[]; porSubgrupo[grupo].push(m); } let formHtml=`<h3>Agregar miembro al turno del ${dateStr}</h3>`; for(let [grupo, miembros] of Object.entries(porSubgrupo)){ formHtml+=`<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`; for(let m of miembros){ formHtml+=`<div class="team-member-card" style="cursor:pointer;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;" onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical||'')}')"><div class="avatar" style="width:40px;height:40px;font-size:1rem;">${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase()||'?')}</div><div><strong>${escapeHtml(m.perfiles?.nombre)}</strong><br><span class="card-category">${escapeHtml(m.rol_musical||'Sin rol')}</span></div></div>`; } formHtml+=`</div></div>`; } formHtml+=`<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button></div>`; showModal(formHtml); }; window.confirmAddTurno=async(dateStr, usuarioIglesiaId, nombre, rol)=>{ if(confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)){ const { error } = await supabaseClient.from('turnos').insert([{ fecha:dateStr, usuario_iglesia_id:usuarioIglesiaId }]); if(error) alert("Error: "+error.message); else { alert("Turno asignado correctamente"); showDateManagement(dateStr); } } }; window.deleteTurnoFromDate=async(turnoId, dateStr)=>{ if(confirm("¿Eliminar este turno?")){ const { error } = await supabaseClient.from('turnos').delete().eq('id',turnoId); if(error) alert("Error: "+error.message); else showDateManagement(dateStr); } }; const turnosMap={}; shifts.forEach(s=>{ const miembro=usuariosIglesia.find(u=>u.id===s.usuario_iglesia_id); if(miembro){ if(!turnosMap[s.fecha]) turnosMap[s.fecha]=[]; turnosMap[s.fecha].push({ nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } }); const modalHtml=`<h3>📅 Gestión de Turnos por Día</h3><p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p><div class="form-group"><input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha"></div><div style="margin-top:1rem;"><h4>📋 Resumen de turnos asignados</h4><div style="max-height:300px;overflow-y:auto;border-radius:var(--radius-sm);border:1px solid var(--border);"><table style="width:100%;border-collapse:collapse;"><thead style="position:sticky;top:0;background:var(--surface);"><tr><th style="padding:0.5rem;text-align:left;">Fecha</th><th style="padding:0.5rem;text-align:left;">Miembros (rol)</th></tr></thead><tbody>${Object.entries(turnosMap).map(([fecha, miembros])=>`<tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="showDateManagement('${fecha}')"><td style="padding:0.5rem;"><strong>${fecha}</strong></td><td style="padding:0.5rem;">${miembros.map(m=>`${m.nombre} (${m.rol||'Sin rol'})`).join(', ')}</td></tr>`).join('')||'<tr><td colspan="2" style="padding:1rem;text-align:center;">No hay turnos asignados aún.</td></tr>'}</tbody></table></div></div><div style="text-align:right;margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`; showModal(modalHtml); flatpickr("#shiftCalendar",{locale:"es",dateFormat:"d/m/Y",inline:true,onDayCreate:(dObj,dStr,fp,dayElem)=>{ const year=dayElem.dateObj.getFullYear(); const month=String(dayElem.dateObj.getMonth()+1).padStart(2,'0'); const day=String(dayElem.dateObj.getDate()).padStart(2,'0'); const dateStr=`${day}/${month}/${year}`; if(turnosMap[dateStr]){ dayElem.style.backgroundColor='#3B82F6'; dayElem.style.color='white'; dayElem.style.borderRadius='50%'; dayElem.title=`Turnos: ${turnosMap[dateStr].map(m=>m.nombre).join(', ')}`; } }, onChange:(selectedDates,dateStr)=>{ if(dateStr) showDateManagement(dateStr); } }); }
+    async function saveAllQuestions() { if(!currentExamId) return showToast("No hay examen seleccionado"); await supabaseClient.from('preguntas').delete().eq('examen_id',currentExamId); for(let i=0;i<tempQuestions.length;i++){ const q=tempQuestions[i]; await supabaseClient.from('preguntas').insert({ id:generateUniqueId(), examen_id:currentExamId, enunciado:q.enunciado, tipo:q.tipo||'multiple', opcion_a:q.opcion_a||'', opcion_b:q.opcion_b||'', opcion_c:q.opcion_c||'', opcion_d:q.opcion_d||'', opcion_correcta:q.opcion_correcta, tiempo_segundos:q.tiempo_segundos, orden_index:i }); } await loadUserData(); showToast("Preguntas guardadas correctamente"); closeModal(); adminExams(); }
+    function adminAttendance() { let html=`<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${usuariosIglesia.map(u=>`<option value="${u.id}">${escapeHtml(u.perfiles?.nombre)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); flatpickr("#attDate",{locale:"es",dateFormat:"d/m/Y",defaultDate:"today"}); const renderAttList=()=>{ const container=document.getElementById('attList'); if(container) container.innerHTML=attendance.map((a)=>{ const miembro=usuariosIglesia.find(u=>u.id===a.usuario_iglesia_id); return `<div>${a.fecha} - ${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`; }).join(''); }; window.saveAttendanceAdmin=async()=>{ const date=document.getElementById('attDate').value; const usuarioIglesiaId=document.getElementById('attMember').value; const status=document.getElementById('attStatus').value; if(!date||!usuarioIglesiaId) return showToast("Completa los campos"); const { error } = await supabaseClient.from('asistencia').insert([{ fecha:date, usuario_iglesia_id:usuarioIglesiaId, estado:status }]); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); document.getElementById('attDate').value=''; }; window.deleteAttendanceAdmin=async(id)=>{ if(confirm("¿Eliminar este registro?")){ const { error } = await supabaseClient.from('asistencia').delete().eq('id',id); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); } }; renderAttList(); }
+    function adminShifts() { let currentDate=null; async function loadTurnosForDate(dateStr){ const { data, error } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(perfiles(nombre,email))').eq('fecha',dateStr); if(error){ console.error(error); return []; } return data; } async function showDateManagement(dateStr){ currentDate=dateStr; const turnos=await loadTurnosForDate(dateStr); const miembrosPorSubgrupo={}; for(let turno of turnos){ const miembro=usuariosIglesia.find(u=>u.id===turno.usuario_iglesia_id); if(!miembro) continue; const depto=departamentos.find(d=>d.id===miembro.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!miembrosPorSubgrupo[grupo]) miembrosPorSubgrupo[grupo]=[]; miembrosPorSubgrupo[grupo].push({ id:turno.id, nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } let html=`<h3>📅 Turnos del ${dateStr}</h3><div style="margin-bottom:1rem;">`; for(let [grupo,lista] of Object.entries(miembrosPorSubgrupo)){ if(lista.length===0) continue; html+=`<div class="card" style="margin-bottom:1rem;padding:0.8rem;"><h4>${grupo}</h4>`; for(let item of lista){ html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;"><div><strong>${escapeHtml(item.nombre)}</strong> (${escapeHtml(item.rol||'Sin rol')})</div><button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}','${dateStr}')" style="color:red;"><i class="fas fa-trash"></i></button></div>`; } html+=`</div>`; } html+=`<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button><button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button></div>`; showModal(html); } window.showAddMemberForm=async(dateStr)=>{ const turnosExistentes=await loadTurnosForDate(dateStr); const miembrosOcupados=turnosExistentes.map(t=>t.usuario_iglesia_id); const miembrosDisponibles=usuariosIglesia.filter(u=>!miembrosOcupados.includes(u.id)); if(miembrosDisponibles.length===0){ showToast("Todos los miembros ya tienen turno asignado en esta fecha."); closeModal(); adminShifts(); return; } const porSubgrupo={}; for(let m of miembrosDisponibles){ const depto=departamentos.find(d=>d.id===m.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!porSubgrupo[grupo]) porSubgrupo[grupo]=[]; porSubgrupo[grupo].push(m); } let formHtml=`<h3>Agregar miembro al turno del ${dateStr}</h3>`; for(let [grupo, miembros] of Object.entries(porSubgrupo)){ formHtml+=`<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`; for(let m of miembros){ formHtml+=`<div class="team-member-card" style="cursor:pointer;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;" onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical||'')}')"><div class="avatar" style="width:40px;height:40px;font-size:1rem;">${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase()||'?')}</div><div><strong>${escapeHtml(m.perfiles?.nombre)}</strong><br><span class="card-category">${escapeHtml(m.rol_musical||'Sin rol')}</span></div></div>`; } formHtml+=`</div></div>`; } formHtml+=`<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button></div>`; showModal(formHtml); }; window.confirmAddTurno=async(dateStr, usuarioIglesiaId, nombre, rol)=>{ if(confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)){ const { error } = await supabaseClient.from('turnos').insert([{ fecha:dateStr, usuario_iglesia_id:usuarioIglesiaId }]); if(error) showToast("Error: "+error.message); else { showToast("Turno asignado correctamente"); showDateManagement(dateStr); } } }; window.deleteTurnoFromDate=async(turnoId, dateStr)=>{ if(confirm("¿Eliminar este turno?")){ const { error } = await supabaseClient.from('turnos').delete().eq('id',turnoId); if(error) showToast("Error: "+error.message); else showDateManagement(dateStr); } }; const turnosMap={}; shifts.forEach(s=>{ const miembro=usuariosIglesia.find(u=>u.id===s.usuario_iglesia_id); if(miembro){ if(!turnosMap[s.fecha]) turnosMap[s.fecha]=[]; turnosMap[s.fecha].push({ nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } }); const modalHtml=`<h3>📅 Gestión de Turnos por Día</h3><p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p><div class="form-group"><input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha"></div><div style="margin-top:1rem;"><h4>📋 Resumen de turnos asignados</h4><div style="max-height:300px;overflow-y:auto;border-radius:var(--radius-sm);border:1px solid var(--border);"><table style="width:100%;border-collapse:collapse;"><thead style="position:sticky;top:0;background:var(--surface);"><tr><th style="padding:0.5rem;text-align:left;">Fecha</th><th style="padding:0.5rem;text-align:left;">Miembros (rol)</th></tr></thead><tbody>${Object.entries(turnosMap).map(([fecha, miembros])=>`<tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="showDateManagement('${fecha}')"><td style="padding:0.5rem;"><strong>${fecha}</strong></td><td style="padding:0.5rem;">${miembros.map(m=>`${m.nombre} (${m.rol||'Sin rol'})`).join(', ')}</td></tr>`).join('')||'<tr><td colspan="2" style="padding:1rem;text-align:center;">No hay turnos asignados aún.</td></tr>'}</tbody></table></div></div><div style="text-align:right;margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`; showModal(modalHtml); flatpickr("#shiftCalendar",{locale:"es",dateFormat:"d/m/Y",inline:true,onDayCreate:(dObj,dStr,fp,dayElem)=>{ const year=dayElem.dateObj.getFullYear(); const month=String(dayElem.dateObj.getMonth()+1).padStart(2,'0'); const day=String(dayElem.dateObj.getDate()).padStart(2,'0'); const dateStr=`${day}/${month}/${year}`; if(turnosMap[dateStr]){ dayElem.style.backgroundColor='#3B82F6'; dayElem.style.color='white'; dayElem.style.borderRadius='50%'; dayElem.title=`Turnos: ${turnosMap[dateStr].map(m=>m.nombre).join(', ')}`; } }, onChange:(selectedDates,dateStr)=>{ if(dateStr) showDateManagement(dateStr); } }); }
 
 
    
