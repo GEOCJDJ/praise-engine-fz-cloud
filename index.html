@@ -3586,7 +3586,7 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
 
    function loadExamQuestion() {
   if (examCurrentIndex >= examQuestions.length) {
-    finishExam();
+    ();
     return;
   }
 
@@ -3779,11 +3779,12 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
   };
 }
     
-    async function finishExam() {
+  async function finishExam() {
   const notaFinal = (examScore / examQuestions.length) * 20;
   const notaRedondeada = Math.round(notaFinal * 100) / 100;
   const aprobado = notaRedondeada >= 14;
 
+  // Guardar en Supabase (con las respuestas)
   const { error } = await supabaseClient.from('intentos_examen').insert({
     user_id: currentUser.id,
     examen_id: currentExamId,
@@ -3809,21 +3810,33 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
       <p>Respuestas correctas: ${examScore} de ${examQuestions.length}</p>
       <hr style="margin: 1rem 0;">
       <button class="btn btn-primary" onclick="mostrarRevisionExamen()">📋 Revisar mis respuestas</button>
-      <button class="btn btn-ghost" onclick="closeModal(); renderCurrentView();">Cerrar</button>
-    </div>
+        html += `</div><div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="cerrarExamenCompleto()">Cerrar</button>
+          </div>`;
   `;
   showModal(modalContent);
 
+  // No limpiar aquí, se limpiará al cerrar el modal
+  // Ocultar el overlay del examen (pantalla de preguntas)
+  document.getElementById('examOverlay').style.display = 'none';
+} 
+    
+function cerrarExamenCompleto() {
+  // Limpiar variables globales del examen
   examQuestions = [];
   examCurrentIndex = 0;
   examScore = 0;
   currentExamId = null;
   respuestasExamen = [];
-  document.getElementById('examOverlay').style.display = 'none';
-  await loadUserData();
-  if (currentTab === 'profile') renderUserProfile();
-  else renderMoodle();
+  if (examTimer) clearInterval(examTimer);
+  
+  // Cerrar el modal de resultado
+  closeModal();
+  
+  // Recargar la vista actual (Moodle o perfil)
+  renderCurrentView();
 }
+    
 async function verDetalleExamen(examenId) {
     const { data: intentos } = await supabaseClient
         .from('intentos_examen')
