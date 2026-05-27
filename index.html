@@ -3586,9 +3586,9 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
 
    function loadExamQuestion() {
   if (examCurrentIndex >= examQuestions.length) {
-    ();
+    finishExam();
     return;
-  }
+}
 
   const q = examQuestions[examCurrentIndex];
   document.getElementById('examProgressTitle').innerText = `Pregunta ${examCurrentIndex + 1} de ${examQuestions.length}`;
@@ -3778,6 +3778,22 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
     loadExamQuestion();
   };
 }
+    function cerrarExamenCompleto() {
+  // Limpiar variables globales del examen
+  examQuestions = [];
+  examCurrentIndex = 0;
+  examScore = 0;
+  currentExamId = null;
+  respuestasExamen = [];
+  if (examTimer) clearInterval(examTimer);
+  
+  // Cerrar el modal de resultado
+  closeModal();
+  
+  // Recargar la vista actual (Moodle o perfil)
+  renderCurrentView();
+}
+
     
   async function finishExam() {
   const notaFinal = (examScore / examQuestions.length) * 20;
@@ -3812,7 +3828,7 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
       <button class="btn btn-primary" onclick="mostrarRevisionExamen()">📋 Revisar mis respuestas</button>
         </div><div style="text-align: right; margin-top: 1rem;">
             <button class="btn btn-ghost" onclick="cerrarExamenCompleto()">Cerrar</button>
-          </div>`;
+          </div>
   `;
   showModal(modalContent);
 
@@ -3821,20 +3837,55 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
   document.getElementById('examOverlay').style.display = 'none';
 } 
     
-function cerrarExamenCompleto() {
-  // Limpiar variables globales del examen
-  examQuestions = [];
-  examCurrentIndex = 0;
-  examScore = 0;
-  currentExamId = null;
-  respuestasExamen = [];
-  if (examTimer) clearInterval(examTimer);
-  
-  // Cerrar el modal de resultado
-  closeModal();
-  
-  // Recargar la vista actual (Moodle o perfil)
-  renderCurrentView();
+
+
+function mostrarRevisionExamen() {
+  if (!respuestasExamen || respuestasExamen.length === 0) {
+    alert("No hay respuestas guardadas para revisar.");
+    return;
+  }
+
+  let html = `<h3>📝 Revisión del Examen</h3>
+              <div style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">`;
+
+  respuestasExamen.forEach((item, idx) => {
+    const num = idx + 1;
+    const acierto = item.esCorrecta ? '✅ Correcta' : '❌ Incorrecta';
+    const color = item.esCorrecta ? '#10B981' : '#EF4444';
+
+    html += `<div class="card" style="margin-bottom: 1rem; padding: 0.8rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <strong>Pregunta ${num}</strong>
+                <span style="color: ${color}; font-weight: bold;">${acierto}</span>
+              </div>
+              <p style="margin-top: 0.5rem;">${escapeHtml(item.pregunta)}</p>`;
+
+    if (item.tipo === 'completar') {
+      html += `<p><strong>Tu respuesta:</strong> ${escapeHtml(item.respuesta || '(no respondida)')}</p>
+               <p><strong>Respuesta correcta:</strong> ${escapeHtml(item.correctaEsperada)}</p>`;
+    } 
+    else if (item.tipo === 'multiple' && item.opciones) {
+      html += `<p><strong>Opciones:</strong><br>
+               A) ${escapeHtml(item.opciones.a)}<br>
+               B) ${escapeHtml(item.opciones.b)}<br>
+               C) ${escapeHtml(item.opciones.c)}<br>
+               D) ${escapeHtml(item.opciones.d)}</p>`;
+      html += `<p><strong>Tu selección:</strong> ${item.respuesta ? item.respuesta.split('').join(', ') : '(ninguna)'}</p>
+               <p><strong>Respuesta(s) correcta(s):</strong> ${item.correctaEsperada.split('').join(', ')}</p>`;
+    }
+    else {
+      html += `<p><strong>Tu respuesta:</strong> ${item.respuesta || '(no respondida)'}</p>
+               <p><strong>Respuesta correcta:</strong> ${item.correctaEsperada}</p>`;
+    }
+
+    html += `</div>`;
+  });
+
+  html += `</div><div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="cerrarExamenCompleto()">Cerrar</button>
+          </div>`;
+
+  showModal(html);
 }
     
 async function verDetalleExamen(examenId) {
