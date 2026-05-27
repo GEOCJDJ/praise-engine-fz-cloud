@@ -897,24 +897,65 @@ function openCifraViewer(songId, index) {
     currentSongIndex = index;
     const song = songs.find(s => s.id === songId);
     if (!song) return;
+    
     cifraCurrentSong = song;
-    // Guardar el original (sin modificar)
     cifraOriginalContent = song.lyrics || "";
     cifraCurrentOffset = 0;
     cifraFontSize = parseInt(localStorage.getItem('cifraFontSize')) || 16;
-    // Actualizar datos en la interfaz
+    
+    // Actualizar UI del modal
     document.getElementById('cifraModalTitle').innerText = song.title;
     document.getElementById('cifraModalArtist').innerText = song.category;
     document.getElementById('currentToneDisplay').innerText = song.key;
     document.getElementById('cifraBpmInput').value = song.bpm || 80;
     document.getElementById('cifraCapoInput').value = song.capo || '';
     document.getElementById('cifraCapoDisplay').innerText = song.capo ? `Capo: ${song.capo}` : '';
-    // Renderizar con offset actual (0)
+    
     applyTransposition(0);
+    
+    // Mostrar el modal
     document.getElementById('cifraClubModal').style.display = 'flex';
     isMetronomeRunning = false;
-const metroBtn = document.getElementById('toggleMetronomeBtn');
-if (metroBtn) metroBtn.innerHTML = '<i class="fas fa-play"></i> Metro';
+    const metroBtn = document.getElementById('toggleMetronomeBtn');
+    if (metroBtn) metroBtn.innerHTML = '<i class="fas fa-play"></i> Metro';
+    
+    // ========== CONFIGURAR MENÚ DE TRES PUNTOS ==========
+    const moreBtn = document.getElementById('moreOptionsBtn');
+    const floatingMenu = document.getElementById('cifraFloatingMenu');
+    
+    // Evitar duplicar eventos: eliminar listener anterior si existe
+    if (moreBtn && floatingMenu) {
+        // Clonar y reemplazar para limpiar eventos previos
+        const newMoreBtn = moreBtn.cloneNode(true);
+        moreBtn.parentNode.replaceChild(newMoreBtn, moreBtn);
+        const finalMoreBtn = document.getElementById('moreOptionsBtn');
+        
+        // Evento para abrir/cerrar el menú
+        finalMoreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (floatingMenu.style.display === 'none' || floatingMenu.style.display === '') {
+                floatingMenu.style.display = 'block';
+                // Posicionar debajo del botón
+                const rect = finalMoreBtn.getBoundingClientRect();
+                floatingMenu.style.top = `${rect.bottom + 5}px`;
+                floatingMenu.style.right = `${window.innerWidth - rect.right}px`;
+            } else {
+                floatingMenu.style.display = 'none';
+            }
+        });
+        
+        // Cerrar menú si se hace clic fuera
+        const closeMenuHandler = (e) => {
+            if (!floatingMenu.contains(e.target) && e.target !== finalMoreBtn) {
+                floatingMenu.style.display = 'none';
+            }
+        };
+        document.removeEventListener('click', closeMenuHandler);
+        document.addEventListener('click', closeMenuHandler);
+    }
+    
+    // Asegurar que el menú empiece oculto
+    if (floatingMenu) floatingMenu.style.display = 'none';
 }
 
 function closeCifraViewer() {
@@ -922,6 +963,7 @@ function closeCifraViewer() {
     if (cifraMetronomeInterval) clearInterval(cifraMetronomeInterval);
     document.getElementById('cifraClubModal').style.display = 'none';
     isMetronomeRunning = false;
+    
 }
     // Control del menú móvil en el visor de cifras
 document.addEventListener('click', function(e) {
@@ -945,9 +987,8 @@ document.addEventListener('click', function(e) {
     } else {
         // Opcional: cerrar si se toca fuera (mejor experiencia)
         if (window.innerWidth <= 768 && firstToolbar.style.display === 'flex') {
-            // No cerramos automáticamente para no frustrar al usuario, pero se puede activar si se desea
-            // firstToolbar.style.display = 'none';
-            // mobileBtn.innerHTML = '<i class="fa-solid fa-bars"></i> Más';
+            const floatingMenu = document.getElementById('cifraFloatingMenu');
+    if (floatingMenu) floatingMenu.style.display = 'none';
         }
     }
 });
