@@ -710,6 +710,85 @@ body.stage-mode pre {
   #gpraise-scriptura-shield .sc-menu-btn { display: block; }
   #gpraise-scriptura-shield .sc-reader-area { padding: 1rem; }
 }
+
+/* ===== ESTILOS MODERNOS PARA EL PERFIL ===== */
+.profile-modern-card {
+    background: var(--surface);
+    border-radius: 1.5rem;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+.profile-header-gradient {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    padding: 2rem 1.5rem;
+}
+.profile-avatar-modern {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 4px solid white;
+    object-fit: cover;
+    background: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+.stat-card-modern {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(4px);
+    border-radius: 1rem;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.2s;
+}
+.stat-card-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+.stat-number-modern {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+.chart-container {
+    background: var(--bg-app);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+.btn-modern {
+    padding: 0.6rem 1.2rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.btn-modern-primary {
+    background: var(--primary);
+    color: white;
+}
+.btn-modern-primary:hover {
+    background: var(--primary-light);
+    transform: scale(1.02);
+}
+.btn-modern-amber {
+    background: #f59e0b;
+    color: white;
+}
+.btn-modern-amber:hover {
+    background: #d97706;
+}
+@media (max-width: 640px) {
+    .profile-header-gradient { padding: 1.5rem; }
+    .profile-avatar-modern { width: 70px; height: 70px; font-size: 1.8rem; }
+    .stat-number-modern { font-size: 1.5rem; }
+}
+        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -4338,104 +4417,96 @@ let progressChart = null;
 async function renderUserProfile() {
     if (!currentProfile) return;
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
-    const rolMusical = miembro?.rol_musical || 'No asignado';
+    const rolMusical = miembro?.rol_musical || 'Por asignar';
     let deptoNombre = '';
     if (miembro?.departamento_id) {
         const depto = departamentos.find(d => d.id === miembro.departamento_id);
-        deptoNombre = depto ? depto.nombre : 'No especificado';
+        deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    // Obtener estadísticas reales de exámenes
-    const { data: intentos } = await supabaseClient
+    // Estadísticas reales de exámenes
+    const { data: intentos, error } = await supabaseClient
         .from('intentos_examen')
-        .select('puntaje, fecha')
+        .select('puntaje, fecha, completado')
         .eq('user_id', currentUser.id)
+        .eq('completado', true)
         .order('fecha', { ascending: true });
-
-    const totalExamenes = intentos?.length || 0;
-    const promedio = totalExamenes > 0
-        ? (intentos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0) / totalExamenes).toFixed(1)
-        : 0;
     
-    // Contar logros obtenidos
+    const totalExamenes = intentos?.length || 0;
+    let promedio = 0;
+    if (totalExamenes > 0) {
+        const suma = intentos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
+        promedio = (suma / totalExamenes).toFixed(1);
+    }
+    
+    // Contar logros
     const { count: totalLogros } = await supabaseClient
         .from('logros_usuarios')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', currentUser.id);
 
-    // Foto de perfil (fallback a iniciales)
+    // Foto de perfil
     const fotoUrl = currentProfile.foto_url || '';
     const iniciales = (currentProfile.nombre || currentUser.email).charAt(0).toUpperCase();
 
-    // Gráfico de evolución (si hay datos)
-    let chartHtml = '';
-    if (intentos && intentos.length > 0) {
-        chartHtml = `<canvas id="profileChart" style="max-height: 200px; width: 100%;"></canvas>`;
-    } else {
-        chartHtml = `<p class="text-center text-slate-500 text-sm py-4">📊 Aún no hay datos de exámenes. ¡Realiza tu primer examen para ver tu progreso!</p>`;
-    }
-
-    const html = `
-    <div class="max-w-4xl mx-auto">
-        <!-- Tarjeta principal con foto y datos -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
-            <div class="bg-gradient-to-r from-blue-700 to-indigo-800 px-6 py-8 text-white">
-                <div class="flex flex-col md:flex-row items-center gap-6">
-                    <div class="relative">
-                        ${fotoUrl ? 
-                            `<img src="${fotoUrl}" class="w-28 h-28 rounded-full object-cover border-4 border-white shadow-xl">` :
-                            `<div class="w-28 h-28 rounded-full bg-amber-500 flex items-center justify-center text-4xl font-bold text-white shadow-xl">${iniciales}</div>`
-                        }
-                        <button onclick="editUserProfile()" class="absolute bottom-0 right-0 bg-white rounded-full p-1.5 shadow-md hover:bg-slate-100 transition" title="Editar perfil">
-                            <i class="fas fa-camera text-blue-600 text-sm"></i>
-                        </button>
-                    </div>
-                    <div class="text-center md:text-left">
-                        <h2 class="text-2xl font-bold">${escapeHtml(currentProfile.nombre || currentUser.email)}</h2>
-                        <p class="text-blue-100 mt-1"><i class="fas fa-envelope mr-2"></i>${escapeHtml(currentUser.email)}</p>
-                        <div class="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
-                            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold"><i class="fas fa-music mr-1"></i> ${escapeHtml(rolMusical)}</span>
-                            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold"><i class="fas fa-users mr-1"></i> ${escapeHtml(deptoNombre)}</span>
-                            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold"><i class="fas fa-trophy mr-1"></i> ${totalLogros || 0} logros</span>
-                        </div>
+    // Construir HTML
+    let html = `
+    <div class="profile-modern-card" style="max-width: 1000px; margin: 0 auto;">
+        <div class="profile-header-gradient" style="color: white;">
+            <div style="display: flex; flex-direction: row; align-items: center; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
+                <div style="position: relative;">
+                    ${fotoUrl ? 
+                        `<img src="${fotoUrl}" class="profile-avatar-modern" style="object-fit: cover;">` :
+                        `<div class="profile-avatar-modern" style="background: white; color: var(--primary);">${iniciales}</div>`
+                    }
+                    <button onclick="editUserProfile()" style="position: absolute; bottom: 0; right: 0; background: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                        <i class="fas fa-camera" style="color: var(--primary); font-size: 0.8rem;"></i>
+                    </button>
+                </div>
+                <div style="text-align: center;">
+                    <h2 style="margin: 0; font-size: 1.6rem;">${escapeHtml(currentProfile.nombre || currentUser.email)}</h2>
+                    <p style="margin: 0.3rem 0; opacity: 0.9;"><i class="fas fa-envelope"></i> ${escapeHtml(currentUser.email)}</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; justify-content: center;">
+                        <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem;"><i class="fas fa-music"></i> ${escapeHtml(rolMusical)}</span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem;"><i class="fas fa-users"></i> ${escapeHtml(deptoNombre)}</span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem;"><i class="fas fa-trophy"></i> ${totalLogros || 0} logros</span>
                     </div>
                 </div>
             </div>
-            
-            <!-- Estadísticas en tarjetas -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-slate-50 dark:bg-slate-900/50">
-                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm text-center">
-                    <i class="fas fa-file-alt text-blue-500 text-2xl mb-2"></i>
-                    <h3 class="text-2xl font-bold text-slate-800 dark:text-white">${totalExamenes}</h3>
-                    <p class="text-slate-500 text-sm">Exámenes realizados</p>
+        </div>
+        
+        <div style="padding: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div class="stat-card-modern">
+                    <i class="fas fa-file-alt" style="font-size: 1.8rem; color: var(--primary);"></i>
+                    <div class="stat-number-modern">${totalExamenes}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Exámenes realizados</div>
                 </div>
-                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm text-center">
-                    <i class="fas fa-chart-line text-emerald-500 text-2xl mb-2"></i>
-                    <h3 class="text-2xl font-bold ${promedio >= 14 ? 'text-emerald-600' : 'text-amber-600'}">${promedio} / 20</h3>
-                    <p class="text-slate-500 text-sm">Puntaje promedio</p>
+                <div class="stat-card-modern">
+                    <i class="fas fa-chart-line" style="font-size: 1.8rem; color: #f59e0b;"></i>
+                    <div class="stat-number-modern" style="color: ${promedio >= 14 ? '#10b981' : '#f59e0b'}">${promedio} / 20</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Puntaje promedio</div>
                 </div>
-                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm text-center">
-                    <i class="fas fa-calendar-check text-amber-500 text-2xl mb-2"></i>
-                    <h3 class="text-2xl font-bold">${rachaGemini || 0}</h3>
-                    <p class="text-slate-500 text-sm">Racha actual (días)</p>
-                </div>
-            </div>
-            
-            <!-- Gráfico de evolución -->
-            <div class="p-6 border-t border-slate-200 dark:border-slate-700">
-                <h3 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fas fa-chart-simple text-blue-600"></i> Evolución de tus exámenes</h3>
-                <div class="bg-slate-50 dark:bg-slate-900 rounded-xl p-4">
-                    ${chartHtml}
+                <div class="stat-card-modern">
+                    <i class="fas fa-calendar-check" style="font-size: 1.8rem; color: #10b981;"></i>
+                    <div class="stat-number-modern">${rachaGemini || 0}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Racha actual (días)</div>
                 </div>
             </div>
             
-            <!-- Botones de acción -->
-            <div class="p-6 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-3 justify-between items-center">
-                <div class="flex gap-3">
-                    <button onclick="editUserProfile()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl transition flex items-center gap-2"><i class="fas fa-edit"></i> Editar perfil</button>
-                    <button onclick="mostrarLogrosEnPanel()" class="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-xl transition flex items-center gap-2"><i class="fas fa-trophy"></i> Ver logros</button>
+            <div style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; margin-bottom: 1rem;"><i class="fas fa-chart-simple"></i> Evolución de tus exámenes</h3>
+                <div class="chart-container">
+                    ${totalExamenes > 0 ? '<canvas id="profileChart" style="max-height: 250px; width: 100%;"></canvas>' : '<p style="text-align: center; padding: 2rem; color: var(--text-muted);">📊 Aún no hay datos. ¡Realiza tu primer examen!</p>'}
                 </div>
-                <button onclick="cambiarTabGemini('evaluaciones')" class="text-blue-600 hover:underline text-sm flex items-center gap-1"><i class="fas fa-arrow-right"></i> Ver todos mis exámenes</button>
+            </div>
+            
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                <div style="display: flex; gap: 0.8rem;">
+                    <button class="btn-modern btn-modern-primary" onclick="editUserProfile()"><i class="fas fa-edit"></i> Editar perfil</button>
+                    <button class="btn-modern btn-modern-amber" onclick="mostrarLogrosEnPanel()"><i class="fas fa-trophy"></i> Ver logros</button>
+                </div>
+                <button class="btn-modern" style="background: var(--bg-app); border: 1px solid var(--border);" onclick="cambiarTabGemini('evaluaciones')">Ver todos mis exámenes <i class="fas fa-arrow-right"></i></button>
             </div>
         </div>
     </div>`;
@@ -4444,10 +4515,9 @@ async function renderUserProfile() {
     document.getElementById('actionHeader').innerHTML = '';
 
     // Dibujar gráfico si hay datos
-    if (intentos && intentos.length > 0) {
+    if (totalExamenes > 0 && intentos) {
         const ctx = document.getElementById('profileChart')?.getContext('2d');
         if (ctx) {
-            // Destruir gráfico anterior si existe
             if (window.profileChartInstance) window.profileChartInstance.destroy();
             window.profileChartInstance = new Chart(ctx, {
                 type: 'line',
@@ -4472,7 +4542,6 @@ async function renderUserProfile() {
         }
     }
 }
-
     
     function editUserProfile() {
     const modalContent = `
@@ -4514,7 +4583,6 @@ async function renderUserProfile() {
     `;
     showModal(modalContent);
     
-    // Función de previsualización (se define globalmente para que funcione en el modal)
     window.previewAvatar = () => {
         const file = document.getElementById('editFotoFile').files[0];
         if (file) {
@@ -4528,7 +4596,7 @@ async function renderUserProfile() {
     };
 }
 
-    async function saveUserProfileWithPhoto() {
+async function saveUserProfileWithPhoto() {
     const nombre = document.getElementById('editNombre').value.trim();
     const telefono = document.getElementById('editTelefono').value.trim();
     const fecha = document.getElementById('editFecha').value;
@@ -4539,7 +4607,6 @@ async function renderUserProfile() {
     let foto_url = currentProfile.foto_url;
 
     if (fotoFile) {
-        // Subir nueva foto a Supabase Storage
         const fileExt = fotoFile.name.split('.').pop();
         const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabaseClient.storage
@@ -4553,7 +4620,6 @@ async function renderUserProfile() {
         foto_url = urlData.publicUrl;
     }
 
-    // Actualizar perfil en Supabase
     const { error } = await supabaseClient
         .from('perfiles')
         .update({
@@ -4571,9 +4637,7 @@ async function renderUserProfile() {
         return;
     }
 
-    // Aplicar tema visual
     aplicarTema(tema);
-    
     alert('Perfil actualizado correctamente');
     closeModal();
     await loadProfile();
@@ -4581,7 +4645,6 @@ async function renderUserProfile() {
     renderUserProfile();
 }
 
-// Función auxiliar para aplicar el tema (añádela en cualquier lugar, pero antes de usarla)
 function aplicarTema(tema) {
     const root = document.documentElement;
     switch (tema) {
@@ -4612,6 +4675,7 @@ function aplicarTema(tema) {
             break;
     }
 }
+
     
     
 // ========== ADMINISTRACIÓN CON SELECTOR DE IGLESIAS Y DEPARTAMENTO JERÁRQUICO ==========
