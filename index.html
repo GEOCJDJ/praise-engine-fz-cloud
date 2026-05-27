@@ -4419,17 +4419,22 @@ async function renderUserProfile() {
         deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    // Obtener TODOS los intentos de examen (sin filtrar por completado)
+    // Obtener TODOS los intentos (sin filtrar por completado, solo por user_id)
     const { data: intentos, error } = await supabaseClient
         .from('intentos_examen')
         .select('puntaje, fecha')
         .eq('user_id', currentUser.id)
         .order('fecha', { ascending: true });
+
+    console.log('Intentos desde perfil:', intentos); // Depuración
+
+    // Filtrar solo los que tienen puntaje válido (número y mayor que 0)
+    const intentosValidos = (intentos || []).filter(i => {
+        const p = parseFloat(i.puntaje);
+        return !isNaN(p) && p > 0;
+    });
     
-    // Filtrar solo los que tienen puntaje válido (mayor que 0 o no nulo)
-    const intentosValidos = (intentos || []).filter(i => i.puntaje !== null && parseFloat(i.puntaje) > 0);
     const totalExamenes = intentosValidos.length;
-    
     let promedio = 0;
     if (totalExamenes > 0) {
         const suma = intentosValidos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
@@ -4442,12 +4447,15 @@ async function renderUserProfile() {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', currentUser.id);
 
-    // Asegurar que rachaGemini esté cargada
-    if (typeof rachaGemini === 'undefined') {
-        const { data: prog } = await supabaseClient.from('progreso_usuario').select('racha').eq('user_id', currentUser.id).single();
-        rachaGemini = prog?.racha || 0;
-    }
+    // Cargar racha directamente desde la tabla progreso_usuario
+    const { data: progreso } = await supabaseClient
+        .from('progreso_usuario')
+        .select('racha')
+        .eq('user_id', currentUser.id)
+        .single();
+    const rachaActual = progreso?.racha || 0;
 
+    // Foto de perfil
     const fotoUrl = currentProfile.foto_url || '';
     const iniciales = (currentProfile.nombre || currentUser.email).charAt(0).toUpperCase();
 
@@ -4490,7 +4498,7 @@ async function renderUserProfile() {
                 </div>
                 <div class="stat-card-modern">
                     <i class="fas fa-calendar-check" style="font-size: 1.8rem; color: #10b981;"></i>
-                    <div class="stat-number-modern">${rachaGemini || 0}</div>
+                    <div class="stat-number-modern">${rachaActual}</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted);">Racha actual (días)</div>
                 </div>
             </div>
@@ -4515,8 +4523,8 @@ async function renderUserProfile() {
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('actionHeader').innerHTML = '';
 
-    // Dibujar gráfico con los datos reales
-    if (totalExamenes > 0 && intentosValidos) {
+    // Dibujar gráfico si hay datos
+    if (totalExamenes > 0 && intentosValidos.length > 0) {
         const ctx = document.getElementById('profileChart')?.getContext('2d');
         if (ctx) {
             if (window.profileChartInstance) window.profileChartInstance.destroy();
@@ -4543,6 +4551,8 @@ async function renderUserProfile() {
         }
     }
 }
+
+    
     
     function editUserProfile() {
     const fotoActual = currentProfile.foto_url || '';
