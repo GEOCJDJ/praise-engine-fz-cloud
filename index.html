@@ -783,7 +783,11 @@ body.stage-mode pre {
 .btn-modern-amber:hover {
     background: #d97706;
 }
-        
+
+body.tema-verde { --primary: #065F46; --primary-light: #10B981; }
+body.tema-morado { --primary: #5B21B6; --primary-light: #8B5CF6; }
+body.tema-rosa { --primary: #BE185D; --primary-light: #F472B6; }
+body.tema-naranja { --primary: #C2410C; --primary-light: #F97316; }        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -966,6 +970,41 @@ let cifraBaseLyrics = "";   // ← TEXTO ORIGINAL INTACTO, nunca se modifica
 let cifraSemitonesShift = 0;
 let currentSongIndex = -1;
 
+    
+function aplicarTema(temaId) {
+    // Elimina cualquier tema anterior
+    document.body.classList.remove('tema-default', 'tema-verde', 'tema-morado', 'tema-rosa', 'tema-naranja');
+    if (temaId && temaId !== 'default') {
+        document.body.classList.add(`tema-${temaId}`);
+    } else {
+        document.body.classList.add('tema-default');
+    }
+
+    // Aplica variables CSS según el tema
+    const root = document.documentElement;
+    switch (temaId) {
+        case 'verde':
+            root.style.setProperty('--primary', '#065F46');
+            root.style.setProperty('--primary-light', '#10B981');
+            break;
+        case 'morado':
+            root.style.setProperty('--primary', '#5B21B6');
+            root.style.setProperty('--primary-light', '#8B5CF6');
+            break;
+        case 'rosa':
+            root.style.setProperty('--primary', '#BE185D');
+            root.style.setProperty('--primary-light', '#F472B6');
+            break;
+        case 'naranja':
+            root.style.setProperty('--primary', '#C2410C');
+            root.style.setProperty('--primary-light', '#F97316');
+            break;
+        default:
+            root.style.setProperty('--primary', '#1E3A8A');
+            root.style.setProperty('--primary-light', '#3B82F6');
+            break;
+    }
+}
 function openCifraViewer(songId, index) {
     registrarVistaCancion(songId);
     currentSongIndex = index;
