@@ -1825,36 +1825,86 @@ async function deleteList(id) { if (!isAdminUser && !isIglesiaAdmin) return; awa
 // ========== RENDER PRINCIPAL ==========
 function renderApp() {
     if (!currentUser) { renderLogin(); return; }
+    
+    const version = "2.0.0";
+    const soporteEmail = "soporte@gpraise.com";
+    const currentYear = new Date().getFullYear();
+    
+    // Admin global (sin iglesia seleccionada)
     if (!currentIglesiaId && isAdminUser) {
-        document.getElementById('appRoot').innerHTML = `<header class="app-header"><div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>Admin General</small></div><div class="nav-icons"><div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div><div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div id="actionHeader" style="margin-bottom:1rem;"></div><div id="mainContent"></div></div><footer class="app-footer"><div class="footer-content"><div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div><div class="footer-copyright">© 2025 - <span id="currentYear"></span> | By <strong>GIO DESIGNS®</strong></div><div class="footer-social"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div><div class="footer-verse">"Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos" — Salmo 68:4</div></footer>`;
-        darkModeToggle(); renderAdmin(); return;
+        document.getElementById('appRoot').innerHTML = `<header class="app-header"><div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>Admin General</small></div><div class="nav-icons"><div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div><div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div id="actionHeader" style="margin-bottom:1rem;"></div><div id="mainContent"></div></div>
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div>
+                <div class="footer-copyright">© 2025 - ${currentYear} | By <strong>GIO DESIGNS®</strong> | v${version}</div>
+                <div class="footer-contact"><i class="fas fa-envelope"></i> <a href="mailto:${soporteEmail}" style="color: var(--text-muted); text-decoration: none;">${soporteEmail}</a></div>
+                <div class="footer-social"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div>
+            </div>
+            <div class="footer-verse">"Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos" — Salmo 68:4</div>
+        </footer>`;
+        darkModeToggle();
+        renderAdmin();
+        return;
     }
+    
     if (!currentIglesiaId) { renderLogin(); return; }
+    
+    // Usuario normal (iglesia seleccionada)
     document.getElementById('appRoot').innerHTML = `<header class="app-header"><div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small></div><div class="nav-icons"><div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div><div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div><div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div><div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div><div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div><div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
-    <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes">
-    <i class="fas fa-microphone-alt"></i>
-    <span>G‑NOTES</span>
-</div>
-<div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura">
-    <i class="fas fa-book-bible"></i>
-    <span>MI BIBLIA</span>
-</div>
-
-    <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}<div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div><div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div><div id="mainContent"></div></div><footer class="app-footer"><div class="footer-content"><div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div><div class="footer-copyright">© 2025 - <span id="currentYear"></span> | By <strong>GIO DESIGNS®</strong></div><div class="footer-social"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div><div class="footer-verse">"Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos" — Salmo 68:4</div></footer>`;
-    document.querySelectorAll('.nav-item[data-tab]').forEach(el => { el.addEventListener('click', () => { document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active')); el.classList.add('active'); currentTab = el.dataset.tab; selectedListId = null; renderCurrentView(); }); });
-    const darkToggle = document.getElementById('darkModeToggle'); darkToggle.addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('iec_darkmode', document.body.classList.contains('dark')); darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro'; });
-    if (localStorage.getItem('iec_darkmode') === 'true') { document.body.classList.add('dark'); darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro'; }
-  renderCurrentView();
+    <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
+    <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
+    <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}<div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div><div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div><div id="mainContent"></div></div>
+    <footer class="app-footer">
+        <div class="footer-content">
+            <div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div>
+            <div class="footer-copyright">© 2025 - ${currentYear} | By <strong>GIO DESIGNS®</strong> | v${version}</div>
+            <div class="footer-contact"><i class="fas fa-envelope"></i> <a href="mailto:${soporteEmail}" style="color: var(--text-muted); text-decoration: none;">${soporteEmail}</a></div>
+            <div class="footer-social"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div>
+        </div>
+        <div class="footer-verse">"Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos" — Salmo 68:4</div>
+    </footer>`;
+    
+    document.querySelectorAll('.nav-item[data-tab]').forEach(el => {
+        el.addEventListener('click', () => {
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            el.classList.add('active');
+            currentTab = el.dataset.tab;
+            selectedListId = null;
+            renderCurrentView();
+        });
+    });
+    
+    const darkToggle = document.getElementById('darkModeToggle');
+    darkToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+        localStorage.setItem('iec_darkmode', document.body.classList.contains('dark'));
+        darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro';
+    });
+    
+    if (localStorage.getItem('iec_darkmode') === 'true') {
+        document.body.classList.add('dark');
+        darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
+    }
+    
+    renderCurrentView();
     document.getElementById('currentYear').innerText = new Date().getFullYear();
     
-    // Forzar recarga del perfil después de 1s para asegurar datos
     if (currentTab === 'profile') {
         setTimeout(() => renderUserProfile(), 500);
     }
 }
-function darkModeToggle() { const toggle = document.getElementById('darkModeToggle'); if(toggle) toggle.addEventListener('click', () => { document.body.classList.toggle('dark'); localStorage.setItem('iec_darkmode', document.body.classList.contains('dark')); }); if (localStorage.getItem('iec_darkmode') === 'true') document.body.classList.add('dark'); }
 
-   async function renderCurrentView() {
+function darkModeToggle() {
+    const toggle = document.getElementById('darkModeToggle');
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('iec_darkmode', document.body.classList.contains('dark'));
+        });
+    }
+    if (localStorage.getItem('iec_darkmode') === 'true') document.body.classList.add('dark');
+}
+    async function renderCurrentView() {
        const searchContainer = document.querySelector('.search-container');
     if (searchContainer) {
         // Mostrar solo en Cancionero, Listas (vista general) y Favoritos
