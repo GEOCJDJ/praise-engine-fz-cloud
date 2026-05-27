@@ -3093,75 +3093,159 @@ async function viewMyShifts() {
             <!-- Columna derecha: Listas de próximos turnos y eventos -->
             <div>
                 <div class="shift-card">
-                    <h4>📌 Próximos turnos</h4>
-                    <div class="shift-list">
-                        ${proximosTurnos.length === 0 ? '<p class="text-muted">No tienes turnos próximos.</p>' : 
-                            `<ul style="margin:0; padding-left:1.2rem;">${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`
-                        }
+async function viewMyShifts() {
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
+    if (!miembro) {
+        showToast("No tienes un rol asignado en el equipo. Contacta al administrador.");
+        return;
+    }
+
+    // Obtener turnos del usuario
+    const misTurnos = shifts.filter(s => s.usuario_iglesia_id === miembro.id);
+    misTurnos.sort((a, b) => {
+        const da = a.fecha.split('/').reverse().join('-');
+        const db = b.fecha.split('/').reverse().join('-');
+        return new Date(da) - new Date(db);
+    });
+
+    const turnosPorFecha = {};
+    misTurnos.forEach(t => { turnosPorFecha[t.fecha] = true; });
+
+    // Obtener actividades de la iglesia
+    const { data: actividades } = await supabaseClient
+        .from('actividades')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('fecha');
+        
+    const actividadesPorFecha = {};
+    const proximasActividades = [];
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    (actividades || []).forEach(act => {
+        actividadesPorFecha[act.fecha] = true;
+        const [dia, mes, anio] = act.fecha.split('/');
+        const fechaAct = new Date(anio, mes - 1, dia);
+        if (fechaAct >= hoy) proximasActividades.push(act);
+    });
+
+    const proximosTurnos = misTurnos.filter(t => {
+        const [dia, mes, anio] = t.fecha.split('/');
+        const fechaTurno = new Date(anio, mes - 1, dia);
+        return fechaTurno >= hoy;
+    });
+
+    // HTML compacto y moderno
+    const html = `
+        <div style="max-width: 900px; margin: 0 auto;">
+            <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                <i class="fas fa-calendar-alt" style="color: var(--primary);"></i> 
+                Mis Turnos y Actividades
+            </h3>
+            
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+                <div style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                    <span><span style="display: inline-block; width: 12px; height: 12px; background: #F59E0B; border-radius: 50%; margin-right: 4px;"></span> Día con turno</span>
+                    <span><span style="display: inline-block; width: 12px; height: 12px; background: #10B981; border-radius: 50%; margin-right: 4px;"></span> Día con actividad</span>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Columna izquierda: input de fecha + calendario flotante -->
+                <div>
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label style="font-size: 0.75rem; font-weight: 600;">📅 Selecciona una fecha</label>
+                        <input type="text" id="myShiftCalendar" class="form-control" placeholder="Haz clic para elegir" style="cursor: pointer;">
+                    </div>
+                    <div id="myShiftDetail" style="margin-top: 1rem; display: none;">
+                        <div style="background: var(--bg-app); border-radius: 0.75rem; padding: 0.8rem; border: 1px solid var(--border);">
+                            <h4 id="selectedDateTitle" style="font-size: 0.9rem; margin-bottom: 0.5rem;"></h4>
+                            <div id="selectedDateInfo" style="font-size: 0.8rem;"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="shift-card">
-                    <h4>🎉 Eventos e invitaciones próximas</h4>
-                    <div class="shift-list">
-                        ${proximasActividades.length === 0 ? '<p class="text-muted">No hay actividades especiales próximas.</p>' : 
-                            `<ul style="margin:0; padding-left:1.2rem;">${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`
-                        }
+                
+                <!-- Columna derecha: listas de próximos turnos y eventos -->
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="background: var(--bg-app); border-radius: 0.75rem; padding: 0.8rem; border: 1px solid var(--border);">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fas fa-clock"></i> 📌 Próximos turnos</h4>
+                        <div style="max-height: 120px; overflow-y: auto;">
+                            ${proximosTurnos.length === 0 
+                                ? '<p class="text-muted" style="font-size: 0.75rem;">No tienes turnos próximos.</p>' 
+                                : `<ul style="margin: 0; padding-left: 1.2rem; font-size: 0.75rem;">${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`
+                            }
+                        </div>
+                    </div>
+                    <div style="background: var(--bg-app); border-radius: 0.75rem; padding: 0.8rem; border: 1px solid var(--border);">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fas fa-calendar-week"></i> 🎉 Eventos próximos</h4>
+                        <div style="max-height: 120px; overflow-y: auto;">
+                            ${proximasActividades.length === 0 
+                                ? '<p class="text-muted" style="font-size: 0.75rem;">No hay actividades especiales próximas.</p>' 
+                                : `<ul style="margin: 0; padding-left: 1.2rem; font-size: 0.75rem;">${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div style="text-align: right; margin-top: 1rem;">
-            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+            
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+            </div>
         </div>
     `;
+    
     showModal(html);
-
-    // Inicializar flatpickr con las opciones mejoradas
-    flatpickr("#myShiftCalendar", {
-        locale: "es",
-        dateFormat: "d/m/Y",
-        inline: true,
-        onDayCreate: (dObj, dStr, fp, dayElem) => {
-            const year = dayElem.dateObj.getFullYear();
-            const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
-            const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
-            const dateStr = `${day}/${month}/${year}`;
-            if (turnosPorFecha[dateStr]) {
-                dayElem.style.backgroundColor = '#F59E0B';
-                dayElem.style.color = 'white';
-                dayElem.style.borderRadius = '50%';
-                dayElem.title = 'Tienes turno este día';
-            } else if (actividadesPorFecha[dateStr]) {
-                dayElem.style.backgroundColor = '#10B981';
-                dayElem.style.color = 'white';
-                dayElem.style.borderRadius = '50%';
-                dayElem.title = 'Hay una actividad especial este día';
-            }
-        },
-        onChange: (selectedDates, dateStr) => {
-            if (dateStr) {
-                document.getElementById('myShiftDetail').style.display = 'block';
-                document.getElementById('selectedDateTitle').innerText = `Detalles del ${dateStr}`;
-                let info = '';
-                if (turnosPorFecha[dateStr]) {
-                    info += '<p>✅ Tienes turno asignado.</p>';
+    
+    // Inicializar flatpickr NO inline (flotante)
+    const calendarInput = document.getElementById('myShiftCalendar');
+    if (calendarInput) {
+        flatpickr(calendarInput, {
+            locale: "es",
+            dateFormat: "d/m/Y",
+            onChange: (selectedDates, dateStr) => {
+                if (dateStr) {
+                    document.getElementById('myShiftDetail').style.display = 'block';
+                    document.getElementById('selectedDateTitle').innerText = `Detalles del ${dateStr}`;
+                    let info = '';
+                    if (turnosPorFecha[dateStr]) {
+                        info += '<p>✅ Tienes turno asignado.</p>';
+                    } else {
+                        info += '<p>❌ No tienes turno. ¡Disfruta tu descanso!</p>';
+                    }
+                    const actividad = actividades?.find(a => a.fecha === dateStr);
+                    if (actividad) {
+                        info += `<div style="margin-top:0.5rem; padding:0.5rem; background:rgba(16,185,129,0.1); border-radius:0.5rem;">
+                                    <strong>🎉 Actividad especial:</strong> ${escapeHtml(actividad.titulo)}<br>
+                                    ${actividad.descripcion ? escapeHtml(actividad.descripcion) : ''}
+                                 </div>`;
+                    }
+                    document.getElementById('selectedDateInfo').innerHTML = info;
                 } else {
-                    info += '<p>❌ No tienes turno. ¡Disfruta tu descanso!</p>';
+                    document.getElementById('myShiftDetail').style.display = 'none';
                 }
-                const actividad = actividades?.find(a => a.fecha === dateStr);
-                if (actividad) {
-                    info += `<div style="margin-top:0.5rem; padding:0.5rem; background:rgba(16,185,129,0.1); border-radius:0.5rem;">
-                                <strong>🎉 Actividad especial:</strong> ${escapeHtml(actividad.titulo)}<br>
-                                ${actividad.descripcion ? escapeHtml(actividad.descripcion) : ''}
-                             </div>`;
+            },
+            onDayCreate: (dObj, dStr, fp, dayElem) => {
+                const year = dayElem.dateObj.getFullYear();
+                const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
+                const dateStr = `${day}/${month}/${year}`;
+                if (turnosPorFecha[dateStr]) {
+                    dayElem.style.backgroundColor = '#F59E0B';
+                    dayElem.style.color = 'white';
+                    dayElem.style.borderRadius = '50%';
+                    dayElem.title = 'Tienes turno este día';
+                } else if (actividadesPorFecha[dateStr]) {
+                    dayElem.style.backgroundColor = '#10B981';
+                    dayElem.style.color = 'white';
+                    dayElem.style.borderRadius = '50%';
+                    dayElem.title = 'Actividad especial este día';
                 }
-                document.getElementById('selectedDateInfo').innerHTML = info;
-            } else {
-                document.getElementById('myShiftDetail').style.display = 'none';
             }
-        }
-    });
+        });
+    }
 }
+    
     
     function openTuner() { showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const noteElem=document.getElementById('tunerNote'), needleElem=document.getElementById('tunerNeedle'); if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ noteElem.innerText="Sin micrófono"; return; } navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{ const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const source=audioCtx.createMediaStreamSource(stream); const analyser=audioCtx.createAnalyser(); analyser.fftSize=2048; source.connect(analyser); const bufferLength=analyser.frequencyBinCount; const dataArray=new Float32Array(bufferLength); const detectPitch=()=>{ if(!document.getElementById('tunerNote')) return; analyser.getFloatTimeDomainData(dataArray); let maxSample=0; for(let i=0;i<bufferLength;i++) if(Math.abs(dataArray[i])>maxSample) maxSample=Math.abs(dataArray[i]); if(maxSample<0.01){ requestAnimationFrame(detectPitch); return; } let autocorr=new Array(bufferLength); for(let lag=0;lag<bufferLength;lag++){ let sum=0; for(let i=0;i<bufferLength-lag;i++) sum+=dataArray[i]*dataArray[i+lag]; autocorr[lag]=sum; } let maxVal=-1, maxLag=0; for(let lag=20;lag<bufferLength/2;lag++) if(autocorr[lag]>maxVal){ maxVal=autocorr[lag]; maxLag=lag; } let freq=audioCtx.sampleRate/maxLag; let noteNum=12*Math.log2(freq/440)+69; let roundedNote=Math.round(noteNum); let cents=Math.round((noteNum-roundedNote)*100); let note=noteNames[roundedNote%12]; if(freq>50&&freq<600){ noteElem.innerText=`${note} (${cents>0?'+':''}${cents}¢)`; let percent=Math.min(100,Math.max(0,50+(cents/50)*50)); needleElem.style.width=`${percent}%`; needleElem.style.background=Math.abs(cents)<5?"#10B981":"#F59E0B"; } else { noteElem.innerText="--"; needleElem.style.width="0%"; } requestAnimationFrame(detectPitch); }; detectPitch(); }).catch(()=>{ if(noteElem) noteElem.innerText="Permiso denegado"; }); }
 
