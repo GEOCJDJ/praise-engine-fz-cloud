@@ -3060,6 +3060,7 @@ async function renderMoodle() {
                         <div class="av-today-info"><p>Reto ministerial rápido — Responde antes de entrar</p><strong>¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong></div>
                         <i class="ti ti-chevron-down text-slate-400 text-lg"></i>
                     </div>
+                    <div id="av-welcome-game2" class="w-full"></div>
                     <div id="av-welcome-game" class="w-full" style="display: none;">
                         <div class="grid grid-cols-2 gap-2" id="wlGameOptions"></div>
                         <div id="wlGameFeedback" class="text-xs text-center mt-2 font-medium min-h-[16px]"></div>
@@ -3162,9 +3163,26 @@ function generarEstrellasGemini() {
     }
 }
 
-function construirJuegoBienvenida() {
+async function construirJuegoBienvenida() {
     const wrap = document.getElementById('wlGameOptions');
     if (!wrap) return;
+    
+    // Verificar si ya respondió hoy
+    const hoy = new Date().toISOString().slice(0,10);
+    const { data: yaRespondio } = await supabaseClient
+        .from('reto_diario')
+        .select('fecha')
+        .eq('user_id', currentUser.id)
+        .eq('fecha', hoy)
+        .single();
+    
+    if (yaRespondio) {
+        // Mostrar mensaje en lugar del juego
+        wrap.innerHTML = `<div class="text-center text-slate-300 text-sm py-2">✅ Ya participaste hoy. ¡Vuelve mañana para más XP!</div>`;
+        document.querySelector('#wlGameCard .av-today-icon')?.parentElement?.removeEventListener('click', toggleWelcomeGame);
+        return;
+    }
+    
     wrap.innerHTML = '';
     const opts = ["En templos lujosos", "En espíritu y en verdad", "Solo los días domingos", "Mediante ritos antiguos"];
     opts.forEach((opt, i) => {
@@ -3176,18 +3194,151 @@ function construirJuegoBienvenida() {
     });
 }
 
-function evaluarBienvenidaGemini(idx, el) {
+async function cargarTriviaDiaria() {
+    const container = document.getElementById('av-welcome-game2'); // lo crearemos en el HTML
+    if (!container) return;
+    
+    const hoy = new Date().toISOString().slice(0,10);
+    // Verificar si ya respondió la trivia hoy
+    const { data: yaRespondio } = await supabaseClient
+        .from('respuestas_preguntas_diarias')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .eq('fecha', hoy)
+        .single();
+    
+    if (yaRespondio) {
+        container.innerHTML = `<div class="text-slate-300 text-xs text-center">📖 Trivia bíblica: ya la completaste hoy. +10 XP ganados.</div>`;
+        return;
+    }
+    
+    // Obtener una pregunta aleatoria (puede ser fija por día usando el día del año como semilla)
+    const { data: preguntas } = await supabaseClient
+        .from('preguntas_biblicas_diarias')
+        .select('*');
+    if (!preguntas || preguntas.length === 0) return;
+    
+    // Usar el día del año para elegir siempre la misma pregunta para todos (opcional)
+    const ahora = new Date();
+    const inicio = new Date(ahora.getFullYear(), 0, 0);
+    const diaDelAnio = Math.floor((ahora - inicio) / (1000 * 60 * 60 * 24));
+    const pregunta = preguntas[diaDelAnio % preguntas.length];
+    
+    container.innerHTML = `
+        <div class="mt-3 p-3 bg-slate-800/50 rounded-lg">
+            <p class="text-xs font-bold text-amber-400">🎲 TRIVIA BÍBLICA DEL DÍA</p>
+            <p class="text-sm text-white my-2">${pregunta.pregunta}</p>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <button class="trivia-opt bg-slate-700 p-2 rounded hover:bg-amber-600 transition" data-opcion="A">A) ${pregunta.opcion_a}</button>
+                <button class="trivia-opt bg-slate-700 p-2 rounded hover:bg-amber-600 transition" data-opcion="B">B) ${pregunta.opcion_b}</button>
+                <button class="trivia-opt bg-slate-700 p-2 rounded hover:bg-amber-600 transition" data-opcion="C">C) ${pregunta.opcion_c}</button>
+                <button class="trivia-opt bg-slate-700 p-2 rounded hover:bg-amber-600 transition" data-opcion="D">D) ${pregunta.opcion_d}</button>
+            </div>
+            <div id="triviaFeedback" class="text-xs mt-2 text-center"></div>
+        </div>
+    `;
+    
+    document.querySelectorAll('.trivia-opt').forEach(btn => {
+        btn.onclick = async (e) => {
+            if (btn.disabled) return;
+            const seleccion = btn.getAttribute('data-opcion');
+            const esCorrecta = (seleccion === pregunta.respuesta_correcta);
+            const fb = document.getElementById('triviaFeedback');
+            if (esCorrecta) {
+                fb.innerHTML = '✅ ¡Correcto! +10 XP';
+                await agregarXPGemini(10);
+                confetti({ particleCount: 50, spread: 40, origin: { y: 0.7 }, colors: ['#C8972A'] });
+            } else {
+                fb.innerHTML = `❌ Incorrecto. La respuesta era ${pregunta.respuesta_correcta}. ¡Sigue estudiando!`;
+            }
+            // Guardar respuesta
+            await supabaseClient.from('respuestas_preguntas_diarias').insert({
+                user_id: currentUser.id,
+                pregunta_id: pregunta.id,
+                fecha: hoy,
+                es_correcta: esCorrecta
+            });
+            // Deshabilitar botones
+            document.querySelectorAll('.trivia-opt').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+        };
+    });
+}
+
+async function evaluarBienvenidaGemini(idx, el) {
     if (juegoBienvenidaRespondido) return;
+    
+    // Verificar si ya respondió hoy
+    const hoy = new Date().toISOString().slice(0,10);
+    const { data: yaRespondio, error } = await supabaseClient
+        .from('reto_diario')
+        .select('fecha')
+        .eq('user_id', currentUser.id)
+        .eq('fecha', hoy)
+        .single();
+    
+    if (yaRespondio) {
+        alert("Ya respondiste el reto de hoy. Vuelve mañana para más XP.");
+        return;
+    }
+    
     juegoBienvenidaRespondido = true;
     const fb = document.getElementById('wlGameFeedback');
-    if (idx === 1) {
+    
+    if (idx === 1) { // Respuesta correcta
         el.classList.add('correct');
         fb.textContent = '¡Excelente! +20 XP ganados para tu cuenta.';
-        agregarXPGemini(20);
+        
+        // Obtener racha actual y última fecha de respuesta del reto
+        const { data: progreso } = await supabaseClient
+            .from('progreso_usuario')
+            .select('racha, ultimo_reto_fecha')
+            .eq('user_id', currentUser.id)
+            .single();
+        
+        let nuevaRacha = 1;
+        if (progreso && progreso.ultimo_reto_fecha) {
+            const ultimaFecha = new Date(progreso.ultimo_reto_fecha);
+            const ayer = new Date();
+            ayer.setDate(ayer.getDate() - 1);
+            if (ultimaFecha.toDateString() === ayer.toDateString()) {
+                nuevaRacha = (progreso.racha || 0) + 1;
+            } else {
+                nuevaRacha = 1;
+            }
+        } else {
+            nuevaRacha = 1;
+        }
+        
+        // Actualizar XP y racha
+        await agregarXPGemini(20);
+        rachaGemini = nuevaRacha;
+        await supabaseClient.from('progreso_usuario').update({
+            racha: nuevaRacha,
+            ultimo_reto_fecha: hoy
+        }).eq('user_id', currentUser.id);
+        await verificarLogros();
+        
+        // Actualizar UI de racha en la pantalla de bienvenida y en el tablero
+        const welcomeRacha = document.getElementById('welcomeRacha');
+        if (welcomeRacha) welcomeRacha.innerText = nuevaRacha;
+        const rachaTablero = document.querySelector('#tab-inicio .text-orange-500');
+        if (rachaTablero) rachaTablero.innerText = nuevaRacha;
+        
+        // Registrar que respondió hoy
+        await supabaseClient.from('reto_diario').insert({
+            user_id: currentUser.id,
+            fecha: hoy
+        });
+        
         confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#C8972A', '#1E3A8A'] });
     } else {
         el.classList.add('wrong');
         fb.textContent = 'Respuesta incorrecta. Juan 4:23 nos llama a adorar en Espíritu y Verdad.';
+        // No suma XP, pero igual marcamos que respondió para que no pueda volver a intentar hoy
+        await supabaseClient.from('reto_diario').insert({
+            user_id: currentUser.id,
+            fecha: hoy
+        });
     }
     document.querySelectorAll('.wl-game-opt').forEach(opt => opt.style.pointerEvents = 'none');
 }
@@ -3214,6 +3365,7 @@ async function agregarXPGemini(puntos) {
     if (xpText) xpText.innerText = `XP ${xpGemini} / 500`;
     const rankSpan = document.getElementById('userRank');
     if (rankSpan) rankSpan.innerText = `Nivel ${Math.floor(xpGemini/500)+1} · Levita`;
+    await verificarLogros();
 }
 
 async function cargarDevocionalGemini() {
@@ -3517,8 +3669,156 @@ window.guardarDevocionalGemini = async () => {
     await cargarDevocionalUI();
     const welcomeRacha = document.getElementById('welcomeRacha');
     if (welcomeRacha) welcomeRacha.innerText = rachaGemini;
+    await verificarLogros();
 };
 
+// ==================== SISTEMA DE LOGROS ====================
+
+// Verificar y otorgar logros según XP y racha actual
+async function verificarLogros() {
+    if (!currentUser) return;
+    
+    // Obtener progreso del usuario (XP y racha)
+    const { data: progreso, error: progError } = await supabaseClient
+        .from('progreso_usuario')
+        .select('xp, racha')
+        .eq('user_id', currentUser.id)
+        .single();
+    if (progError || !progreso) return;
+    
+    // Obtener logros ya obtenidos por el usuario
+    const { data: logrosObtenidos, error: logError } = await supabaseClient
+        .from('logros_usuarios')
+        .select('logro_id')
+        .eq('user_id', currentUser.id);
+    if (logError) return;
+    
+    const idsObtenidos = (logrosObtenidos || []).map(l => l.logro_id);
+    
+    // Obtener todos los logros disponibles
+    const { data: todosLogros, error: allError } = await supabaseClient
+        .from('logros')
+        .select('*');
+    if (allError || !todosLogros) return;
+    
+    let nuevosLogros = [];
+    
+    for (const logro of todosLogros) {
+        if (idsObtenidos.includes(logro.id)) continue;
+        
+        let cumple = false;
+        if (logro.requisito_xp && progreso.xp >= logro.requisito_xp) cumple = true;
+        if (logro.requisito_racha && progreso.racha >= logro.requisito_racha) cumple = true;
+        
+        if (cumple) {
+            // Insertar logro
+            const { error: insertError } = await supabaseClient
+                .from('logros_usuarios')
+                .insert({
+                    user_id: currentUser.id,
+                    logro_id: logro.id
+                });
+            if (!insertError) {
+                nuevosLogros.push(logro);
+            }
+        }
+    }
+    
+    // Mostrar notificaciones para cada nuevo logro
+    for (const logro of nuevosLogros) {
+        mostrarNotificacionLogro(logro);
+    }
+    
+    // Si hay nuevos logros, refrescar el panel si está visible
+    if (nuevosLogros.length > 0 && document.getElementById('logrosPanel')) {
+        mostrarLogrosEnPanel();
+    }
+}
+
+// Mostrar notificación bonita (modal o toast)
+function mostrarNotificacionLogro(logro) {
+    // Crear un toast flotante
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white p-4 rounded-lg shadow-xl z-50 flex items-center gap-3 animate-bounce';
+    toast.innerHTML = `
+        <span class="text-3xl">${logro.icono || '🏆'}</span>
+        <div>
+            <p class="font-bold text-sm">¡NUEVO LOGRO DESBLOQUEADO!</p>
+            <p class="text-sm font-semibold">${logro.nombre}</p>
+            <p class="text-xs opacity-90">${logro.descripcion}</p>
+        </div>
+        <button class="ml-2 text-white hover:text-gray-200" onclick="this.parentElement.remove()">✕</button>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+    
+    // Opcional: confeti
+    if (typeof confetti === 'function') {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    }
+}
+
+    async function actualizarBadgeLogros() {
+    if (!currentUser) return;
+    const { count } = await supabaseClient
+        .from('logros_usuarios')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id);
+    const badge = document.getElementById('logrosBadge');
+    if (badge) badge.innerText = count || 0;
+}
+    
+// Mostrar panel de logros (puede llamarse desde el perfil o desde un botón)
+async function mostrarLogrosEnPanel() {
+    if (!currentUser) return;
+    
+    // Obtener logros del usuario con detalles
+    const { data: userLogros, error } = await supabaseClient
+        .from('logros_usuarios')
+        .select('logro_id, fecha_obtenido, logros(*)')
+        .eq('user_id', currentUser.id)
+        .order('fecha_obtenido', { ascending: false });
+    
+    if (error) {
+        console.error(error);
+        return;
+    }
+    
+    if (!userLogros || userLogros.length === 0) {
+        showModal(`
+            <h3 class="text-xl font-bold mb-4">🏆 Mis Logros</h3>
+            <p class="text-center text-slate-500">Aún no has desbloqueado ningún logro. Sigue participando para ganar XP y racha.</p>
+            <div class="mt-4 text-right"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>
+        `);
+        return;
+    }
+    
+    let html = `<h3 class="text-xl font-bold mb-4">🏆 Mis Logros</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">`;
+    for (const item of userLogros) {
+        const logro = item.logros;
+        html += `
+            <div class="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg flex items-center gap-3">
+                <span class="text-3xl">${logro.icono || '🏆'}</span>
+                <div class="flex-1">
+                    <p class="font-bold text-sm">${logro.nombre}</p>
+                    <p class="text-xs text-slate-500">${logro.descripcion}</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Obtenido: ${new Date(item.fecha_obtenido).toLocaleDateString()}</p>
+                </div>
+            </div>
+        `;
+    }
+    html += `</div><div class="mt-4 text-right"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
+    showModal(html);
+}
+
+// Integrar verificación de logros después de sumar XP o actualizar racha
+// Modificar la función agregarXPGemini para que al final llame a verificarLogros
+// Si ya existe, añade esta línea al final: await verificarLogros();
+
+// También modificar guardarDevocionalGemini y evaluarBienvenidaGemini
+// para que llamen a verificarLogros después de cambiar XP o racha.
+    
+    
 async function cargarRetosGemini() {
     const container = document.getElementById('tab-retos');
     const otros = usuariosIglesia.filter(u => u.user_id !== currentUser.id);
@@ -3608,6 +3908,8 @@ window.responderRetoGemini = async (id) => {
     await agregarXPGemini(50);
     alert('🎉 ¡Correcto! +50 XP');
     await cargarRetosGemini();
+    await agregarXPGemini(50);
+await verificarLogros();
 };
 
 function openAdminAulaVirtual() {
@@ -3991,9 +4293,12 @@ async function verDetalleExamen(examenId) {
 }
 // ========== PERFIL DE USUARIO ==========
 let progressChart = null;
-async function renderUserProfile() { if(!currentProfile) return; const miembro = usuariosIglesia.find(m=>m.user_id===currentUser.id); const rolMusical = miembro?.rol_musical || 'No asignado'; let deptoNombre = ''; if(miembro?.departamento_id) { const depto = departamentos.find(d=>d.id===miembro.departamento_id); deptoNombre = depto ? depto.nombre : 'No especificado'; } const html = `<div class="card" style="max-width:700px;margin:0 auto;"><div class="profile-avatar" style="background:var(--primary);"><i class="fas fa-user fa-3x" style="color:white;"></i></div><h2>${escapeHtml(currentProfile.nombre||currentUser.email)}</h2><p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p><p><strong>Rol en la app:</strong> ${currentProfile.rol==='admin'?'Administrador':'Usuario'}</p><p><strong>Rol musical:</strong> ${escapeHtml(rolMusical)}</p><p><strong>Departamento/Equipo:</strong> ${escapeHtml(deptoNombre)}</p><p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono||'No especificado')}</p><p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento||'No especificada'}</p><p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion||'No especificada')}</p><hr><h3>📊 Estadísticas de aprendizaje</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;"><div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div><div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div></div><div id="chartContainer" style="margin:1rem 0;"><canvas id="progressChartCanvas" style="max-height:300px;width:100%;display:none;"></canvas><p id="noExamMessage" class="text-muted" style="text-align:center;display:none;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p></div><button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button></div>`; document.getElementById('mainContent').innerHTML=html; document.getElementById('actionHeader').innerHTML=''; const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).order('fecha',{ascending:true}); const total=intentos?.length||0; const promedio=(intentos&&intentos.length)?(intentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/intentos.length).toFixed(1):0; document.getElementById('statExamenes').innerText=total; document.getElementById('statPromedio').innerText=`${promedio}/20`; const chartCanvas=document.getElementById('progressChartCanvas'); const noExamMessage=document.getElementById('noExamMessage'); if(intentos&&intentos.length>0){ chartCanvas.style.display='block'; noExamMessage.style.display='none'; const fechas=intentos.map(i=>new Date(i.fecha).toLocaleDateString()); const puntajes=intentos.map(i=>parseFloat(i.puntaje)); const ctx=chartCanvas.getContext('2d'); if(progressChart) progressChart.destroy(); progressChart=new Chart(ctx,{type:'line',data:{labels:fechas,datasets:[{label:'Puntaje obtenido (sobre 20)',data:puntajes,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.2,fill:true,pointBackgroundColor:'#1E3A8A'}]},options:{responsive:true,maintainAspectRatio:true,scales:{y:{beginAtZero:true,max:20,title:{display:true,text:'Puntaje'}},x:{title:{display:true,text:'Fecha del examen'}}}} }); } else { chartCanvas.style.display='none'; noExamMessage.style.display='block'; } }
+async function renderUserProfile() { if(!currentProfile) return; const miembro = usuariosIglesia.find(m=>m.user_id===currentUser.id); const rolMusical = miembro?.rol_musical || 'No asignado'; let deptoNombre = ''; if(miembro?.departamento_id) { const depto = departamentos.find(d=>d.id===miembro.departamento_id); deptoNombre = depto ? depto.nombre : 'No especificado'; } const html = `<div class="card" style="max-width:700px;margin:0 auto;"><div class="profile-avatar" style="background:var(--primary);"><i class="fas fa-user fa-3x" style="color:white;"></i></div><h2>${escapeHtml(currentProfile.nombre||currentUser.email)}</h2><p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p><p><strong>Rol en la app:</strong> ${currentProfile.rol==='admin'?'Administrador':'Usuario'}</p><p><strong>Rol musical:</strong> ${escapeHtml(rolMusical)}</p><p><strong>Departamento/Equipo:</strong> ${escapeHtml(deptoNombre)}</p><p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono||'No especificado')}</p><p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento||'No especificada'}</p><p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion||'No especificada')}</p><hr><h3>📊 Estadísticas de aprendizaje</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;"><div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div><div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div></div><div id="chartContainer" style="margin:1rem 0;"><canvas id="progressChartCanvas" style="max-height:300px;width:100%;display:none;"></canvas><p id="noExamMessage" class="text-muted" style="text-align:center;display:none;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p>
+</div><button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button></div><button class="btn btn-primary mt-2" onclick="mostrarLogrosEnPanel()">🏆 Ver mis logros</button>`; document.getElementById('mainContent').innerHTML=html; document.getElementById('actionHeader').innerHTML=''; const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).order('fecha',{ascending:true}); const total=intentos?.length||0; const promedio=(intentos&&intentos.length)?(intentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/intentos.length).toFixed(1):0; document.getElementById('statExamenes').innerText=total; document.getElementById('statPromedio').innerText=`${promedio}/20`; const chartCanvas=document.getElementById('progressChartCanvas'); const noExamMessage=document.getElementById('noExamMessage'); if(intentos&&intentos.length>0){ chartCanvas.style.display='block'; noExamMessage.style.display='none'; const fechas=intentos.map(i=>new Date(i.fecha).toLocaleDateString()); const puntajes=intentos.map(i=>parseFloat(i.puntaje)); const ctx=chartCanvas.getContext('2d'); if(progressChart) progressChart.destroy(); progressChart=new Chart(ctx,{type:'line',data:{labels:fechas,datasets:[{label:'Puntaje obtenido (sobre 20)',data:puntajes,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.2,fill:true,pointBackgroundColor:'#1E3A8A'}]},options:{responsive:true,maintainAspectRatio:true,scales:{y:{beginAtZero:true,max:20,title:{display:true,text:'Puntaje'}},x:{title:{display:true,text:'Fecha del examen'}}}} }); } else { chartCanvas.style.display='none'; noExamMessage.style.display='block'; } }
 function editUserProfile() { showModal(`<h3>Editar perfil</h3><div class="form-group"><label>Nombre completo</label><input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre||'')}"></div><div class="form-group"><label>Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono||'')}"></div><div class="form-group"><label>Fecha de nacimiento</label><input id="editFecha" class="form-control" type="date" value="${currentProfile.fecha_nacimiento||''}"></div><div class="form-group"><label>Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion||'')}"></div><div class="form-group"><label>🎨 Tema de color</label><select id="editTema" class="form-control"><option value="default" ${currentProfile.tema==='default'?'selected':''}>Azul (por defecto)</option><option value="verde" ${currentProfile.tema==='verde'?'selected':''}>Verde Esmeralda</option><option value="morado" ${currentProfile.tema==='morado'?'selected':''}>Morado Real</option><option value="rosa" ${currentProfile.tema==='rosa'?'selected':''}>Rosa Passion</option><option value="naranja" ${currentProfile.tema==='naranja'?'selected':''}>Naranja Atardecer</option></select></div><div class="form-group"><label>Foto de perfil</label><input type="file" id="editFotoFile" accept="image/jpeg,image/png,image/jpg" class="form-control"></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUserProfileWithPhoto()">Guardar</button></div>`); }
 
+
+    
     
 // ========== ADMINISTRACIÓN CON SELECTOR DE IGLESIAS Y DEPARTAMENTO JERÁRQUICO ==========
 function renderAdmin() {
