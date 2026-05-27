@@ -4334,11 +4334,284 @@ async function verDetalleExamen(examenId) {
 }
 // ========== PERFIL DE USUARIO ==========
 let progressChart = null;
-async function renderUserProfile() { if(!currentProfile) return; const miembro = usuariosIglesia.find(m=>m.user_id===currentUser.id); const rolMusical = miembro?.rol_musical || 'No asignado'; let deptoNombre = ''; if(miembro?.departamento_id) { const depto = departamentos.find(d=>d.id===miembro.departamento_id); deptoNombre = depto ? depto.nombre : 'No especificado'; } const html = `<div class="card" style="max-width:700px;margin:0 auto;"><div class="profile-avatar" style="background:var(--primary);"><i class="fas fa-user fa-3x" style="color:white;"></i></div><h2>${escapeHtml(currentProfile.nombre||currentUser.email)}</h2><p><strong>Email:</strong> ${escapeHtml(currentUser.email)}</p><p><strong>Rol en la app:</strong> ${currentProfile.rol==='admin'?'Administrador':'Usuario'}</p><p><strong>Rol musical:</strong> ${escapeHtml(rolMusical)}</p><p><strong>Departamento/Equipo:</strong> ${escapeHtml(deptoNombre)}</p><p><strong>Teléfono:</strong> ${escapeHtml(currentProfile.telefono||'No especificado')}</p><p><strong>Fecha de nacimiento:</strong> ${currentProfile.fecha_nacimiento||'No especificada'}</p><p><strong>Dirección:</strong> ${escapeHtml(currentProfile.direccion||'No especificada')}</p><hr><h3>📊 Estadísticas de aprendizaje</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;"><div class="stat-card"><div class="stat-number" id="statExamenes">-</div><div>Exámenes completados</div></div><div class="stat-card"><div class="stat-number" id="statPromedio">-</div><div>Puntaje promedio</div></div></div><div id="chartContainer" style="margin:1rem 0;"><canvas id="progressChartCanvas" style="max-height:300px;width:100%;display:none;"></canvas><p id="noExamMessage" class="text-muted" style="text-align:center;display:none;">Aún no has rendido ningún examen. ¡Anímate a empezar!</p>
-</div><button class="btn btn-primary" onclick="editUserProfile()">✏️ Editar perfil</button></div><button class="btn btn-primary mt-2" onclick="mostrarLogrosEnPanel()">🏆 Ver mis logros</button>`; document.getElementById('mainContent').innerHTML=html; document.getElementById('actionHeader').innerHTML=''; const { data: intentos } = await supabaseClient.from('intentos_examen').select('*').eq('user_id', currentUser.id).order('fecha',{ascending:true}); const total=intentos?.length||0; const promedio=(intentos&&intentos.length)?(intentos.reduce((a,b)=>a+parseFloat(b.puntaje),0)/intentos.length).toFixed(1):0; document.getElementById('statExamenes').innerText=total; document.getElementById('statPromedio').innerText=`${promedio}/20`; const chartCanvas=document.getElementById('progressChartCanvas'); const noExamMessage=document.getElementById('noExamMessage'); if(intentos&&intentos.length>0){ chartCanvas.style.display='block'; noExamMessage.style.display='none'; const fechas=intentos.map(i=>new Date(i.fecha).toLocaleDateString()); const puntajes=intentos.map(i=>parseFloat(i.puntaje)); const ctx=chartCanvas.getContext('2d'); if(progressChart) progressChart.destroy(); progressChart=new Chart(ctx,{type:'line',data:{labels:fechas,datasets:[{label:'Puntaje obtenido (sobre 20)',data:puntajes,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.2,fill:true,pointBackgroundColor:'#1E3A8A'}]},options:{responsive:true,maintainAspectRatio:true,scales:{y:{beginAtZero:true,max:20,title:{display:true,text:'Puntaje'}},x:{title:{display:true,text:'Fecha del examen'}}}} }); } else { chartCanvas.style.display='none'; noExamMessage.style.display='block'; } }
-function editUserProfile() { showModal(`<h3>Editar perfil</h3><div class="form-group"><label>Nombre completo</label><input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre||'')}"></div><div class="form-group"><label>Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono||'')}"></div><div class="form-group"><label>Fecha de nacimiento</label><input id="editFecha" class="form-control" type="date" value="${currentProfile.fecha_nacimiento||''}"></div><div class="form-group"><label>Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion||'')}"></div><div class="form-group"><label>🎨 Tema de color</label><select id="editTema" class="form-control"><option value="default" ${currentProfile.tema==='default'?'selected':''}>Azul (por defecto)</option><option value="verde" ${currentProfile.tema==='verde'?'selected':''}>Verde Esmeralda</option><option value="morado" ${currentProfile.tema==='morado'?'selected':''}>Morado Real</option><option value="rosa" ${currentProfile.tema==='rosa'?'selected':''}>Rosa Passion</option><option value="naranja" ${currentProfile.tema==='naranja'?'selected':''}>Naranja Atardecer</option></select></div><div class="form-group"><label>Foto de perfil</label><input type="file" id="editFotoFile" accept="image/jpeg,image/png,image/jpg" class="form-control"></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUserProfileWithPhoto()">Guardar</button></div>`); }
+    
+async function renderUserProfile() {
+    if (!currentProfile) return;
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
+    const rolMusical = miembro?.rol_musical || 'No asignado';
+    let deptoNombre = '';
+    if (miembro?.departamento_id) {
+        const depto = departamentos.find(d => d.id === miembro.departamento_id);
+        deptoNombre = depto ? depto.nombre : 'No especificado';
+    }
 
+    // Obtener estadísticas reales de exámenes
+    const { data: intentos } = await supabaseClient
+        .from('intentos_examen')
+        .select('puntaje, fecha')
+        .eq('user_id', currentUser.id)
+        .order('fecha', { ascending: true });
 
+    const totalExamenes = intentos?.length || 0;
+    const promedio = totalExamenes > 0
+        ? (intentos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0) / totalExamenes).toFixed(1)
+        : 0;
+    
+    // Contar logros obtenidos
+    const { count: totalLogros } = await supabaseClient
+        .from('logros_usuarios')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id);
+
+    // Foto de perfil (fallback a iniciales)
+    const fotoUrl = currentProfile.foto_url || '';
+    const iniciales = (currentProfile.nombre || currentUser.email).charAt(0).toUpperCase();
+
+    // Gráfico de evolución (si hay datos)
+    let chartHtml = '';
+    if (intentos && intentos.length > 0) {
+        chartHtml = `<canvas id="profileChart" style="max-height: 200px; width: 100%;"></canvas>`;
+    } else {
+        chartHtml = `<p class="text-center text-slate-500 text-sm py-4">📊 Aún no hay datos de exámenes. ¡Realiza tu primer examen para ver tu progreso!</p>`;
+    }
+
+    const html = `
+    <div class="max-w-4xl mx-auto">
+        <!-- Tarjeta principal con foto y datos -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-blue-700 to-indigo-800 px-6 py-8 text-white">
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    <div class="relative">
+                        ${fotoUrl ? 
+                            `<img src="${fotoUrl}" class="w-28 h-28 rounded-full object-cover border-4 border-white shadow-xl">` :
+                            `<div class="w-28 h-28 rounded-full bg-amber-500 flex items-center justify-center text-4xl font-bold text-white shadow-xl">${iniciales}</div>`
+                        }
+                        <button onclick="editUserProfile()" class="absolute bottom-0 right-0 bg-white rounded-full p-1.5 shadow-md hover:bg-slate-100 transition" title="Editar perfil">
+                            <i class="fas fa-camera text-blue-600 text-sm"></i>
+                        </button>
+                    </div>
+                    <div class="text-center md:text-left">
+                        <h2 class="text-2xl font-bold">${escapeHtml(currentProfile.nombre || currentUser.email)}</h2>
+                        <p class="text-blue-100 mt-1"><i class="fas fa-envelope mr-2"></i>${escapeHtml(currentUser.email)}</p>
+                        <div class="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
+                            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold"><i class="fas fa-music mr-1"></i> ${escapeHtml(rolMusical)}</span>
+                            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold"><i class="fas fa-users mr-1"></i> ${escapeHtml(deptoNombre)}</span>
+                            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold"><i class="fas fa-trophy mr-1"></i> ${totalLogros || 0} logros</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estadísticas en tarjetas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-slate-50 dark:bg-slate-900/50">
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm text-center">
+                    <i class="fas fa-file-alt text-blue-500 text-2xl mb-2"></i>
+                    <h3 class="text-2xl font-bold text-slate-800 dark:text-white">${totalExamenes}</h3>
+                    <p class="text-slate-500 text-sm">Exámenes realizados</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm text-center">
+                    <i class="fas fa-chart-line text-emerald-500 text-2xl mb-2"></i>
+                    <h3 class="text-2xl font-bold ${promedio >= 14 ? 'text-emerald-600' : 'text-amber-600'}">${promedio} / 20</h3>
+                    <p class="text-slate-500 text-sm">Puntaje promedio</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm text-center">
+                    <i class="fas fa-calendar-check text-amber-500 text-2xl mb-2"></i>
+                    <h3 class="text-2xl font-bold">${rachaGemini || 0}</h3>
+                    <p class="text-slate-500 text-sm">Racha actual (días)</p>
+                </div>
+            </div>
+            
+            <!-- Gráfico de evolución -->
+            <div class="p-6 border-t border-slate-200 dark:border-slate-700">
+                <h3 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fas fa-chart-simple text-blue-600"></i> Evolución de tus exámenes</h3>
+                <div class="bg-slate-50 dark:bg-slate-900 rounded-xl p-4">
+                    ${chartHtml}
+                </div>
+            </div>
+            
+            <!-- Botones de acción -->
+            <div class="p-6 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-3 justify-between items-center">
+                <div class="flex gap-3">
+                    <button onclick="editUserProfile()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl transition flex items-center gap-2"><i class="fas fa-edit"></i> Editar perfil</button>
+                    <button onclick="mostrarLogrosEnPanel()" class="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-xl transition flex items-center gap-2"><i class="fas fa-trophy"></i> Ver logros</button>
+                </div>
+                <button onclick="cambiarTabGemini('evaluaciones')" class="text-blue-600 hover:underline text-sm flex items-center gap-1"><i class="fas fa-arrow-right"></i> Ver todos mis exámenes</button>
+            </div>
+        </div>
+    </div>`;
+
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('actionHeader').innerHTML = '';
+
+    // Dibujar gráfico si hay datos
+    if (intentos && intentos.length > 0) {
+        const ctx = document.getElementById('profileChart')?.getContext('2d');
+        if (ctx) {
+            // Destruir gráfico anterior si existe
+            if (window.profileChartInstance) window.profileChartInstance.destroy();
+            window.profileChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: intentos.map(i => new Date(i.fecha).toLocaleDateString()),
+                    datasets: [{
+                        label: 'Puntaje (sobre 20)',
+                        data: intentos.map(i => parseFloat(i.puntaje)),
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#1E3A8A'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: { y: { beginAtZero: true, max: 20, title: { display: true, text: 'Puntaje' } } }
+                }
+            });
+        }
+    }
+}
+
+    
+    function editUserProfile() {
+    const modalContent = `
+        <div class="space-y-4">
+            <h3 class="text-xl font-bold flex items-center gap-2"><i class="fas fa-user-edit text-blue-600"></i> Editar perfil</h3>
+            <div class="flex flex-col items-center mb-4">
+                <div id="editAvatarPreview" class="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden mb-2">
+                    ${currentProfile.foto_url ? 
+                        `<img src="${currentProfile.foto_url}" class="w-full h-full object-cover">` :
+                        `<i class="fas fa-user fa-3x text-slate-400"></i>`
+                    }
+                </div>
+                <label class="text-sm text-blue-600 cursor-pointer hover:underline">
+                    <i class="fas fa-camera"></i> Cambiar foto
+                    <input type="file" id="editFotoFile" accept="image/jpeg,image/png,image/jpg" class="hidden" onchange="previewAvatar()">
+                </label>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium mb-1">Nombre completo</label><input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre || '')}"></div>
+                <div><label class="block text-sm font-medium mb-1">Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}"></div>
+                <div><label class="block text-sm font-medium mb-1">Fecha de nacimiento</label><input id="editFecha" type="date" class="form-control" value="${currentProfile.fecha_nacimiento || ''}"></div>
+                <div><label class="block text-sm font-medium mb-1">Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">🎨 Tema de color</label>
+                <select id="editTema" class="form-control">
+                    <option value="default" ${currentProfile.tema === 'default' ? 'selected' : ''}>Azul (por defecto)</option>
+                    <option value="verde" ${currentProfile.tema === 'verde' ? 'selected' : ''}>Verde Esmeralda</option>
+                    <option value="morado" ${currentProfile.tema === 'morado' ? 'selected' : ''}>Morado Real</option>
+                    <option value="rosa" ${currentProfile.tema === 'rosa' ? 'selected' : ''}>Rosa Passion</option>
+                    <option value="naranja" ${currentProfile.tema === 'naranja' ? 'selected' : ''}>Naranja Atardecer</option>
+                </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-4">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveUserProfileWithPhoto()">Guardar cambios</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+    
+    // Función de previsualización (se define globalmente para que funcione en el modal)
+    window.previewAvatar = () => {
+        const file = document.getElementById('editFotoFile').files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const preview = document.getElementById('editAvatarPreview');
+                preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-full">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+}
+
+    async function saveUserProfileWithPhoto() {
+    const nombre = document.getElementById('editNombre').value.trim();
+    const telefono = document.getElementById('editTelefono').value.trim();
+    const fecha = document.getElementById('editFecha').value;
+    const direccion = document.getElementById('editDireccion').value.trim();
+    const tema = document.getElementById('editTema').value;
+    const fotoFile = document.getElementById('editFotoFile').files[0];
+
+    let foto_url = currentProfile.foto_url;
+
+    if (fotoFile) {
+        // Subir nueva foto a Supabase Storage
+        const fileExt = fotoFile.name.split('.').pop();
+        const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabaseClient.storage
+            .from('avatars')
+            .upload(fileName, fotoFile);
+        if (uploadError) {
+            alert('Error al subir la foto: ' + uploadError.message);
+            return;
+        }
+        const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+        foto_url = urlData.publicUrl;
+    }
+
+    // Actualizar perfil en Supabase
+    const { error } = await supabaseClient
+        .from('perfiles')
+        .update({
+            nombre,
+            telefono,
+            fecha_nacimiento: fecha,
+            direccion,
+            foto_url,
+            tema
+        })
+        .eq('id', currentUser.id);
+
+    if (error) {
+        alert('Error al guardar: ' + error.message);
+        return;
+    }
+
+    // Aplicar tema visual
+    aplicarTema(tema);
+    
+    alert('Perfil actualizado correctamente');
+    closeModal();
+    await loadProfile();
+    await loadUserData();
+    renderUserProfile();
+}
+
+// Función auxiliar para aplicar el tema (añádela en cualquier lugar, pero antes de usarla)
+function aplicarTema(tema) {
+    const root = document.documentElement;
+    switch (tema) {
+        case 'verde':
+            root.style.setProperty('--primary', '#065F46');
+            root.style.setProperty('--primary-light', '#10B981');
+            root.style.setProperty('--primary-rgb', '6,95,70');
+            break;
+        case 'morado':
+            root.style.setProperty('--primary', '#5B21B6');
+            root.style.setProperty('--primary-light', '#8B5CF6');
+            root.style.setProperty('--primary-rgb', '91,33,182');
+            break;
+        case 'rosa':
+            root.style.setProperty('--primary', '#BE185D');
+            root.style.setProperty('--primary-light', '#F472B6');
+            root.style.setProperty('--primary-rgb', '190,24,93');
+            break;
+        case 'naranja':
+            root.style.setProperty('--primary', '#C2410C');
+            root.style.setProperty('--primary-light', '#F97316');
+            root.style.setProperty('--primary-rgb', '194,65,12');
+            break;
+        default:
+            root.style.setProperty('--primary', '#1E3A8A');
+            root.style.setProperty('--primary-light', '#3B82F6');
+            root.style.setProperty('--primary-rgb', '30,58,138');
+            break;
+    }
+}
     
     
 // ========== ADMINISTRACIÓN CON SELECTOR DE IGLESIAS Y DEPARTAMENTO JERÁRQUICO ==========
