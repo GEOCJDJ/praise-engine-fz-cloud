@@ -4419,27 +4419,28 @@ async function renderUserProfile() {
         deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    // Obtener TODOS los intentos (sin filtrar por completado, solo por user_id)
-    const { data: intentos, error } = await supabaseClient
-        .from('intentos_examen')
-        .select('puntaje, fecha')
-        .eq('user_id', currentUser.id)
-        .order('fecha', { ascending: true });
+    // Obtener intentos completados (solo los que tienen puntaje numérico)
+const { data: intentos, error } = await supabaseClient
+    .from('intentos_examen')
+    .select('puntaje, fecha')
+    .eq('user_id', currentUser.id)
+    .eq('completado', true)   // <-- importante: solo exámenes completados
+    .order('fecha', { ascending: true });
 
-    console.log('Intentos desde perfil:', intentos); // Depuración
+console.log('Intentos desde perfil (completados):', intentos); // Depuración
 
-    // Filtrar solo los que tienen puntaje válido (número y mayor que 0)
-    const intentosValidos = (intentos || []).filter(i => {
-        const p = parseFloat(i.puntaje);
-        return !isNaN(p) && p > 0;
-    });
-    
-    const totalExamenes = intentosValidos.length;
-    let promedio = 0;
-    if (totalExamenes > 0) {
-        const suma = intentosValidos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
-        promedio = (suma / totalExamenes).toFixed(1);
-    }
+// Filtrar solo los que tienen puntaje válido (número y mayor que 0)
+const intentosValidos = (intentos || []).filter(i => {
+    const p = parseFloat(i.puntaje);
+    return !isNaN(p) && p > 0;
+});
+
+const totalExamenes = intentosValidos.length;
+let promedio = 0;
+if (totalExamenes > 0) {
+    const suma = intentosValidos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
+    promedio = (suma / totalExamenes).toFixed(1);
+}
     
     // Contar logros
     const { count: totalLogros } = await supabaseClient
@@ -4674,7 +4675,36 @@ async function saveUserProfileWithPhoto() {
     await loadUserData();
     renderUserProfile();
 }
-
+function aplicarTema(tema) {
+    const root = document.documentElement;
+    switch (tema) {
+        case 'verde':
+            root.style.setProperty('--primary', '#065F46');
+            root.style.setProperty('--primary-light', '#10B981');
+            root.style.setProperty('--primary-rgb', '6,95,70');
+            break;
+        case 'morado':
+            root.style.setProperty('--primary', '#5B21B6');
+            root.style.setProperty('--primary-light', '#8B5CF6');
+            root.style.setProperty('--primary-rgb', '91,33,182');
+            break;
+        case 'rosa':
+            root.style.setProperty('--primary', '#BE185D');
+            root.style.setProperty('--primary-light', '#F472B6');
+            root.style.setProperty('--primary-rgb', '190,24,93');
+            break;
+        case 'naranja':
+            root.style.setProperty('--primary', '#C2410C');
+            root.style.setProperty('--primary-light', '#F97316');
+            root.style.setProperty('--primary-rgb', '194,65,12');
+            break;
+        default:
+            root.style.setProperty('--primary', '#1E3A8A');
+            root.style.setProperty('--primary-light', '#3B82F6');
+            root.style.setProperty('--primary-rgb', '30,58,138');
+            break;
+    }
+}
     
     
 // ========== ADMINISTRACIÓN CON SELECTOR DE IGLESIAS Y DEPARTAMENTO JERÁRQUICO ==========
