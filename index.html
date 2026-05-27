@@ -717,11 +717,11 @@ body.stage-mode pre {
     border-radius: 1.5rem;
     box-shadow: var(--shadow);
     overflow: hidden;
-    transition: transform 0.2s;
 }
 .profile-header-gradient {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     padding: 2rem 1.5rem;
+    color: white;
 }
 .profile-avatar-modern {
     width: 100px;
@@ -738,8 +738,7 @@ body.stage-mode pre {
     color: var(--primary);
 }
 .stat-card-modern {
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(4px);
+    background: var(--bg-app);
     border-radius: 1rem;
     padding: 1rem;
     text-align: center;
@@ -767,6 +766,7 @@ body.stage-mode pre {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    cursor: pointer;
 }
 .btn-modern-primary {
     background: var(--primary);
@@ -782,11 +782,6 @@ body.stage-mode pre {
 }
 .btn-modern-amber:hover {
     background: #d97706;
-}
-@media (max-width: 640px) {
-    .profile-header-gradient { padding: 1.5rem; }
-    .profile-avatar-modern { width: 70px; height: 70px; font-size: 1.8rem; }
-    .stat-number-modern { font-size: 1.5rem; }
 }
         
         
@@ -4424,18 +4419,20 @@ async function renderUserProfile() {
         deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    // Estadísticas reales de exámenes
+    // Obtener TODOS los intentos de examen (sin filtrar por completado)
     const { data: intentos, error } = await supabaseClient
         .from('intentos_examen')
-        .select('puntaje, fecha, completado')
+        .select('puntaje, fecha')
         .eq('user_id', currentUser.id)
-        .eq('completado', true)
         .order('fecha', { ascending: true });
     
-    const totalExamenes = intentos?.length || 0;
+    // Filtrar solo los que tienen puntaje válido (mayor que 0 o no nulo)
+    const intentosValidos = (intentos || []).filter(i => i.puntaje !== null && parseFloat(i.puntaje) > 0);
+    const totalExamenes = intentosValidos.length;
+    
     let promedio = 0;
     if (totalExamenes > 0) {
-        const suma = intentos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
+        const suma = intentosValidos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
         promedio = (suma / totalExamenes).toFixed(1);
     }
     
@@ -4445,14 +4442,18 @@ async function renderUserProfile() {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', currentUser.id);
 
-    // Foto de perfil
+    // Asegurar que rachaGemini esté cargada
+    if (typeof rachaGemini === 'undefined') {
+        const { data: prog } = await supabaseClient.from('progreso_usuario').select('racha').eq('user_id', currentUser.id).single();
+        rachaGemini = prog?.racha || 0;
+    }
+
     const fotoUrl = currentProfile.foto_url || '';
     const iniciales = (currentProfile.nombre || currentUser.email).charAt(0).toUpperCase();
 
-    // Construir HTML
     let html = `
     <div class="profile-modern-card" style="max-width: 1000px; margin: 0 auto;">
-        <div class="profile-header-gradient" style="color: white;">
+        <div class="profile-header-gradient">
             <div style="display: flex; flex-direction: row; align-items: center; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
                 <div style="position: relative;">
                     ${fotoUrl ? 
@@ -4476,7 +4477,7 @@ async function renderUserProfile() {
         </div>
         
         <div style="padding: 1.5rem;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
                 <div class="stat-card-modern">
                     <i class="fas fa-file-alt" style="font-size: 1.8rem; color: var(--primary);"></i>
                     <div class="stat-number-modern">${totalExamenes}</div>
@@ -4484,7 +4485,7 @@ async function renderUserProfile() {
                 </div>
                 <div class="stat-card-modern">
                     <i class="fas fa-chart-line" style="font-size: 1.8rem; color: #f59e0b;"></i>
-                    <div class="stat-number-modern" style="color: ${promedio >= 14 ? '#10b981' : '#f59e0b'}">${promedio} / 20</div>
+                    <div class="stat-number-modern" style="color: ${promedio >= 14 ? '#10b981' : '#f59e0b'}">${promedio > 0 ? promedio : '—'} / 20</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted);">Puntaje promedio</div>
                 </div>
                 <div class="stat-card-modern">
@@ -4514,18 +4515,18 @@ async function renderUserProfile() {
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('actionHeader').innerHTML = '';
 
-    // Dibujar gráfico si hay datos
-    if (totalExamenes > 0 && intentos) {
+    // Dibujar gráfico con los datos reales
+    if (totalExamenes > 0 && intentosValidos) {
         const ctx = document.getElementById('profileChart')?.getContext('2d');
         if (ctx) {
             if (window.profileChartInstance) window.profileChartInstance.destroy();
             window.profileChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: intentos.map(i => new Date(i.fecha).toLocaleDateString()),
+                    labels: intentosValidos.map(i => new Date(i.fecha).toLocaleDateString()),
                     datasets: [{
                         label: 'Puntaje (sobre 20)',
-                        data: intentos.map(i => parseFloat(i.puntaje)),
+                        data: intentosValidos.map(i => parseFloat(i.puntaje)),
                         borderColor: '#3B82F6',
                         backgroundColor: 'rgba(59,130,246,0.1)',
                         tension: 0.3,
@@ -4544,38 +4545,56 @@ async function renderUserProfile() {
 }
     
     function editUserProfile() {
+    const fotoActual = currentProfile.foto_url || '';
     const modalContent = `
-        <div class="space-y-4">
-            <h3 class="text-xl font-bold flex items-center gap-2"><i class="fas fa-user-edit text-blue-600"></i> Editar perfil</h3>
-            <div class="flex flex-col items-center mb-4">
-                <div id="editAvatarPreview" class="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden mb-2">
-                    ${currentProfile.foto_url ? 
-                        `<img src="${currentProfile.foto_url}" class="w-full h-full object-cover">` :
-                        `<i class="fas fa-user fa-3x text-slate-400"></i>`
+        <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; max-width: 550px; margin: 0 auto;">
+            <h3 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-user-edit" style="color: var(--primary);"></i> Editar perfil
+            </h3>
+            
+            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;">
+                <div id="editAvatarPreview" style="width: 100px; height: 100px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 0.5rem; border: 3px solid var(--primary);">
+                    ${fotoActual ? 
+                        `<img src="${fotoActual}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                        `<i class="fas fa-user fa-3x" style="color: #94a3b8;"></i>`
                     }
                 </div>
-                <label class="text-sm text-blue-600 cursor-pointer hover:underline">
+                <label style="background: var(--primary); color: white; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; transition: 0.2s;">
                     <i class="fas fa-camera"></i> Cambiar foto
-                    <input type="file" id="editFotoFile" accept="image/jpeg,image/png,image/jpg" class="hidden" onchange="previewAvatar()">
+                    <input type="file" id="editFotoFile" accept="image/jpeg,image/png,image/jpg" style="display: none;" onchange="previewAvatar()">
                 </label>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label class="block text-sm font-medium mb-1">Nombre completo</label><input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre || '')}"></div>
-                <div><label class="block text-sm font-medium mb-1">Teléfono</label><input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}"></div>
-                <div><label class="block text-sm font-medium mb-1">Fecha de nacimiento</label><input id="editFecha" type="date" class="form-control" value="${currentProfile.fecha_nacimiento || ''}"></div>
-                <div><label class="block text-sm font-medium mb-1">Dirección</label><input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}"></div>
+            
+            <div style="display: grid; gap: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Nombre completo</label>
+                    <input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre || '')}" placeholder="Tu nombre">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Teléfono</label>
+                    <input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}" placeholder="Ej: 0991234567">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Fecha de nacimiento</label>
+                    <input id="editFecha" type="date" class="form-control" value="${currentProfile.fecha_nacimiento || ''}">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Dirección</label>
+                    <input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}" placeholder="Ciudad, sector...">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">🎨 Tema de color</label>
+                    <select id="editTema" class="form-control">
+                        <option value="default" ${currentProfile.tema === 'default' ? 'selected' : ''}>Azul (por defecto)</option>
+                        <option value="verde" ${currentProfile.tema === 'verde' ? 'selected' : ''}>Verde Esmeralda</option>
+                        <option value="morado" ${currentProfile.tema === 'morado' ? 'selected' : ''}>Morado Real</option>
+                        <option value="rosa" ${currentProfile.tema === 'rosa' ? 'selected' : ''}>Rosa Passion</option>
+                        <option value="naranja" ${currentProfile.tema === 'naranja' ? 'selected' : ''}>Naranja Atardecer</option>
+                    </select>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">🎨 Tema de color</label>
-                <select id="editTema" class="form-control">
-                    <option value="default" ${currentProfile.tema === 'default' ? 'selected' : ''}>Azul (por defecto)</option>
-                    <option value="verde" ${currentProfile.tema === 'verde' ? 'selected' : ''}>Verde Esmeralda</option>
-                    <option value="morado" ${currentProfile.tema === 'morado' ? 'selected' : ''}>Morado Real</option>
-                    <option value="rosa" ${currentProfile.tema === 'rosa' ? 'selected' : ''}>Rosa Passion</option>
-                    <option value="naranja" ${currentProfile.tema === 'naranja' ? 'selected' : ''}>Naranja Atardecer</option>
-                </select>
-            </div>
-            <div class="flex justify-end gap-3 pt-4">
+            
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
                 <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
                 <button class="btn btn-primary" onclick="saveUserProfileWithPhoto()">Guardar cambios</button>
             </div>
@@ -4583,13 +4602,14 @@ async function renderUserProfile() {
     `;
     showModal(modalContent);
     
+    // Previsualización de foto
     window.previewAvatar = () => {
         const file = document.getElementById('editFotoFile').files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = e => {
                 const preview = document.getElementById('editAvatarPreview');
-                preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-full">`;
+                preview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
             };
             reader.readAsDataURL(file);
         }
@@ -4638,42 +4658,11 @@ async function saveUserProfileWithPhoto() {
     }
 
     aplicarTema(tema);
-    alert('Perfil actualizado correctamente');
+    alert('✅ Perfil actualizado correctamente');
     closeModal();
     await loadProfile();
     await loadUserData();
     renderUserProfile();
-}
-
-function aplicarTema(tema) {
-    const root = document.documentElement;
-    switch (tema) {
-        case 'verde':
-            root.style.setProperty('--primary', '#065F46');
-            root.style.setProperty('--primary-light', '#10B981');
-            root.style.setProperty('--primary-rgb', '6,95,70');
-            break;
-        case 'morado':
-            root.style.setProperty('--primary', '#5B21B6');
-            root.style.setProperty('--primary-light', '#8B5CF6');
-            root.style.setProperty('--primary-rgb', '91,33,182');
-            break;
-        case 'rosa':
-            root.style.setProperty('--primary', '#BE185D');
-            root.style.setProperty('--primary-light', '#F472B6');
-            root.style.setProperty('--primary-rgb', '190,24,93');
-            break;
-        case 'naranja':
-            root.style.setProperty('--primary', '#C2410C');
-            root.style.setProperty('--primary-light', '#F97316');
-            root.style.setProperty('--primary-rgb', '194,65,12');
-            break;
-        default:
-            root.style.setProperty('--primary', '#1E3A8A');
-            root.style.setProperty('--primary-light', '#3B82F6');
-            root.style.setProperty('--primary-rgb', '30,58,138');
-            break;
-    }
 }
 
     
