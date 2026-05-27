@@ -846,7 +846,29 @@ body.tema-naranja { --primary: #C2410C; --primary-light: #F97316; }
         order: 3;
     }
 }
-        
+/* Para pestañas FZKIDS */
+.tab-fzkids {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: 0.2s;
+}
+.tab-fzkids.active {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+}
+.checklist-materiales input {
+  width: 1.2rem;
+  height: 1.2rem;
+  cursor: pointer;
+}
+#btnEmergencia {
+  background: #EF4444;
+  color: white;
+}        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1821,7 +1843,13 @@ async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin) { showToast
 async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('canciones').delete().eq('id', id).eq('iglesia_id', currentIglesiaId); await loadUserData(); renderCurrentView(); }
 async function saveList(list) { if (!currentUser) return showToast("Debes iniciar sesión."); try { if (list.id) { await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id); await supabaseClient.from('lista_items').delete().eq('lista_id', list.id); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } else { const newId = generateUniqueId(); await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date, iglesia_id: currentIglesiaId }); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } await loadUserData(); renderCurrentView(); } catch(e) { console.error(e); showToast("Error guardando lista."); } }
 async function deleteList(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
-
+function puedeVerFzkids() {
+  if (isAdminUser || isIglesiaAdmin) return true;
+  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+  if (!miembro) return false;
+  const depto = departamentos.find(d => d.id === miembro.departamento_id);
+  return depto && depto.nombre === 'Servicio' && miembro.rol_musical === 'Escuela Bíblica';
+}
 // ========== RENDER PRINCIPAL ==========
 function renderApp() {
     if (!currentUser) { renderLogin(); return; }
@@ -1850,7 +1878,15 @@ function renderApp() {
     if (!currentIglesiaId) { renderLogin(); return; }
     
     // Usuario normal (iglesia seleccionada)
-    document.getElementById('appRoot').innerHTML = `<header class="app-header"><div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small></div><div class="nav-icons"><div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div><div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div><div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div><div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div><div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div><div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
+    document.getElementById('appRoot').innerHTML = `<header class="app-header">
+    <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small></div>
+    <div class="nav-icons"><div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
+    <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};"><i class="fas fa-child"></i><span>🧸 FZKIDS</span></div>
+    <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
+    <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
+    <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+    <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
+    <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
     <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
     <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
     <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}<div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div><div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div><div id="mainContent"></div></div>
@@ -1916,6 +1952,7 @@ function darkModeToggle() {
        
     if (currentTab === 'songs') await renderSongsGrid();
     else if (currentTab === 'home') renderHome();
+    else if (currentTab === 'fzkids') await renderFzkids();
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
@@ -5424,7 +5461,227 @@ window.deleteUserById = async (userId) => {
     function adminAttendance() { let html=`<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${usuariosIglesia.map(u=>`<option value="${u.id}">${escapeHtml(u.perfiles?.nombre)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); flatpickr("#attDate",{locale:"es",dateFormat:"d/m/Y",defaultDate:"today"}); const renderAttList=()=>{ const container=document.getElementById('attList'); if(container) container.innerHTML=attendance.map((a)=>{ const miembro=usuariosIglesia.find(u=>u.id===a.usuario_iglesia_id); return `<div>${a.fecha} - ${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`; }).join(''); }; window.saveAttendanceAdmin=async()=>{ const date=document.getElementById('attDate').value; const usuarioIglesiaId=document.getElementById('attMember').value; const status=document.getElementById('attStatus').value; if(!date||!usuarioIglesiaId) return showToast("Completa los campos"); const { error } = await supabaseClient.from('asistencia').insert([{ fecha:date, usuario_iglesia_id:usuarioIglesiaId, estado:status }]); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); document.getElementById('attDate').value=''; }; window.deleteAttendanceAdmin=async(id)=>{ if(confirm("¿Eliminar este registro?")){ const { error } = await supabaseClient.from('asistencia').delete().eq('id',id); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); } }; renderAttList(); }
     function adminShifts() { let currentDate=null; async function loadTurnosForDate(dateStr){ const { data, error } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(perfiles(nombre,email))').eq('fecha',dateStr); if(error){ console.error(error); return []; } return data; } async function showDateManagement(dateStr){ currentDate=dateStr; const turnos=await loadTurnosForDate(dateStr); const miembrosPorSubgrupo={}; for(let turno of turnos){ const miembro=usuariosIglesia.find(u=>u.id===turno.usuario_iglesia_id); if(!miembro) continue; const depto=departamentos.find(d=>d.id===miembro.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!miembrosPorSubgrupo[grupo]) miembrosPorSubgrupo[grupo]=[]; miembrosPorSubgrupo[grupo].push({ id:turno.id, nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } let html=`<h3>📅 Turnos del ${dateStr}</h3><div style="margin-bottom:1rem;">`; for(let [grupo,lista] of Object.entries(miembrosPorSubgrupo)){ if(lista.length===0) continue; html+=`<div class="card" style="margin-bottom:1rem;padding:0.8rem;"><h4>${grupo}</h4>`; for(let item of lista){ html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;"><div><strong>${escapeHtml(item.nombre)}</strong> (${escapeHtml(item.rol||'Sin rol')})</div><button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}','${dateStr}')" style="color:red;"><i class="fas fa-trash"></i></button></div>`; } html+=`</div>`; } html+=`<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button><button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button></div>`; showModal(html); } window.showAddMemberForm=async(dateStr)=>{ const turnosExistentes=await loadTurnosForDate(dateStr); const miembrosOcupados=turnosExistentes.map(t=>t.usuario_iglesia_id); const miembrosDisponibles=usuariosIglesia.filter(u=>!miembrosOcupados.includes(u.id)); if(miembrosDisponibles.length===0){ showToast("Todos los miembros ya tienen turno asignado en esta fecha."); closeModal(); adminShifts(); return; } const porSubgrupo={}; for(let m of miembrosDisponibles){ const depto=departamentos.find(d=>d.id===m.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!porSubgrupo[grupo]) porSubgrupo[grupo]=[]; porSubgrupo[grupo].push(m); } let formHtml=`<h3>Agregar miembro al turno del ${dateStr}</h3>`; for(let [grupo, miembros] of Object.entries(porSubgrupo)){ formHtml+=`<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`; for(let m of miembros){ formHtml+=`<div class="team-member-card" style="cursor:pointer;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;" onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical||'')}')"><div class="avatar" style="width:40px;height:40px;font-size:1rem;">${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase()||'?')}</div><div><strong>${escapeHtml(m.perfiles?.nombre)}</strong><br><span class="card-category">${escapeHtml(m.rol_musical||'Sin rol')}</span></div></div>`; } formHtml+=`</div></div>`; } formHtml+=`<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button></div>`; showModal(formHtml); }; window.confirmAddTurno=async(dateStr, usuarioIglesiaId, nombre, rol)=>{ if(confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)){ const { error } = await supabaseClient.from('turnos').insert([{ fecha:dateStr, usuario_iglesia_id:usuarioIglesiaId }]); if(error) showToast("Error: "+error.message); else { showToast("Turno asignado correctamente"); showDateManagement(dateStr); } } }; window.deleteTurnoFromDate=async(turnoId, dateStr)=>{ if(confirm("¿Eliminar este turno?")){ const { error } = await supabaseClient.from('turnos').delete().eq('id',turnoId); if(error) showToast("Error: "+error.message); else showDateManagement(dateStr); } }; const turnosMap={}; shifts.forEach(s=>{ const miembro=usuariosIglesia.find(u=>u.id===s.usuario_iglesia_id); if(miembro){ if(!turnosMap[s.fecha]) turnosMap[s.fecha]=[]; turnosMap[s.fecha].push({ nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } }); const modalHtml=`<h3>📅 Gestión de Turnos por Día</h3><p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p><div class="form-group"><input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha"></div><div style="margin-top:1rem;"><h4>📋 Resumen de turnos asignados</h4><div style="max-height:300px;overflow-y:auto;border-radius:var(--radius-sm);border:1px solid var(--border);"><table style="width:100%;border-collapse:collapse;"><thead style="position:sticky;top:0;background:var(--surface);"><tr><th style="padding:0.5rem;text-align:left;">Fecha</th><th style="padding:0.5rem;text-align:left;">Miembros (rol)</th></tr></thead><tbody>${Object.entries(turnosMap).map(([fecha, miembros])=>`<tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="showDateManagement('${fecha}')"><td style="padding:0.5rem;"><strong>${fecha}</strong></td><td style="padding:0.5rem;">${miembros.map(m=>`${m.nombre} (${m.rol||'Sin rol'})`).join(', ')}</td></tr>`).join('')||'<tr><td colspan="2" style="padding:1rem;text-align:center;">No hay turnos asignados aún.</td></tr>'}</tbody></table></div></div><div style="text-align:right;margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`; showModal(modalHtml); flatpickr("#shiftCalendar",{locale:"es",dateFormat:"d/m/Y",inline:true,onDayCreate:(dObj,dStr,fp,dayElem)=>{ const year=dayElem.dateObj.getFullYear(); const month=String(dayElem.dateObj.getMonth()+1).padStart(2,'0'); const day=String(dayElem.dateObj.getDate()).padStart(2,'0'); const dateStr=`${day}/${month}/${year}`; if(turnosMap[dateStr]){ dayElem.style.backgroundColor='#3B82F6'; dayElem.style.color='white'; dayElem.style.borderRadius='50%'; dayElem.title=`Turnos: ${turnosMap[dateStr].map(m=>m.nombre).join(', ')}`; } }, onChange:(selectedDates,dateStr)=>{ if(dateStr) showDateManagement(dateStr); } }); }
 
+// ==================== MÓDULO FZKIDS ====================
+let currentFzkidsLeccion = null;
+let materialesChecklist = {};
 
+async function renderFzkids() {
+  if (!puedeVerFzkids()) {
+    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger">No tienes permiso para acceder a este módulo.</div>';
+    return;
+  }
+  const actionHeader = document.getElementById('actionHeader');
+  actionHeader.innerHTML = '<button class="btn btn-ghost" onclick="cargarOtraFecha()">📅 Ver otra fecha</button>';
+  
+  await cargarLeccionProximoDomingo();
+  mostrarInterfazFzkids();
+}
+
+async function cargarLeccionProximoDomingo() {
+  const hoy = new Date();
+  const diasHastaDomingo = (7 - hoy.getDay()) % 7 || 7; // si hoy es domingo, próximo domingo
+  const proximoDomingo = new Date(hoy);
+  proximoDomingo.setDate(hoy.getDate() + diasHastaDomingo);
+  const fechaStr = proximoDomingo.toISOString().slice(0,10);
+  
+  const { data, error } = await supabaseClient
+    .from('fzkids_lecciones')
+    .select('*')
+    .eq('fecha', fechaStr)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') {
+    showToast('Error al cargar lección: ' + error.message, 'error');
+    currentFzkidsLeccion = null;
+  } else {
+    currentFzkidsLeccion = data || null;
+    if (!currentFzkidsLeccion) {
+      showToast('No hay lección programada para el próximo domingo. Contacta al administrador.', 'warning');
+    } else {
+      // Inicializar checklist de materiales (todos false)
+      materialesChecklist = {};
+      if (currentFzkidsLeccion.materiales && Array.isArray(currentFzkidsLeccion.materiales)) {
+        currentFzkidsLeccion.materiales.forEach(mat => { materialesChecklist[mat] = false; });
+      }
+    }
+  }
+}
+
+function mostrarInterfazFzkids() {
+  const container = document.getElementById('mainContent');
+  if (!currentFzkidsLeccion) {
+    container.innerHTML = `<div class="card text-center p-4"><h3>📖 No hay lección para el próximo domingo</h3><button class="btn btn-primary" onclick="cargarOtraFecha()">Cargar otra fecha</button></div>`;
+    return;
+  }
+  
+  const fechaLegible = new Date(currentFzkidsLeccion.fecha).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  
+  let materialesHtml = '<ul class="checklist-materiales" style="list-style:none; padding-left:0;">';
+  if (currentFzkidsLeccion.materiales && currentFzkidsLeccion.materiales.length) {
+    currentFzkidsLeccion.materiales.forEach(mat => {
+      materialesHtml += `
+        <li style="margin-bottom: 0.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" onchange="marcarMaterial('${escapeHtml(mat)}', this.checked)" ${materialesChecklist[mat] ? 'checked' : ''}>
+            ${escapeHtml(mat)}
+          </label>
+        </li>
+      `;
+    });
+  } else {
+    materialesHtml += '<li>No hay materiales listados.</li>';
+  }
+  materialesHtml += '</ul>';
+  materialesHtml += `<button class="btn btn-warning mt-2" onclick="solicitarMaterialFaltante()">📦 Solicitar material faltante</button>`;
+  
+  // Reproductor multimedia
+  let reproductorHtml = '';
+  if (currentFzkidsLeccion.video_url) {
+    reproductorHtml += `
+      <div class="reproductor">
+        <label>📺 Video / Coreografía:</label>
+        <video src="${currentFzkidsLeccion.video_url}" controls style="width:100%; max-height: 200px; margin-top: 0.5rem;"></video>
+      </div>
+    `;
+  }
+  if (currentFzkidsLeccion.audio_url) {
+    reproductorHtml += `
+      <div class="reproductor">
+        <label>🎵 Canción / Audio:</label>
+        <audio src="${currentFzkidsLeccion.audio_url}" controls style="width:100%; margin-top: 0.5rem;"></audio>
+      </div>
+    `;
+  }
+  if (!reproductorHtml) reproductorHtml = '<p class="text-muted">No hay archivos multimedia asociados.</p>';
+  
+  const html = `
+    <div id="fzkids-container" style="max-width: 1000px; margin: 0 auto;">
+      <div class="card text-center" style="background: linear-gradient(135deg, #F59E0B, #FCD34D); color: #1E293B;">
+        <h2><i class="fas fa-church"></i> Próxima Clase: ${fechaLegible}</h2>
+        <h3>📖 ${escapeHtml(currentFzkidsLeccion.titulo)}</h3>
+      </div>
+      
+      <div style="margin-top: 1.5rem;">
+        <div class="tabs-fzkids" style="display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border);">
+          <button class="tab-fzkids active" data-tab="leccion">📖 Lección</button>
+          <button class="tab-fzkids" data-tab="manualidad">✂️ Manualidad</button>
+          <button class="tab-fzkids" data-tab="canciones">🎵 Canciones</button>
+          <button class="tab-fzkids" data-tab="materiales">📦 Materiales</button>
+          <button class="tab-fzkids" data-tab="multimedia">🎬 Multimedia</button>
+        </div>
+        
+        <div id="tab-leccion" class="tab-content-fzkids active" style="padding: 1rem 0;">
+          <div class="card">${escapeHtml(currentFzkidsLeccion.leccion || 'No hay contenido')}</div>
+        </div>
+        <div id="tab-manualidad" class="tab-content-fzkids" style="display: none; padding: 1rem 0;">
+          <div class="card">${escapeHtml(currentFzkidsLeccion.manualidad || 'No hay manualidad')}</div>
+        </div>
+        <div id="tab-canciones" class="tab-content-fzkids" style="display: none; padding: 1rem 0;">
+          <div class="card">${escapeHtml(currentFzkidsLeccion.canciones || 'No hay canciones sugeridas')}</div>
+        </div>
+        <div id="tab-materiales" class="tab-content-fzkids" style="display: none; padding: 1rem 0;">
+          <div class="card">${materialesHtml}</div>
+        </div>
+        <div id="tab-multimedia" class="tab-content-fzkids" style="display: none; padding: 1rem 0;">
+          <div class="card">${reproductorHtml}</div>
+        </div>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; margin-top: 2rem; gap: 1rem;">
+        <button class="btn btn-success" onclick="enviarResumenWhatsApp()"><i class="fab fa-whatsapp"></i> Conexión a Casa</button>
+        <button class="btn btn-danger" id="btnEmergencia" onclick="abrirEmergencia()"><i class="fas fa-gamepad"></i> Juegos Extra</button>
+      </div>
+    </div>
+  `;
+  container.innerHTML = html;
+  
+  // Eventos de pestañas
+  document.querySelectorAll('.tab-fzkids').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-fzkids').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content-fzkids').forEach(div => div.style.display = 'none');
+      btn.classList.add('active');
+      const tabId = btn.dataset.tab;
+      document.getElementById(`tab-${tabId}`).style.display = 'block';
+    });
+  });
+}
+
+window.marcarMaterial = (material, checked) => {
+  materialesChecklist[material] = checked;
+  showToast(`${material} ${checked ? 'marcado como listo' : 'desmarcado'}`, 'info');
+};
+
+window.solicitarMaterialFaltante = async () => {
+  const faltantes = Object.keys(materialesChecklist).filter(mat => !materialesChecklist[mat]);
+  if (faltantes.length === 0) {
+    showToast('Todos los materiales están listos. ¡Bien hecho!', 'success');
+    return;
+  }
+  if (confirm(`Faltan: ${faltantes.join(', ')}. ¿Deseas solicitar estos materiales al administrador?`)) {
+    const { error } = await supabaseClient.from('fzkids_solicitudes').insert(
+      faltantes.map(material => ({
+        leccion_id: currentFzkidsLeccion.id,
+        material,
+        solicitado_por: currentUser.id,
+        estado: 'pendiente'
+      }))
+    );
+    if (error) showToast('Error al enviar solicitud: ' + error.message, 'error');
+    else showToast('Solicitud enviada al administrador', 'success');
+  }
+};
+
+window.enviarResumenWhatsApp = () => {
+  if (!currentFzkidsLeccion) return;
+  const fecha = new Date(currentFzkidsLeccion.fecha).toLocaleDateString('es-ES');
+  let mensaje = `📖 *Resumen Clase Escuela Bíblica* 📖\n\n`;
+  mensaje += `🗓️ *Fecha:* ${fecha}\n`;
+  mensaje += `📘 *Lección:* ${currentFzkidsLeccion.titulo}\n`;
+  mensaje += `✂️ *Manualidad:* ${currentFzkidsLeccion.manualidad || 'No especificada'}\n`;
+  mensaje += `🎵 *Canción:* ${currentFzkidsLeccion.canciones || 'No especificada'}\n\n`;
+  mensaje += `✅ *Revisar en casa:*\n- Hablar sobre ${currentFzkidsLeccion.titulo}\n- Practicar la canción en familia\n- Preparar materiales para la próxima clase\n\n✨ ¡Dios les bendiga! ✨`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
+};
+
+window.abrirEmergencia = async () => {
+  // Cargar dinámicas desde la base de datos (columna dinamicas)
+  let dinamicas = currentFzkidsLeccion?.dinamicas || [];
+  if (dinamicas.length === 0) {
+    // Fallback: lista predefinida
+    dinamicas = [
+      "Adivinanza: ¿Qué animal salvó Dios en el arca? (Respuesta: todos)",
+      "Juego: Simón dice... versión bíblica (Simón dice: salta como David frente a Goliat)",
+      "Canción rápida: 'Jesús me ama, eso sé'",
+      "Acertijo: ¿Quién fue tragado por un gran pez? (Jonás)",
+      "Dinámica: Forma un círculo y cuenten algo que agradecen a Dios"
+    ];
+  }
+  const aleatoria = dinamicas[Math.floor(Math.random() * dinamicas.length)];
+  showModal(`
+    <div style="text-align: center;">
+      <h3><i class="fas fa-gamepad"></i> Tiempo de Emergencia</h3>
+      <p style="font-size: 1.2rem; margin: 1rem 0;">${escapeHtml(aleatoria)}</p>
+      <button class="btn btn-primary" onclick="closeModal()">Entendido</button>
+    </div>
+  `);
+};
+
+window.cargarOtraFecha = async () => {
+  const fechaInput = prompt('Ingrese fecha (YYYY-MM-DD):');
+  if (!fechaInput) return;
+  const { data, error } = await supabaseClient
+    .from('fzkids_lecciones')
+    .select('*')
+    .eq('fecha', fechaInput)
+    .single();
+  if (error || !data) {
+    showToast('No hay lección para esa fecha', 'error');
+    return;
+  }
+  currentFzkidsLeccion = data;
+  mostrarInterfazFzkids();
+};
    
 
 // ========== INICIALIZACIÓN ==========
