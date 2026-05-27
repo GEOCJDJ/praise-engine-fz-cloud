@@ -2995,104 +2995,11 @@ function createSongObject(index,cancionesTemp) { return { id:generateUniqueId(),
 // ========== ASISTENCIA Y TURNOS ==========
 function viewAttendanceReport() { let html = `<h3>Reporte de Asistencia</h3><table style="width:100%;border-collapse:collapse;"><thead><tr><th>Fecha</th><th>Miembro</th><th>Estado</th></tr></thead><tbody>`; attendance.forEach(reg=>{ const miembro = usuariosIglesia.find(u=>u.id===reg.usuario_iglesia_id); html += `<tr><td>${reg.fecha}</td><td>${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'}</td><td>${reg.estado==='puntual'?'✅ Puntual':'⚠️ Tarde'}</td></tr>`; }); html += `</tbody></table><button class="btn btn-primary" onclick="exportAttendanceExcel()">Exportar Excel</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
 function exportAttendanceExcel() { const data = [["Fecha","Miembro","Estado"]]; attendance.forEach(reg=>{ const miembro = usuariosIglesia.find(u=>u.id===reg.usuario_iglesia_id); data.push([reg.fecha, miembro?miembro.perfiles?.nombre:'Desconocido', reg.estado]); }); const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Asistencia"); XLSX.writeFile(wb, `asistencia_${new Date().toISOString().slice(0,10)}.xlsx`); }
-async function viewMyShifts() {
-    const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
-    if (!miembro) {
-        showToast("No tienes un rol asignado en el equipo. Contacta al administrador.");
-        return;
-    }
-    const misTurnos = shifts.filter(s => s.usuario_iglesia_id === miembro.id);
-    misTurnos.sort((a,b) => {
-        const da = a.fecha.split('/').reverse().join('-');
-        const db = b.fecha.split('/').reverse().join('-');
-        return new Date(da) - new Date(db);
-    });
-    const turnosPorFecha = {};
-    misTurnos.forEach(t => { turnosPorFecha[t.fecha] = true; });
+ 
 
-    const { data: actividades } = await supabaseClient
-        .from('actividades')
-        .select('*')
-        .eq('iglesia_id', currentIglesiaId)
-        .order('fecha');
-    const actividadesPorFecha = {};
-    const proximasActividades = [];
-    const hoy = new Date();
-    hoy.setHours(0,0,0,0);
-    (actividades || []).forEach(act => {
-        actividadesPorFecha[act.fecha] = true;
-        const [dia, mes, anio] = act.fecha.split('/');
-        const fechaAct = new Date(anio, mes-1, dia);
-        if (fechaAct >= hoy) proximasActividades.push(act);
-    });
+    // ========== ASISTENCIA Y TURNOS ==========
+// ... otras funciones anteriores (viewAttendanceReport, exportAttendanceExcel, etc.)
 
-    const proximosTurnos = misTurnos.filter(t => {
-        const [dia, mes, anio] = t.fecha.split('/');
-        const fechaTurno = new Date(anio, mes-1, dia);
-        return fechaTurno >= hoy;
-    });
-
-    // Estilos mejorados para el modal
-    const modalStyles = `
-        <style>
-            .flatpickr-calendar {
-                width: 100% !important;
-                max-width: 350px !important;
-                margin: 0 auto !important;
-                background: var(--surface) !important;
-                border: 1px solid var(--border) !important;
-                border-radius: var(--radius-lg) !important;
-                box-shadow: none !important;
-            }
-            .flatpickr-days {
-                width: 100% !important;
-            }
-            .flatpickr-day {
-                border-radius: 50% !important;
-                margin: 2px !important;
-                width: 36px !important;
-                line-height: 36px !important;
-            }
-            @media (max-width: 600px) {
-                .flatpickr-day { width: 32px !important; line-height: 32px !important; }
-                .shift-grid {
-                    grid-template-columns: 1fr !important;
-                    gap: 1rem !important;
-                }
-            }
-            .shift-card {
-                background: var(--bg-app);
-                border-radius: var(--radius-sm);
-                padding: 1rem;
-                margin-bottom: 1rem;
-            }
-            .shift-list {
-                max-height: 200px;
-                overflow-y: auto;
-            }
-        </style>
-    `;
-
-    let html = modalStyles + `
-        <h3>📅 Mis Turnos y Actividades</h3>
-        <div class="shift-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-            <!-- Columna izquierda: Calendario y detalle -->
-            <div>
-                <p><span style="background:#F59E0B; display:inline-block; width:12px; height:12px; border-radius:50%;"></span> Día con turno &nbsp;&nbsp; 
-                   <span style="background:#10B981; display:inline-block; width:12px; height:12px; border-radius:50%;"></span> Día con actividad especial</p>
-                <div class="form-group">
-                    <input type="text" id="myShiftCalendar" class="form-control" placeholder="Selecciona una fecha">
-                </div>
-                <div id="myShiftDetail" style="margin-top: 1rem; display: none;">
-                    <div class="shift-card">
-                        <h4 id="selectedDateTitle"></h4>
-                        <div id="selectedDateInfo"></div>
-                    </div>
-                </div>
-            </div>
-            <!-- Columna derecha: Listas de próximos turnos y eventos -->
-            <div>
-                <div class="shift-card">
 async function viewMyShifts() {
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
     if (!miembro) {
