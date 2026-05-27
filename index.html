@@ -4452,34 +4452,34 @@ async function renderUserProfile() {
         deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    // Consulta a intentos_examen
-    console.log("🔍 Consultando intentos_examen con user_id:", userId);
-    const { data: intentos, error } = await supabaseClient
-        .from('intentos_examen')
-        .select('puntaje, fecha')
-        .eq('user_id', userId)
-        .order('fecha', { ascending: true });
+   // Consulta a intentos_examen (usando created_at en lugar de fecha)
+console.log("🔍 Consultando intentos_examen con user_id:", userId);
+const { data: intentos, error } = await supabaseClient
+    .from('intentos_examen')
+    .select('puntaje, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
 
-    if (error) {
-        console.error("❌ Error en consulta de exámenes:", error);
-        document.getElementById('mainContent').innerHTML = '<p class="text-center text-red-500">Error al cargar datos de exámenes. Revisa la consola.</p>';
-        return;
-    }
+if (error) {
+    console.error("❌ Error en consulta de exámenes:", error);
+    document.getElementById('mainContent').innerHTML = '<p class="text-center text-red-500">Error al cargar datos de exámenes. Revisa la consola.</p>';
+    return;
+}
 
-    console.log("📊 Intentos desde perfil (final):", intentos);
+console.log("📊 Intentos desde perfil (final):", intentos);
 
-    // Filtrar puntajes válidos
-    const intentosValidos = (intentos || []).filter(i => {
-        const p = parseFloat(i.puntaje);
-        return !isNaN(p) && p > 0;
-    });
-    
-    const totalExamenes = intentosValidos.length;
-    let promedio = 0;
-    if (totalExamenes > 0) {
-        const suma = intentosValidos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
-        promedio = (suma / totalExamenes).toFixed(1);
-    }
+// Filtrar puntajes válidos
+const intentosValidos = (intentos || []).filter(i => {
+    const p = parseFloat(i.puntaje);
+    return !isNaN(p) && p > 0;
+});
+
+const totalExamenes = intentosValidos.length;
+let promedio = 0;
+if (totalExamenes > 0) {
+    const suma = intentosValidos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
+    promedio = (suma / totalExamenes).toFixed(1);
+}
     
     // Contar logros
     const { count: totalLogros } = await supabaseClient
@@ -4570,7 +4570,7 @@ async function renderUserProfile() {
             window.profileChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: intentosValidos.map(i => new Date(i.fecha).toLocaleDateString()),
+                    labels: intentosValidos.map(i => new Date(i.created_at).toLocaleDateString()),
                     datasets: [{
                         label: 'Puntaje (sobre 20)',
                         data: intentosValidos.map(i => parseFloat(i.puntaje)),
