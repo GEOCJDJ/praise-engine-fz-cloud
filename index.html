@@ -3259,19 +3259,61 @@ async function cambiarTabGemini(tab) {
 async function cargarInicioGemini() {
     const container = document.getElementById('tab-inicio');
     const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
+    
+    // Calcular promedio real de los exámenes del usuario
+    let promedioReal = 0;
+    const { data: intentos, error } = await supabaseClient
+        .from('intentos_examen')
+        .select('puntaje')
+        .eq('user_id', currentUser.id)
+        .eq('completado', true);  // solo exámenes completados
+    
+    if (!error && intentos && intentos.length > 0) {
+        const suma = intentos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
+        promedioReal = Math.round((suma / intentos.length) * 100) / 100;
+    } else {
+        promedioReal = 0;
+    }
+    
+    // Mostrar el promedio real (formateado)
+    const promedioMostrado = promedioReal > 0 ? `${promedioReal} / 20` : '-- / 20';
+    const colorPromedio = promedioReal >= 14 ? 'text-emerald-600' : (promedioReal > 0 ? 'text-orange-500' : 'text-slate-400');
+    
     container.innerHTML = `
         <div class="grid grid-cols-3 gap-4 mb-5">
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col"><span class="text-xs font-medium text-slate-400 uppercase">Materias en Curso</span><strong class="text-2xl font-bold mt-1 text-slate-800">${cursos || 0}</strong><small class="text-xs text-amber-600 font-medium mt-1"><i class="ti ti-point-filled"></i> Capacitación activa</small></div>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col"><span class="text-xs font-medium text-slate-400 uppercase">Calificación Promedio</span><strong class="text-2xl font-bold mt-1 text-emerald-600">94 / 100</strong><small class="text-xs text-slate-400 mt-1">Nivel de excelencia alto</small></div>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col"><span class="text-xs font-medium text-slate-400 uppercase">Consistencia Devocional</span><strong class="text-2xl font-bold mt-1 text-orange-500">${rachaGemini} Días</strong><small class="text-xs text-orange-400 font-medium mt-1"><i class="ti ti-flame"></i> ¡Sigue así!</small></div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
+                <span class="text-xs font-medium text-slate-400 uppercase">Materias en Curso</span>
+                <strong class="text-2xl font-bold mt-1 text-slate-800">${cursos || 0}</strong>
+                <small class="text-xs text-amber-600 font-medium mt-1"><i class="ti ti-point-filled"></i> Capacitación activa</small>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
+                <span class="text-xs font-medium text-slate-400 uppercase">Calificación Promedio</span>
+                <strong class="text-2xl font-bold mt-1 ${colorPromedio}">${promedioMostrado}</strong>
+                <small class="text-xs text-slate-400 mt-1">${intentos?.length || 0} exámenes completados</small>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
+                <span class="text-xs font-medium text-slate-400 uppercase">Consistencia Devocional</span>
+                <strong class="text-2xl font-bold mt-1 text-orange-500">${rachaGemini} Días</strong>
+                <small class="text-xs text-orange-400 font-medium mt-1"><i class="ti ti-flame"></i> ¡Sigue así!</small>
+            </div>
         </div>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Enfoque de Estudio de Hoy</p>
         <div class="av-course-card flex items-center justify-between">
-            <div class="flex items-center gap-4"><div class="av-course-icon bg-blue-50 text-blue-700">✨</div><div><span class="av-cat av-cat-blue">Teología de la Adoración</span><h3 class="text-sm font-bold text-slate-800">Módulo 1: Fundamentos del Altar</h3><p class="text-xs text-slate-500">Próxima Lección: Talento vs Unción</p></div></div>
-            <button class="bg-slate-100 p-2 rounded-full text-slate-700 hover:bg-slate-200 transition" onclick="cambiarTabGemini('cursos')"><i class="ti ti-player-play-filled"></i></button>
+            <div class="flex items-center gap-4">
+                <div class="av-course-icon bg-blue-50 text-blue-700">✨</div>
+                <div>
+                    <span class="av-cat av-cat-blue">Teología de la Adoración</span>
+                    <h3 class="text-sm font-bold text-slate-800">Módulo 1: Fundamentos del Altar</h3>
+                    <p class="text-xs text-slate-500">Próxima Lección: Talento vs Unción</p>
+                </div>
+            </div>
+            <button class="bg-slate-100 p-2 rounded-full text-slate-700 hover:bg-slate-200 transition" onclick="cambiarTabGemini('cursos')">
+                <i class="ti ti-player-play-filled"></i>
+            </button>
         </div>
     `;
 }
+    
 
 async function cargarCursosGemini() {
     const container = document.getElementById('tab-cursos');
@@ -3368,14 +3410,14 @@ async function cargarEvaluacionesGemini() {
         let aprobado = false;
         
         if (realizado) {
-            nota = parseFloat(intentos[0].puntaje);
-            aprobado = nota >= 14;
-            estadoHtml = `<span class="text-xs font-bold px-3 py-1 rounded ${aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
-                            ${aprobado ? '✅ Aprobado' : '❌ Reprobado'}
-                          </span>`;
-            puntajeMostrado = `<div class="text-xs text-slate-500 mt-1">Nota: ${nota} / 20</div>`;
-            botonHtml = `<button class="bg-slate-600 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-slate-700 transition" onclick="verDetalleExamen('${ex.id}')">📋 Revisar</button>`;
-        } else {
+    nota = parseFloat(intentos[0].puntaje);
+    aprobado = nota >= 14;
+    estadoHtml = `<span class="text-xs font-bold px-3 py-1 rounded ${aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                    ${aprobado ? '✅ Aprobado' : '❌ Reprobado'}
+                  </span>`;
+    puntajeMostrado = `<div class="text-xs text-slate-500 mt-1">Nota: ${nota} / 20</div>`;
+    botonHtml = `<button class="bg-slate-600 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-slate-700 transition" onclick="verDetalleExamen('${ex.id}')">📋 Revisar</button>`;
+} else {
             botonHtml = `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">📝 Iniciar Cuestionario</button>`;
         }
         
@@ -3831,6 +3873,20 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
           </div>
   `;
   showModal(modalContent);
+     // Recargar el tablero principal para actualizar el promedio
+if (currentTab === 'moodle') {
+    // Esperar a que se cierre el modal y luego recargar
+    const modal = document.getElementById('modal');
+    if (modal) {
+        const observer = new MutationObserver(() => {
+            if (!modal.isConnected) {
+                cargarInicioGemini();
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+} 
 
   // No limpiar aquí, se limpiará al cerrar el modal
   // Ocultar el overlay del examen (pantalla de preguntas)
