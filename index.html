@@ -4414,23 +4414,35 @@ async function verDetalleExamen(examenId) {
 let progressChart = null;
     
 async function renderUserProfile() {
-    // Asegurar que currentUser esté disponible
-    if (!currentUser) {
-        console.warn("renderUserProfile: currentUser no disponible, reintentando...");
-        // Esperar 1 segundo y reintentar (esto resuelve condiciones de carrera)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        if (!currentUser) {
-            console.error("No se pudo obtener el usuario. Recarga la página.");
-            document.getElementById('mainContent').innerHTML = '<p class="text-center text-red-500">Error: No se pudo cargar el perfil. Recarga la página.</p>';
-            return;
+    // Función para obtener el user_id de forma fiable
+    async function obtenerUserId() {
+        // 1. Intentar con currentUser
+        if (currentUser && currentUser.id) {
+            console.log("✅ Usando currentUser.id:", currentUser.id);
+            return currentUser.id.toString();
         }
+        // 2. Si no, obtener de la sesión activa
+        const { data: { user }, error } = await supabaseClient.auth.getUser();
+        if (error || !user) {
+            console.error("❌ No se pudo obtener usuario de la sesión:", error);
+            return null;
+        }
+        console.log("✅ Usando auth.getUser().id:", user.id);
+        return user.id;
     }
 
+    let userId = await obtenerUserId();
+    if (!userId) {
+        document.getElementById('mainContent').innerHTML = '<p class="text-center text-red-500">Error: No se pudo identificar al usuario. Recarga la página.</p>';
+        return;
+    }
+
+    // Asegurar que currentProfile esté cargado
     if (!currentProfile) {
         await loadProfile();
     }
 
-    const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
+    const miembro = usuariosIglesia.find(m => m.user_id === userId);
     const rolMusical = miembro?.rol_musical || 'Por asignar';
     let deptoNombre = '';
     if (miembro?.departamento_id) {
@@ -4438,18 +4450,21 @@ async function renderUserProfile() {
         deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    // Obtener TODOS los intentos (sin filtrar por completado)
+    // Consulta a intentos_examen
+    console.log("🔍 Consultando intentos_examen con user_id:", userId);
     const { data: intentos, error } = await supabaseClient
         .from('intentos_examen')
         .select('puntaje, fecha')
-        .eq('user_id', currentUser.id.toString())
+        .eq('user_id', userId)
         .order('fecha', { ascending: true });
 
     if (error) {
-        console.error("Error cargando intentos:", error);
+        console.error("❌ Error en consulta de exámenes:", error);
+        document.getElementById('mainContent').innerHTML = '<p class="text-center text-red-500">Error al cargar datos de exámenes. Revisa la consola.</p>';
+        return;
     }
 
-    console.log('Intentos desde perfil (final):', intentos); // Depuración
+    console.log("📊 Intentos desde perfil (final):", intentos);
 
     // Filtrar puntajes válidos
     const intentosValidos = (intentos || []).filter(i => {
@@ -4468,18 +4483,18 @@ async function renderUserProfile() {
     const { count: totalLogros } = await supabaseClient
         .from('logros_usuarios')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', userId);
 
     // Cargar racha
     const { data: progreso } = await supabaseClient
         .from('progreso_usuario')
         .select('racha')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', userId)
         .single();
     const rachaActual = progreso?.racha || 0;
 
-    const fotoUrl = currentProfile.foto_url || '';
-    const iniciales = (currentProfile.nombre || currentUser.email).charAt(0).toUpperCase();
+    const fotoUrl = currentProfile?.foto_url || '';
+    const iniciales = (currentProfile?.nombre || currentUser?.email || 'U').charAt(0).toUpperCase();
 
     let html = `
     <div class="profile-modern-card" style="max-width: 1000px; margin: 0 auto;">
@@ -4495,8 +4510,8 @@ async function renderUserProfile() {
                     </button>
                 </div>
                 <div style="text-align: center;">
-                    <h2 style="margin: 0; font-size: 1.6rem;">${escapeHtml(currentProfile.nombre || currentUser.email)}</h2>
-                    <p style="margin: 0.3rem 0; opacity: 0.9;"><i class="fas fa-envelope"></i> ${escapeHtml(currentUser.email)}</p>
+                    <h2 style="margin: 0; font-size: 1.6rem;">${escapeHtml(currentProfile?.nombre || currentUser?.email || 'Usuario')}</h2>
+                    <p style="margin: 0.3rem 0; opacity: 0.9;"><i class="fas fa-envelope"></i> ${escapeHtml(currentUser?.email || '')}</p>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; justify-content: center;">
                         <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem;"><i class="fas fa-music"></i> ${escapeHtml(rolMusical)}</span>
                         <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem;"><i class="fas fa-users"></i> ${escapeHtml(deptoNombre)}</span>
