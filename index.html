@@ -5691,10 +5691,10 @@ function mostrarInterfazFzkids() {
     };
   }
 }
+
 // --- Plan mensual (modal) ---
-// --- Plan mensual (modal con estilos de la imagen) ---
 async function abrirPlanMensual() {
-  // Obtener lecciones del mes actual y próximo
+  // Obtener las lecciones del mes actual y próximo
   const hoy = new Date();
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0,10);
   const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0).toISOString().slice(0,10);
@@ -5710,75 +5710,32 @@ async function abrirPlanMensual() {
     return;
   }
   
-  // Determinar qué lección es la activa (la que se está mostrando)
-  const fechaActiva = currentFzkidsLeccion ? currentFzkidsLeccion.fecha : null;
-  const hoyStr = new Date().toISOString().slice(0,10);
-  
-  let contenido = `<div class="space-y-2 max-h-96 overflow-y-auto px-1">`;
-  
-  for (const lec of lecciones) {
+  let contenido = `<div class="max-h-96 overflow-y-auto">`;
+  lecciones.forEach(lec => {
     const fechaObj = new Date(lec.fecha);
-    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
-    const esActiva = (lec.fecha === fechaActiva);
-    const esHoy = (lec.fecha === hoyStr);
-    const esPasada = (lec.fecha < hoyStr && !esActiva);
-    
-    let badgeHtml = '';
-    let bgColor = '';
-    let borderClass = '';
-    let icono = '';
-    
-    if (esActiva) {
-      badgeHtml = '<span class="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full font-bold">Clase Activa - Hoy</span>';
-      bgColor = 'bg-teal-50';
-      borderClass = 'border-l-4 border-teal-500';
-      icono = '<i class="fas fa-arrow-right text-teal-500"></i>';
-    } else if (esHoy) {
-      badgeHtml = '<span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">Clase de hoy</span>';
-      bgColor = 'bg-amber-50';
-      borderClass = 'border-l-4 border-amber-500';
-      icono = '<i class="fas fa-calendar-day text-amber-500"></i>';
-    } else if (esPasada) {
-      badgeHtml = '<span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">No impartida</span>';
-      bgColor = 'bg-gray-50';
-      borderClass = 'border-l-4 border-gray-300';
-      icono = '<i class="fas fa-circle text-gray-300 text-xs"></i>';
-    } else {
-      badgeHtml = '<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Próxima clase</span>';
-      bgColor = 'bg-white';
-      borderClass = 'border-l-4 border-blue-300';
-      icono = '<i class="fas fa-clock text-blue-400"></i>';
-    }
-    
+    const fechaStr = fechaObj.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+    const esActiva = (lec.fecha === currentFzkidsLeccion?.fecha);
+    const claseTexto = lec.leccion_texto ? lec.leccion_texto.substring(0, 80) : '';
     contenido += `
-      <div class="${bgColor} ${borderClass} rounded-xl p-4 cursor-pointer hover:shadow-md transition-all" onclick="cambiarLeccionPorFecha('${lec.fecha}')">
-        <div class="flex justify-between items-start">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 flex-wrap mb-1">
-              <span class="font-bold text-gray-800">${fechaFormateada} - ${escapeHtml(lec.titulo)}</span>
-              ${badgeHtml}
-            </div>
-            <p class="text-xs text-gray-500 line-clamp-2">${escapeHtml(lec.leccion_texto?.substring(0, 80) || '')}</p>
+      <div class="plan-mensual-item p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${esActiva ? 'bg-teal-50 border-l-4 border-teal-500' : ''}" onclick="cambiarLeccionPorFecha('${lec.fecha}')">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="font-bold ${esActiva ? 'text-teal-800' : 'text-gray-800'}">${fechaStr} - ${escapeHtml(lec.titulo)}</p>
+            <p class="text-xs text-gray-500 mt-1">${claseTexto}</p>
           </div>
-          <div class="ml-3">
-            ${icono}
-          </div>
+          ${esActiva ? '<i class="fas fa-check-circle text-teal-500"></i>' : '<i class="fas fa-arrow-right text-gray-300"></i>'}
         </div>
       </div>
     `;
-  }
-  
+  });
   contenido += `</div>`;
   
   showModal(`
-    <div class="p-2" style="max-width: 500px; margin: 0 auto;">
-      <div class="flex justify-between items-center border-b pb-2 mb-3">
-        <h3 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-calendar-alt text-teal-500 mr-2"></i> Plan de Estudios</h3>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
-      </div>
+    <div class="p-2">
+      <h3 class="text-xl font-bold mb-3">📅 Plan de Estudios</h3>
       ${contenido}
       <div class="mt-4 text-right">
-        <button class="btn btn-ghost text-sm" onclick="closeModal()">Cerrar</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
       </div>
     </div>
   `);
