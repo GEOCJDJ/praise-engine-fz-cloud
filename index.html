@@ -1868,6 +1868,23 @@ function puedeVerFzkids() {
   const depto = departamentos.find(d => d.id === miembro.departamento_id);
   return depto && depto.nombre === 'Servicio' && miembro.rol_musical === 'Escuela Bíblica';
 }
+function puedeVerFzHost() {
+  if (isAdminUser || isIglesiaAdmin) return true;
+  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+  if (!miembro) return false;
+  // Administrador del departamento Servicio
+  if (isDeptAdmin) {
+    const deptoServicio = departamentos.find(d => d.nombre === 'Servicio' && d.padre_id === null);
+    if (deptoServicio && currentUserIglesia?.departamento_id === deptoServicio.id) return true;
+  }
+  // Usuario normal: departamento = "Ujieres" y padre = "Servicio"
+  const deptoUsuario = departamentos.find(d => d.id === miembro.departamento_id);
+  if (!deptoUsuario) return false;
+  if (deptoUsuario.nombre !== 'Ujieres') return false;
+  const deptoPadre = departamentos.find(d => d.id === deptoUsuario.padre_id);
+  return deptoPadre && deptoPadre.nombre === 'Servicio';
+    }
+    
 // ========== RENDER PRINCIPAL ==========
 // ========== RENDER PRINCIPAL ==========
 function renderApp() {
@@ -1902,6 +1919,12 @@ function renderApp() {
     <div class="nav-icons">
         <div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
         <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};"><i class="fas fa-child"></i><span>🧸 FZKIDS</span></div>
+        
+        <div class="nav-item ${currentTab === 'fzhost' ? 'active' : ''}" data-tab="fzhost" style="display: ${puedeVerFzHost() ? 'flex' : 'none'};">
+  <i class="fas fa-handshake"></i>
+  <span>FZ HOST</span>
+</div>
+        
         <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
         <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
         <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
@@ -1982,6 +2005,7 @@ function darkModeToggle() {
     if (currentTab === 'songs') await renderSongsGrid();
     else if (currentTab === 'home') renderHome();
     else if (currentTab === 'fzkids') await renderFzkids();
+    else if (currentTab === 'fzhost') await renderFzHost();
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
@@ -5904,7 +5928,222 @@ async function abrirEmergencia() {
     </div>
   `);
 }
-   
+
+// ==================== MÓDULO FZ HOST (Ujieres y Bienvenida) ====================
+let turnoActualHost = 'Principal';
+let visitantesHoy = [];
+
+async function renderFzHost() {
+  if (!puedeVerFzHost()) {
+    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+    return;
+  }
+  await cargarVisitantesHoy();
+
+  const html = `
+    <div style="max-width: 1000px; margin: 0 auto;">
+      <div style="background: linear-gradient(135deg, #f59e0b, #ea580c); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-handshake"></i> FZ HOST</h1>
+            <p style="margin: 0.25rem 0 0; opacity: 0.9;">Equipo de Bienvenida y Hospitalidad</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.8rem; font-weight: bold;">
+            🕒 Turno: ${turnoActualHost}
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <button onclick="abrirModalRegistroVisitante()" style="background: #3b82f6; color: white; border: none; padding: 1rem; border-radius: 1rem; font-weight: bold; cursor: pointer;">
+          <i class="fas fa-user-plus"></i> + Nuevo Visitante
+        </button>
+        <button onclick="abrirChecklistAmbiente()" style="background: var(--surface); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 1rem; font-weight: bold; cursor: pointer;">
+          <i class="fas fa-clipboard-check"></i> Checklist Ambientación
+        </button>
+      </div>
+
+      <div style="background: var(--surface); border-radius: 1rem; padding: 1rem; border: 1px solid var(--border); margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; font-weight: bold; margin: 0 0 0.5rem 0;"><i class="fas fa-thermometer-half"></i> Mapa de calor - Ocupación de asientos</h3>
+        <div id="seatMapContainer"></div>
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem;">Basado en registros de hoy.</p>
+      </div>
+
+      <div style="background: var(--surface); border-radius: 1rem; padding: 1rem; border: 1px solid var(--border);">
+        <h3 style="font-size: 1rem; font-weight: bold; margin: 0 0 0.5rem 0;"><i class="fas fa-users"></i> Registrados hoy</h3>
+        <div id="visitantesList">
+          ${visitantesHoy.length === 0 ? '<p style="color: var(--text-muted);">Aún no hay visitantes registrados hoy.</p>' : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('mainContent').innerHTML = html;
+  dibujarMapaAsientos();
+}
+
+async function cargarVisitantesHoy() {
+  const hoy = new Date().toISOString().slice(0,10);
+  const { data, error } = await supabaseClient
+    .from('fzhost_visitantes')
+    .select('*, perfiles(nombre)')
+    .eq('iglesia_id', currentIglesiaId)
+    .gte('fecha_registro', `${hoy}T00:00:00`)
+    .lte('fecha_registro', `${hoy}T23:59:59`)
+    .order('fecha_registro', { ascending: false });
+  if (!error) visitantesHoy = data || [];
+  else console.error(error);
+}
+
+function dibujarMapaAsientos() {
+  const container = document.getElementById('seatMapContainer');
+  if (!container) return;
+  const ocupacion = {};
+  visitantesHoy.forEach(v => {
+    const fila = v.fila || 'A';
+    ocupacion[fila] = (ocupacion[fila] || 0) + (v.num_personas || 1);
+  });
+  const filas = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const sillasPorFila = 10;
+  let html = '';
+  for (let f of filas) {
+    const ocupadas = Math.min(ocupacion[f] || 0, sillasPorFila);
+    const porcentaje = (ocupadas / sillasPorFila) * 100;
+    let color = '';
+    if (porcentaje < 30) color = '#22c55e';
+    else if (porcentaje < 70) color = '#f59e0b';
+    else color = '#ef4444';
+    html += `
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span style="width: 30px; font-weight: bold;">Fila ${f}</span>
+        <div style="flex: 1; background: var(--border); border-radius: 1rem; overflow: hidden;">
+          <div style="width: ${porcentaje}%; background: ${color}; height: 20px; transition: width 0.3s;"></div>
+        </div>
+        <span style="font-size: 0.7rem;">${ocupadas}/${sillasPorFila}</span>
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+}
+
+function abrirModalRegistroVisitante() {
+  showModal(`
+    <div style="max-width: 500px; margin: 0 auto;">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);">FZ-HOST</h2>
+        <p style="color: var(--text-muted);">Registro de Bienvenida</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Nombre Completo</label>
+          <input type="text" id="visitanteNombre" class="form-control" placeholder="Ej. Juan Pérez">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">WhatsApp (para seguimiento)</label>
+          <input type="tel" id="visitanteWhatsapp" class="form-control" placeholder="+593 000 000 000">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Fila</label>
+            <select id="visitanteFila" class="form-control">
+              <option value="A">Fila A</option><option value="B">Fila B</option><option value="C">Fila C</option>
+              <option value="D">Fila D</option><option value="E">Fila E</option><option value="F">Fila F</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">N° Personas</label>
+            <input type="number" id="visitanteNumPersonas" class="form-control" value="1" min="1">
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-app); padding: 0.5rem; border-radius: 0.75rem;">
+          <input type="checkbox" id="visitantePrimeraVez" style="width: 1.2rem; height: 1.2rem;">
+          <label for="visitantePrimeraVez" style="font-size: 0.9rem;">Es mi primera vez en la iglesia</label>
+        </div>
+        <button onclick="guardarVisitante()" class="btn btn-primary" style="width: 100%;">Registrar Visitante</button>
+      </div>
+    </div>
+  `);
+}
+
+async function guardarVisitante() {
+  const nombre = document.getElementById('visitanteNombre').value.trim();
+  const whatsapp = document.getElementById('visitanteWhatsapp').value.trim();
+  const fila = document.getElementById('visitanteFila').value;
+  const numPersonas = parseInt(document.getElementById('visitanteNumPersonas').value) || 1;
+  const primeraVez = document.getElementById('visitantePrimeraVez').checked;
+  if (!nombre) {
+    showToast('El nombre es obligatorio', 'error');
+    return;
+  }
+  const { error } = await supabaseClient.from('fzhost_visitantes').insert({
+    nombre,
+    whatsapp,
+    fila,
+    num_personas: numPersonas,
+    primera_vez: primeraVez,
+    registrado_por: currentUser.id,
+    iglesia_id: currentIglesiaId
+  });
+  if (error) {
+    showToast('Error al registrar: ' + error.message, 'error');
+    return;
+  }
+  showToast(`✅ ${nombre} registrado correctamente`, 'success');
+  closeModal();
+  await cargarVisitantesHoy();
+  renderFzHost();
+  if (primeraVez) {
+    showToast(`📲 Se enviará un mensaje de bienvenida a ${nombre} (${whatsapp})`, 'info');
+  }
+}
+
+async function abrirChecklistAmbiente() {
+  const hoy = new Date().toISOString().slice(0,10);
+  const { data: existing } = await supabaseClient
+    .from('fzhost_checklist')
+    .select('*')
+    .eq('fecha', hoy)
+    .eq('usuario_id', currentUser.id)
+    .single();
+  const items = existing ? existing.items : { aire_acondicionado: false, banios_limpios: false, sillas_ordenadas: false };
+  showModal(`
+    <div style="max-width: 450px; margin: 0 auto;">
+      <h3 style="font-size: 1.3rem; font-weight: bold; margin-bottom: 1rem;"><i class="fas fa-clipboard-list"></i> Checklist Ambientación</h3>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">Antes de abrir las puertas, verifica:</p>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <label style="display: flex; align-items: center; gap: 0.75rem;">
+          <input type="checkbox" id="chkAire" ${items.aire_acondicionado ? 'checked' : ''}> ¿Aire acondicionado encendido?
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.75rem;">
+          <input type="checkbox" id="chkBanios" ${items.banios_limpios ? 'checked' : ''}> ¿Baños limpios y con papel?
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.75rem;">
+          <input type="checkbox" id="chkSillas" ${items.sillas_ordenadas ? 'checked' : ''}> ¿Sillas ordenadas y limpias?
+        </label>
+      </div>
+      <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarChecklist()">Guardar Checklist</button>
+      </div>
+    </div>
+  `);
+  window.guardarChecklist = async () => {
+    const nuevosItems = {
+      aire_acondicionado: document.getElementById('chkAire').checked,
+      banios_limpios: document.getElementById('chkBanios').checked,
+      sillas_ordenadas: document.getElementById('chkSillas').checked
+    };
+    const { error } = await supabaseClient.from('fzhost_checklist').upsert({
+      fecha: hoy,
+      usuario_id: currentUser.id,
+      iglesia_id: currentIglesiaId,
+      items: nuevosItems
+    }, { onConflict: 'fecha, usuario_id' });
+    if (error) showToast('Error: ' + error.message, 'error');
+    else showToast('Checklist guardado', 'success');
+    closeModal();
+  };
+}
+    
 
 // ========== INICIALIZACIÓN ==========
 (async () => {
