@@ -1872,13 +1872,14 @@ function puedeVerFzkids() {
   return depto && depto.nombre === 'Servicio' && miembro.rol_musical === 'Escuela Bíblica';
 }
 // ========== RENDER PRINCIPAL ==========
+// ========== RENDER PRINCIPAL ==========
 function renderApp() {
     if (!currentUser) { renderLogin(); return; }
-    
+
     const version = "2.0.0";
     const soporteEmail = "soporte@gpraise.com";
     const currentYear = new Date().getFullYear();
-    
+
     // Admin global (sin iglesia seleccionada)
     if (!currentIglesiaId && isAdminUser) {
         document.getElementById('appRoot').innerHTML = `<header class="app-header"><div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>Admin General</small></div><div class="nav-icons"><div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div><div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div id="actionHeader" style="margin-bottom:1rem;"></div><div id="mainContent"></div></div>
@@ -1895,27 +1896,33 @@ function renderApp() {
         renderAdmin();
         return;
     }
-    
+
     if (!currentIglesiaId) { renderLogin(); return; }
-    
-    // Usuario normal (iglesia seleccionada)
+
+    // Usuario normal (iglesia seleccionada) – SIN duplicar el ítem fzkids
     document.getElementById('appRoot').innerHTML = `<header class="app-header">
     <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small></div>
-    <div class="nav-icons"><div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
-    <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};"><i class="fas fa-child"></i><span>🧸 FZKIDS</span></div>
-    <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
-    <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
-    <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
-    <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
-    <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
-    <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
-    <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
-    <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};">
-  <i class="fas fa-child"></i>
-  <span>🧸 FZKIDS</span>
-</div>
-
-    <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}<div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div><div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div><div id="mainContent"></div></div>
+    <div class="nav-icons">
+        <div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
+        <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};"><i class="fas fa-child"></i><span>🧸 FZKIDS</span></div>
+        <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
+        <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
+        <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+        <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
+        <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
+        <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
+        <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
+        <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
+        ${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
+        <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
+        <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
+    </div>
+    </header>
+    <div class="container">
+        <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div>
+        <div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div>
+        <div id="mainContent"></div>
+    </div>
     <footer class="app-footer">
         <div class="footer-content">
             <div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div>
@@ -1925,7 +1932,7 @@ function renderApp() {
         </div>
         <div class="footer-verse">"Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos" — Salmo 68:4</div>
     </footer>`;
-    
+
     document.querySelectorAll('.nav-item[data-tab]').forEach(el => {
         el.addEventListener('click', () => {
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
@@ -1935,22 +1942,21 @@ function renderApp() {
             renderCurrentView();
         });
     });
-    
+
     const darkToggle = document.getElementById('darkModeToggle');
-    darkToggle.addEventListener('click', () => {
-        document.body.classList.toggle('dark');
-        localStorage.setItem('iec_darkmode', document.body.classList.contains('dark'));
-        darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro';
-    });
-    
+    if (darkToggle) {
+        darkToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('iec_darkmode', document.body.classList.contains('dark'));
+            darkToggle.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro';
+        });
+    }
     if (localStorage.getItem('iec_darkmode') === 'true') {
         document.body.classList.add('dark');
-        darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
+        if (darkToggle) darkToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
     }
-    
+
     renderCurrentView();
-    document.getElementById('currentYear').innerText = new Date().getFullYear();
-    
     if (currentTab === 'profile') {
         setTimeout(() => renderUserProfile(), 500);
     }
@@ -5717,8 +5723,9 @@ function mostrarInterfazFzkids() {
 }
 
 // --- Plan mensual (modal) ---
+// --- Plan mensual (modal con estilos de la imagen) ---
 async function abrirPlanMensual() {
-  // Obtener las lecciones del mes actual y próximo
+  // Obtener lecciones del mes actual y próximo
   const hoy = new Date();
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0,10);
   const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0).toISOString().slice(0,10);
@@ -5734,32 +5741,75 @@ async function abrirPlanMensual() {
     return;
   }
   
-  let contenido = `<div class="max-h-96 overflow-y-auto">`;
-  lecciones.forEach(lec => {
+  // Determinar qué lección es la activa (la que se está mostrando)
+  const fechaActiva = currentFzkidsLeccion ? currentFzkidsLeccion.fecha : null;
+  const hoyStr = new Date().toISOString().slice(0,10);
+  
+  let contenido = `<div class="space-y-2 max-h-96 overflow-y-auto px-1">`;
+  
+  for (const lec of lecciones) {
     const fechaObj = new Date(lec.fecha);
-    const fechaStr = fechaObj.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
-    const esActiva = (lec.fecha === currentFzkidsLeccion?.fecha);
-    const claseTexto = lec.leccion_texto ? lec.leccion_texto.substring(0, 80) : '';
+    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+    const esActiva = (lec.fecha === fechaActiva);
+    const esHoy = (lec.fecha === hoyStr);
+    const esPasada = (lec.fecha < hoyStr && !esActiva);
+    
+    let badgeHtml = '';
+    let bgColor = '';
+    let borderClass = '';
+    let icono = '';
+    
+    if (esActiva) {
+      badgeHtml = '<span class="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full font-bold">Clase Activa - Hoy</span>';
+      bgColor = 'bg-teal-50';
+      borderClass = 'border-l-4 border-teal-500';
+      icono = '<i class="fas fa-arrow-right text-teal-500"></i>';
+    } else if (esHoy) {
+      badgeHtml = '<span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">Clase de hoy</span>';
+      bgColor = 'bg-amber-50';
+      borderClass = 'border-l-4 border-amber-500';
+      icono = '<i class="fas fa-calendar-day text-amber-500"></i>';
+    } else if (esPasada) {
+      badgeHtml = '<span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">No impartida</span>';
+      bgColor = 'bg-gray-50';
+      borderClass = 'border-l-4 border-gray-300';
+      icono = '<i class="fas fa-circle text-gray-300 text-xs"></i>';
+    } else {
+      badgeHtml = '<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Próxima clase</span>';
+      bgColor = 'bg-white';
+      borderClass = 'border-l-4 border-blue-300';
+      icono = '<i class="fas fa-clock text-blue-400"></i>';
+    }
+    
     contenido += `
-      <div class="plan-mensual-item p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${esActiva ? 'bg-teal-50 border-l-4 border-teal-500' : ''}" onclick="cambiarLeccionPorFecha('${lec.fecha}')">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="font-bold ${esActiva ? 'text-teal-800' : 'text-gray-800'}">${fechaStr} - ${escapeHtml(lec.titulo)}</p>
-            <p class="text-xs text-gray-500 mt-1">${claseTexto}</p>
+      <div class="${bgColor} ${borderClass} rounded-xl p-4 cursor-pointer hover:shadow-md transition-all" onclick="cambiarLeccionPorFecha('${lec.fecha}')">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="font-bold text-gray-800">${fechaFormateada} - ${escapeHtml(lec.titulo)}</span>
+              ${badgeHtml}
+            </div>
+            <p class="text-xs text-gray-500 line-clamp-2">${escapeHtml(lec.leccion_texto?.substring(0, 80) || '')}</p>
           </div>
-          ${esActiva ? '<i class="fas fa-check-circle text-teal-500"></i>' : '<i class="fas fa-arrow-right text-gray-300"></i>'}
+          <div class="ml-3">
+            ${icono}
+          </div>
         </div>
       </div>
     `;
-  });
+  }
+  
   contenido += `</div>`;
   
   showModal(`
-    <div class="p-2">
-      <h3 class="text-xl font-bold mb-3">📅 Plan de Estudios</h3>
+    <div class="p-2" style="max-width: 500px; margin: 0 auto;">
+      <div class="flex justify-between items-center border-b pb-2 mb-3">
+        <h3 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-calendar-alt text-teal-500 mr-2"></i> Plan de Estudios</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+      </div>
       ${contenido}
       <div class="mt-4 text-right">
-        <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+        <button class="btn btn-ghost text-sm" onclick="closeModal()">Cerrar</button>
       </div>
     </div>
   `);
