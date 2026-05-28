@@ -1023,7 +1023,8 @@ let currentTransposeOffset = 0; // Lleva el control acumulado de tonos (+1, -2, 
 let currentFontSize = 16;       // Tamaño de letra por defecto
 let isMetronomeRunning = false;   // controla si el metrónomo está activo
 let respuestasExamen = [];   // Guardará { preguntaIndex, respuesta, esCorrecta }
-    
+    let cifraCurrentOffset = 0;   // ← agrega esta línea
+let cifraFontSize = 16;       // ← agrega esta línea
 
 const NOTE_TO_INDEX = {
     'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4,
@@ -2055,60 +2056,55 @@ function darkModeToggle() {
     if (localStorage.getItem('iec_darkmode') === 'true') document.body.classList.add('dark');
 }
     async function renderCurrentView() {
-       const searchContainer = document.querySelector('.search-container');
+    const searchContainer = document.querySelector('.search-container');
     if (searchContainer) {
-        // Mostrar solo en Cancionero, Listas (vista general) y Favoritos
         const showSearch = (currentTab === 'songs') ||
                            (currentTab === 'lists' && selectedListId === null) ||
                            (currentTab === 'favorites');
         searchContainer.style.display = showSearch ? 'flex' : 'none';
     }
-       
-    if (currentTab === 'songs' || currentTab === 'favorites' || currentTab === 'lists') {
-    if (!puedeVerAlabanza()) {
-      document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-      return;
-    }
-  }
-  if (currentTab === 'gnotes' && !puedeVerGnotes()) {
-    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-    return;
-  }
-  if (currentTab === 'fzkids' && !puedeVerFzkids()) {
-    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-    return;
-  }
-  if (currentTab === 'fzhost' && !puedeVerFzHost()) {
-    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-    return;
-  }
 
+    if (currentTab === 'songs' || currentTab === 'favorites' || currentTab === 'lists') {
+        if (!puedeVerAlabanza()) {
+            document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+            return;
+        }
+    }
+    if (currentTab === 'gnotes' && !puedeVerGnotes()) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+        return;
+    }
+    if (currentTab === 'fzkids' && !puedeVerFzkids()) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+        return;
+    }
+    if (currentTab === 'fzhost' && !puedeVerFzHost()) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+        return;
+    }
     if (currentTab === 'gdance' && !puedeVerGDance()) {
-  document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-  return;
-        
-if (currentTab === 'planner' && !puedeVerPlanner()) {
-  document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-  return;
-        
-}  
-    else if (currentTab === 'home') renderHome();
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+        return;
+    }
+    if (currentTab === 'planner' && !puedeVerPlanner()) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+        return;
+    }
+
+    if (currentTab === 'home') renderHome();
     else if (currentTab === 'fzkids') await renderFzkids();
     else if (currentTab === 'fzhost') await renderFzHost();
     else if (currentTab === 'gdance') await renderGDance();
     else if (currentTab === 'planner') await renderPlanner();
-
-        
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
     else if (currentTab === 'moodle') await renderMoodle();
-    else if (currentTab === 'gnotes') await renderGnotes();  
+    else if (currentTab === 'gnotes') await renderGnotes();
     else if (currentTab === 'scriptura') await renderScriptura();
     else if (currentTab === 'profile') renderUserProfile();
     else if (currentTab === 'admin' && (isAdminUser || isIglesiaAdmin)) renderAdmin();
 }
-
     
     function navigateTo(tab) { currentTab = tab; document.querySelectorAll('.nav-item[data-tab]').forEach(el => { if (el.dataset.tab === tab) el.classList.add('active'); else el.classList.remove('active'); }); renderCurrentView(); }
 
