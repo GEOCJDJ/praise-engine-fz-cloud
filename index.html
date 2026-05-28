@@ -1861,29 +1861,76 @@ async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin) { showToast
 async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('canciones').delete().eq('id', id).eq('iglesia_id', currentIglesiaId); await loadUserData(); renderCurrentView(); }
 async function saveList(list) { if (!currentUser) return showToast("Debes iniciar sesión."); try { if (list.id) { await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id); await supabaseClient.from('lista_items').delete().eq('lista_id', list.id); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } else { const newId = generateUniqueId(); await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date, iglesia_id: currentIglesiaId }); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } await loadUserData(); renderCurrentView(); } catch(e) { console.error(e); showToast("Error guardando lista."); } }
 async function deleteList(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
+
+    // ========== FUNCIONES DE PERMISOS POR DEPARTAMENTO/EQUIPO ==========
+
+// Permiso para módulos de alabanza (CANCIONERO, LISTAS, FAVORITOS, G-NOTES)
+function puedeVerAlabanza() {
+  if (isAdminUser || isIglesiaAdmin) return true;
+  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+  if (!miembro) return false;
+  // Departamento debe ser "Artes" o "EQUIPO DE ARTES" (ajusta el nombre según tu BD)
+  const depto = departamentos.find(d => d.id === miembro.departamento_id);
+  if (!depto) return false;
+  // Permite si el departamento se llama "Artes" o "EQUIPO DE ARTES" (puedes poner el nombre exacto)
+  const esArtes = depto.nombre === 'Artes' || depto.nombre === 'EQUIPO DE ARTES';
+  // O si tiene un rol musical asignado (por si hay subdepartamentos)
+  const tieneRolMusical = miembro.rol_musical && miembro.rol_musical !== '';
+  return esArtes || tieneRolMusical;
+}
+
+// Permiso para G-NOTES (mismos que alabanza, pero puede ser más restrictivo)
+function puedeVerGnotes() {
+  return puedeVerAlabanza(); // Por ahora igual, puedes ajustar después
+}
+
+// Permiso para FZKIDS (ya existe, la mantenemos)
 function puedeVerFzkids() {
   if (isAdminUser || isIglesiaAdmin) return true;
   const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
   if (!miembro) return false;
   const depto = departamentos.find(d => d.id === miembro.departamento_id);
-  return depto && depto.nombre === 'Servicio' && miembro.rol_musical === 'Escuela Bíblica';
+  if (!depto) return false;
+  // Departamento "Servicio" y equipo "Escuela Bíblica" (subdepartamento)
+  if (depto.nombre !== 'Escuela Bíblica') return false;
+  const deptoPadre = departamentos.find(d => d.id === depto.padre_id);
+  return deptoPadre && deptoPadre.nombre === 'Servicio';
 }
+
+    
+// Permiso para FZ HOST (ya definida antes)
 function puedeVerFzHost() {
   if (isAdminUser || isIglesiaAdmin) return true;
   const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
   if (!miembro) return false;
-  // Administrador del departamento Servicio
   if (isDeptAdmin) {
     const deptoServicio = departamentos.find(d => d.nombre === 'Servicio' && d.padre_id === null);
     if (deptoServicio && currentUserIglesia?.departamento_id === deptoServicio.id) return true;
   }
-  // Usuario normal: departamento = "Ujieres" y padre = "Servicio"
   const deptoUsuario = departamentos.find(d => d.id === miembro.departamento_id);
   if (!deptoUsuario) return false;
   if (deptoUsuario.nombre !== 'Ujieres') return false;
   const deptoPadre = departamentos.find(d => d.id === deptoUsuario.padre_id);
   return deptoPadre && deptoPadre.nombre === 'Servicio';
-    }
+}
+
+function puedeVerGDance() {
+  if (isAdminUser || isIglesiaAdmin) return true;
+  if (isDeptAdmin) {
+    // Si es administrador del departamento de Danza (ajusta nombre)
+    const deptoDanza = departamentos.find(d => d.nombre === 'Danza' && d.padre_id === null);
+    if (deptoDanza && currentUserIglesia?.departamento_id === deptoDanza.id) return true;
+  }
+  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+  if (!miembro) return false;
+  const deptoUsuario = departamentos.find(d => d.id === miembro.departamento_id);
+  if (!deptoUsuario) return false;
+  // Puede ser directamente departamento "Danza" o subdepartamento "Danza" (equipo)
+  if (deptoUsuario.nombre === 'Danza') return true;
+  const deptoPadre = departamentos.find(d => d.id === deptoUsuario.padre_id);
+  return deptoPadre && deptoPadre.nombre === 'Danza';
+}
+
     
 // ========== RENDER PRINCIPAL ==========
 // ========== RENDER PRINCIPAL ==========
@@ -1924,13 +1971,20 @@ function renderApp() {
   <i class="fas fa-handshake"></i>
   <span>FZ HOST</span>
 </div>
-        
-        <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
-        <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
-        <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+        <div class="nav-item ${currentTab === 'gdance' ? 'active' : ''}" data-tab="gdance" style="display: ${puedeVerGDance() ? 'flex' : 'none'};">
+  <i class="fas fa-wand-magic-sparkles"></i>
+  <span>G-DANCE</span>
+</div>
+
+       <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
+<div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
+<div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+
         <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
         <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
-        <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
+
+        <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes" style="display: ${puedeVerGnotes() ? 'flex' : 'none'};"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
+        
         <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
         <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
         ${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
@@ -2002,10 +2056,35 @@ function darkModeToggle() {
         searchContainer.style.display = showSearch ? 'flex' : 'none';
     }
        
-    if (currentTab === 'songs') await renderSongsGrid();
+    if (currentTab === 'songs' || currentTab === 'favorites' || currentTab === 'lists') {
+    if (!puedeVerAlabanza()) {
+      document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+      return;
+    }
+  }
+  if (currentTab === 'gnotes' && !puedeVerGnotes()) {
+    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+    return;
+  }
+  if (currentTab === 'fzkids' && !puedeVerFzkids()) {
+    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+    return;
+  }
+  if (currentTab === 'fzhost' && !puedeVerFzHost()) {
+    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+    return;
+  }
+
+    if (currentTab === 'gdance' && !puedeVerGDance()) {
+  document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+  return;
+}  
     else if (currentTab === 'home') renderHome();
     else if (currentTab === 'fzkids') await renderFzkids();
     else if (currentTab === 'fzhost') await renderFzHost();
+    else if (currentTab === 'gdance') await renderGDance();
+
+        
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
@@ -6143,6 +6222,176 @@ async function abrirChecklistAmbiente() {
     closeModal();
   };
 }
+
+ // ==================== MÓDULO G-DANCE (Danza) ====================
+let currentGrupoDanza = 'Azarel';
+let gdanceData = {};
+
+async function renderGDance() {
+  if (!puedeVerGDance()) {
+    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+    return;
+  }
+  await cargarDatosDanza();
+  mostrarInterfazDanza();
+}
+
+async function cargarDatosDanza() {
+  const { data, error } = await supabaseClient
+    .from('gdance_grupos')
+    .select('*')
+    .order('nombre');
+  if (error) {
+    console.error(error);
+    return;
+  }
+  // Guardar en un objeto para acceso rápido
+  gdanceData = {};
+  data.forEach(grupo => {
+    gdanceData[grupo.nombre] = grupo;
+  });
+  // Si no hay datos, usar valores por defecto
+  if (!gdanceData['Azarel']) {
+    gdanceData['Azarel'] = {
+      horario: 'Servicio 1: 08:30 AM',
+      ensayo: 'Ensayo: Sáb 15:00',
+      cancion: 'Hosanna (En vivo)',
+      intro_desc: 'Banderas Doradas',
+      coro_desc: 'Entrada General con Mantos',
+      color_gradual: 'linear-gradient(135deg, #e0f2fe 0%, #3b82f6 100%)',
+      vestuario_nombre: 'Manto Celestial',
+      vestuario_detalle: 'Túnica Blanca + Heraldo Azul'
+    };
+  }
+  if (!gdanceData['Azarelitos']) {
+    gdanceData['Azarelitos'] = {
+      horario: 'Servicio 2: 11:00 AM',
+      ensayo: 'Ensayo: Sáb 10:30 AM',
+      cancion: 'Fiesta Hay En La Casa',
+      intro_desc: 'Listones de Colores',
+      coro_desc: 'Coreografía de Manos Libres',
+      color_gradual: 'linear-gradient(135deg, #fef08a 0%, #eab308 100%)',
+      vestuario_nombre: 'Efod Real',
+      vestuario_detalle: 'Falda de Colores + Cinto Oro'
+    };
+  }
+}
+
+function mostrarInterfazDanza() {
+  const grupo = gdanceData[currentGrupoDanza] || gdanceData['Azarel'];
+  const html = `
+    <div style="max-width: 1000px; margin: 0 auto;">
+      <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-wand-magic-sparkles" style="color: #a855f7;"></i> G-DANCE
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 2px 0 0 0;">Coordinación y Expresión Corporal</p>
+          </div>
+          <div style="display: flex; background: var(--bg-app); padding: 4px; border-radius: 0.75rem; border: 1px solid var(--border);">
+            <button onclick="cambiarGrupoDanza('Azarel')" id="btnDanzaAzarel" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Azarel' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Azarel' ? 'white' : 'var(--text-main)'}; font-weight: bold; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
+              Azarel <span style="font-size: 10px; font-weight: normal; opacity: 0.8;">(≥12)</span>
+            </button>
+            <button onclick="cambiarGrupoDanza('Azarelitos')" id="btnDanzaAzarelitos" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Azarelitos' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Azarelitos' ? 'white' : 'var(--text-main)'}; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
+              Azarelitos <span style="font-size: 10px; font-weight: normal; opacity: 0.6;">(&lt;12)</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); padding: 12px 16px; border-radius: 1rem; color: white; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fa-regular fa-clock" style="font-size: 1.1rem;"></i>
+            <div>
+              <span style="font-size: 10px; text-transform: uppercase; font-weight: bold; display: block; opacity: 0.8;">HORARIO DOMINGOS</span>
+              <b id="lblDanzaHorario" style="font-size: 0.9rem;">${grupo.horario}</b>
+            </div>
+          </div>
+          <span id="lblDanzaEnsayos" style="font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 999px; font-weight: 500;">${grupo.ensayo}</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+          <div style="background: var(--bg-app); padding: 1.2rem; border-radius: 1rem; border: 1px solid var(--border);">
+            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-music" style="color: #6366f1;"></i> Pauta Coreográfica
+            </h3>
+            <div style="background: var(--surface); padding: 10px; border-radius: 0.75rem; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <div>
+                <b id="lblDanzaCancion" style="font-size: 0.85rem; display: block; color: var(--text-main);">${grupo.cancion}</b>
+                <span style="font-size: 11px; color: var(--text-muted);">Secuencia Dominical</span>
+              </div>
+              <button class="btn-play" style="background: #6366f1; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);">
+                <i class="fa-solid fa-play" style="font-size: 10px; margin-left: 2px;"></i>
+              </button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11px; padding: 6px; background: var(--surface); border-radius: 0.5rem; border-left: 3px solid #eab308;">
+                <span style="font-weight: 600; color: var(--text-main);">00:00 - Intro</span>
+                <span id="lblDanzaIntro" style="color: #a16207; font-weight: 500;">${grupo.intro_desc}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; padding: 6px; background: var(--surface); border-radius: 0.5rem; border-left: 3px solid #3b82f6;">
+                <span style="font-weight: 600; color: var(--text-main);">01:15 - Coro 1</span>
+                <span id="lblDanzaCoro" style="color: #1d4ed8; font-weight: 500;">${grupo.coro_desc}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-app); padding: 1.2rem; border-radius: 1rem; border: 1px solid var(--border);">
+            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-shirt" style="color: #ec4899;"></i> Vestuario Asignado
+            </h3>
+            <div style="display: flex; gap: 12px; align-items: center; background: var(--surface); padding: 12px; border-radius: 0.75rem; border: 1px solid var(--border);">
+              <div id="badgeDanzaColor" style="width: 45px; height: 45px; border-radius: 50%; background: ${grupo.color_gradual}; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex-shrink: 0;"></div>
+              <div style="flex-grow: 1;">
+                <b id="lblDanzaVestuario" style="font-size: 0.9rem; display: block; color: var(--text-main);">${grupo.vestuario_nombre}</b>
+                <span id="lblDanzaDetalleVestuario" style="font-size: 11px; color: var(--text-muted);">${grupo.vestuario_detalle}</span>
+              </div>
+            </div>
+            <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button onclick="abrirVideoGuia()" style="padding: 8px; font-size: 11px; font-weight: bold; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <i class="fa-solid fa-video" style="color: #a855f7;"></i> Video Guía
+              </button>
+              <button onclick="abrirFormaciones()" style="padding: 8px; font-size: 11px; font-weight: bold; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <i class="fa-solid fa-users-viewfinder" style="color: #14b8a6;"></i> Formaciones
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// Función global para cambiar de grupo (desde los botones)
+window.cambiarGrupoDanza = (grupo) => {
+  currentGrupoDanza = grupo;
+  // Actualizar estilos de botones (se hará en la siguiente renderización)
+  mostrarInterfazDanza();
+};
+
+// Funciones auxiliares para botones (pueden abrir modales con contenido real después)
+window.abrirVideoGuia = () => {
+  showModal(`
+    <div style="text-align: center;">
+      <h3>🎥 Video Guía Coreográfica</h3>
+      <p>Aquí se integrará el enlace al video de la coreografía actual.</p>
+      <button class="btn btn-primary" onclick="closeModal()">Cerrar</button>
+    </div>
+  `);
+};
+
+window.abrirFormaciones = () => {
+  showModal(`
+    <div style="text-align: center;">
+      <h3>📐 Formaciones en el Altar</h3>
+      <p>Próximamente: diagramas de posiciones y marcaciones.</p>
+      <button class="btn btn-primary" onclick="closeModal()">Cerrar</button>
+    </div>
+  `);
+};
+
     
 
 // ========== INICIALIZACIÓN ==========
