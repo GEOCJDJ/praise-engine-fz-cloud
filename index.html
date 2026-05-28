@@ -846,6 +846,22 @@ body.tema-naranja { --primary: #C2410C; --primary-light: #F97316; }
         order: 3;
     }
 }
+
+.tab-fzkids {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: 0.2s;
+}
+.tab-fzkids.active {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+}
+        
+        
    .fzkids-card { transition: all 0.2s ease; }
 .fzkids-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
 .fzkids-btn-icon { transition: transform 0.1s ease; }
@@ -5540,12 +5556,35 @@ function mostrarInterfazFzkids() {
     `;
   });
   materialesHtml += '</ul>';
+  materialesHtml += `<button onclick="solicitarMaterialFaltante()" class="mt-4 w-full text-sm text-teal-600 font-semibold border border-teal-200 bg-teal-50 py-2 rounded-lg hover:bg-teal-100 transition">
+      <i class="fa-solid fa-bell mr-1"></i> Solicitar material faltante
+    </button>`;
   
-  // Recursos (igual que en tu diseño original)
+  // Recursos (iconos PDF, JPG, Drive)
   const recursos = currentFzkidsLeccion.recursos || {};
   const pdfUrl = recursos.pdf || '#';
   const imgUrl = recursos.imagen || '#';
   const driveUrl = recursos.drive || '#';
+  
+  const recursosHtml = `
+    <div class="grid grid-cols-3 gap-3">
+      <a href="${pdfUrl}" target="_blank" class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md hover:border-red-200 transition group">
+        <i class="fa-regular fa-file-pdf text-3xl text-red-500 mb-2 group-hover:-translate-y-1 transition-transform"></i>
+        <span class="text-xs font-bold text-gray-700 leading-tight">Guía del Maestro</span>
+        <span class="text-[10px] text-gray-400 mt-1">PDF</span>
+      </a>
+      <a href="${imgUrl}" target="_blank" class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md hover:border-blue-200 transition group">
+        <i class="fa-regular fa-image text-3xl text-blue-500 mb-2 group-hover:-translate-y-1 transition-transform"></i>
+        <span class="text-xs font-bold text-gray-700 leading-tight">Recortables</span>
+        <span class="text-[10px] text-gray-400 mt-1">JPG</span>
+      </a>
+      <a href="${driveUrl}" target="_blank" class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md hover:border-green-200 transition group">
+        <i class="fa-brands fa-google-drive text-3xl text-green-500 mb-2 group-hover:-translate-y-1 transition-transform"></i>
+        <span class="text-xs font-bold text-gray-700 leading-tight">Carpeta Nube</span>
+        <span class="text-[10px] text-gray-400 mt-1">Material Extra</span>
+      </a>
+    </div>
+  `;
   
   const html = `
     <div class="max-w-4xl mx-auto">
@@ -5569,52 +5608,55 @@ function mostrarInterfazFzkids() {
         </div>
       </div>
       
-      <!-- Grid de dos columnas (diseño original) -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Columna izquierda -->
-        <div>
-          <h2 class="text-2xl font-bold text-gray-800 mb-2">${escapeHtml(currentFzkidsLeccion.titulo)}</h2>
-          <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mb-6">
+      <!-- Pestañas -->
+      <div class="border-b border-gray-200 mb-4">
+        <nav class="flex flex-wrap gap-2">
+          <button class="tab-fzkids active" data-tab="leccion">📖 Lección</button>
+          <button class="tab-fzkids" data-tab="manualidad">✂️ Manualidad</button>
+          <button class="tab-fzkids" data-tab="canciones">🎵 Canciones</button>
+          <button class="tab-fzkids" data-tab="materiales">📦 Materiales</button>
+          <button class="tab-fzkids" data-tab="recursos">📁 Recursos de Clase</button>
+        </nav>
+      </div>
+      
+      <!-- Contenido de las pestañas -->
+      <div id="tab-leccion" class="tab-contenido active">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mb-4">
             <p class="text-amber-800 font-medium italic">"${escapeHtml(currentFzkidsLeccion.versiculo || '')}"</p>
             <p class="text-amber-600 text-sm font-bold mt-2">— ${currentFzkidsLeccion.versiculo ? 'Referencia' : 'Efesios 6:11'}</p>
           </div>
-          
-          <!-- Recursos de clase (iconos grandes) -->
-          <div class="bg-indigo-50 p-5 rounded-2xl border border-indigo-100">
-            <h3 class="font-bold text-gray-700 mb-4"><i class="fa-solid fa-folder-open mr-2 text-indigo-500"></i> Recursos de Clase</h3>
-            <div class="grid grid-cols-3 gap-3">
-              <a href="${pdfUrl}" target="_blank" class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md hover:border-red-200 transition group">
-                <i class="fa-regular fa-file-pdf text-3xl text-red-500 mb-2 group-hover:-translate-y-1 transition-transform"></i>
-                <span class="text-xs font-bold text-gray-700 leading-tight">Guía del Maestro</span>
-                <span class="text-[10px] text-gray-400 mt-1">PDF</span>
-              </a>
-              <a href="${imgUrl}" target="_blank" class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md hover:border-blue-200 transition group">
-                <i class="fa-regular fa-image text-3xl text-blue-500 mb-2 group-hover:-translate-y-1 transition-transform"></i>
-                <span class="text-xs font-bold text-gray-700 leading-tight">Recortables</span>
-                <span class="text-[10px] text-gray-400 mt-1">JPG</span>
-              </a>
-              <a href="${driveUrl}" target="_blank" class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md hover:border-green-200 transition group">
-                <i class="fa-brands fa-google-drive text-3xl text-green-500 mb-2 group-hover:-translate-y-1 transition-transform"></i>
-                <span class="text-xs font-bold text-gray-700 leading-tight">Carpeta Nube</span>
-                <span class="text-[10px] text-gray-400 mt-1">Material Extra</span>
-              </a>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Columna derecha: Utilería Física -->
-        <div>
-          <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-            <h3 class="font-bold text-gray-700 mb-4"><i class="fa-solid fa-box-open mr-2 text-teal-500"></i> Utilería Física</h3>
-            ${materialesHtml}
-            <button onclick="solicitarMaterialFaltante()" class="mt-4 w-full text-sm text-teal-600 font-semibold border border-teal-200 bg-teal-50 py-2 rounded-lg hover:bg-teal-100 transition">
-              <i class="fa-solid fa-bell mr-1"></i> Solicitar material faltante
-            </button>
+          <div class="prose max-w-none">
+            ${escapeHtml(currentFzkidsLeccion.leccion_texto || 'No hay contenido de lección.')}
           </div>
         </div>
       </div>
       
-      <!-- Botones de acción al final -->
+      <div id="tab-manualidad" class="tab-contenido" style="display: none;">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          ${escapeHtml(currentFzkidsLeccion.manualidad || 'No hay manualidad para esta clase.')}
+        </div>
+      </div>
+      
+      <div id="tab-canciones" class="tab-contenido" style="display: none;">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          ${escapeHtml(currentFzkidsLeccion.canciones || 'No hay canciones sugeridas.')}
+        </div>
+      </div>
+      
+      <div id="tab-materiales" class="tab-contenido" style="display: none;">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          ${materialesHtml}
+        </div>
+      </div>
+      
+      <div id="tab-recursos" class="tab-contenido" style="display: none;">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          ${recursosHtml}
+        </div>
+      </div>
+      
+      <!-- Botones de acción -->
       <div class="mt-8 bg-gray-50 p-4 border-t border-gray-200 rounded-b-2xl flex flex-wrap gap-3 justify-between items-center">
         <button onclick="enviarWhatsAppFamilia()" class="flex-1 md:flex-none bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-sm transition flex justify-center items-center">
           <i class="fa-brands fa-whatsapp text-xl mr-2"></i> Conexión a Casa
@@ -5627,6 +5669,18 @@ function mostrarInterfazFzkids() {
   `;
   
   container.innerHTML = html;
+  
+  // Eventos para cambiar de pestaña
+  document.querySelectorAll('.tab-fzkids').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-tab');
+      document.querySelectorAll('.tab-fzkids').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-contenido').forEach(div => div.style.display = 'none');
+      btn.classList.add('active');
+      const contenedor = document.getElementById(`tab-${tabId}`);
+      if (contenedor) contenedor.style.display = 'block';
+    });
+  });
   
   // Eventos checklist
   document.querySelectorAll('input[data-material]').forEach(chk => {
@@ -5652,6 +5706,7 @@ function mostrarInterfazFzkids() {
     });
   }
 }
+    
 // --- Plan mensual (modal con estilos de la imagen) ---
 async function abrirPlanMensual() {
   // Obtener lecciones del mes actual y próximo
