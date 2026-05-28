@@ -5726,73 +5726,74 @@ function mostrarInterfazFzkids() {
     
 // --- Plan mensual (modal con estilos de la imagen) ---
 async function abrirPlanMensual() {
-  // Obtener lecciones del mes actual y próximo
+  // Obtener lecciones desde mayo hasta final de junio (para mostrar variedad)
   const hoy = new Date();
-  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0,10);
-  const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0).toISOString().slice(0,10);
+  const inicio = new Date(hoy.getFullYear(), 4, 1); // 1 de mayo
+  const fin = new Date(hoy.getFullYear(), 6, 0);   // 30 de junio
   const { data: lecciones, error } = await supabaseClient
     .from('fzkids_lecciones')
     .select('*')
-    .gte('fecha', inicioMes)
-    .lte('fecha', finMes)
+    .gte('fecha', inicio.toISOString().slice(0,10))
+    .lte('fecha', fin.toISOString().slice(0,10))
     .order('fecha', { ascending: true });
   
   if (error) {
     showToast('Error cargando plan mensual', 'error');
     return;
   }
-  
-  // Determinar qué lección es la activa (la que se está mostrando)
+
   const fechaActiva = currentFzkidsLeccion ? currentFzkidsLeccion.fecha : null;
-  const hoyStr = new Date().toISOString().slice(0,10);
+  const hoyStr = hoy.toISOString().slice(0,10);
   
-  let contenido = `<div class="space-y-2 max-h-96 overflow-y-auto px-1">`;
+  let contenido = `<div style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">`;
   
   for (const lec of lecciones) {
     const fechaObj = new Date(lec.fecha);
     const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
     const esActiva = (lec.fecha === fechaActiva);
     const esHoy = (lec.fecha === hoyStr);
+    const esFutura = (lec.fecha > hoyStr);
     const esPasada = (lec.fecha < hoyStr && !esActiva);
     
     let badgeHtml = '';
     let bgColor = '';
     let borderClass = '';
     let icono = '';
+    let textoEstado = '';
     
     if (esActiva) {
-      badgeHtml = '<span class="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full font-bold">Clase Activa - Hoy</span>';
-      bgColor = 'bg-teal-50';
-      borderClass = 'border-l-4 border-teal-500';
-      icono = '<i class="fas fa-arrow-right text-teal-500"></i>';
+      badgeHtml = '<span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">📌 Clase Activa - Hoy</span>';
+      bgColor = '#f0fdfa';
+      borderClass = '2px solid #14b8a6';
+      icono = '<i class="fas fa-arrow-right" style="color: #14b8a6;"></i>';
     } else if (esHoy) {
-      badgeHtml = '<span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">Clase de hoy</span>';
-      bgColor = 'bg-amber-50';
-      borderClass = 'border-l-4 border-amber-500';
-      icono = '<i class="fas fa-calendar-day text-amber-500"></i>';
+      badgeHtml = '<span style="background: #fed7aa; color: #9a3412; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">📆 Clase de hoy</span>';
+      bgColor = '#fff7ed';
+      borderClass = '2px solid #f97316';
+      icono = '<i class="fas fa-calendar-day" style="color: #f97316;"></i>';
     } else if (esPasada) {
-      badgeHtml = '<span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">No impartida</span>';
-      bgColor = 'bg-gray-50';
-      borderClass = 'border-l-4 border-gray-300';
-      icono = '<i class="fas fa-circle text-gray-300 text-xs"></i>';
+      badgeHtml = '<span style="background: #f3f4f6; color: #4b5563; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">⏪ No impartida</span>';
+      bgColor = '#f9fafb';
+      borderClass = '2px solid #e5e7eb';
+      icono = '<i class="fas fa-circle" style="color: #9ca3af; font-size: 0.6rem;"></i>';
     } else {
-      badgeHtml = '<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Próxima clase</span>';
-      bgColor = 'bg-white';
-      borderClass = 'border-l-4 border-blue-300';
-      icono = '<i class="fas fa-clock text-blue-400"></i>';
+      badgeHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">🔜 Próxima clase</span>';
+      bgColor = '#ffffff';
+      borderClass = '2px solid #93c5fd';
+      icono = '<i class="fas fa-clock" style="color: #3b82f6;"></i>';
     }
     
     contenido += `
-      <div class="${bgColor} ${borderClass} rounded-xl p-4 cursor-pointer hover:shadow-md transition-all" onclick="cambiarLeccionPorFecha('${lec.fecha}')">
-        <div class="flex justify-between items-start">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 flex-wrap mb-1">
-              <span class="font-bold text-gray-800">${fechaFormateada} - ${escapeHtml(lec.titulo)}</span>
+      <div style="background: ${bgColor}; border: ${borderClass}; border-radius: 1rem; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: 0.2s;" onclick="cambiarLeccionPorFecha('${lec.fecha}')">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div style="flex: 1;">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <span style="font-weight: 700; color: var(--text-main);">${fechaFormateada} - ${escapeHtml(lec.titulo)}</span>
               ${badgeHtml}
             </div>
-            <p class="text-xs text-gray-500 line-clamp-2">${escapeHtml(lec.leccion_texto?.substring(0, 80) || '')}</p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">${escapeHtml(lec.leccion_texto?.substring(0, 80) || '')}</p>
           </div>
-          <div class="ml-3">
+          <div style="margin-left: 0.75rem;">
             ${icono}
           </div>
         </div>
@@ -5803,19 +5804,18 @@ async function abrirPlanMensual() {
   contenido += `</div>`;
   
   showModal(`
-    <div class="p-2" style="max-width: 500px; margin: 0 auto;">
-      <div class="flex justify-between items-center border-b pb-2 mb-3">
-        <h3 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-calendar-alt text-teal-500 mr-2"></i> Plan de Estudios</h3>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+    <div style="max-width: 550px; margin: 0 auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+        <h3 style="font-size: 1.3rem; font-weight: bold; color: var(--text-main);"><i class="fa-regular fa-calendar-alt" style="color: #14b8a6; margin-right: 0.5rem;"></i> Plan de Estudios</h3>
+        <button onclick="closeModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);"><i class="fas fa-times"></i></button>
       </div>
       ${contenido}
-      <div class="mt-4 text-right">
-        <button class="btn btn-ghost text-sm" onclick="closeModal()">Cerrar</button>
+      <div style="text-align: right; margin-top: 1rem;">
+        <button onclick="closeModal()" class="btn btn-ghost" style="padding: 0.3rem 1rem;">Cerrar</button>
       </div>
     </div>
   `);
 }
-
 async function cambiarLeccionPorFecha(fecha) {
   closeModal();
   const { data, error } = await supabaseClient
@@ -5875,27 +5875,32 @@ function enviarWhatsAppFamilia() {
 
 // --- Emergencia (juego aleatorio) ---
 async function abrirEmergencia() {
-  // Obtener dinámicas de la lección actual o de la tabla global
   let dinamicas = currentFzkidsLeccion?.dinamicas || [];
   if (dinamicas.length === 0) {
-    // Fallback: traer de tabla fzkids_dinamicas
     const { data } = await supabaseClient.from('fzkids_dinamicas').select('texto');
     if (data && data.length) dinamicas = data.map(d => d.texto);
-    else dinamicas = ['Juego: El Rey Manda', 'Adivinanza bíblica', 'Memoriza el versículo'];
+    else dinamicas = [
+      '🎲 "El Rey Manda" – Da instrucciones rápidas como "El rey manda que se toquen la nariz". Quien se equivoque se sienta.',
+      '🧩 Adivinanza bíblica: ¿Qué animal salvó Dios en el arca? (todos)',
+      '🃏 Juego de memoria: parejas de animales de la Biblia.',
+      '🏃 Carrera de versículos: el primero en encontrar Efesios 6:11 gana un punto.',
+      '🎤 Canción rápida: "Jesús me ama, eso sé" con movimientos.',
+      '❓ Pregunta: ¿Quién fue tragado por un gran pez? (Jonás)'
+    ];
   }
   const juego = dinamicas[Math.floor(Math.random() * dinamicas.length)];
   showModal(`
-    <div class="text-center">
-      <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <i class="fa-solid fa-dice text-4xl text-red-500"></i>
+    <div style="text-align: center; max-width: 400px; margin: 0 auto;">
+      <div style="width: 80px; height: 80px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto;">
+        <i class="fa-solid fa-dice-d6" style="font-size: 2.5rem; color: #dc2626;"></i>
       </div>
-      <h2 class="text-2xl font-black text-gray-800 mb-2">¡Tiempo Extra!</h2>
-      <p class="text-gray-600 mb-4">Juego generado aleatoriamente para mantener el control.</p>
-      <div class="bg-white border-2 border-red-200 p-4 rounded-2xl shadow-xl">
-        <h3 class="text-lg font-bold text-red-600 mb-2">${juego.substring(0, 50)}</h3>
-        <p class="text-gray-700 text-sm">${juego}</p>
+      <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">🎲 ¡Tiempo Extra!</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">Juego generado aleatoriamente para mantener el control.</p>
+      <div style="background: var(--surface); border: 2px solid #fecaca; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: #dc2626; margin-bottom: 0.75rem;">✨ ${juego.substring(0, 50)}</h3>
+        <p style="color: var(--text-main); font-size: 0.9rem;">${juego}</p>
       </div>
-      <button onclick="closeModal()" class="mt-6 bg-gray-800 text-white px-6 py-2 rounded-xl font-bold hover:bg-gray-900 transition">Cerrar</button>
+      <button onclick="closeModal()" style="margin-top: 1.5rem; background: #1f2937; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer;">Cerrar</button>
     </div>
   `);
 }
