@@ -4195,6 +4195,17 @@ async function renderMoodle() {
     background: white; color: #0F172A; transform: rotateY(180deg); border: 2px solid #C8972A;
 }
 
+/* Responsive grid */
+#gpraise-aula-shield .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+#gpraise-aula-shield .lg\:col-span-2 { grid-column: span 2 / span 2 !important; }
+#gpraise-aula-shield .lg\:col-span-1 { grid-column: span 1 / span 1 !important; }
+#gpraise-aula-shield .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+@media (max-width: 768px) {
+    #gpraise-aula-shield .md\:grid-cols-3 { grid-template-columns: 1fr !important; }
+    #gpraise-aula-shield .lg\:col-span-2 { grid-column: auto !important; }
+}
+#gpraise-aula-shield #tab-inicio .grid { display: grid !important; gap: 1rem !important; }
+
             
         </style>
 
@@ -4290,12 +4301,17 @@ async function renderMoodle() {
     generarEstrellasGemini();
     construirJuegoBienvenida();
     window.toggleAulaSidebar = () => document.getElementById('avSidebar')?.classList.toggle('collapsed');
-    window.enterApp = () => {
-        document.getElementById('av-welcome').style.display = 'none';
-        document.getElementById('av-main-layout').style.display = 'block';
-        cargarTab('inicio');
-        actualizarBadgesGemini();
-    };
+    window.enterApp = async () => {
+    document.getElementById('av-welcome').style.display = 'none';
+    document.getElementById('av-main-layout').style.display = 'block';
+    // Asegurar que la pestaña de inicio se muestre y cargue su contenido
+    const tabBtn = document.querySelector('#gpraise-aula-shield .av-tab[data-tab="inicio"]');
+    if (tabBtn) tabBtn.click(); // Esto activa el cambio de pestaña y llama a cambiarTabGemini
+    // Esperar un pequeño instante para que el DOM se estabilice (opcional)
+    await new Promise(r => setTimeout(r, 50));
+    await cargarInicioGemini(); // Forzar carga adicional
+    actualizarBadgesGemini();
+};
     document.querySelectorAll('#gpraise-aula-shield .av-sidebar-item, #gpraise-aula-shield .av-tab').forEach(el => {
         el.addEventListener('click', () => cambiarTabGemini(el.getAttribute('data-nav') || el.getAttribute('data-tab')));
     });
@@ -4569,7 +4585,14 @@ async function cambiarTabGemini(tab) {
     document.querySelectorAll('#gpraise-aula-shield .av-body').forEach(el => el.classList.remove('active'));
     const targetBody = document.getElementById(`tab-${tab}`);
     if (targetBody) targetBody.classList.add('active');
-    if (tab === 'inicio') await cargarInicioGemini();
+    if (tab === 'inicio') {
+        try {
+            await cargarInicioGemini();
+        } catch (err) {
+            console.error('Error cargando inicio:', err);
+            document.getElementById('tab-inicio').innerHTML = '<p class="text-center text-red-500">Error al cargar el tablero.</p>';
+        }
+    }
 }
 
 async function cargarInicioGemini() {
