@@ -6600,17 +6600,7 @@ function renderizarCancionesPlanner() {
   }).join('');
 }
 
-// Función de permisos (puedes ajustarla)
-function puedeVerPlanner() {
-  if (isAdminUser || isIglesiaAdmin) return true;
-  // Si quieres que solo ciertos departamentos lo vean, descomenta y ajusta:
-  // const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-  // if (!miembro) return false;
-  // const depto = departamentos.find(d => d.id === miembro.departamento_id);
-  // return depto && (depto.nombre === 'Artes' || depto.nombre === 'Servicio' || depto.nombre === 'Danza');
-  return puedeVerAlabanza(); // o false si solo admins
-}
-    
+// Función de permisos (puedes ajustarla
 
 // ========== INICIALIZACIÓN ==========
 (async () => {
