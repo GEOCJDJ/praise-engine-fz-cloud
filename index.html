@@ -3472,7 +3472,7 @@ async function renderAgenda() {
                             <i class="fa-solid fa-music" style="color: #ec4899; margin-top: 3px;"></i>
                             <div>
                                 <span style="display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Música a cargo</span>
-                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(ev.musica_asignada || 'Banda en vivo (Azarel)')}</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(ev.musica_asignada || 'Ministerio de Alabanza')}</span>
                             </div>
                         </div>
                         <div style="display: flex; align-items: flex-start; gap: 10px;">
@@ -6126,7 +6126,7 @@ window.deleteUserById = async (userId) => {
                 <div class="form-group">
                     <label>Música a cargo</label>
                     <select id="actMusica" class="form-control">
-                        <option value="Banda en vivo (Azarel)" ${actividad?.musica_asignada === 'Banda en vivo (Azarel)' ? 'selected' : ''}>Banda en vivo (Azarel)</option>
+                        <option value="Ministerio de alabanza" ${actividad?.musica_asignada === 'Ministerio de alabanza' ? 'selected' : ''}>Ministerio de alabanza</option>
                         <option value="Uso de Pistas" ${actividad?.musica_asignada === 'Uso de Pistas' ? 'selected' : ''}>Uso de Pistas</option>
                         <option value="Banda Invitada" ${actividad?.musica_asignada === 'Banda Invitada' ? 'selected' : ''}>Banda Invitada</option>
                     </select>
@@ -6921,10 +6921,10 @@ function mostrarInterfazDanza() {
             <p style="color: var(--text-muted); font-size: 0.8rem; margin: 2px 0 0 0;">Coordinación y Expresión Corporal</p>
           </div>
           <div style="display: flex; background: var(--bg-app); padding: 4px; border-radius: 0.75rem; border: 1px solid var(--border);">
-            <button onclick="cambiarGrupoDanza('Azarel')" id="btnDanzaAzarel" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Asarel' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Azarel' ? 'white' : 'var(--text-main)'}; font-weight: bold; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
+            <button onclick="cambiarGrupoDanza('Azarel')" id="btnDanzaAzarel" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Azarel' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarel' ? 'white' : 'var(--text-main)'}; font-weight: bold; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
               Azarel <span style="font-size: 10px; font-weight: normal; opacity: 0.8;">(≥12)</span>
             </button>
-            <button onclick="cambiarGrupoDanza('Azarelitos')" id="btnDanzaAzarelitos" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Asarelitos' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Azarelitos' ? 'white' : 'var(--text-main)'}; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
+            <button onclick="cambiarGrupoDanza('Azarelitos')" id="btnDanzaAzarelitos" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Azarelitos' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarelitos' ? 'white' : 'var(--text-main)'}; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
               Azarelitos <span style="font-size: 10px; font-weight: normal; opacity: 0.6;">(&lt;12)</span>
             </button>
           </div>
