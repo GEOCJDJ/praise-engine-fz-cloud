@@ -2079,12 +2079,23 @@ function darkModeToggle() {
         searchContainer.style.display = showSearch ? 'flex' : 'none';
     }
 
-    if (currentTab === 'songs' || currentTab === 'favorites' || currentTab === 'lists') {
+    // Permisos para Cancionero y Favoritos (solo Alabanza)
+    if (currentTab === 'songs' || currentTab === 'favorites') {
         if (!puedeVerAlabanza()) {
             document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
             return;
         }
     }
+    
+    // Permiso para Listas (Alabanza y Danza)
+    if (currentTab === 'lists') {
+        if (!puedeVerListas()) {
+            document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+            return;
+        }
+    }
+
+    // Permisos para otros módulos
     if (currentTab === 'gnotes' && !puedeVerGnotes()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
@@ -2106,6 +2117,7 @@ function darkModeToggle() {
         return;
     }
 
+    // Renderizado de cada vista
     if (currentTab === 'home') renderHome();
     else if (currentTab === 'fzkids') await renderFzkids();
     else if (currentTab === 'fzhost') await renderFzHost();
@@ -2119,7 +2131,7 @@ function darkModeToggle() {
     else if (currentTab === 'scriptura') await renderScriptura();
     else if (currentTab === 'profile') renderUserProfile();
     else if (currentTab === 'admin' && (isAdminUser || isIglesiaAdmin)) renderAdmin();
-}
+            }
     
     function navigateTo(tab) { currentTab = tab; document.querySelectorAll('.nav-item[data-tab]').forEach(el => { if (el.dataset.tab === tab) el.classList.add('active'); else el.classList.remove('active'); }); renderCurrentView(); }
 
