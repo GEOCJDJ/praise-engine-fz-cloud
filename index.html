@@ -1999,6 +1999,11 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'fzhost' ? 'active' : ''}" data-tab="fzhost" style="display: ${puedeVerFzHost() ? 'flex' : 'none'};"><i class="fas fa-handshake"></i><span>FZ HOST</span></div>
     <div class="nav-item ${currentTab === 'gdance' ? 'active' : ''}" data-tab="gdance" style="display: ${puedeVerGDance() ? 'flex' : 'none'};"><i class="fas fa-wand-magic-sparkles"></i><span>G-DANCE</span></div>
     <div class="nav-item ${currentTab === 'planner' ? 'active' : ''}" data-tab="planner" style="display: ${puedeVerPlanner() ? 'flex' : 'none'};"><i class="fas fa-calendar-alt"></i><span>PLANNER</span></div>
+
+<div class="nav-item ${currentTab === 'gmedia' ? 'active' : ''}" data-tab="gmedia">
+    <i class="fas fa-photo-film"></i>
+    <span>G-MEDIA</span>
+</div>
    
     <div class="nav-item ${currentTab === 'agenda' ? 'active' : ''}" data-tab="agenda" style="display: ${puedeVerAgenda() ? 'flex' : 'none'};">
     <i class="fas fa-calendar-days"></i>
@@ -2125,7 +2130,7 @@ function darkModeToggle() {
     else if (currentTab === 'fzhost') await renderFzHost();
     else if (currentTab === 'gdance') await renderGDance();
     else if (currentTab === 'planner') await renderPlanner();
-    
+    else if (currentTab === 'gmedia') await renderGmedia();
     else if (currentTab === 'agenda') await renderAgenda();
     
     else if (currentTab === 'favorites') await renderFavorites();
@@ -3497,6 +3502,297 @@ async function renderAgenda() {
     `;
     container.innerHTML = html;
 }
+
+// ==================== MÓDULO G-MEDIA (Ticketing de Diseño) ====================
+let gmediaCurrentFilter = 'todos'; // 'todos', 'mis_tickets'
+
+async function renderGmedia() {
+    if (!currentIglesiaId) {
+        document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">Selecciona una iglesia primero.</div>';
+        return;
+    }
+    const container = document.getElementById('mainContent');
+    const actionHeader = document.getElementById('actionHeader');
+    actionHeader.innerHTML = `
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="mostrarFormularioTicket()">
+                <i class="fas fa-plus"></i> Nueva Solicitud
+            </button>
+            <div class="btn-group" style="display: flex; gap: 0.3rem;">
+                <button class="btn ${gmediaCurrentFilter === 'todos' ? 'btn-primary' : 'btn-ghost'}" onclick="cambiarFiltroGmedia('todos')">Todos</button>
+                <button class="btn ${gmediaCurrentFilter === 'mis_tickets' ? 'btn-primary' : 'btn-ghost'}" onclick="cambiarFiltroGmedia('mis_tickets')">Mis solicitudes</button>
+            </div>
+        </div>
+    `;
+
+    // Cargar tickets
+    let query = supabaseClient
+        .from('gmedia_tickets')
+        .select('*, perfiles!solicitante_id(nombre)')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('creado_en', { ascending: false });
+
+    if (gmediaCurrentFilter === 'mis_tickets' && currentUser) {
+        query = query.eq('solicitante_id', currentUser.id);
+    }
+
+    const { data: tickets, error } = await query;
+    if (error) {
+        showToast('Error al cargar tickets: ' + error.message, 'error');
+        container.innerHTML = '<div class="text-center p-8">Error cargando datos.</div>';
+        return;
+    }
+
+    // Separar por estado
+    const nuevos = tickets?.filter(t => t.estado === 'nuevo') || [];
+    const proceso = tickets?.filter(t => t.estado === 'proceso') || [];
+    const listos = tickets?.filter(t => t.estado === 'listo') || [];
+
+    const html = `
+    <div style="max-width: 1200px; margin: 0 auto; padding-bottom: 2rem;">
+        <!-- Cabecera -->
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #3b82f6 100%); border-radius: 1.5rem; padding: 1.5rem 2rem; color: white; box-shadow: 0 10px 25px -5px rgba(59,130,246,0.3); margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1 style="font-size: 1.8rem; font-weight: 900; margin: 0;"><i class="fa-solid fa-photo-film" style="color: #60a5fa;"></i> G-MEDIA</h1>
+                    <p style="margin: 0.25rem 0 0; color: #bfdbfe;">Estudio de Producción y Multimedia</p>
+                </div>
+                <div style="background: rgba(255,255,255,0.1); padding: 0.5rem 1rem; border-radius: 1rem; backdrop-filter: blur(4px);">
+                    <span style="display: block; font-size: 0.65rem;">Tickets activos</span>
+                    <span style="font-size: 1.2rem; font-weight: 900;">${tickets?.length || 0}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+            <!-- Columna Nuevas -->
+            <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #ef4444; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800;"><i class="fas fa-inbox" style="color: #ef4444;"></i> Nuevas Solicitudes</h3>
+                    <span style="background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">${nuevos.length}</span>
+                </div>
+                <div id="columna-nuevo">
+                    ${nuevos.map(ticket => renderTicketCard(ticket)).join('')}
+                </div>
+            </div>
+
+            <!-- Columna En Proceso -->
+            <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #f59e0b; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800;"><i class="fas fa-pen-ruler" style="color: #f59e0b;"></i> En Proceso</h3>
+                    <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">${proceso.length}</span>
+                </div>
+                <div id="columna-proceso">
+                    ${proceso.map(ticket => renderTicketCard(ticket)).join('')}
+                </div>
+            </div>
+
+            <!-- Columna Listos -->
+            <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #10b981; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800;"><i class="fas fa-check-circle" style="color: #10b981;"></i> Listos para Descarga</h3>
+                    <span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">${listos.length}</span>
+                </div>
+                <div id="columna-listo">
+                    ${listos.map(ticket => renderTicketCard(ticket)).join('')}
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    container.innerHTML = html;
+}
+
+function renderTicketCard(ticket) {
+    const esAdmin = isAdminUser || isIglesiaAdmin;
+    const puedeMover = esAdmin; // solo admin puede mover/editar
+    const tipoClase = ticket.tipo === 'flyer' ? 'badge-flyer' : (ticket.tipo === 'video' ? 'badge-video' : 'badge-letras');
+    const tipoTexto = ticket.tipo === 'flyer' ? 'Flyer Digital' : (ticket.tipo === 'video' ? 'Edición de Video' : 'Proyección / Letras');
+    const fechaLimite = ticket.fecha_limite ? new Date(ticket.fecha_limite).toLocaleDateString('es-ES') : 'Sin fecha';
+    const esPrioridadAlta = ticket.prioridad === 'alta';
+    const solicitante = ticket.perfiles?.nombre || 'Usuario';
+    const puedeDescargar = ticket.estado === 'listo' && ticket.archivo_url;
+
+    return `
+        <div class="gmedia-ticket" data-id="${ticket.id}" data-estado="${ticket.estado}" style="background: var(--surface); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <span class="gmedia-badge ${tipoClase}" style="background: var(--primary-light); color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.65rem;">${tipoTexto}</span>
+                ${esPrioridadAlta ? '<i class="fas fa-circle-exclamation" style="color: #ef4444;" title="Prioridad Alta"></i>' : ''}
+            </div>
+            <h4 style="margin: 0.5rem 0; font-size: 1rem; font-weight: 800;">${escapeHtml(ticket.titulo)}</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">${escapeHtml(ticket.descripcion?.substring(0, 100) || '')}</p>
+            <div style="display: flex; gap: 0.5rem; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                <i class="far fa-calendar-alt"></i> ${fechaLimite}
+                <i class="fas fa-user ml-2"></i> ${escapeHtml(solicitante)}
+            </div>
+            ${puedeMover ? `
+            <div style="margin-top: 0.8rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                ${ticket.estado !== 'nuevo' ? `<button class="btn-icon" onclick="cambiarEstadoTicket('${ticket.id}', 'nuevo')" style="font-size:0.7rem;" title="Mover a Nuevo"><i class="fas fa-inbox"></i></button>` : ''}
+                ${ticket.estado !== 'proceso' ? `<button class="btn-icon" onclick="cambiarEstadoTicket('${ticket.id}', 'proceso')" style="font-size:0.7rem;" title="Mover a Proceso"><i class="fas fa-pen-ruler"></i></button>` : ''}
+                ${ticket.estado !== 'listo' ? `<button class="btn-icon" onclick="cambiarEstadoTicket('${ticket.id}', 'listo')" style="font-size:0.7rem;" title="Mover a Listo"><i class="fas fa-check-circle"></i></button>` : ''}
+                <button class="btn-icon" onclick="subirArchivoTicket('${ticket.id}')" style="font-size:0.7rem;" title="Subir archivo"><i class="fas fa-upload"></i></button>
+                <button class="btn-icon" onclick="eliminarTicket('${ticket.id}')" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            </div>
+            ` : ''}
+            ${puedeDescargar ? `
+            <div style="margin-top: 0.8rem; background: var(--bg-app); border-radius: 0.5rem; padding: 0.3rem; text-align: center;">
+                <a href="${ticket.archivo_url}" target="_blank" class="btn btn-primary" style="font-size:0.7rem; padding:0.3rem 0.8rem;"><i class="fas fa-download"></i> Descargar</a>
+            </div>
+            ` : ticket.estado === 'listo' && !ticket.archivo_url && esAdmin ? `
+            <div style="margin-top: 0.8rem; background: #fef3c7; border-radius: 0.5rem; padding: 0.3rem; text-align: center; font-size:0.7rem;">
+                <i class="fas fa-exclamation-triangle"></i> Falta enlace de descarga
+            </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+async function mostrarFormularioTicket() {
+    showModal(`
+        <h3><i class="fas fa-ticket-alt"></i> Nueva Solicitud de Diseño/Producción</h3>
+        <div class="form-group">
+            <label>Título del proyecto *</label>
+            <input id="ticketTitulo" class="form-control" placeholder="Ej: Flyer Día del Padre">
+        </div>
+        <div class="form-group">
+            <label>Tipo *</label>
+            <select id="ticketTipo" class="form-control">
+                <option value="flyer">Flyer Digital (Instagram / Pantalla)</option>
+                <option value="video">Video / Edición</option>
+                <option value="letras">Proyección / Letras (ProPresenter)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Descripción / Requerimientos</label>
+            <textarea id="ticketDesc" rows="3" class="form-control" placeholder="Describe lo que necesitas, fechas importantes, colores, etc."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Fecha límite</label>
+            <input type="text" id="ticketFechaLimite" class="form-control" placeholder="dd/mm/aaaa">
+        </div>
+        <div class="form-group">
+            <label>Prioridad</label>
+            <select id="ticketPrioridad" class="form-control">
+                <option value="baja">Baja</option>
+                <option value="media" selected>Media</option>
+                <option value="alta">Alta (Urgente)</option>
+            </select>
+        </div>
+        <div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="guardarTicket()">Crear Solicitud</button>
+        </div>
+    `);
+    flatpickr("#ticketFechaLimite", { dateFormat: "d/m/Y", locale: "es" });
+}
+
+async function guardarTicket() {
+    const titulo = document.getElementById('ticketTitulo').value.trim();
+    const tipo = document.getElementById('ticketTipo').value;
+    const descripcion = document.getElementById('ticketDesc').value.trim();
+    const fechaLimiteStr = document.getElementById('ticketFechaLimite').value;
+    const prioridad = document.getElementById('ticketPrioridad').value;
+
+    if (!titulo) {
+        showToast('El título es obligatorio', 'error');
+        return;
+    }
+    let fechaLimite = null;
+    if (fechaLimiteStr) {
+        const [dia, mes, anio] = fechaLimiteStr.split('/');
+        fechaLimite = `${anio}-${mes}-${dia}`;
+    }
+
+    const { error } = await supabaseClient.from('gmedia_tickets').insert({
+        id: generateUniqueId(),
+        titulo,
+        tipo,
+        descripcion: descripcion || null,
+        fecha_limite: fechaLimite,
+        solicitante_id: currentUser.id,
+        iglesia_id: currentIglesiaId,
+        prioridad,
+        estado: 'nuevo'
+    });
+
+    if (error) {
+        showToast('Error al crear: ' + error.message, 'error');
+    } else {
+        showToast('Solicitud creada correctamente', 'success');
+        closeModal();
+        renderGmedia();
+    }
+}
+
+async function cambiarEstadoTicket(ticketId, nuevoEstado) {
+    if (!isAdminUser && !isIglesiaAdmin) {
+        showToast('Solo administradores pueden mover tickets', 'error');
+        return;
+    }
+    const { error } = await supabaseClient
+        .from('gmedia_tickets')
+        .update({ estado: nuevoEstado, actualizado_en: new Date() })
+        .eq('id', ticketId);
+    if (error) showToast('Error: ' + error.message, 'error');
+    else renderGmedia();
+}
+
+async function subirArchivoTicket(ticketId) {
+    if (!isAdminUser && !isIglesiaAdmin) {
+        showToast('Solo administradores pueden subir archivos', 'error');
+        return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,application/pdf,video/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        // Subir a Supabase Storage (carpeta "gmedia")
+        const fileName = `${ticketId}_${Date.now()}_${file.name}`;
+        const { error: uploadError, data } = await supabaseClient.storage
+            .from('gmedia')
+            .upload(fileName, file);
+        if (uploadError) {
+            showToast('Error al subir archivo: ' + uploadError.message, 'error');
+            return;
+        }
+        const { data: urlData } = supabaseClient.storage.from('gmedia').getPublicUrl(fileName);
+        const publicUrl = urlData.publicUrl;
+
+        const { error: updateError } = await supabaseClient
+            .from('gmedia_tickets')
+            .update({ archivo_url: publicUrl, actualizado_en: new Date() })
+            .eq('id', ticketId);
+        if (updateError) showToast('Error guardando enlace: ' + updateError.message, 'error');
+        else {
+            showToast('Archivo subido y enlace actualizado', 'success');
+            renderGmedia();
+        }
+    };
+    input.click();
+}
+
+async function eliminarTicket(ticketId) {
+    if (!isAdminUser && !isIglesiaAdmin) {
+        showToast('No tienes permiso para eliminar tickets', 'error');
+        return;
+    }
+    if (confirm('¿Eliminar este ticket permanentemente?')) {
+        const { error } = await supabaseClient.from('gmedia_tickets').delete().eq('id', ticketId);
+        if (error) showToast('Error: ' + error.message, 'error');
+        else {
+            showToast('Ticket eliminado', 'success');
+            renderGmedia();
+        }
+    }
+}
+
+function cambiarFiltroGmedia(filtro) {
+    gmediaCurrentFilter = filtro;
+    renderGmedia();
+        }
+
     
 async function renderMoodle() {
     const container = document.getElementById('mainContent');
