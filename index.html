@@ -1987,37 +1987,23 @@ function renderApp() {
     document.getElementById('appRoot').innerHTML = `<header class="app-header">
     <div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small></div>
     <div class="nav-icons">
-        <div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
-        <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};"><i class="fas fa-child"></i><span>🧸 FZKIDS</span></div>
-        
-        <div class="nav-item ${currentTab === 'fzhost' ? 'active' : ''}" data-tab="fzhost" style="display: ${puedeVerFzHost() ? 'flex' : 'none'};">
-  <i class="fas fa-handshake"></i>
-  <span>FZ HOST</span>
+    <div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
+    <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};"><i class="fas fa-child"></i><span>FZKIDS</span></div>
+    <div class="nav-item ${currentTab === 'fzhost' ? 'active' : ''}" data-tab="fzhost" style="display: ${puedeVerFzHost() ? 'flex' : 'none'};"><i class="fas fa-handshake"></i><span>FZ HOST</span></div>
+    <div class="nav-item ${currentTab === 'gdance' ? 'active' : ''}" data-tab="gdance" style="display: ${puedeVerGDance() ? 'flex' : 'none'};"><i class="fas fa-wand-magic-sparkles"></i><span>G-DANCE</span></div>
+    <div class="nav-item ${currentTab === 'planner' ? 'active' : ''}" data-tab="planner" style="display: ${puedeVerPlanner() ? 'flex' : 'none'};"><i class="fas fa-calendar-alt"></i><span>PLANNER</span></div>
+    <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
+    <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
+    <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerListas() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
+    <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
+    <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
+    <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes" style="display: ${puedeVerGnotes() ? 'flex' : 'none'};"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
+    <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
+    <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
+    ${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
+    <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
+    <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
 </div>
-        <div class="nav-item ${currentTab === 'gdance' ? 'active' : ''}" data-tab="gdance" style="display: ${puedeVerGDance() ? 'flex' : 'none'};">
-  <i class="fas fa-wand-magic-sparkles"></i>
-  <span>G-DANCE</span>
-</div>
-
-<div class="nav-item ${currentTab === 'planner' ? 'active' : ''}" data-tab="planner" style="display: ${puedeVerPlanner() ? 'flex' : 'none'};">
-                                                                                                             
-       <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
-<div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
-
-<div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerListas() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
-       
-        
-        <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
-        <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
-
-        <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes" style="display: ${puedeVerGnotes() ? 'flex' : 'none'};"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
-        
-        <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
-        <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
-        ${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
-        <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
-        <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
-    </div>
     </header>
     <div class="container">
         <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div>
