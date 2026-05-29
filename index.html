@@ -1955,6 +1955,13 @@ function puedeVerPlanner() {
   const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza'];
   return deptosPermitidos.includes(depto.nombre);
     }
+    
+function puedeVerAgenda() {
+    // Visible para cualquier usuario que haya iniciado sesión y tenga una iglesia asignada
+    return !!currentUser && !!currentIglesiaId;
+}
+
+    
 // ========== RENDER PRINCIPAL ==========
 // ========== RENDER PRINCIPAL ==========
 function renderApp() {
@@ -1992,6 +1999,12 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'fzhost' ? 'active' : ''}" data-tab="fzhost" style="display: ${puedeVerFzHost() ? 'flex' : 'none'};"><i class="fas fa-handshake"></i><span>FZ HOST</span></div>
     <div class="nav-item ${currentTab === 'gdance' ? 'active' : ''}" data-tab="gdance" style="display: ${puedeVerGDance() ? 'flex' : 'none'};"><i class="fas fa-wand-magic-sparkles"></i><span>G-DANCE</span></div>
     <div class="nav-item ${currentTab === 'planner' ? 'active' : ''}" data-tab="planner" style="display: ${puedeVerPlanner() ? 'flex' : 'none'};"><i class="fas fa-calendar-alt"></i><span>PLANNER</span></div>
+   
+    <div class="nav-item ${currentTab === 'agenda' ? 'active' : ''}" data-tab="agenda" style="display: ${puedeVerAgenda() ? 'flex' : 'none'};">
+    <i class="fas fa-calendar-days"></i>
+    <span>AGENDA</span>
+</div>
+    
     <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
     <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
     <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerListas() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
@@ -2112,6 +2125,9 @@ function darkModeToggle() {
     else if (currentTab === 'fzhost') await renderFzHost();
     else if (currentTab === 'gdance') await renderGDance();
     else if (currentTab === 'planner') await renderPlanner();
+    
+    else if (currentTab === 'agenda') await renderAgenda();
+    
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
@@ -3357,6 +3373,131 @@ let rachaGemini = 0;
 let devocionalGemini = null;
 let juegoBienvenidaRespondido = false;
 
+async function renderAgenda() {
+    const container = document.getElementById('mainContent');
+    const actionHeader = document.getElementById('actionHeader');
+    actionHeader.innerHTML = ''; // Sin botones extra
+
+    // Obtener todas las actividades de la iglesia con fecha >= hoy
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const hoyStr = hoy.toISOString().slice(0,10).split('-').reverse().join('/'); // formato dd/mm/aaaa
+    
+    const { data: todas, error } = await supabaseClient
+        .from('actividades')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('fecha', { ascending: true });
+    
+    if (error) {
+        showToast('Error al cargar eventos: ' + error.message, 'error');
+        container.innerHTML = '<div class="text-center p-8">No se pudieron cargar los eventos.</div>';
+        return;
+    }
+    
+    // Filtrar eventos desde hoy hacia adelante
+    const eventosFuturos = (todas || []).filter(act => {
+        const [dia, mes, anio] = act.fecha.split('/');
+        const fechaEvento = new Date(anio, mes-1, dia);
+        return fechaEvento >= hoy;
+    });
+    
+    if (eventosFuturos.length === 0) {
+        container.innerHTML = `
+            <div style="max-width: 1000px; margin: 0 auto; text-align: center; padding: 3rem 1rem;">
+                <i class="fas fa-calendar-check" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <h3 style="font-size: 1.2rem; font-weight: bold;">No hay eventos programados</h3>
+                <p style="color: var(--text-muted);">Próximamente se publicarán las actividades.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Generar HTML de las tarjetas
+    let eventosHtml = '';
+    for (const ev of eventosFuturos) {
+        const fechaObj = new Date(ev.fecha.split('/').reverse().join('-'));
+        const mes = fechaObj.toLocaleDateString('es-ES', { month: 'short' }).toUpperCase();
+        const dia = fechaObj.getDate();
+        const diaSemana = fechaObj.toLocaleDateString('es-ES', { weekday: 'long' });
+        const hora = '08:30 AM'; // Si no tienes hora, puedes dejarla fija o agregar campo en el futuro
+        const tipoLabel = ev.tipo === 'evento' ? 'Servicio Especial' : (ev.tipo === 'invitacion' ? 'Evento Externo' : 'Reunión');
+        const tipoIcon = ev.tipo === 'evento' ? 'fa-church' : (ev.tipo === 'invitacion' ? 'fa-map-location-dot' : 'fa-users');
+        const bgColor = ev.tipo === 'evento' ? '#dbeafe' : (ev.tipo === 'invitacion' ? '#dcfce7' : '#fef3c7');
+        const textColor = ev.tipo === 'evento' ? '#1e40af' : (ev.tipo === 'invitacion' ? '#166534' : '#b45309');
+        const esInternoLabel = ev.es_interno ? 'Interno' : 'Externo';
+        const lugarTexto = ev.lugar || (ev.es_interno ? 'Auditorio Principal' : 'Fuera de la iglesia');
+        
+        eventosHtml += `
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; overflow: hidden; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 1.2rem;">
+                <div style="background: rgba(59, 130, 246, 0.05); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="background: var(--primary); color: white; border-radius: 0.5rem; padding: 0.4rem 0.8rem; text-align: center; line-height: 1.1;">
+                            <span style="display: block; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">${mes}</span>
+                            <span style="display: block; font-size: 1.2rem; font-weight: 900;">${dia}</span>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-main);">${escapeHtml(ev.titulo)}</h3>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> ${diaSemana}, ${hora}</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <span style="background: ${bgColor}; color: ${textColor}; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;"><i class="fa-solid ${tipoIcon}"></i> ${tipoLabel}</span>
+                        <span style="background: var(--bg-app); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">${esInternoLabel}</span>
+                    </div>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: var(--text-main); line-height: 1.5;">${escapeHtml(ev.descripcion || 'Sin descripción adicional.')}</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; background: var(--bg-app); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-users-gear" style="color: #6366f1; margin-top: 3px;"></i>
+                            <div>
+                                <span style="display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Organiza</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(ev.grupo_organizador || 'Equipo de la Iglesia')}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-music" style="color: #ec4899; margin-top: 3px;"></i>
+                            <div>
+                                <span style="display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Música a cargo</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(ev.musica_asignada || 'Banda en vivo (Azarel)')}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-location-dot" style="color: #10b981; margin-top: 3px;"></i>
+                            <div>
+                                <span style="display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Lugar</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(lugarTexto)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    const html = `
+        <div style="max-width: 1000px; margin: 0 auto; padding-bottom: 2rem;">
+            <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 1.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-calendar-days"></i> G-AGENDA</h1>
+                        <p style="margin: 0.25rem 0 0; opacity: 0.9; font-size: 0.85rem;">Cartelera Oficial de Eventos y Actividades</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.8rem; font-weight: bold; backdrop-filter: blur(4px);">
+                        <i class="fa-solid fa-filter"></i> Próximos eventos
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+                ${eventosHtml}
+            </div>
+        </div>
+    `;
+    container.innerHTML = html;
+}
+    
 async function renderMoodle() {
     const container = document.getElementById('mainContent');
     const actionHeader = document.getElementById('actionHeader');
