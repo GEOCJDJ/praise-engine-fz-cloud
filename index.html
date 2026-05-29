@@ -3990,344 +3990,338 @@ async function renderMoodle() {
 
     const html = `<div id="gpraise-aula-shield">
         <style>
-            /* ===== ESCUDO DE ESTILOS (idéntico al que te funciona) ===== */
+            /* ===== ESTILOS PREMIUM PARA AULA VIRTUAL (encapsulados) ===== */
             #gpraise-aula-shield {
                 all: initial;
                 display: block !important;
                 font-family: 'Inter', sans-serif !important;
-                background: #F1F5F9 !important;
-                border-radius: 1rem !important;
-                overflow: hidden !important;
-                position: relative !important;
+                background: var(--bg-app);
+                border-radius: 1rem;
+                overflow: hidden;
+                position: relative;
             }
-            #gpraise-aula-shield * { box-sizing: border-box !important; }
-            /* Pantalla de bienvenida */
-            #gpraise-aula-shield .av-welcome {
-                display: flex; flex-direction: column; align-items: center; justify-content: center;
-                position: fixed; inset: 0; z-index: 60; text-align: center; padding: 2rem;
+            #gpraise-aula-shield * { box-sizing: border-box; }
+            
+            /* Contenedor principal */
+            .av-container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 1.5rem;
+            }
+            
+            /* Grillas */
+            .av-grid-3 {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            .av-grid-2 {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            @media (max-width: 768px) {
+                .av-grid-2 { grid-template-columns: 1fr; }
+            }
+            
+            /* Tarjetas de estadísticas */
+            .av-stat-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 1.5rem;
+                padding: 1.5rem;
+                text-align: center;
+                transition: transform 0.2s, border-color 0.2s;
+            }
+            .av-stat-card:hover {
+                transform: translateY(-3px);
+                border-color: #C8972A;
+            }
+            .av-icon-circle {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.2rem;
+                margin: 0 auto 1rem auto;
+            }
+            .av-stat-label {
+                font-size: 0.7rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                color: var(--text-muted);
+                letter-spacing: 1px;
+            }
+            .av-stat-value {
+                font-size: 2rem;
+                font-weight: 900;
+                color: var(--text-main);
+                margin-top: 0.5rem;
+                line-height: 1;
+            }
+            
+            /* Flashcard 3D */
+            .av-flashcard-wrapper {
+                perspective: 1000px;
+                height: 260px;
+                width: 100%;
+                cursor: pointer;
+                margin-bottom: 1rem;
+            }
+            .av-flashcard {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                text-align: center;
+                transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+                transform-style: preserve-3d;
+                border-radius: 1.5rem;
+            }
+            .av-flashcard.is-flipped {
+                transform: rotateY(180deg);
+            }
+            .av-face {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                backface-visibility: hidden;
+                border-radius: 1.5rem;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                padding: 1.5rem;
+                box-shadow: 0 15px 30px -10px rgba(0,0,0,0.2);
+            }
+            .av-face-front {
                 background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
-                overflow-y: auto;
+                color: white;
+                border: 1px solid #3B82F6;
             }
-            #gpraise-aula-shield .stars-container {
-                position: absolute; inset: 0; pointer-events: none;
+            .av-face-back {
+                background: var(--surface);
+                color: var(--text-main);
+                border: 2px solid #10B981;
+                transform: rotateY(180deg);
             }
-            #gpraise-aula-shield .star {
-                position: absolute; border-radius: 50%; background: #F5D97A; opacity: 0;
-                animation: twinkle 3s infinite;
+            
+            /* Leaderboard */
+            .av-rank-box {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 1.5rem;
+                padding: 1rem;
             }
-            @keyframes twinkle { 0%,100%{opacity:0;transform:scale(0.5)} 50%{opacity:0.6;transform:scale(1)} }
-            #gpraise-aula-shield .av-verse {
-                font-size: 14px; color: #E2E8F0; font-style: italic; margin-bottom: 0.75rem;
-                max-width: 460px; line-height: 1.6;
+            .av-rank-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.8rem 1rem;
+                border-radius: 1rem;
+                margin-bottom: 0.8rem;
+                background: var(--bg-app);
+                border: 1px solid var(--border);
+                transition: transform 0.1s;
             }
-            #gpraise-aula-shield .av-verse strong { color: #F5D97A; }
-            #gpraise-aula-shield .av-welcome-title { font-size: 26px; font-weight: 700; color: white; margin: 1rem 0 0.25rem; }
-            #gpraise-aula-shield .av-welcome-sub { font-size: 15px; color: #94A3B8; margin-bottom: 2rem; }
-            #gpraise-aula-shield .av-today-card {
-                background: rgba(255,255,255,0.06); backdrop-filter: blur(12px);
-                border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.25rem;
-                display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
-                width: 100%; max-width: 480px; color: white; transition: 0.3s;
+            .av-rank-item:hover {
+                transform: scale(1.02);
             }
-            #gpraise-aula-shield .av-today-card:hover { background: rgba(255,255,255,0.1); border-color: #F5D97A; }
-            #gpraise-aula-shield .av-today-icon { font-size: 32px; }
-            #gpraise-aula-shield .av-today-info { text-align: left; flex: 1; }
-            #gpraise-aula-shield .av-today-info p { font-size: 12px; color: #94A3B8; }
-            #gpraise-aula-shield .av-today-info strong { font-size: 15px; color: white; font-weight: 600; }
-            #gpraise-aula-shield .av-streak { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #FB923C; }
-            #gpraise-aula-shield .av-enter-btn {
-                background: #C8972A; color: #0F172A; border: none; border-radius: 2rem;
-                padding: 0.85rem 3rem; font-size: 16px; font-weight: 600; cursor: pointer;
-                transition: 0.2s; margin-bottom: 0.75rem; width: 100%; max-width: 320px;
-                box-shadow: 0 4px 14px rgba(200,151,42,0.4);
+            .av-rank-1 {
+                border-left: 4px solid #F59E0B;
+                background: linear-gradient(90deg, rgba(245,158,11,0.05), transparent);
             }
-            #gpraise-aula-shield .av-enter-btn:hover { background: #F5D97A; transform: translateY(-1px); }
-            #gpraise-aula-shield .av-skip { font-size: 13px; color: #94A3B8; cursor: pointer; text-decoration: underline; }
-            #gpraise-aula-shield .wl-game-opt {
-                background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
-                padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 13px;
-                text-align: center; transition: 0.2s;
+            .av-rank-2 {
+                border-left: 4px solid #94A3B8;
             }
-            #gpraise-aula-shield .wl-game-opt:hover { background: rgba(255,255,255,0.2); }
-            #gpraise-aula-shield .wl-game-opt.correct { background: #10B981 !important; color: white; }
-            #gpraise-aula-shield .wl-game-opt.wrong { background: #EF4444 !important; color: white; }
-            /* Sidebar colapsable */
-            #gpraise-aula-shield .av-main-layout {
-                display: none; background: #F1F5F9; width: 100%;
+            .av-rank-3 {
+                border-left: 4px solid #D97706;
             }
-            #gpraise-aula-shield .av-main-flex {
-                display: flex; width: 100%;
+            .av-rank-badge {
+                font-size: 0.7rem;
+                font-weight: 800;
+                padding: 4px 10px;
+                border-radius: 20px;
+                background: var(--surface);
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             }
-            #gpraise-aula-shield .av-sidebar {
-                width: 260px; background: #0F172A; color: white;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                flex-shrink: 0;
+            
+            /* Tarjetas de cursos premium */
+            .av-course-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 1.5rem;
+                overflow: hidden;
+                transition: transform 0.2s, border-color 0.2s;
+                display: flex;
+                flex-direction: column;
             }
-            #gpraise-aula-shield .av-sidebar.collapsed {
-                width: 0 !important;
-                opacity: 0;
-                pointer-events: none;
+            .av-course-card:hover {
+                transform: translateY(-5px);
+                border-color: #C8972A;
+                box-shadow: 0 15px 30px -10px rgba(200,151,42,0.2);
+            }
+            .av-course-header {
+                background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+                padding: 1.5rem;
+                color: white;
+                border-bottom: 3px solid #C8972A;
+            }
+            .av-course-header span {
+                background: rgba(255,255,255,0.1);
+                color: #C8972A;
+                font-size: 0.65rem;
+                font-weight: 800;
+                padding: 4px 10px;
+                border-radius: 20px;
+                text-transform: uppercase;
+                border: 1px solid rgba(200,151,42,0.3);
+            }
+            .av-course-header h3 {
+                font-size: 1.3rem;
+                font-weight: 900;
+                margin: 1rem 0 0.5rem 0;
+                line-height: 1.2;
+            }
+            .av-course-header p {
+                font-size: 0.8rem;
+                color: rgba(255,255,255,0.7);
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
                 overflow: hidden;
             }
-            #gpraise-aula-shield .av-sidebar-item {
-                display: flex; align-items: center; gap: 12px; padding: 0.85rem 1.5rem;
-                color: #94A3B8; font-size: 14px; font-weight: 500; cursor: pointer;
-                transition: 0.2s; border-left: 4px solid transparent;
+            .av-course-body {
+                padding: 1.5rem;
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
             }
-            #gpraise-aula-shield .av-sidebar-item:hover { background: #1E293B; color: white; }
-            #gpraise-aula-shield .av-sidebar-item.active { background: #1E293B; color: white; border-left-color: #C8972A; }
-            #gpraise-aula-shield .av-content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-            #gpraise-aula-shield .av-header {
-                background: white; border-bottom: 1px solid #E2E8F0; padding: 1rem 1.5rem;
-                display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+            .av-btn-premium {
+                background: #C8972A;
+                color: white;
+                font-weight: 800;
+                border: none;
+                padding: 0.75rem;
+                border-radius: 1rem;
+                cursor: pointer;
+                transition: background 0.2s;
+                display: flex;
+                justify-content: center;
+                align-items: center;
                 gap: 0.5rem;
+                width: 100%;
+                font-size: 0.8rem;
+                letter-spacing: 1px;
             }
-            #gpraise-aula-shield .av-header-title {
-                font-size: 16px; font-weight: 600; color: #0F172A; display: flex; align-items: center; gap: 8px;
+            .av-btn-premium:hover {
+                background: #B48624;
             }
-            #gpraise-aula-shield .av-header-title span {
-                font-size: 12px; font-weight: 400; color: #64748B; background: #F1F5F9; padding: 2px 8px; border-radius: 4px;
-            }
-            #gpraise-aula-shield .av-xp-bar-wrap {
-                display: flex; align-items: center; gap: 10px; flex: 1; max-width: 240px;
-            }
-            #gpraise-aula-shield .av-xp-label { font-size: 12px; font-weight: 600; color: #64748B; white-space: nowrap; }
-            #gpraise-aula-shield .av-xp-bar { flex: 1; height: 8px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
-            #gpraise-aula-shield .av-xp-fill {
-                height: 100%; background: linear-gradient(90deg, #C8972A 0%, #EAB308 100%);
-                transition: width 0.5s ease;
-            }
-            #gpraise-aula-shield .av-menu-toggle {
-                background: #F1F5F9; border: 1px solid #E2E8F0; color: #1E3A8A;
-                font-size: 1.2rem; cursor: pointer; padding: 0.5rem 0.75rem;
-                border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
-                transition: 0.2s; margin-right: 1rem;
-            }
-            #gpraise-aula-shield .av-menu-toggle:hover { background: #E2E8F0; }
-            #gpraise-aula-shield .av-tabs {
-                display: flex; border-bottom: 1px solid #E2E8F0; background: white;
-                padding: 0 1.5rem; overflow-x: auto; gap: 0.5rem;
-            }
-            #gpraise-aula-shield .av-tab {
-                padding: 0.85rem 1.25rem; font-size: 14px; font-weight: 500;
-                color: #64748B; cursor: pointer; border-bottom: 3px solid transparent;
-                white-space: nowrap; display: flex; align-items: center; gap: 6px;
-            }
-            #gpraise-aula-shield .av-tab:hover { color: #0F172A; }
-            #gpraise-aula-shield .av-tab.active { color: #1E3A8A; border-bottom-color: #1E3A8A; font-weight: 600; }
-            #gpraise-aula-shield .av-badge-num {
-                background: #EF4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 99px;
-            }
-            #gpraise-aula-shield .av-body { padding: 1.5rem; overflow-y: auto; flex: 1; display: none; }
-            #gpraise-aula-shield .av-body.active { display: block; }
-            #gpraise-aula-shield .av-course-card, #gpraise-aula-shield .av-eval-card {
-                background: white; border: 1px solid #E2E8F0; border-radius: 0.75rem;
-                padding: 1.25rem; margin-bottom: 1rem; transition: all 0.2s;
-            }
-            #gpraise-aula-shield .av-course-card:hover, #gpraise-aula-shield .av-eval-card:hover {
-                transform: translateY(-2px); border-color: #CBD5E1; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            }
-            #gpraise-aula-shield .av-course-icon {
-                width: 48px; height: 48px; border-radius: 0.5rem; display: flex;
-                align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
-            }
-            #gpraise-aula-shield .av-cat {
-                display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
-                padding: 2px 10px; border-radius: 99px; margin-bottom: 6px; text-transform: uppercase;
-            }
-            #gpraise-aula-shield .av-cat-blue { background: #EFF6FF; color: #1D4ED8; }
-            #gpraise-aula-shield .av-cat-amber { background: #FEF3C7; color: #B45309; }
-            #gpraise-aula-shield .av-progress-bar {
-                margin-top: 8px; height: 6px; background: #E2E8F0; border-radius: 99px; overflow: hidden;
-            }
-            @media (max-width: 600px) {
-                #gpraise-aula-shield .av-sidebar { position: absolute; z-index: 20; height: 100%; }
-                #gpraise-aula-shield .av-sidebar.collapsed { width: 0 !important; }
-                #gpraise-aula-shield .av-main-flex { position: relative; }
-                #gpraise-aula-shield .av-tab { padding: 0.5rem 0.75rem; font-size: 12px; }
-                #gpraise-aula-shield .grid-cols-3 { grid-template-columns: 1fr !important; }
-            }
-/* ===== NUEVOS ESTILOS PREMIUM AULA VIRTUAL ===== */
-/* Ranking / Leaderboard */
-#gpraise-aula-shield .av-ranking-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 15px; border-radius: 12px; margin-bottom: 8px;
-    background: white; border: 1px solid #E2E8F0; transition: transform 0.2s;
-}
-#gpraise-aula-shield .av-ranking-item:hover { transform: scale(1.02); border-color: #C8972A; }
-#gpraise-aula-shield .av-rank-1 { background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-color: #F59E0B; }
-#gpraise-aula-shield .av-rank-2 { background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%); }
-#gpraise-aula-shield .av-rank-3 { background: linear-gradient(135deg, #FFEDD5 0%, #FED7AA 100%); border-color: #EA580C; }
-
-/* Tarjetas de Cursos Premium */
-#gpraise-aula-shield .av-course-premium {
-    position: relative; background: #0F172A; border-radius: 1.25rem;
-    overflow: hidden; padding: 1.5rem; color: white; border: 1px solid #334155;
-    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); transition: 0.3s;
-}
-#gpraise-aula-shield .av-course-premium:hover {
-    transform: translateY(-5px); border-color: #C8972A; box-shadow: 0 15px 35px -10px rgba(200,151,42,0.3);
-}
-#gpraise-aula-shield .av-course-premium::before {
-    content: ''; position: absolute; top: 0; right: 0; width: 150px; height: 150px;
-    background: radial-gradient(circle, rgba(200,151,42,0.15) 0%, transparent 70%);
-    border-radius: 50%; pointer-events: none;
-}
-
-/* Gimnasio Teológico (Flashcards 3D) */
-#gpraise-aula-shield .flashcard-container {
-    perspective: 1000px; width: 100%; height: 220px; cursor: pointer; margin-bottom: 1rem;
-}
-#gpraise-aula-shield .flashcard {
-    width: 100%; height: 100%; position: relative; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
-    transform-style: preserve-3d; border-radius: 1.5rem;
-}
-#gpraise-aula-shield .flashcard.is-flipped { transform: rotateY(180deg); }
-#gpraise-aula-shield .flashcard-face {
-    position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 2rem; border-radius: 1.5rem; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-}
-#gpraise-aula-shield .flashcard-front {
-    background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); color: white; border: 2px solid #60A5FA;
-}
-#gpraise-aula-shield .flashcard-back {
-    background: white; color: #0F172A; transform: rotateY(180deg); border: 2px solid #C8972A;
-}
-
-/* Responsive grid */
-#gpraise-aula-shield .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-#gpraise-aula-shield .lg\:col-span-2 { grid-column: span 2 / span 2 !important; }
-#gpraise-aula-shield .lg\:col-span-1 { grid-column: span 1 / span 1 !important; }
-#gpraise-aula-shield .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-@media (max-width: 768px) {
-    #gpraise-aula-shield .md\:grid-cols-3 { grid-template-columns: 1fr !important; }
-    #gpraise-aula-shield .lg\:col-span-2 { grid-column: auto !important; }
-}
-#gpraise-aula-shield #tab-inicio .grid { display: grid !important; gap: 1rem !important; }
-/* Tarjetas modernas para cursos */
-#gpraise-aula-shield .av-course-modern {
-    background: var(--surface);
-    border-radius: 1rem;
-    transition: all 0.2s;
-}
-#gpraise-aula-shield .av-course-modern:hover {
-    transform: translateY(-2px);
-}
-/* Para modo oscuro, las tarjetas ya usan bg-slate-800 y dark:bg-slate-800 */
-
-
-
             
+            /* Pestañas */
+            .av-tabs {
+                display: flex;
+                gap: 0.5rem;
+                overflow-x: auto;
+                margin-bottom: 2rem;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 0.5rem;
+            }
+            .av-tab {
+                background: transparent;
+                border: none;
+                padding: 0.6rem 1.2rem;
+                font-weight: 600;
+                border-radius: 2rem;
+                cursor: pointer;
+                color: var(--text-muted);
+                transition: all 0.2s;
+                white-space: nowrap;
+            }
+            .av-tab:hover {
+                background: rgba(var(--primary-rgb), 0.1);
+                color: var(--primary);
+            }
+            .av-tab.active {
+                background: var(--primary);
+                color: white;
+            }
+            
+            /* Contenido de pestañas */
+            .av-tab-content {
+                display: none;
+            }
+            .av-tab-content.active {
+                display: block;
+                animation: fadeIn 0.3s;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
         </style>
 
-        <!-- Pantalla de bienvenida -->
-        <div id="av-welcome" class="av-welcome">
-            <div id="starsContainer" class="stars-container"></div>
-            <div class="w-full max-w-md mx-auto z-10 flex flex-col items-center">
-                <div class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-slate-900 text-3xl shadow-lg mb-4"><i class="ti ti-crown"></i></div>
-                <p class="av-verse">"Servir a Dios en la alabanza no es un pasatiempo, <strong>es un alto privilegio y un servicio de amor hacia el Señor</strong>."</p>
-                <h2 class="av-welcome-title">Campus Virtual G-Praise</h2>
-                <p class="av-welcome-sub">Plataforma de Capacitación y Discipulado de Alabanza</p>
-
-                <div class="av-today-card flex-col gap-2 cursor-pointer" id="wlGameCard">
-                    <div class="flex items-center gap-3 w-full" onclick="toggleWelcomeGame()">
-                        <div class="av-today-icon">⚡</div>
-                        <div class="av-today-info"><p>Reto ministerial rápido — Responde antes de entrar</p><strong>¿Qué tipo de adoradores busca el Padre según Juan 4:23?</strong></div>
-                        <i class="ti ti-chevron-down text-slate-400 text-lg"></i>
-                    </div>
-                    <div id="av-welcome-game2" class="w-full"></div>
-                    <div id="av-welcome-game" class="w-full" style="display: none;">
-                        <div class="grid grid-cols-2 gap-2" id="wlGameOptions"></div>
-                        <div id="wlGameFeedback" class="text-xs text-center mt-2 font-medium min-h-[16px]"></div>
-                    </div>
+        <div class="av-container">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem;">
+                <div>
+                    <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;"><i class="fas fa-graduation-cap" style="color: #3B82F6;"></i> Aula Virtual</h1>
+                    <p style="margin: 0; color: var(--text-muted);">Centro de Capacitación y Desarrollo Ministerial</p>
                 </div>
-
-                <div class="av-today-card justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="av-today-icon">📚</div>
-                        <div class="av-today-info"><p>Tareas ministeriales de la semana</p><strong id="welcomeTareasCount">${window.tareasCount || 0} asignaciones pendientes por subir</strong></div>
+                <div class="av-xp-bar" style="background: var(--surface); border: 1px solid var(--border); border-radius: 2rem; padding: 0.4rem 1rem;">
+                    <span style="font-size: 0.7rem; font-weight: 600;">XP ${xpGemini} / 500</span>
+                    <div style="width: 100px; height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px;">
+                        <div style="width: ${(xpGemini / 500) * 100}%; height: 100%; background: linear-gradient(90deg, #C8972A, #F59E0B); border-radius: 2px;"></div>
                     </div>
-                    <div class="av-streak"><i class="ti ti-flame"></i> Racha: <span id="welcomeRacha">${rachaGemini}</span> días</div>
-                </div>
-
-                <button class="av-enter-btn shadow-md w-full max-w-xs" onclick="enterApp()"><i class="ti ti-door-enter mr-2"></i>Entrar al Aula</button>
-                <span class="av-skip mt-2" onclick="enterApp()">Omitir e ingresar directamente</span>
-            </div>
-        </div>
-
-        <!-- Aplicación principal (oculta inicialmente) -->
-        <div id="av-main-layout" class="av-main-layout">
-            <div class="av-main-flex">
-                <aside class="av-sidebar collapsed" id="avSidebar">
-                    <div class="p-6 flex items-center gap-3 border-b border-slate-800">
-                        <div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-md"><i class="ti ti-school text-slate-900 text-xl"></i></div>
-                        <div><h1 class="font-bold text-base tracking-wide text-white">G-CAMPUS</h1><p class="text-xs text-slate-400">Ministerio de Alabanza</p></div>
-                    </div>
-                    <nav class="flex-1 py-4 space-y-1">
-                        <div class="av-sidebar-item active" data-nav="inicio"><i class="ti ti-layout-dashboard text-lg"></i> Tablero Principal</div>
-                        <div class="av-sidebar-item" data-nav="cursos"><i class="ti ti-book-open text-lg"></i> Mis Cursos Activos</div>
-                        <div class="av-sidebar-item" data-nav="evaluaciones"><i class="ti ti-clipboard-check text-lg"></i> Cuestionarios y Quices</div>
-                        <div class="av-sidebar-item" data-nav="tareas"><i class="ti ti-file-upload text-lg"></i> Entregas y Enlaces</div>
-                        <div class="av-sidebar-item" data-nav="devocional"><i class="ti ti-feather text-lg"></i> Devocionales Diarios</div>
-                        <div class="av-sidebar-item" data-nav="retos"><i class="ti ti-swords text-lg"></i> Retos de Equipo</div>
-                    </nav>
-                    <div class="p-4 border-t border-slate-800 bg-slate-900/50">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 flex items-center justify-center font-bold text-sm">${currentUser?.email?.charAt(0).toUpperCase() || 'U'}</div>
-                            <div><p class="text-xs text-slate-400">Rango de Servicio</p><p class="text-sm font-semibold text-white" id="userRank">Nivel ${Math.floor(xpGemini/500)+1} · Levita</p></div>
-                        </div>
-                    </div>
-                </aside>
-
-                <div class="av-content-area">
-                    <div class="av-header">
-                        <div class="av-header-title">
-                            <button class="av-menu-toggle" onclick="toggleAulaSidebar()"><i class="fas fa-bars"></i></button>
-                            <i class="ti ti-building-church text-xl text-blue-900"></i> Aula de Capacitación Ministerial <span>${currentIglesiaData?.nombre || 'IEC Fortaleza Sur'}</span>
-                        </div>
-                        <div class="av-xp-bar-wrap"><span class="av-xp-label" id="xpText">XP ${xpGemini} / 500</span><div class="av-xp-bar"><div class="av-xp-fill" id="xpFill" style="width: ${(xpGemini/500)*100}%;"></div></div></div>
-                    </div>
-
-                    <div class="av-tabs">
-                        <div class="av-tab active" data-tab="inicio"><i class="ti ti-smart-home"></i> Inicio</div>
-                        <div class="av-tab" data-tab="cursos"><i class="ti ti-notebook"></i> Cursos <span class="av-badge-num" id="cursosBadge">0</span></div>
-                        <div class="av-tab" data-tab="evaluaciones"><i class="ti ti-device-laptop"></i> Evaluaciones <span class="av-badge-num" id="evaluacionesBadge">0</span></div>
-                        <div class="av-tab" data-tab="tareas"><i class="ti ti-cloud-upload"></i> Tareas <span class="av-badge-num" id="tareasBadge">0</span></div>
-                        <div class="av-tab" data-tab="devocional"><i class="ti ti-heart-handshake"></i> Devocional</div>
-                        <div class="av-tab" data-tab="retos"><i class="ti ti-trophy"></i> Retos</div>
-                    </div>
-
-                    <div class="av-body active" id="tab-inicio"></div>
-                    <div class="av-body" id="tab-cursos"></div>
-                    <div class="av-body" id="tab-evaluaciones"></div>
-                    <div class="av-body" id="tab-tareas"></div>
-                    <div class="av-body" id="tab-devocional"></div>
-                    <div class="av-body" id="tab-retos"></div>
                 </div>
             </div>
+
+            <div class="av-tabs">
+                <button class="av-tab active" data-tab="inicio">📊 Inicio</button>
+                <button class="av-tab" data-tab="cursos">📚 Cursos</button>
+                <button class="av-tab" data-tab="evaluaciones">📝 Evaluaciones</button>
+                <button class="av-tab" data-tab="tareas">📎 Tareas</button>
+                <button class="av-tab" data-tab="devocional">🙏 Devocional</button>
+                <button class="av-tab" data-tab="retos">⚔️ Retos</button>
+            </div>
+
+            <div id="av-tab-inicio" class="av-tab-content active"></div>
+            <div id="av-tab-cursos" class="av-tab-content"></div>
+            <div id="av-tab-evaluaciones" class="av-tab-content"></div>
+            <div id="av-tab-tareas" class="av-tab-content"></div>
+            <div id="av-tab-devocional" class="av-tab-content"></div>
+            <div id="av-tab-retos" class="av-tab-content"></div>
         </div>
     </div>`;
+
     container.innerHTML = html;
 
-    generarEstrellasGemini();
-    construirJuegoBienvenida();
-    window.toggleAulaSidebar = () => document.getElementById('avSidebar')?.classList.toggle('collapsed');
-    window.enterApp = async () => {
-    document.getElementById('av-welcome').style.display = 'none';
-    document.getElementById('av-main-layout').style.display = 'block';
-    // Asegurar que la pestaña de inicio se muestre y cargue su contenido
-    const tabBtn = document.querySelector('#gpraise-aula-shield .av-tab[data-tab="inicio"]');
-    if (tabBtn) tabBtn.click(); // Esto activa el cambio de pestaña y llama a cambiarTabGemini
-    // Esperar un pequeño instante para que el DOM se estabilice (opcional)
-    await new Promise(r => setTimeout(r, 50));
-    await cargarInicioGemini(); // Forzar carga adicional
-    actualizarBadgesGemini();
-};
-    document.querySelectorAll('#gpraise-aula-shield .av-sidebar-item, #gpraise-aula-shield .av-tab').forEach(el => {
-        el.addEventListener('click', () => cambiarTabGemini(el.getAttribute('data-nav') || el.getAttribute('data-tab')));
+    // Inicializar pestañas
+    document.querySelectorAll('#gpraise-aula-shield .av-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabId = tab.getAttribute('data-tab');
+            document.querySelectorAll('#gpraise-aula-shield .av-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('#gpraise-aula-shield .av-tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`av-tab-${tabId}`).classList.add('active');
+            // Cargar contenido dinámico según la pestaña
+            if (tabId === 'inicio') cargarInicioGemini();
+            else if (tabId === 'cursos') cargarCursosGemini();
+            else if (tabId === 'evaluaciones') cargarEvaluacionesGemini();
+            else if (tabId === 'tareas') cargarTareasGemini();
+            else if (tabId === 'devocional') cargarDevocionalUI();
+            else if (tabId === 'retos') cargarRetosGemini();
+        });
     });
-    await Promise.all([cargarCursosGemini(), cargarEvaluacionesGemini(), cargarTareasGemini(), cargarDevocionalUI(), cargarRetosGemini()]);
+
+    // Cargar contenido inicial
+    cargarInicioGemini();
+    cargarEvaluacionesGemini();
+    cargarTareasGemini();
+    cargarDevocionalUI();
+    cargarRetosGemini();
 }
 
 // ========== FUNCIONES AUXILIARES ==========
@@ -4551,13 +4545,15 @@ async function agregarXPGemini(puntos) {
     
 window.reclamarXPFlashcard = async (btn) => {
     if (btn.disabled) return;
-    btn.innerText = "Reclamado ✅";
+    btn.innerHTML = '<i class="fas fa-check"></i> Reclamado';
     btn.disabled = true;
-    btn.classList.remove('bg-emerald-500');
-    btn.classList.add('bg-slate-300');
+    btn.style.background = 'var(--border)';
+    btn.style.color = 'var(--text-muted)';
     await agregarXPGemini(10);
-    showToast("¡Excelente memoria! +10 XP añadidos.", "success");
-    if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 40, origin: { y: 0.6 }, colors: ['#10B981'] });
+    showToast('¡Excelente memoria! +10 XP añadidos.', 'success');
+    if (typeof confetti === 'function') {
+        confetti({ particleCount: 50, spread: 40, origin: { y: 0.6 }, colors: ['#10B981', '#F59E0B'] });
+    }
 };
     
 async function cargarDevocionalGemini() {
@@ -4608,204 +4604,182 @@ async function cambiarTabGemini(tab) {
 }
 
 async function cargarInicioGemini() {
-    const container = document.getElementById('tab-inicio');
+    const container = document.getElementById('av-tab-inicio');
+    // Obtener número de cursos
     const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
-    
-    // Cálculo de promedio
+    // Promedio real de exámenes
     let promedioReal = 0;
-    const { data: intentos, error } = await supabaseClient.from('intentos_examen').select('puntaje').eq('user_id', currentUser.id).eq('completado', true);
-    if (!error && intentos && intentos.length > 0) {
+    const { data: intentos } = await supabaseClient.from('intentos_examen').select('puntaje').eq('user_id', currentUser.id).eq('completado', true);
+    if (intentos && intentos.length > 0) {
         const suma = intentos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
         promedioReal = Math.round((suma / intentos.length) * 100) / 100;
     }
-    const colorPromedio = promedioReal >= 14 ? 'text-emerald-600' : (promedioReal > 0 ? 'text-orange-500' : 'text-slate-400');
-    
-    // Obtener Top 3 de XP de la misma iglesia
-    // Consulta: unir progreso_usuario con usuarios_iglesia para filtrar por iglesia_id
-    const { data: topUsuarios, error: topError } = await supabaseClient
-        .from('progreso_usuario')
-        .select('xp, user_id, perfiles!inner(nombre)')
-        .eq('user_id', currentUser.id); // Esto no es correcto, necesitamos todos los de la iglesia
-    // Mejor: obtener todos los user_id de usuarios_iglesia de esta iglesia, luego buscar sus xp
-    const { data: miembrosIglesia } = await supabaseClient
-        .from('usuarios_iglesia')
-        .select('user_id')
-        .eq('iglesia_id', currentIglesiaId);
-    const userIds = miembrosIglesia?.map(m => m.user_id) || [];
+    // Obtener top 3 de XP (miembros de la iglesia)
+    const { data: miembros } = await supabaseClient.from('usuarios_iglesia').select('user_id').eq('iglesia_id', currentIglesiaId);
+    const userIds = miembros?.map(m => m.user_id) || [];
     let ranking = [];
-    if (userIds.length > 0) {
-        const { data: progresos } = await supabaseClient
-            .from('progreso_usuario')
-            .select('xp, user_id')
-            .in('user_id', userIds)
-            .order('xp', { ascending: false });
+    if (userIds.length) {
+        const { data: progresos } = await supabaseClient.from('progreso_usuario').select('xp, user_id').in('user_id', userIds).order('xp', { ascending: false });
         if (progresos) {
-            // Obtener nombres de perfiles
-            const { data: perfiles } = await supabaseClient
-                .from('perfiles')
-                .select('id, nombre')
-                .in('id', progresos.map(p => p.user_id));
+            const { data: perfiles } = await supabaseClient.from('perfiles').select('id, nombre').in('id', progresos.map(p => p.user_id));
             const nombreMap = Object.fromEntries((perfiles || []).map(p => [p.id, p.nombre]));
             ranking = progresos.map(p => ({ nombre: nombreMap[p.user_id] || 'Usuario', xp: p.xp }));
         }
     }
-    // Asegurar que el usuario actual aparezca en el ranking (si no está en el top, se muestra aparte)
-    const usuarioActualRank = ranking.find(r => r.nombre === (currentProfile?.nombre || currentUser.email));
-    let topTres = ranking.slice(0, 3);
-    // Si el usuario actual no está en top 3, lo mostramos como posición actual
-    let mostrarPosicionActual = false;
-    let posicionActual = null;
-    if (!usuarioActualRank) {
-        const indiceActual = ranking.findIndex(r => r.nombre === (currentProfile?.nombre || currentUser.email));
-        if (indiceActual !== -1) {
-            mostrarPosicionActual = true;
-            posicionActual = { pos: indiceActual + 1, xp: ranking[indiceActual].xp };
-        }
-    } else {
-        // El usuario está en top, lo mostramos en su lugar (ya está en topTres)
-    }
-    
-    // Generar HTML del ranking
+    const topTres = ranking.slice(0, 3);
+    const usuarioActual = ranking.find(r => r.nombre === (currentProfile?.nombre || currentUser.email));
+    const posicionActual = usuarioActual ? ranking.findIndex(r => r.nombre === usuarioActual.nombre) + 1 : null;
+
     let rankingHtml = '';
     if (topTres.length === 0) {
-        rankingHtml = '<div class="text-center text-slate-500 text-sm py-4">Aún no hay suficientes participantes.</div>';
+        rankingHtml = '<div class="text-center p-4">Aún no hay participantes.</div>';
     } else {
         topTres.forEach((user, idx) => {
             const rankClass = idx === 0 ? 'av-rank-1' : (idx === 1 ? 'av-rank-2' : 'av-rank-3');
             const rankNumber = idx + 1;
             const inicial = (user.nombre?.charAt(0) || 'U').toUpperCase();
             rankingHtml += `
-                <div class="av-ranking-item ${rankClass}">
-                    <div class="flex items-center gap-3">
-                        <div class="font-black text-lg ${idx === 0 ? 'text-amber-600' : (idx === 1 ? 'text-slate-400' : 'text-orange-400')}">${rankNumber}</div>
-                        <div class="w-8 h-8 rounded-full ${idx === 0 ? 'bg-amber-200 text-amber-700' : (idx === 1 ? 'bg-slate-200 text-slate-600' : 'bg-orange-200 text-orange-700')} flex items-center justify-center font-bold">${inicial}</div>
-                        <div class="text-sm font-bold text-slate-800">${escapeHtml(user.nombre)}</div>
+                <div class="av-rank-item ${rankClass}">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <strong style="font-size: 1.2rem; ${idx === 0 ? 'color:#F59E0B' : (idx === 1 ? 'color:#94A3B8' : 'color:#D97706')}">${rankNumber}</strong>
+                        <div style="width: 35px; height: 35px; background: rgba(245,158,11,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">${inicial}</div>
+                        <span style="font-weight: 700;">${escapeHtml(user.nombre)}</span>
                     </div>
-                    <span class="text-xs font-bold bg-white px-2 py-1 rounded-full shadow-sm ${idx === 0 ? 'text-amber-600' : (idx === 1 ? 'text-slate-600' : 'text-orange-600')}">${user.xp} XP</span>
+                    <span class="av-rank-badge">${user.xp} XP</span>
                 </div>
             `;
         });
-        // Si el usuario actual está fuera del top, añadir línea separada
-        if (mostrarPosicionActual && posicionActual) {
+        if (posicionActual && posicionActual > 3) {
             rankingHtml += `
-                <div class="av-ranking-item bg-slate-100 border-slate-300">
-                    <div class="flex items-center gap-3">
-                        <div class="font-black text-slate-500 text-lg">${posicionActual.pos}</div>
-                        <div class="w-8 h-8 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center font-bold">${(currentProfile?.nombre?.charAt(0) || 'U').toUpperCase()}</div>
-                        <div class="text-sm font-bold text-slate-800">Tú (Actual)</div>
+                <div class="av-rank-item" style="border-left: 4px solid #3B82F6;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <strong style="font-size: 1.2rem; color: #3B82F6;">${posicionActual}</strong>
+                        <div style="width: 35px; height: 35px; background: rgba(59,130,246,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">${(currentProfile?.nombre?.charAt(0) || 'U').toUpperCase()}</div>
+                        <span style="font-weight: 700;">Tú (Actual)</span>
                     </div>
-                    <span class="text-xs font-bold bg-white px-2 py-1 rounded-full shadow-sm text-blue-600">${posicionActual.xp} XP</span>
+                    <span class="av-rank-badge">${usuarioActual.xp} XP</span>
                 </div>
             `;
         }
     }
-    
-    // HTML del tablero
+
     container.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center transition hover:shadow-md">
-                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl mb-3"><i class="fas fa-book-open"></i></div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Materias Activas</span>
-                <strong class="text-3xl font-black mt-1 text-slate-800">${cursos || 0}</strong>
+        <div class="av-grid-3">
+            <div class="av-stat-card">
+                <div class="av-icon-circle" style="background: rgba(59,130,246,0.1); color:#3B82F6;"><i class="fas fa-book-open"></i></div>
+                <div class="av-stat-label">Materias Activas</div>
+                <div class="av-stat-value">${cursos || 0}</div>
             </div>
-            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center transition hover:shadow-md">
-                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl mb-3"><i class="fas fa-chart-line"></i></div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Promedio General</span>
-                <strong class="text-3xl font-black mt-1 ${colorPromedio}">${promedioReal > 0 ? promedioReal : '--'} <span class="text-lg text-slate-400">/ 20</span></strong>
+            <div class="av-stat-card">
+                <div class="av-icon-circle" style="background: rgba(16,185,129,0.1); color:#10B981;"><i class="fas fa-chart-line"></i></div>
+                <div class="av-stat-label">Promedio General</div>
+                <div class="av-stat-value" style="color:#10B981;">${promedioReal > 0 ? promedioReal : '--'} <span style="font-size:1rem;">/20</span></div>
             </div>
-            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center transition hover:shadow-md">
-                <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xl mb-3"><i class="fas fa-fire"></i></div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Racha de Estudio</span>
-                <strong class="text-3xl font-black mt-1 text-orange-500">${rachaGemini} <span class="text-lg text-orange-300">Días</span></strong>
+            <div class="av-stat-card">
+                <div class="av-icon-circle" style="background: rgba(245,158,11,0.1); color:#F59E0B;"><i class="fas fa-fire"></i></div>
+                <div class="av-stat-label">Racha de Estudio</div>
+                <div class="av-stat-value" style="color:#F59E0B;">${rachaGemini} <span style="font-size:1rem;">días</span></div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider"><i class="fas fa-dumbbell text-blue-500"></i> Gimnasio Teológico</p>
-                    <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full">+10 XP</span>
+        <div class="av-grid-2">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:800;"><i class="fas fa-dumbbell" style="color:#3B82F6;"></i> Gimnasio Teológico</h3>
+                    <span style="background: rgba(59,130,246,0.15); color:#3B82F6; font-size:0.7rem; font-weight:bold; padding:4px 10px; border-radius:20px;">+10 XP</span>
                 </div>
-                
-                <div class="flashcard-container" onclick="this.querySelector('.flashcard').classList.toggle('is-flipped')">
-                    <div class="flashcard">
-                        <div class="flashcard-face flashcard-front">
-                            <i class="fas fa-sync-alt opacity-50 mb-3 text-2xl"></i>
-                            <h3 class="text-xl font-bold mb-2">Toca para voltear</h3>
-                            <p class="text-blue-100 text-sm">Pregunta: ¿Qué significa la palabra hebrea "Tehillah"?</p>
+                <div class="av-flashcard-wrapper" id="flashcardWrapper">
+                    <div class="av-flashcard" id="flashcard">
+                        <div class="av-face av-face-front">
+                            <i class="fas fa-sync-alt" style="font-size:2rem; opacity:0.5; margin-bottom:1rem;"></i>
+                            <h3 style="font-size:1.3rem; font-weight:900;">Toca para voltear</h3>
+                            <p style="opacity:0.8;">Pregunta: ¿Qué significa la palabra hebrea "Tehillah"?</p>
                         </div>
-                        <div class="flashcard-face flashcard-back">
-                            <i class="fas fa-check-circle text-emerald-500 mb-3 text-3xl"></i>
-                            <h3 class="text-lg font-bold text-slate-800 mb-2">Canto de Alabanza</h3>
-                            <p class="text-slate-500 text-sm">Específicamente, un cántico nuevo, espontáneo, que brota del espíritu hacia Dios.</p>
-                            <button class="mt-4 bg-emerald-500 text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-emerald-600" onclick="event.stopPropagation(); reclamarXPFlashcard(this)">¡Lo sabía!</button>
+                        <div class="av-face av-face-back">
+                            <i class="fas fa-check-circle" style="font-size:2rem; color:#10B981; margin-bottom:1rem;"></i>
+                            <h3 style="font-size:1.2rem; font-weight:800;">Canto de Alabanza</h3>
+                            <p style="font-size:0.85rem; text-align:center;">Un cántico nuevo, espontáneo, que brota del espíritu hacia Dios.</p>
+                            <button id="btnFlashcardXP" class="av-btn-premium" style="background:#10B981; margin-top:1rem; width:auto; padding:0.5rem 1.5rem;" onclick="reclamarXPFlashcard(this)">¡Lo sabía!</button>
                         </div>
                     </div>
                 </div>
             </div>
-
             <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4"><i class="fas fa-trophy text-amber-500"></i> Top Estudiantes</p>
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                <h3 style="margin:0 0 1rem 0; font-size:1.1rem; font-weight:800;"><i class="fas fa-trophy" style="color:#F59E0B;"></i> Top Estudiantes</h3>
+                <div class="av-rank-box">
                     ${rankingHtml}
                 </div>
             </div>
         </div>
     `;
+
+    // Evento del flashcard
+    const flashcard = document.getElementById('flashcard');
+    if (flashcard) {
+        flashcard.parentElement.onclick = (e) => {
+            if (e.target.id !== 'btnFlashcardXP') {
+                flashcard.classList.toggle('is-flipped');
+            }
+        };
+    }
 }
     
 
 async function cargarCursosGemini() {
-    const container = document.getElementById('tab-cursos');
+    const container = document.getElementById('av-tab-cursos');
     const { data: cursos } = await supabaseClient.from('cursos').select('*').eq('entidad_id', currentIglesiaId);
     
     if (!cursos || cursos.length === 0) {
-        container.innerHTML = '<div class="text-center p-8"><i class="fas fa-folder-open text-4xl text-slate-300 mb-3"></i><p class="text-slate-500">No hay currículum disponible en este momento.</p></div>';
+        container.innerHTML = '<div class="text-center p-8"><i class="fas fa-folder-open fa-3x mb-3"></i><p>No hay cursos disponibles.</p></div>';
         return;
     }
     
-    let html = `<div class="flex justify-between items-end mb-6">
-                    <div>
-                        <h2 class="text-xl font-black text-slate-800 dark:text-white">Tus Especializaciones</h2>
-                        <p class="text-xs text-slate-500 font-medium">Continúa tu preparación ministerial</p>
-                    </div>
+    // Asegurar que exista la tabla de progreso de módulos (para progreso real)
+    const { error: createError } = await supabaseClient.rpc('create_progreso_modulos_if_not_exists');
+    if (createError) console.warn('No se pudo crear la tabla de progreso:', createError);
+    
+    let html = `<div style="margin-bottom: 1.5rem;">
+                    <h2 style="font-size:1.5rem; font-weight:800; margin:0;">Tus Especializaciones</h2>
+                    <p style="color: var(--text-muted);">Continúa tu preparación ministerial</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">`;
                 
     for (let c of cursos) {
-        const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', c.id);
+        const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', c.id).order('orden_index', { ascending: true });
         const cantidadModulos = modulos ? modulos.length : 0;
-        // Progreso simulado (cambia después por progreso real)
-        const progresoFake = Math.floor(Math.random() * 60) + 10; 
-
+        // Calcular progreso real: módulos vistos por el usuario
+        let progreso = 0;
+        if (cantidadModulos > 0 && modulos) {
+            const moduloIds = modulos.map(m => m.id);
+            const { data: vistos } = await supabaseClient
+                .from('progreso_modulos')
+                .select('modulo_id')
+                .eq('user_id', currentUser.id)
+                .in('modulo_id', moduloIds);
+            if (vistos) {
+                progreso = Math.round((vistos.length / cantidadModulos) * 100);
+            }
+        }
+        
         html += `
-        <div class="av-course-modern bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="p-5">
-                <div class="flex items-start justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                            <i class="fas fa-graduation-cap text-lg"></i>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">Módulo Oficial</span>
-                        </div>
+        <div class="av-course-card">
+            <div class="av-course-header">
+                <span>📖 Módulo Oficial</span>
+                <h3>${escapeHtml(c.titulo)}</h3>
+                <p>${escapeHtml(c.descripcion || 'Sin descripción detallada.')}</p>
+            </div>
+            <div class="av-course-body">
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;">
+                        <span><i class="fas fa-layer-group"></i> ${cantidadModulos} lecciones</span>
+                        <span style="color:#10B981;">${progreso}% completado</span>
+                    </div>
+                    <div style="background: var(--border); height:6px; border-radius:10px; overflow:hidden;">
+                        <div style="background: linear-gradient(90deg, #10B981, #059669); width:${progreso}%; height:100%;"></div>
                     </div>
                 </div>
-                <h3 class="text-lg font-black text-slate-800 dark:text-white mt-3">${escapeHtml(c.titulo)}</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${escapeHtml(c.descripcion || 'Sin descripción detallada.')}</p>
-                
-                <div class="mt-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400"><i class="fas fa-layer-group text-amber-500 mr-1"></i> ${cantidadModulos} lecciones</span>
-                        <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">${progresoFake}% completado</span>
-                    </div>
-                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                        <div class="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full" style="width: ${progresoFake}%"></div>
-                    </div>
-                </div>
-                
-                <button class="mt-5 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md" onclick="verModulosCurso('${c.id}')">
-                    <i class="fas fa-play-circle text-sm"></i> Continuar Aprendiendo
+                <button class="av-btn-premium" onclick="verModulosCurso('${c.id}')">
+                    <i class="fas fa-play-circle"></i> Continuar Aprendiendo
                 </button>
             </div>
         </div>`;
@@ -4823,44 +4797,55 @@ window.verModulosCurso = async (cursoId) => {
     
     let html = `
         <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl mb-3 shadow-lg">
-                <i class="fas fa-book-reader text-2xl"></i>
+            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                <i class="fas fa-book-reader text-2xl text-white"></i>
             </div>
-            <h3 class="text-xl font-black text-slate-800 dark:text-white">Contenido del Curso</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Selecciona una lección para comenzar</p>
+            <h3 class="text-xl font-black">Contenido del Curso</h3>
+            <p class="text-xs text-muted">Selecciona una lección para comenzar</p>
         </div>
         <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">`;
         
     for (let mod of modulos) {
         const descripcionCorta = mod.contenido ? mod.contenido.replace(/<[^>]*>?/gm, '').substring(0, 80) : 'Sin contenido aún';
         html += `
-            <div class="group flex items-center p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl cursor-pointer hover:border-blue-500 hover:shadow-md transition-all duration-200" onclick="verModulo('${mod.id}')">
-                <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 group-hover:text-blue-600 flex items-center justify-center font-bold text-slate-500 dark:text-slate-400 mr-4 transition-colors">
+            <div class="group flex items-center p-4 bg-surface border border-border rounded-2xl cursor-pointer hover:border-blue-500 hover:shadow-md transition-all" onclick="verModulo('${mod.id}')">
+                <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 group-hover:bg-blue-100 flex items-center justify-center font-bold mr-4 transition-colors">
                     ${mod.orden_index || 1}
                 </div>
                 <div class="flex-1">
-                    <strong class="text-sm text-slate-800 dark:text-white block">${escapeHtml(mod.titulo)}</strong>
-                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 line-clamp-1">${escapeHtml(descripcionCorta)}</p>
+                    <strong class="text-sm block">${escapeHtml(mod.titulo)}</strong>
+                    <p class="text-xs text-muted mt-1 line-clamp-1">${escapeHtml(descripcionCorta)}</p>
                 </div>
-                <i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 group-hover:text-blue-500 transition-colors"></i>
+                <i class="fas fa-chevron-right text-muted group-hover:text-blue-500 transition-colors"></i>
             </div>
         `;
     }
-    html += `</div><div class="mt-6 text-center"><button class="bg-slate-800 dark:bg-slate-700 text-white font-bold py-3 px-8 rounded-full hover:bg-slate-700 dark:hover:bg-slate-600 transition" onclick="closeModal()">Cerrar</button></div>`;
+    html += `</div><div class="mt-6 text-center"><button class="bg-slate-800 text-white font-bold py-3 px-8 rounded-full hover:bg-slate-700 transition" onclick="closeModal()">Cerrar</button></div>`;
     showModal(html);
 };
 
-    
-window.verModulo = (moduloId) => {
+// Modificar la función verModulo para que guarde progreso
+window.verModulo = async (moduloId) => {
     const modulo = modulosList.find(m => m.id === moduloId);
     if (!modulo) {
         showToast('Módulo no encontrado.');
         return;
     }
+    // Guardar que el usuario ha visto este módulo
+    const { error: upsertError } = await supabaseClient
+        .from('progreso_modulos')
+        .upsert({
+            user_id: currentUser.id,
+            modulo_id: moduloId,
+            visto: true,
+            ultima_vista: new Date().toISOString()
+        }, { onConflict: 'user_id, modulo_id' });
+    if (upsertError) console.error('Error guardando progreso:', upsertError);
+    
     showModal(`
         <h3>${escapeHtml(modulo.titulo)}</h3>
         <div style="max-height:60vh; overflow-y:auto; padding:0.5rem;">
-            ${modulo.contenido || '<p class="text-slate-500">Este módulo aún no tiene contenido.</p>'}
+            ${modulo.contenido || '<p class="text-muted">Este módulo aún no tiene contenido.</p>'}
         </div>
         <div class="mt-4 text-right">
             <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
