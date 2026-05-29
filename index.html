@@ -2010,37 +2010,27 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};"><i class="fas fa-child"></i><span>FZKIDS</span></div>
     <div class="nav-item ${currentTab === 'fzhost' ? 'active' : ''}" data-tab="fzhost" style="display: ${puedeVerFzHost() ? 'flex' : 'none'};"><i class="fas fa-handshake"></i><span>FZ HOST</span></div>
     <div class="nav-item ${currentTab === 'gdance' ? 'active' : ''}" data-tab="gdance" style="display: ${puedeVerGDance() ? 'flex' : 'none'};"><i class="fas fa-wand-magic-sparkles"></i><span>G-DANCE</span></div>
-    <div class="nav-item ${currentTab === 'planner' ? 'active' : ''}" data-tab="planner" style="display: ${puedeVerPlanner() ? 'flex' : 'none'};"><i class="fas fa-calendar-alt"></i><span>PLANNER</span></div>
-
-<div class="nav-item ${currentTab === 'gmedia' ? 'active' : ''}" data-tab="gmedia" style="display: ${puedeVerGmedia() ? 'flex' : 'none'};">
-    <i class="fas fa-photo-film"></i>
-    <span>G-MEDIA</span>
-</div>
    
     <div class="nav-item ${currentTab === 'agenda' ? 'active' : ''}" data-tab="agenda" style="display: ${puedeVerAgenda() ? 'flex' : 'none'};">
     <i class="fas fa-calendar-days"></i>
     <span>AGENDA</span>
 </div>
-
-    
+    <div class="nav-item ${currentTab === 'planner' ? 'active' : ''}" data-tab="planner" style="display: ${puedeVerPlanner() ? 'flex' : 'none'};"><i class="fas fa-calendar-alt"></i><span>PLANNER</span></div>
     <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
     <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
     <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerListas() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
     <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
     <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
     <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes" style="display: ${puedeVerGnotes() ? 'flex' : 'none'};"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
+    <div class="nav-item ${currentTab === 'gmedia' ? 'active' : ''}" data-tab="gmedia" style="display: ${puedeVerGmedia() ? 'flex' : 'none'};"><i class="fas fa-photo-film"></i><span>G-MEDIA</span></div>
+    <div class="nav-item ${currentTab === 'gdesk' ? 'active' : ''}" data-tab="gdesk" style="display: ${puedeVerGDesk() ? 'flex' : 'none'};"><i class="fas fa-headset"></i><span>G-DESK</span></div>
     <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
-   
-    <div class="nav-item ${currentTab === 'gdesk' ? 'active' : ''}" data-tab="gdesk" style="display: ${puedeVerGDesk() ? 'flex' : 'none'};">
-    <i class="fas fa-headset"></i>
-    <span>G-DESK</span>
-</div>
-    
     <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
     ${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
     <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
     <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
 </div>
+
     </header>
     <div class="container">
         <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div>
@@ -2151,6 +2141,7 @@ function darkModeToggle() {
     else if (currentTab === 'planner') await renderPlanner();
     else if (currentTab === 'gmedia') await renderGmedia();
     else if (currentTab === 'agenda') await renderAgenda();
+    else if (currentTab === 'eventos') await renderEventosCompletos();
     else if (currentTab === 'gdesk') await renderGDesk();
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
@@ -2194,7 +2185,9 @@ async function renderHome() {
 }
 
 // ========== CANCIONERO ==========
-async function renderSongsGrid() { let favs = []; if (currentUser) { const { data, error } = await supabaseClient.from('favoritos').select('song_id').eq('user_id', currentUser.id); if (!error && data) favs = data.map(f => f.song_id); } const query = document.getElementById('globalSearch')?.value.toLowerCase() || ''; let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query)); filtered.sort((a,b)=>a.title.localeCompare(b.title)); document.getElementById('actionHeader').innerHTML = (isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button><button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar/Exportar</button>` : `<span class="text-muted">Canciones</span>`; const container = document.getElementById('mainContent'); container.innerHTML = `<div class="grid">${filtered.map((s,idx) => { const isFav = favs.includes(s.id); return `<div class="card" onclick="openCifraViewer('${s.id}',${idx})"><div style="display:flex;justify-content:space-between;"><span class="card-category">${s.category}</span><i class="fav-icon" style="color:gold;cursor:pointer;font-size:1.3rem;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')">${isFav ? '⭐' : '☆'}</i></div><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}</div></div>`; }).join('')}</div>`; }
+async function renderSongsGrid() {
+    console.log("🟢 renderSongsGrid() ejecutándose");
+    let favs = []; if (currentUser) { const { data, error } = await supabaseClient.from('favoritos').select('song_id').eq('user_id', currentUser.id); if (!error && data) favs = data.map(f => f.song_id); } const query = document.getElementById('globalSearch')?.value.toLowerCase() || ''; let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query)); filtered.sort((a,b)=>a.title.localeCompare(b.title)); document.getElementById('actionHeader').innerHTML = (isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button><button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar/Exportar</button>` : `<span class="text-muted">Canciones</span>`; const container = document.getElementById('mainContent'); container.innerHTML = `<div class="grid">${filtered.map((s,idx) => { const isFav = favs.includes(s.id); return `<div class="card" onclick="openCifraViewer('${s.id}',${idx})"><div style="display:flex;justify-content:space-between;"><span class="card-category">${s.category}</span><i class="fav-icon" style="color:gold;cursor:pointer;font-size:1.3rem;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')">${isFav ? '⭐' : '☆'}</i></div><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}</div></div>`; }).join('')}</div>`; }
 
     
     async function renderFavorites() { if (!currentUser) return; const { data: favoritos } = await supabaseClient.from('favoritos').select('song_id').eq('user_id', currentUser.id); const favIds = favoritos.map(f=>f.song_id); const filtered = songs.filter(s=>favIds.includes(s.id)); filtered.sort((a,b)=>a.title.localeCompare(b.title)); document.getElementById('actionHeader').innerHTML = `<span class="text-muted">Tus canciones favoritas</span>`; const container = document.getElementById('mainContent'); if (filtered.length===0) { container.innerHTML='<p>Marca la estrella ⭐ en cualquier canción del CANCIONERO.</p>'; return; } container.innerHTML = `<div class="grid">${filtered.map((s,idx)=>`<div class="card" onclick="openCifraViewer('${s.id}',${idx})"><div style="display:flex;justify-content:space-between;"><span class="card-category">${s.category}</span><i class="fas fa-star fav-icon" style="color:gold;cursor:pointer;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')"></i></div><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}</div></div>`).join('')}</div>`; }
@@ -3521,7 +3514,178 @@ async function renderAgenda() {
     `;
     container.innerHTML = html;
 }
+// ==================== MÓDULO G-EVENTOS (Archivo completo de eventos) ====================
+async function renderEventosCompletos() {
+    const container = document.getElementById('mainContent');
+    const actionHeader = document.getElementById('actionHeader');
+    
+    // Filtros
+    let filtroAnio = '';
+    let filtroTipo = '';
+    
+    // Obtener todos los eventos sin filtro de fecha (pasados y futuros)
+    const { data: todosEventos, error } = await supabaseClient
+        .from('actividades')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('fecha', { ascending: false }); // más recientes primero
+    
+    if (error) {
+        showToast('Error al cargar eventos: ' + error.message, 'error');
+        container.innerHTML = '<div class="text-center p-8">No se pudieron cargar los eventos.</div>';
+        return;
+    }
+    
+    // Obtener años distintos para el filtro
+    const años = [...new Set(todosEventos.map(ev => ev.fecha.split('/')[2]))].sort((a,b)=>b-a);
+    
+    // Generar opciones de filtro
+    const añosHtml = `<option value="">Todos los años</option>` + años.map(a => `<option value="${a}">${a}</option>`).join('');
+    const tiposHtml = `
+        <option value="">Todos los tipos</option>
+        <option value="evento">Servicio Especial / Evento</option>
+        <option value="invitacion">Invitación Externa</option>
+        <option value="reunion">Reunión de Liderazgo</option>
+    `;
+    
+    // Construir HTML del filtro y contenedor
+    actionHeader.innerHTML = `
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
+            <div>
+                <label style="font-size:0.75rem;">Año:</label>
+                <select id="filtroAnioEventos" class="form-control" style="width: auto; display: inline-block; margin-left: 0.3rem;">${añosHtml}</select>
+            </div>
+            <div>
+                <label style="font-size:0.75rem;">Tipo:</label>
+                <select id="filtroTipoEventos" class="form-control" style="width: auto; display: inline-block; margin-left: 0.3rem;">${tiposHtml}</select>
+            </div>
+            <button class="btn btn-primary" onclick="aplicarFiltrosEventos()"><i class="fas fa-filter"></i> Filtrar</button>
+            <button class="btn btn-ghost" onclick="renderEventosCompletos()"><i class="fas fa-sync-alt"></i> Resetear</button>
+        </div>
+    `;
+    
+    // Aplicar filtros si existen en el localStorage o por defecto vacío
+    const anioGuardado = localStorage.getItem('filtroAnioEventos') || '';
+    const tipoGuardado = localStorage.getItem('filtroTipoEventos') || '';
+    
+    let eventosFiltrados = [...todosEventos];
+    if (anioGuardado) eventosFiltrados = eventosFiltrados.filter(ev => ev.fecha.split('/')[2] === anioGuardado);
+    if (tipoGuardado) eventosFiltrados = eventosFiltrados.filter(ev => ev.tipo === tipoGuardado);
+    
+    if (eventosFiltrados.length === 0) {
+        container.innerHTML = `
+            <div style="max-width: 1000px; margin: 0 auto; text-align: center; padding: 3rem 1rem;">
+                <i class="fas fa-calendar-times" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <h3 style="font-size: 1.2rem; font-weight: bold;">No hay eventos registrados</h3>
+                <p style="color: var(--text-muted);">Crea eventos desde el panel de administración.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Generar HTML de cada evento
+    let eventosHtml = '';
+    for (const ev of eventosFiltrados) {
+        const fechaObj = new Date(ev.fecha.split('/').reverse().join('-'));
+        const mes = fechaObj.toLocaleDateString('es-ES', { month: 'long' }).toUpperCase();
+        const dia = fechaObj.getDate();
+        const anio = fechaObj.getFullYear();
+        const diaSemana = fechaObj.toLocaleDateString('es-ES', { weekday: 'long' });
+        const tipoLabel = ev.tipo === 'evento' ? 'Servicio Especial' : (ev.tipo === 'invitacion' ? 'Invitación Externa' : 'Reunión');
+        const tipoIcon = ev.tipo === 'evento' ? 'fa-church' : (ev.tipo === 'invitacion' ? 'fa-map-location-dot' : 'fa-users');
+        const bgColor = ev.tipo === 'evento' ? '#dbeafe' : (ev.tipo === 'invitacion' ? '#dcfce7' : '#fef3c7');
+        const textColor = ev.tipo === 'evento' ? '#1e40af' : (ev.tipo === 'invitacion' ? '#166534' : '#b45309');
+        const esInternoLabel = ev.es_interno ? 'Interno' : 'Externo';
+        const lugarTexto = ev.lugar || (ev.es_interno ? 'Auditorio Principal' : 'Fuera de la iglesia');
+        const esPasado = fechaObj < new Date() ? true : false;
+        
+        eventosHtml += `
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; overflow: hidden; margin-bottom: 1.2rem; opacity: ${esPasado ? '0.8' : '1'};">
+                <div style="background: rgba(59, 130, 246, 0.05); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="background: var(--primary); color: white; border-radius: 0.5rem; padding: 0.4rem 0.8rem; text-align: center; line-height: 1.1;">
+                            <span style="display: block; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">${mes.substring(0,3)}</span>
+                            <span style="display: block; font-size: 1.2rem; font-weight: 900;">${dia}</span>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-main);">${escapeHtml(ev.titulo)}</h3>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> ${diaSemana}, ${anio}</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <span style="background: ${bgColor}; color: ${textColor}; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;"><i class="fa-solid ${tipoIcon}"></i> ${tipoLabel}</span>
+                        <span style="background: var(--bg-app); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">${esInternoLabel}</span>
+                        ${esPasado ? '<span style="background: #e5e7eb; color: #4b5563; padding: 4px 8px; border-radius: 20px; font-size: 0.65rem;">Finalizado</span>' : ''}
+                    </div>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: var(--text-main); line-height: 1.5;">${escapeHtml(ev.descripcion || 'Sin descripción adicional.')}</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; background: var(--bg-app); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-users-gear" style="color: #6366f1; margin-top: 3px;"></i>
+                            <div>
+                                <span style="display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Organiza</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(ev.grupo_organizador || 'Equipo de la Iglesia')}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-music" style="color: #ec4899; margin-top: 3px;"></i>
+                            <div>
+                                <span style="display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Música a cargo</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(ev.musica_asignada || 'Ministerio de Alabanza')}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa-solid fa-location-dot" style="color: #10b981; margin-top: 3px;"></i>
+                            <div>
+                                <span style="display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Lugar</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(lugarTexto)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    const html = `
+        <div style="max-width: 1000px; margin: 0 auto; padding-bottom: 2rem;">
+            <div style="background: linear-gradient(135deg, #0f172a, #3b82f6); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;"><i class="fas fa-calendar-alt"></i> G-EVENTOS</h1>
+                        <p style="margin: 0; opacity: 0.9;">Archivo completo de eventos (pasados y futuros)</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.8rem;">
+                        <i class="fas fa-list"></i> ${eventosFiltrados.length} eventos
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+                ${eventosHtml}
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Restaurar valores de filtros en los selects
+    const selectAnio = document.getElementById('filtroAnioEventos');
+    const selectTipo = document.getElementById('filtroTipoEventos');
+    if (selectAnio && anioGuardado) selectAnio.value = anioGuardado;
+    if (selectTipo && tipoGuardado) selectTipo.value = tipoGuardado;
+}
 
+// Funciones auxiliares para filtros
+window.aplicarFiltrosEventos = () => {
+    const anio = document.getElementById('filtroAnioEventos').value;
+    const tipo = document.getElementById('filtroTipoEventos').value;
+    localStorage.setItem('filtroAnioEventos', anio);
+    localStorage.setItem('filtroTipoEventos', tipo);
+    renderEventosCompletos();
+};
+    
 // ==================== MÓDULO G-MEDIA (Ticketing de Diseño) ====================
 let gmediaCurrentFilter = 'todos'; // 'todos', 'mis_tickets'
 
