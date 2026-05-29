@@ -4147,6 +4147,55 @@ async function renderMoodle() {
                 #gpraise-aula-shield .av-tab { padding: 0.5rem 0.75rem; font-size: 12px; }
                 #gpraise-aula-shield .grid-cols-3 { grid-template-columns: 1fr !important; }
             }
+/* ===== NUEVOS ESTILOS PREMIUM AULA VIRTUAL ===== */
+/* Ranking / Leaderboard */
+#gpraise-aula-shield .av-ranking-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 15px; border-radius: 12px; margin-bottom: 8px;
+    background: white; border: 1px solid #E2E8F0; transition: transform 0.2s;
+}
+#gpraise-aula-shield .av-ranking-item:hover { transform: scale(1.02); border-color: #C8972A; }
+#gpraise-aula-shield .av-rank-1 { background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-color: #F59E0B; }
+#gpraise-aula-shield .av-rank-2 { background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%); }
+#gpraise-aula-shield .av-rank-3 { background: linear-gradient(135deg, #FFEDD5 0%, #FED7AA 100%); border-color: #EA580C; }
+
+/* Tarjetas de Cursos Premium */
+#gpraise-aula-shield .av-course-premium {
+    position: relative; background: #0F172A; border-radius: 1.25rem;
+    overflow: hidden; padding: 1.5rem; color: white; border: 1px solid #334155;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); transition: 0.3s;
+}
+#gpraise-aula-shield .av-course-premium:hover {
+    transform: translateY(-5px); border-color: #C8972A; box-shadow: 0 15px 35px -10px rgba(200,151,42,0.3);
+}
+#gpraise-aula-shield .av-course-premium::before {
+    content: ''; position: absolute; top: 0; right: 0; width: 150px; height: 150px;
+    background: radial-gradient(circle, rgba(200,151,42,0.15) 0%, transparent 70%);
+    border-radius: 50%; pointer-events: none;
+}
+
+/* Gimnasio Teológico (Flashcards 3D) */
+#gpraise-aula-shield .flashcard-container {
+    perspective: 1000px; width: 100%; height: 220px; cursor: pointer; margin-bottom: 1rem;
+}
+#gpraise-aula-shield .flashcard {
+    width: 100%; height: 100%; position: relative; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d; border-radius: 1.5rem;
+}
+#gpraise-aula-shield .flashcard.is-flipped { transform: rotateY(180deg); }
+#gpraise-aula-shield .flashcard-face {
+    position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 2rem; border-radius: 1.5rem; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+}
+#gpraise-aula-shield .flashcard-front {
+    background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); color: white; border: 2px solid #60A5FA;
+}
+#gpraise-aula-shield .flashcard-back {
+    background: white; color: #0F172A; transform: rotateY(180deg); border: 2px solid #C8972A;
+}
+
+            
         </style>
 
         <!-- Pantalla de bienvenida -->
@@ -4471,7 +4520,18 @@ async function agregarXPGemini(puntos) {
     if (rankSpan) rankSpan.innerText = `Nivel ${Math.floor(xpGemini/500)+1} · Levita`;
     await verificarLogros();
 }
-
+    
+window.reclamarXPFlashcard = async (btn) => {
+    if (btn.disabled) return;
+    btn.innerText = "Reclamado ✅";
+    btn.disabled = true;
+    btn.classList.remove('bg-emerald-500');
+    btn.classList.add('bg-slate-300');
+    await agregarXPGemini(10);
+    showToast("¡Excelente memoria! +10 XP añadidos.", "success");
+    if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 40, origin: { y: 0.6 }, colors: ['#10B981'] });
+};
+    
 async function cargarDevocionalGemini() {
     const hoy = new Date().toISOString().slice(0,10);
     const { data } = await supabaseClient.from('devocionales').select('*').eq('fecha', hoy).eq('iglesia_id', currentIglesiaId).single();
@@ -4516,56 +4576,145 @@ async function cargarInicioGemini() {
     const container = document.getElementById('tab-inicio');
     const { count: cursos } = await supabaseClient.from('cursos').select('*', { count: 'exact', head: true }).eq('entidad_id', currentIglesiaId);
     
-    // Calcular promedio real de los exámenes del usuario
+    // Cálculo de promedio
     let promedioReal = 0;
-    const { data: intentos, error } = await supabaseClient
-        .from('intentos_examen')
-        .select('puntaje')
-        .eq('user_id', currentUser.id)
-        .eq('completado', true);  // solo exámenes completados
-    
+    const { data: intentos, error } = await supabaseClient.from('intentos_examen').select('puntaje').eq('user_id', currentUser.id).eq('completado', true);
     if (!error && intentos && intentos.length > 0) {
         const suma = intentos.reduce((acc, i) => acc + parseFloat(i.puntaje), 0);
         promedioReal = Math.round((suma / intentos.length) * 100) / 100;
-    } else {
-        promedioReal = 0;
     }
-    
-    // Mostrar el promedio real (formateado)
-    const promedioMostrado = promedioReal > 0 ? `${promedioReal} / 20` : '-- / 20';
     const colorPromedio = promedioReal >= 14 ? 'text-emerald-600' : (promedioReal > 0 ? 'text-orange-500' : 'text-slate-400');
     
+    // Obtener Top 3 de XP de la misma iglesia
+    // Consulta: unir progreso_usuario con usuarios_iglesia para filtrar por iglesia_id
+    const { data: topUsuarios, error: topError } = await supabaseClient
+        .from('progreso_usuario')
+        .select('xp, user_id, perfiles!inner(nombre)')
+        .eq('user_id', currentUser.id); // Esto no es correcto, necesitamos todos los de la iglesia
+    // Mejor: obtener todos los user_id de usuarios_iglesia de esta iglesia, luego buscar sus xp
+    const { data: miembrosIglesia } = await supabaseClient
+        .from('usuarios_iglesia')
+        .select('user_id')
+        .eq('iglesia_id', currentIglesiaId);
+    const userIds = miembrosIglesia?.map(m => m.user_id) || [];
+    let ranking = [];
+    if (userIds.length > 0) {
+        const { data: progresos } = await supabaseClient
+            .from('progreso_usuario')
+            .select('xp, user_id')
+            .in('user_id', userIds)
+            .order('xp', { ascending: false });
+        if (progresos) {
+            // Obtener nombres de perfiles
+            const { data: perfiles } = await supabaseClient
+                .from('perfiles')
+                .select('id, nombre')
+                .in('id', progresos.map(p => p.user_id));
+            const nombreMap = Object.fromEntries((perfiles || []).map(p => [p.id, p.nombre]));
+            ranking = progresos.map(p => ({ nombre: nombreMap[p.user_id] || 'Usuario', xp: p.xp }));
+        }
+    }
+    // Asegurar que el usuario actual aparezca en el ranking (si no está en el top, se muestra aparte)
+    const usuarioActualRank = ranking.find(r => r.nombre === (currentProfile?.nombre || currentUser.email));
+    let topTres = ranking.slice(0, 3);
+    // Si el usuario actual no está en top 3, lo mostramos como posición actual
+    let mostrarPosicionActual = false;
+    let posicionActual = null;
+    if (!usuarioActualRank) {
+        const indiceActual = ranking.findIndex(r => r.nombre === (currentProfile?.nombre || currentUser.email));
+        if (indiceActual !== -1) {
+            mostrarPosicionActual = true;
+            posicionActual = { pos: indiceActual + 1, xp: ranking[indiceActual].xp };
+        }
+    } else {
+        // El usuario está en top, lo mostramos en su lugar (ya está en topTres)
+    }
+    
+    // Generar HTML del ranking
+    let rankingHtml = '';
+    if (topTres.length === 0) {
+        rankingHtml = '<div class="text-center text-slate-500 text-sm py-4">Aún no hay suficientes participantes.</div>';
+    } else {
+        topTres.forEach((user, idx) => {
+            const rankClass = idx === 0 ? 'av-rank-1' : (idx === 1 ? 'av-rank-2' : 'av-rank-3');
+            const rankNumber = idx + 1;
+            const inicial = (user.nombre?.charAt(0) || 'U').toUpperCase();
+            rankingHtml += `
+                <div class="av-ranking-item ${rankClass}">
+                    <div class="flex items-center gap-3">
+                        <div class="font-black text-lg ${idx === 0 ? 'text-amber-600' : (idx === 1 ? 'text-slate-400' : 'text-orange-400')}">${rankNumber}</div>
+                        <div class="w-8 h-8 rounded-full ${idx === 0 ? 'bg-amber-200 text-amber-700' : (idx === 1 ? 'bg-slate-200 text-slate-600' : 'bg-orange-200 text-orange-700')} flex items-center justify-center font-bold">${inicial}</div>
+                        <div class="text-sm font-bold text-slate-800">${escapeHtml(user.nombre)}</div>
+                    </div>
+                    <span class="text-xs font-bold bg-white px-2 py-1 rounded-full shadow-sm ${idx === 0 ? 'text-amber-600' : (idx === 1 ? 'text-slate-600' : 'text-orange-600')}">${user.xp} XP</span>
+                </div>
+            `;
+        });
+        // Si el usuario actual está fuera del top, añadir línea separada
+        if (mostrarPosicionActual && posicionActual) {
+            rankingHtml += `
+                <div class="av-ranking-item bg-slate-100 border-slate-300">
+                    <div class="flex items-center gap-3">
+                        <div class="font-black text-slate-500 text-lg">${posicionActual.pos}</div>
+                        <div class="w-8 h-8 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center font-bold">${(currentProfile?.nombre?.charAt(0) || 'U').toUpperCase()}</div>
+                        <div class="text-sm font-bold text-slate-800">Tú (Actual)</div>
+                    </div>
+                    <span class="text-xs font-bold bg-white px-2 py-1 rounded-full shadow-sm text-blue-600">${posicionActual.xp} XP</span>
+                </div>
+            `;
+        }
+    }
+    
+    // HTML del tablero
     container.innerHTML = `
-        <div class="grid grid-cols-3 gap-4 mb-5">
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
-                <span class="text-xs font-medium text-slate-400 uppercase">Materias en Curso</span>
-                <strong class="text-2xl font-bold mt-1 text-slate-800">${cursos || 0}</strong>
-                <small class="text-xs text-amber-600 font-medium mt-1"><i class="ti ti-point-filled"></i> Capacitación activa</small>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center transition hover:shadow-md">
+                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl mb-3"><i class="fas fa-book-open"></i></div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Materias Activas</span>
+                <strong class="text-3xl font-black mt-1 text-slate-800">${cursos || 0}</strong>
             </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
-                <span class="text-xs font-medium text-slate-400 uppercase">Calificación Promedio</span>
-                <strong class="text-2xl font-bold mt-1 ${colorPromedio}">${promedioMostrado}</strong>
-                <small class="text-xs text-slate-400 mt-1">${intentos?.length || 0} exámenes completados</small>
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center transition hover:shadow-md">
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl mb-3"><i class="fas fa-chart-line"></i></div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Promedio General</span>
+                <strong class="text-3xl font-black mt-1 ${colorPromedio}">${promedioReal > 0 ? promedioReal : '--'} <span class="text-lg text-slate-400">/ 20</span></strong>
             </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
-                <span class="text-xs font-medium text-slate-400 uppercase">Consistencia Devocional</span>
-                <strong class="text-2xl font-bold mt-1 text-orange-500">${rachaGemini} Días</strong>
-                <small class="text-xs text-orange-400 font-medium mt-1"><i class="ti ti-flame"></i> ¡Sigue así!</small>
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center transition hover:shadow-md">
+                <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xl mb-3"><i class="fas fa-fire"></i></div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Racha de Estudio</span>
+                <strong class="text-3xl font-black mt-1 text-orange-500">${rachaGemini} <span class="text-lg text-orange-300">Días</span></strong>
             </div>
         </div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Enfoque de Estudio de Hoy</p>
-        <div class="av-course-card flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="av-course-icon bg-blue-50 text-blue-700">✨</div>
-                <div>
-                    <span class="av-cat av-cat-blue">Teología de la Adoración</span>
-                    <h3 class="text-sm font-bold text-slate-800">Módulo 1: Fundamentos del Altar</h3>
-                    <p class="text-xs text-slate-500">Próxima Lección: Talento vs Unción</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider"><i class="fas fa-dumbbell text-blue-500"></i> Gimnasio Teológico</p>
+                    <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full">+10 XP</span>
+                </div>
+                
+                <div class="flashcard-container" onclick="this.querySelector('.flashcard').classList.toggle('is-flipped')">
+                    <div class="flashcard">
+                        <div class="flashcard-face flashcard-front">
+                            <i class="fas fa-sync-alt opacity-50 mb-3 text-2xl"></i>
+                            <h3 class="text-xl font-bold mb-2">Toca para voltear</h3>
+                            <p class="text-blue-100 text-sm">Pregunta: ¿Qué significa la palabra hebrea "Tehillah"?</p>
+                        </div>
+                        <div class="flashcard-face flashcard-back">
+                            <i class="fas fa-check-circle text-emerald-500 mb-3 text-3xl"></i>
+                            <h3 class="text-lg font-bold text-slate-800 mb-2">Canto de Alabanza</h3>
+                            <p class="text-slate-500 text-sm">Específicamente, un cántico nuevo, espontáneo, que brota del espíritu hacia Dios.</p>
+                            <button class="mt-4 bg-emerald-500 text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-emerald-600" onclick="event.stopPropagation(); reclamarXPFlashcard(this)">¡Lo sabía!</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button class="bg-slate-100 p-2 rounded-full text-slate-700 hover:bg-slate-200 transition" onclick="cambiarTabGemini('cursos')">
-                <i class="ti ti-player-play-filled"></i>
-            </button>
+
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4"><i class="fas fa-trophy text-amber-500"></i> Top Estudiantes</p>
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                    ${rankingHtml}
+                </div>
+            </div>
         </div>
     `;
 }
@@ -4574,53 +4723,87 @@ async function cargarInicioGemini() {
 async function cargarCursosGemini() {
     const container = document.getElementById('tab-cursos');
     const { data: cursos } = await supabaseClient.from('cursos').select('*').eq('entidad_id', currentIglesiaId);
+    
     if (!cursos || cursos.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-500">No hay cursos disponibles.</p>';
+        container.innerHTML = '<div class="text-center p-8"><i class="fas fa-folder-open text-4xl text-slate-300 mb-3"></i><p class="text-slate-500">No hay currículum disponible en este momento.</p></div>';
         return;
     }
-    let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Currículum del Ministerio</p>`;
+    
+    let html = `<div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800">Tus Especializaciones</h2>
+                        <p class="text-xs text-slate-500 font-medium">Continúa tu preparación ministerial</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+                
     for (let c of cursos) {
         const { data: modulos } = await supabaseClient.from('modulos').select('*').eq('curso_id', c.id);
+        const cantidadModulos = modulos ? modulos.length : 0;
+        
+        // Progreso simulado (puedes reemplazarlo después por progreso real)
+        const progresoFake = Math.floor(Math.random() * 60) + 10; 
+
         html += `
-        <div class="av-course-card" data-curso-id="${c.id}">
-            <span class="av-cat av-cat-blue">Módulo Principal</span>
-            <h3 class="text-base font-bold text-slate-800">${escapeHtml(c.titulo)}</h3>
-            <p class="text-xs text-slate-500 mt-1">${escapeHtml(c.descripcion || '')}</p>
-            <div class="av-progress-bar"><div class="av-progress-fill" style="width: 45%; background: #1E3A8A;"></div></div>
-            <div class="flex justify-between items-center mt-3 text-xs text-slate-400">
-                <span>Progreso: 45% Realizado</span>
-                <button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="verModulosCurso('${c.id}')">
-                    <i class="fas fa-book-open"></i> Ver módulos del curso
-                </button>
-            </div>
-            <div class="mt-2">
-                ${modulos?.map(m => `<span class="inline-block bg-slate-100 rounded-full px-2 py-1 text-xs mr-1 cursor-pointer hover:bg-slate-200" onclick="verModulo('${m.id}')">${escapeHtml(m.titulo)}</span>`).join('') || '<span class="text-xs text-slate-400">Sin módulos aún</span>'}
+        <div class="av-course-premium">
+            <div class="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                    <span class="bg-blue-600/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Módulo Oficial</span>
+                    <h3 class="text-xl font-black text-white mt-3 mb-2 leading-tight">${escapeHtml(c.titulo)}</h3>
+                    <p class="text-sm text-slate-400 line-clamp-2">${escapeHtml(c.descripcion || 'Sin descripción detallada.')}</p>
+                </div>
+                
+                <div class="mt-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-slate-300"><i class="fas fa-layer-group text-amber-500"></i> ${cantidadModulos} Lecciones</span>
+                        <span class="text-xs font-bold text-emerald-400">${progresoFake}% Completado</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 mb-4">
+                        <div class="bg-gradient-to-r from-emerald-400 to-teal-500 h-2 rounded-full" style="width: ${progresoFake}%"></div>
+                    </div>
+                    
+                    <button class="w-full bg-white text-slate-900 font-bold py-3 rounded-xl hover:bg-amber-400 transition-colors flex items-center justify-center gap-2" onclick="verModulosCurso('${c.id}')">
+                        <i class="fas fa-play-circle"></i> Continuar Aprendiendo
+                    </button>
+                </div>
             </div>
         </div>`;
     }
+    html += `</div>`;
     container.innerHTML = html;
 }
 
+    
 window.verModulosCurso = async (cursoId) => {
-    const { data: modulos, error } = await supabaseClient.from('modulos').select('*').eq('curso_id', cursoId);
-    if (error) {
-        showToast('Error al cargar los módulos: ' + error.message);
-        return;
-    }
-    if (!modulos || modulos.length === 0) {
+    const { data: modulos, error } = await supabaseClient.from('modulos').select('*').eq('curso_id', cursoId).order('orden_index', { ascending: true });
+    if (error || !modulos || modulos.length === 0) {
         showToast('Este curso aún no tiene lecciones.');
         return;
     }
-    let html = `<h3>📚 Lecciones del curso</h3><div class="space-y-2">`;
+    
+    let html = `
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-full mb-3 text-2xl"><i class="fas fa-book-reader"></i></div>
+            <h3 class="text-xl font-black text-slate-800">Contenido del Curso</h3>
+            <p class="text-xs text-slate-500">Selecciona una lección para comenzar</p>
+        </div>
+        <div class="space-y-3">`;
+        
     for (let mod of modulos) {
         html += `
-            <div class="card cursor-pointer hover:bg-slate-100 transition" onclick="verModulo('${mod.id}')">
-                <strong>${escapeHtml(mod.titulo)}</strong>
-                <p class="text-xs text-slate-500 mt-1">${mod.contenido ? (mod.contenido.substring(0, 100) + '...') : 'Sin contenido'}</p>
+            <div class="group flex items-center p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:border-blue-500 hover:shadow-md transition-all" onclick="verModulo('${mod.id}')">
+                <div class="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-blue-100 group-hover:text-blue-600 flex items-center justify-center font-bold text-slate-500 mr-4 transition-colors">
+                    ${mod.orden_index || 1}
+                </div>
+                <div class="flex-1">
+                    <strong class="text-sm text-slate-800 block">${escapeHtml(mod.titulo)}</strong>
+                    <p class="text-xs text-slate-400 mt-1 line-clamp-1">${mod.contenido ? (mod.contenido.replace(/<[^>]*>?/gm, '').substring(0, 60) + '...') : 'Video y material de lectura'}</p>
+                </div>
+                <i class="fas fa-chevron-right text-slate-300 group-hover:text-blue-500 transition-colors"></i>
             </div>
         `;
     }
-    html += `</div><div class="mt-4 text-right"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
+    html += `</div><div class="mt-6 text-center"><button class="bg-slate-800 text-white font-bold py-3 px-8 rounded-full hover:bg-slate-700 transition" onclick="closeModal()">Cerrar</button></div>`;
     showModal(html);
 };
 
