@@ -2017,6 +2017,12 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
     <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes" style="display: ${puedeVerGnotes() ? 'flex' : 'none'};"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
     <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
+   
+    <div class="nav-item ${currentTab === 'gdesk' ? 'active' : ''}" data-tab="gdesk" style="display: ${puedeVerGDesk() ? 'flex' : 'none'};">
+    <i class="fas fa-headset"></i>
+    <span>G-DESK</span>
+</div>
+    
     <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
     ${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
     <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
@@ -2132,7 +2138,7 @@ function darkModeToggle() {
     else if (currentTab === 'planner') await renderPlanner();
     else if (currentTab === 'gmedia') await renderGmedia();
     else if (currentTab === 'agenda') await renderAgenda();
-    
+    else if (currentTab === 'gdesk') await renderGDesk();
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
@@ -7198,6 +7204,332 @@ function renderizarCancionesPlanner() {
   }).join('');
 }
 
+// ==================== MÓDULO G-DESK (Solicitudes entre departamentos) ====================
+let gdeskCurrentFilter = 'todos'; // 'todos', 'mis_tickets'
+
+function puedeVerGDesk() {
+    // Todos los usuarios autenticados con iglesia pueden ver el módulo
+    return !!currentUser && !!currentIglesiaId;
+}
+
+// Obtener el departamento del usuario actual (para filtrar tickets)
+function obtenerDeptoUsuario() {
+    if (isAdminUser || isIglesiaAdmin) return null; // admin ve todo
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return null;
+    const depto = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!depto) return null;
+    const nombreDepto = depto.nombre.toLowerCase();
+    if (nombreDepto.includes('artes') || nombreDepto.includes('equipo de artes')) return 'alabanza_multimedia';
+    if (nombreDepto === 'danza') return 'danza';
+    if (nombreDepto === 'servicio' || nombreDepto === 'ujieres') return 'liderazgo';
+    return null;
+}
+
+// Mapeo de departamento de usuario a los tickets que puede ver
+function ticketsPermitidosParaUsuario() {
+    const deptoUsuario = obtenerDeptoUsuario();
+    if (!deptoUsuario) return [];
+    if (deptoUsuario === 'alabanza_multimedia') return ['alabanza', 'multimedia'];
+    if (deptoUsuario === 'danza') return ['danza'];
+    if (deptoUsuario === 'liderazgo') return ['liderazgo'];
+    return [];
+}
+
+async function renderGDesk() {
+    if (!currentIglesiaId) {
+        document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">Selecciona una iglesia primero.</div>';
+        return;
+    }
+    const container = document.getElementById('mainContent');
+    const actionHeader = document.getElementById('actionHeader');
+    
+    // Barra de filtros (solo para administradores o para usuarios que quieran ver sus solicitudes)
+    actionHeader.innerHTML = `
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="mostrarFormularioGDesk()">
+                <i class="fas fa-plus"></i> Nueva Solicitud
+            </button>
+            <div class="btn-group" style="display: flex; gap: 0.3rem;">
+                <button class="btn ${gdeskCurrentFilter === 'todos' ? 'btn-primary' : 'btn-ghost'}" onclick="cambiarFiltroGDesk('todos')">Todos</button>
+                <button class="btn ${gdeskCurrentFilter === 'mis_tickets' ? 'btn-primary' : 'btn-ghost'}" onclick="cambiarFiltroGDesk('mis_tickets')">Mis solicitudes</button>
+            </div>
+        </div>
+    `;
+
+    // Construir consulta base
+    let query = supabaseClient
+        .from('gdesk_tickets')
+        .select('*, perfiles!solicitante_id(nombre, email)')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('creado_en', { ascending: false });
+
+    // Aplicar filtros según permisos
+    const esAdmin = isAdminUser || isIglesiaAdmin;
+    if (!esAdmin) {
+        const deptosPermitidos = ticketsPermitidosParaUsuario();
+        if (gdeskCurrentFilter === 'mis_tickets') {
+            query = query.eq('solicitante_id', currentUser.id);
+        } else {
+            if (deptosPermitidos.length > 0) {
+                query = query.in('departamento', deptosPermitidos);
+            } else {
+                // Usuario sin departamento asignado: solo ve sus propios tickets
+                query = query.eq('solicitante_id', currentUser.id);
+            }
+        }
+    } else if (gdeskCurrentFilter === 'mis_tickets') {
+        query = query.eq('solicitante_id', currentUser.id);
+    }
+
+    const { data: tickets, error } = await query;
+    if (error) {
+        showToast('Error al cargar tickets: ' + error.message, 'error');
+        container.innerHTML = '<div class="text-center p-8">Error cargando datos.</div>';
+        return;
+    }
+
+    // Agrupar por estado para el diseño (opcional, pero útil)
+    const pendientes = tickets?.filter(t => t.estado === 'pendiente') || [];
+    const enProceso = tickets?.filter(t => t.estado === 'en_proceso') || [];
+    const finalizados = tickets?.filter(t => t.estado === 'finalizado') || [];
+
+    const html = `
+    <div style="max-width: 1000px; margin: 0 auto; padding-bottom: 2rem;">
+        <!-- Cabecera -->
+        <div style="background: linear-gradient(135deg, #0f172a, #3b82f6); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <h1 style="font-size: 1.8rem; font-weight: 900; margin: 0;"><i class="fas fa-headset"></i> G-DESK</h1>
+                    <p style="margin: 0; opacity: 0.9;">Solicitudes entre departamentos</p>
+                </div>
+                <div style="background: rgba(255,255,255,0.2); padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.8rem;">
+                    <i class="fas fa-ticket-alt"></i> ${tickets?.length || 0} tickets
+                </div>
+            </div>
+        </div>
+
+        <!-- Listado de tickets (diseño de columnas opcional, aquí usamos lista simple pero con tarjetas) -->
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            ${tickets?.length === 0 ? '<div class="text-center p-8">No hay tickets para mostrar.</div>' : 
+                tickets.map(ticket => renderTicketGDesk(ticket)).join('')
+            }
+        </div>
+    </div>`;
+
+    container.innerHTML = html;
+}
+
+function renderTicketGDesk(ticket) {
+    const esAdmin = isAdminUser || isIglesiaAdmin;
+    const esSolicitante = ticket.solicitante_id === currentUser?.id;
+    const puedeEditar = esAdmin || esSolicitante;
+    const puedeCambiarEstado = esAdmin; // solo admin puede cambiar estado
+    const fechaLimite = ticket.fecha_limite ? new Date(ticket.fecha_limite).toLocaleDateString('es-ES') : 'Sin fecha';
+    const estadoClass = ticket.estado === 'pendiente' ? 'status-pendiente' : (ticket.estado === 'en_proceso' ? 'status-proceso' : 'status-finalizado');
+    const estadoTexto = ticket.estado === 'pendiente' ? 'Pendiente' : (ticket.estado === 'en_proceso' ? 'En Proceso' : 'Finalizado');
+    const colorEstado = ticket.estado === 'pendiente' ? '#ef4444' : (ticket.estado === 'en_proceso' ? '#f59e0b' : '#10b981');
+    const deptoTexto = ticket.departamento === 'alabanza' ? 'Alabanza' : (ticket.departamento === 'multimedia' ? 'Multimedia' : (ticket.departamento === 'danza' ? 'Danza' : 'Liderazgo'));
+
+    return `
+        <div class="gdesk-ticket-card" data-id="${ticket.id}" style="background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; padding: 1.2rem; margin-bottom: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                    <span class="status-badge" style="background: ${colorEstado}20; color: ${colorEstado}; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">${estadoTexto}</span>
+                    <span class="depto-badge" style="background: var(--bg-app); padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; margin-left: 0.5rem;">${deptoTexto}</span>
+                </div>
+                ${puedeCambiarEstado ? `
+                <select class="form-control" style="width: auto; font-size: 0.7rem; padding: 0.2rem 0.5rem;" onchange="cambiarEstadoTicketGDesk('${ticket.id}', this.value)">
+                    <option value="pendiente" ${ticket.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                    <option value="en_proceso" ${ticket.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                    <option value="finalizado" ${ticket.estado === 'finalizado' ? 'selected' : ''}>Finalizado</option>
+                </select>
+                ` : ''}
+            </div>
+            <h3 style="margin: 0.5rem 0; font-size: 1.1rem; font-weight: 800;">${escapeHtml(ticket.titulo)}</h3>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">${escapeHtml(ticket.descripcion || 'Sin descripción')}</p>
+            <div style="display: flex; gap: 1rem; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <span><i class="far fa-calendar-alt"></i> Límite: ${fechaLimite}</span>
+                <span><i class="fas fa-user"></i> Solicitante: ${escapeHtml(ticket.perfiles?.nombre || 'Usuario')}</span>
+                <span><i class="far fa-clock"></i> ${new Date(ticket.creado_en).toLocaleDateString()}</span>
+            </div>
+
+            <!-- Sección de comentarios -->
+            <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
+                <div id="comments-${ticket.id}" style="max-height: 200px; overflow-y: auto; margin-bottom: 0.5rem;">
+                    <div class="comment-loading" style="font-size:0.7rem; color: var(--text-muted);">Cargando comentarios...</div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <input type="text" id="commentInput-${ticket.id}" class="form-control" style="flex:1; font-size:0.8rem;" placeholder="Escribe un comentario...">
+                    <button class="btn btn-primary" style="padding: 0.3rem 0.8rem;" onclick="agregarComentarioTicket('${ticket.id}')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function mostrarFormularioGDesk() {
+    showModal(`
+        <h3><i class="fas fa-headset"></i> Nueva Solicitud</h3>
+        <div class="form-group">
+            <label>Título *</label>
+            <input id="gdeskTitulo" class="form-control" placeholder="Ej: Necesitamos acompañamiento musical">
+        </div>
+        <div class="form-group">
+            <label>Departamento destino *</label>
+            <select id="gdeskDepartamento" class="form-control">
+                <option value="alabanza">Alabanza</option>
+                <option value="multimedia">Multimedia / Producción</option>
+                <option value="danza">Danza</option>
+                <option value="liderazgo">Liderazgo</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Descripción / Detalles</label>
+            <textarea id="gdeskDescripcion" rows="3" class="form-control" placeholder="Explica qué necesitas, fechas importantes, etc."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Fecha límite (opcional)</label>
+            <input type="text" id="gdeskFechaLimite" class="form-control" placeholder="dd/mm/aaaa">
+        </div>
+        <div class="form-group">
+            <label>Prioridad</label>
+            <select id="gdeskPrioridad" class="form-control">
+                <option value="baja">Baja</option>
+                <option value="media" selected>Media</option>
+                <option value="alta">Alta (Urgente)</option>
+            </select>
+        </div>
+        <div style="text-align: right; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="guardarTicketGDesk()">Enviar Solicitud</button>
+        </div>
+    `);
+    flatpickr("#gdeskFechaLimite", { dateFormat: "d/m/Y", locale: "es" });
+}
+
+async function guardarTicketGDesk() {
+    const titulo = document.getElementById('gdeskTitulo').value.trim();
+    const departamento = document.getElementById('gdeskDepartamento').value;
+    const descripcion = document.getElementById('gdeskDescripcion').value.trim();
+    const fechaLimiteStr = document.getElementById('gdeskFechaLimite').value;
+    const prioridad = document.getElementById('gdeskPrioridad').value;
+
+    if (!titulo) {
+        showToast('El título es obligatorio', 'error');
+        return;
+    }
+    let fechaLimite = null;
+    if (fechaLimiteStr) {
+        const [dia, mes, anio] = fechaLimiteStr.split('/');
+        fechaLimite = `${anio}-${mes}-${dia}`;
+    }
+
+    const { error } = await supabaseClient.from('gdesk_tickets').insert({
+        id: generateUniqueId(),
+        titulo,
+        descripcion: descripcion || null,
+        departamento,
+        solicitante_id: currentUser.id,
+        iglesia_id: currentIglesiaId,
+        prioridad,
+        fecha_limite: fechaLimite,
+        estado: 'pendiente'
+    });
+
+    if (error) {
+        showToast('Error al crear: ' + error.message, 'error');
+    } else {
+        showToast(`✅ Solicitud enviada al departamento de ${departamento}`, 'success');
+        closeModal();
+        renderGDesk();
+        // Notificación simulada (en una app real usarías push)
+        showToast(`📢 Notificación enviada al equipo de ${departamento}`, 'info');
+    }
+}
+
+async function cambiarEstadoTicketGDesk(ticketId, nuevoEstado) {
+    if (!isAdminUser && !isIglesiaAdmin) {
+        showToast('Solo administradores pueden cambiar el estado', 'error');
+        return;
+    }
+    const { error } = await supabaseClient
+        .from('gdesk_tickets')
+        .update({ estado: nuevoEstado, actualizado_en: new Date() })
+        .eq('id', ticketId);
+    if (error) showToast('Error: ' + error.message, 'error');
+    else {
+        showToast(`Ticket marcado como ${nuevoEstado}`, 'success');
+        renderGDesk();
+        // Notificación al solicitante (simulada)
+        showToast(`📢 El solicitante recibirá notificación del cambio`, 'info');
+    }
+}
+
+async function agregarComentarioTicket(ticketId) {
+    const input = document.getElementById(`commentInput-${ticketId}`);
+    const mensaje = input?.value.trim();
+    if (!mensaje) return;
+    const { error } = await supabaseClient.from('gdesk_comentarios').insert({
+        id: generateUniqueId(),
+        ticket_id: ticketId,
+        usuario_id: currentUser.id,
+        mensaje
+    });
+    if (error) {
+        showToast('Error al enviar comentario: ' + error.message, 'error');
+    } else {
+        input.value = '';
+        cargarComentariosTicket(ticketId);
+    }
+}
+
+async function cargarComentariosTicket(ticketId) {
+    const container = document.getElementById(`comments-${ticketId}`);
+    if (!container) return;
+    const { data, error } = await supabaseClient
+        .from('gdesk_comentarios')
+        .select('*, perfiles!usuario_id(nombre)')
+        .eq('ticket_id', ticketId)
+        .order('creado_en', { ascending: true });
+    if (error) {
+        container.innerHTML = '<div style="font-size:0.7rem; color:red;">Error cargando comentarios</div>';
+        return;
+    }
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div style="font-size:0.7rem; color: var(--text-muted);">Sin comentarios. Sé el primero en comentar.</div>';
+        return;
+    }
+    let html = '';
+    for (const c of data) {
+        const nombre = c.perfiles?.nombre || 'Usuario';
+        const fecha = new Date(c.creado_en).toLocaleString();
+        html += `
+            <div style="background: var(--bg-app); padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 0.5rem; font-size: 0.75rem;">
+                <strong>${escapeHtml(nombre)}</strong> <small style="color: var(--text-muted);">${fecha}</small>
+                <p style="margin: 0.2rem 0 0 0;">${escapeHtml(c.mensaje)}</p>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+// Función para refrescar comentarios cada cierto tiempo (opcional)
+function iniciarRefrescoComentarios() {
+    setInterval(() => {
+        const tickets = document.querySelectorAll('.gdesk-ticket-card');
+        tickets.forEach(card => {
+            const id = card.getAttribute('data-id');
+            if (id) cargarComentariosTicket(id);
+        });
+    }, 10000);
+}
+
+function cambiarFiltroGDesk(filtro) {
+    gdeskCurrentFilter = filtro;
+    renderGDesk();
+}
+    
 // Función de permisos (puedes ajustarla
 
 // ========== INICIALIZACIÓN ==========
