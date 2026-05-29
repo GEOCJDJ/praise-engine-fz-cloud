@@ -1961,6 +1961,18 @@ function puedeVerAgenda() {
     return !!currentUser && !!currentIglesiaId;
 }
 
+    function puedeVerGmedia() {
+    if (isAdminUser || isIglesiaAdmin) return true;
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    const depto = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!depto) return false;
+    // Solo "Artes" o "EQUIPO DE ARTES" pueden ver G-MEDIA
+    const esArtes = depto.nombre === 'Artes' || depto.nombre === 'EQUIPO DE ARTES';
+    // También si tiene rol musical (por si hay diseñadores multimedia dentro de alabanza)
+    const tieneRolMusical = miembro.rol_musical && miembro.rol_musical !== '';
+    return esArtes || tieneRolMusical;
+}
     
 // ========== RENDER PRINCIPAL ==========
 // ========== RENDER PRINCIPAL ==========
@@ -2000,7 +2012,7 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'gdance' ? 'active' : ''}" data-tab="gdance" style="display: ${puedeVerGDance() ? 'flex' : 'none'};"><i class="fas fa-wand-magic-sparkles"></i><span>G-DANCE</span></div>
     <div class="nav-item ${currentTab === 'planner' ? 'active' : ''}" data-tab="planner" style="display: ${puedeVerPlanner() ? 'flex' : 'none'};"><i class="fas fa-calendar-alt"></i><span>PLANNER</span></div>
 
-<div class="nav-item ${currentTab === 'gmedia' ? 'active' : ''}" data-tab="gmedia">
+<div class="nav-item ${currentTab === 'gmedia' ? 'active' : ''}" data-tab="gmedia" style="display: ${puedeVerGmedia() ? 'flex' : 'none'};">
     <i class="fas fa-photo-film"></i>
     <span>G-MEDIA</span>
 </div>
@@ -2009,6 +2021,7 @@ function renderApp() {
     <i class="fas fa-calendar-days"></i>
     <span>AGENDA</span>
 </div>
+
     
     <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
     <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
@@ -7453,17 +7466,74 @@ async function cambiarEstadoTicketGDesk(ticketId, nuevoEstado) {
         showToast('Solo administradores pueden cambiar el estado', 'error');
         return;
     }
+    
+    // Primero obtener el ticket actual para saber su departamento y otros datos
+    const { data: ticketActual, error: fetchError } = await supabaseClient
+        .from('gdesk_tickets')
+        .select('*')
+        .eq('id', ticketId)
+        .single();
+    
+    if (fetchError) {
+        showToast('Error al obtener el ticket: ' + fetchError.message, 'error');
+        return;
+    }
+    
+    // Actualizar estado en G-DESK
     const { error } = await supabaseClient
         .from('gdesk_tickets')
         .update({ estado: nuevoEstado, actualizado_en: new Date() })
         .eq('id', ticketId);
-    if (error) showToast('Error: ' + error.message, 'error');
-    else {
-        showToast(`Ticket marcado como ${nuevoEstado}`, 'success');
-        renderGDesk();
-        // Notificación al solicitante (simulada)
-        showToast(`📢 El solicitante recibirá notificación del cambio`, 'info');
+    
+    if (error) {
+        showToast('Error: ' + error.message, 'error');
+        return;
     }
+    
+    // *** Sincronización con G-MEDIA ***
+    // Si el ticket es de multimedia y el nuevo estado es 'en_proceso', creamos una tarjeta en G-MEDIA
+    if (ticketActual.departamento === 'multimedia' && nuevoEstado === 'en_proceso') {
+        // Verificar si ya existe una tarjeta en G-MEDIA con el mismo título para no duplicar
+        const { data: existente } = await supabaseClient
+            .from('gmedia_tickets')
+            .select('id')
+            .eq('titulo', ticketActual.titulo)
+            .eq('iglesia_id', currentIglesiaId)
+            .maybeSingle();
+        
+        if (!existente) {
+            const nuevaTarjeta = {
+                id: generateUniqueId(),
+                titulo: ticketActual.titulo,
+                descripcion: ticketActual.descripcion,
+                tipo: 'flyer', // o podrías mapear según prioridad, pero ponemos un default
+                fecha_limite: ticketActual.fecha_limite,
+                solicitante_id: ticketActual.solicitante_id,
+                iglesia_id: currentIglesiaId,
+                estado: 'nuevo', // en G-MEDIA empieza en "Nuevas Solicitudes"
+                prioridad: ticketActual.prioridad,
+                creado_en: new Date(),
+                actualizado_en: new Date()
+            };
+            const { error: mediaError } = await supabaseClient
+                .from('gmedia_tickets')
+                .insert(nuevaTarjeta);
+            if (!mediaError) {
+                showToast('✅ Tarjeta creada automáticamente en G-MEDIA', 'success');
+            } else {
+                console.error('Error creando tarjeta en G-MEDIA:', mediaError);
+                showToast('⚠️ Ticket actualizado, pero hubo un error al crear la tarjeta en G-MEDIA', 'warning');
+            }
+        } else {
+            showToast('ℹ️ Ya existe una tarjeta en G-MEDIA para esta solicitud', 'info');
+        }
+    }
+    
+    showToast(`Ticket marcado como ${nuevoEstado}`, 'success');
+    renderGDesk();
+    
+    // Notificar al solicitante (simulado)
+    showToast(`📢 El solicitante recibirá notificación del cambio`, 'info');
 }
 
 async function agregarComentarioTicket(ticketId) {
