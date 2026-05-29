@@ -5731,8 +5731,169 @@ window.deleteUserById = async (userId) => {
     } catch(err){ showToast("Error al eliminar: "+err.message); }
 };
    
+    async function adminActividades() {
+    const { data: actividades, error } = await supabaseClient
+        .from('actividades')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('fecha', { ascending: true });
+
+    if (error) {
+        showToast("Error: " + error.message);
+        return;
+    }
+
+    let html = `
+        <h3>📅 Gestión de Eventos Especiales</h3>
+        <div style="margin-bottom:1rem;">
+            <button class="btn btn-primary" onclick="showActividadForm()">➕ Nueva actividad</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+    `;
+
+    for (let act of actividades) {
+        let tipoLabel = '';
+        if (act.tipo === 'evento') tipoLabel = 'Servicio Especial';
+        else if (act.tipo === 'invitacion') tipoLabel = 'Invitación Externa';
+        else tipoLabel = 'Reunión';
+
+        html += `
+            <div class="card" style="padding:1rem;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
+                    <div>
+                        <strong>${escapeHtml(act.titulo)}</strong><br>
+                        <span class="card-category" style="background:var(--primary);">${tipoLabel}</span>
+                        <span class="card-category" style="background:#10B981;">${act.fecha}</span>
+                        ${act.lugar ? `<span class="card-category" style="background:#8B5CF6;">📍 ${escapeHtml(act.lugar)}</span>` : ''}
+                        ${act.es_interno !== undefined ? `<span class="card-category" style="background:#F59E0B;">${act.es_interno ? 'Interno' : 'Externo'}</span>` : ''}
+                        ${act.grupo_organizador ? `<div style="margin-top:0.5rem; font-size:0.75rem;"><i class="fas fa-users"></i> Organiza: ${escapeHtml(act.grupo_organizador)}</div>` : ''}
+                        ${act.musica_asignada ? `<div style="font-size:0.75rem;"><i class="fas fa-music"></i> Música: ${escapeHtml(act.musica_asignada)}</div>` : ''}
+                        ${act.descripcion ? `<p style="margin-top:0.5rem;">${escapeHtml(act.descripcion)}</p>` : ''}
+                    </div>
+                    <div>
+                        <button class="btn-icon" onclick="editActividad('${act.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon" onclick="deleteActividad('${act.id}')" style="color:red;"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+    showModal(html);
+
+    window.showActividadForm = (id = null) => {
+        const actividad = id ? actividades.find(a => a.id === id) : null;
+        showModal(`
+            <h3>${id ? 'Editar' : 'Nueva'} actividad</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Título del Evento</label>
+                    <input id="actTitulo" class="form-control" value="${escapeHtml(actividad?.titulo || '')}">
+                </div>
+                
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input id="actFecha" class="form-control" value="${actividad?.fecha || ''}" placeholder="dd/mm/aaaa">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Evento</label>
+                    <select id="actTipo" class="form-control">
+                        <option value="evento" ${actividad?.tipo === 'evento' ? 'selected' : ''}>Servicio Especial / Evento</option>
+                        <option value="invitacion" ${actividad?.tipo === 'invitacion' ? 'selected' : ''}>Invitación Externa</option>
+                        <option value="reunion" ${actividad?.tipo === 'reunion' ? 'selected' : ''}>Reunión de Liderazgo</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Ubicación / Lugar</label>
+                    <input id="actLugar" class="form-control" placeholder="Ej: Auditorio Principal o Cancha del sur" value="${escapeHtml(actividad?.lugar || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Lugar Específico</label>
+                    <select id="actEsInterno" class="form-control">
+                        <option value="true" ${actividad?.es_interno === true ? 'selected' : ''}>Interno (En la Iglesia)</option>
+                        <option value="false" ${actividad?.es_interno === false ? 'selected' : ''}>Externo</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Grupo Organizador</label>
+                    <input id="actOrganizador" class="form-control" placeholder="Ej: Grupo de Jóvenes" value="${escapeHtml(actividad?.grupo_organizador || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Música a cargo</label>
+                    <select id="actMusica" class="form-control">
+                        <option value="Banda en vivo (Azarel)" ${actividad?.musica_asignada === 'Banda en vivo (Azarel)' ? 'selected' : ''}>Banda en vivo (Azarel)</option>
+                        <option value="Uso de Pistas" ${actividad?.musica_asignada === 'Uso de Pistas' ? 'selected' : ''}>Uso de Pistas</option>
+                        <option value="Banda Invitada" ${actividad?.musica_asignada === 'Banda Invitada' ? 'selected' : ''}>Banda Invitada</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Descripción / Instrucciones</label>
+                    <textarea id="actDescripcion" rows="2" class="form-control">${escapeHtml(actividad?.descripcion || '')}</textarea>
+                </div>
+            </div>
+            
+            <div style="text-align:right; margin-top: 1rem;">
+                <button class="btn btn-ghost" onclick="closeModal(); adminActividades();">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveActividad('${id || ''}')">Guardar Evento</button>
+            </div>
+        `);
+        flatpickr("#actFecha", { dateFormat: "d/m/Y" });
+    };
+
+    window.saveActividad = async (id) => {
+        const titulo = document.getElementById('actTitulo').value.trim();
+        const descripcion = document.getElementById('actDescripcion').value.trim();
+        const fecha = document.getElementById('actFecha').value;
+        const tipo = document.getElementById('actTipo').value;
+        const lugar = document.getElementById('actLugar').value.trim();
+        const esInterno = document.getElementById('actEsInterno').value === 'true';
+        const grupoOrganizador = document.getElementById('actOrganizador').value.trim();
+        const musicaAsignada = document.getElementById('actMusica').value;
+
+        if (!titulo || !fecha) return showToast("Título y fecha son obligatorios");
+        
+        const body = {
+            titulo,
+            descripcion,
+            fecha,
+            tipo,
+            lugar,
+            es_interno: esInterno,
+            grupo_organizador: grupoOrganizador,
+            musica_asignada: musicaAsignada,
+            iglesia_id: currentIglesiaId
+        };
+        
+        if (id) {
+            await supabaseClient.from('actividades').update(body).eq('id', id);
+        } else {
+            body.id = generateUniqueId();
+            body.creado_por = currentUser.id;
+            await supabaseClient.from('actividades').insert(body);
+        }
+        closeModal();
+        adminActividades();
+    };
+
+    window.editActividad = (id) => {
+        window.showActividadForm(id);
+    };
+
+    window.deleteActividad = async (id) => {
+        if (confirm("¿Eliminar esta actividad?")) {
+            await supabaseClient.from('actividades').delete().eq('id', id);
+            closeModal();
+            adminActividades();
+        }
+    };
+    }
     
-    async function adminActividades() { const { data: actividades, error } = await supabaseClient.from('actividades').select('*').eq('iglesia_id',currentIglesiaId).order('fecha',{ascending:true}); if(error){ showToast("Error: "+error.message); return; } let html=`<h3>📅 Gestión de Eventos Especiales</h3><div style="margin-bottom:1rem;"><button class="btn btn-primary" onclick="showActividadForm()">➕ Nueva actividad</button></div><div style="display:flex;flex-direction:column;gap:1rem;">`; for(let act of actividades){ html+=`<div class="card" style="padding:1rem;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><strong>${escapeHtml(act.titulo)}</strong><br><span class="card-category">${act.tipo}</span><span class="card-category" style="background:#10B981;">${act.fecha}</span>${act.descripcion?`<p style="margin-top:0.5rem;">${escapeHtml(act.descripcion)}</p>`:''}</div><div><button class="btn-icon" onclick="editActividad('${act.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteActividad('${act.id}')" style="color:red;"><i class="fas fa-trash"></i></button></div></div></div>`; } html+=`</div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); window.showActividadForm=(id=null)=>{ const actividad=id?actividades.find(a=>a.id===id):null; showModal(`<h3>${id?'Editar':'Nueva'} actividad</h3><div class="form-group"><label>Título</label><input id="actTitulo" class="form-control" value="${escapeHtml(actividad?.titulo||'')}"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="actDescripcion" rows="2" class="form-control">${escapeHtml(actividad?.descripcion||'')}</textarea></div><div class="form-group"><label>Fecha (dd/mm/aaaa)</label><input id="actFecha" class="form-control" value="${actividad?.fecha||''}" placeholder="31/12/2025"></div><div class="form-group"><label>Tipo</label><select id="actTipo" class="form-control"><option value="evento" ${actividad?.tipo==='evento'?'selected':''}>Evento</option><option value="invitacion" ${actividad?.tipo==='invitacion'?'selected':''}>Invitación externa</option><option value="reunion" ${actividad?.tipo==='reunion'?'selected':''}>Reunión</option></select></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal(); adminActividades();">Cancelar</button><button class="btn btn-primary" onclick="saveActividad('${id||''}')">Guardar</button></div>`); flatpickr("#actFecha",{dateFormat:"d/m/Y"}); }; window.saveActividad=async(id)=>{ const titulo=document.getElementById('actTitulo').value.trim(); const descripcion=document.getElementById('actDescripcion').value.trim(); const fecha=document.getElementById('actFecha').value; const tipo=document.getElementById('actTipo').value; if(!titulo||!fecha) return showToast("Título y fecha son obligatorios"); const body={ titulo, descripcion, fecha, tipo, iglesia_id:currentIglesiaId }; if(id){ await supabaseClient.from('actividades').update(body).eq('id',id); } else { body.id=generateUniqueId(); body.creado_por=currentUser.id; await supabaseClient.from('actividades').insert(body); } closeModal(); adminActividades(); }; window.deleteActividad=async(id)=>{ if(confirm("¿Eliminar esta actividad?")){ await supabaseClient.from('actividades').delete().eq('id',id); closeModal(); adminActividades(); } }; }
+    
+    
     async function adminCourses() { let html=`<h3>Gestionar Cursos</h3>`; for(let curso of cursos){ html+=`<div class="card" style="margin-bottom:1rem;"><h4>${escapeHtml(curso.titulo)}</h4><p>${escapeHtml(curso.descripcion||'Sin descripción')}</p><button class="btn btn-primary" onclick="editCourse('${curso.id}')">Editar Curso</button><button class="btn btn-ghost" onclick="manageModules('${curso.id}')">Gestionar Lecciones</button></div>`; } html+=`<button class="btn btn-primary" onclick="createCourse()">➕ Nuevo Curso</button>`; showModal(html); }
     function createCourse() { showModal(`<h3>Nuevo Curso</h3><div class="form-group"><label>Título</label><input id="newCourseTitle" class="form-control"></div><div class="form-group"><label>Descripción</label><textarea id="newCourseDesc" rows="3" class="form-control"></textarea></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewCourse()">Guardar</button></div>`); }
     async function saveNewCourse() { const titulo=document.getElementById('newCourseTitle').value.trim(); const descripcion=document.getElementById('newCourseDesc').value.trim(); if(!titulo) return showToast("Título requerido"); await supabaseClient.from('cursos').insert([{ id:generateUniqueId(), titulo, descripcion, entidad_tipo:'iglesia', entidad_id:currentIglesiaId }]); await loadUserData(); closeModal(); adminCourses(); }
