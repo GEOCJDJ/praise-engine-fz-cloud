@@ -1943,16 +1943,17 @@ function puedeVerPlanner() {
   return deptosPermitidos.includes(depto.nombre);
 }
 
-function puedeVerListas() {
+
+    function puedeVerListas() {
   if (isAdminUser || isIglesiaAdmin) return true;
   const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
   if (!miembro) return false;
   const depto = departamentos.find(d => d.id === miembro.departamento_id);
   if (!depto) return false;
+  // Departamentos que pueden ver Listas: Alabanza (Artes) y Danza
   const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza'];
   return deptosPermitidos.includes(depto.nombre);
-}
-    
+    }
 // ========== RENDER PRINCIPAL ==========
 // ========== RENDER PRINCIPAL ==========
 function renderApp() {
@@ -2001,9 +2002,8 @@ function renderApp() {
                                                                                                              
        <div class="nav-item ${currentTab === 'songs' ? 'active' : ''}" data-tab="songs" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-music"></i><span>CANCIONERO</span></div>
 <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
-<div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerListas() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div> 
 
-
+div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerListas() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
         <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
         <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
 
@@ -2086,8 +2086,8 @@ function darkModeToggle() {
             return;
         }
     }
-    
-    // Permiso para Listas (Alabanza y Danza)
+
+    // Permiso para LISTAS (Alabanza y Danza) - ESTE ES EL ÚNICO CAMBIO
     if (currentTab === 'lists') {
         if (!puedeVerListas()) {
             document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
@@ -2095,7 +2095,7 @@ function darkModeToggle() {
         }
     }
 
-    // Permisos para otros módulos
+    // El resto de condiciones IGUAL que antes (sin modificaciones)
     if (currentTab === 'gnotes' && !puedeVerGnotes()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
@@ -2117,7 +2117,7 @@ function darkModeToggle() {
         return;
     }
 
-    // Renderizado de cada vista
+    // Renderizado de vistas (igual que antes)
     if (currentTab === 'home') renderHome();
     else if (currentTab === 'fzkids') await renderFzkids();
     else if (currentTab === 'fzhost') await renderFzHost();
@@ -2131,7 +2131,7 @@ function darkModeToggle() {
     else if (currentTab === 'scriptura') await renderScriptura();
     else if (currentTab === 'profile') renderUserProfile();
     else if (currentTab === 'admin' && (isAdminUser || isIglesiaAdmin)) renderAdmin();
-            }
+}
     
     function navigateTo(tab) { currentTab = tab; document.querySelectorAll('.nav-item[data-tab]').forEach(el => { if (el.dataset.tab === tab) el.classList.add('active'); else el.classList.remove('active'); }); renderCurrentView(); }
 
