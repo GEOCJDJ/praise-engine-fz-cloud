@@ -2185,6 +2185,10 @@ function darkModeToggle() {
     if (localStorage.getItem('iec_darkmode') === 'true') document.body.classList.add('dark');
 }
     async function renderCurrentView() {
+        console.log("Permiso Alabanza:", puedeVerAlabanza());
+console.log("isAdminUser:", isAdminUser);
+console.log("isIglesiaAdmin:", isIglesiaAdmin);
+console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentUser?.id));
     const searchContainer = document.querySelector('.search-container');
     if (searchContainer) {
         const showSearch = (currentTab === 'songs') ||
