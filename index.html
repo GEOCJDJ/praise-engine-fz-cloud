@@ -1503,10 +1503,10 @@ function getShiftedKey(origKey, shift) {
 
 async function saveCifraStateToServer() {
     if (!cifraCurrentSong) return;
-    if (!isAdminUser && !isIglesiaAdmin) {
-        showToast("Solo administrador puede guardar cambios permanentes.");
-        return;
-    }
+    if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza')) {
+    showToast("Solo administrador o líder de alabanza puede guardar cambios permanentes.");
+    return;
+}
     let finalKey = getShiftedKey(cifraCurrentSong.key, cifraCurrentOffset);
     let finalBpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
     let finalCapo = document.getElementById('cifraCapoInput').value;
@@ -1913,10 +1913,14 @@ async function loadUserData() {
 }
     
 // ========== GUARDADO ==========
-async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza')) {
-    showToast("No tienes permiso para editar canciones.");
-    return false;
-}
+async function saveSong(song) {
+    if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza')) {
+        showToast("No tienes permiso para editar canciones.");
+        return false;
+    }
+    try {
+        const cleanSong = { id: song.id || generateUniqueId(), user_id: currentUser.id, title: song.title || "Sin título", category: song.category || "Adoración", key: song.key || "C", bpm: parseInt(song.bpm) || 80, chords_url: song.chordsUrl || "", chords_data: song.chordsData || "", lyrics: song.lyrics || "", youtube: song.youtube || "", iglesia_id: currentIglesiaId, capo: song.capo || "" }; const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' }); if (error) throw error; await loadUserData(); renderCurrentView(); return true;  
+    } catch(err) { console.error(err); showToast("Error al guardar: " + err.message); return false; } }
 
 async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza')) return; await supabaseClient.from('canciones').delete().eq('id', id).eq('iglesia_id', currentIglesiaId); await loadUserData(); renderCurrentView(); }
 async function saveList(list) { if (!currentUser) return showToast("Debes iniciar sesión."); try { if (list.id) { await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id); await supabaseClient.from('lista_items').delete().eq('lista_id', list.id); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } else { const newId = generateUniqueId(); await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date, iglesia_id: currentIglesiaId }); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } await loadUserData(); renderCurrentView(); } catch(e) { console.error(e); showToast("Error guardando lista."); } }
@@ -3879,7 +3883,6 @@ async function renderGmedia() {
 
 function renderTicketCard(ticket) {
     const esAdmin = isAdminUser || isIglesiaAdmin;
-    const puedeMover = esAdmin; // solo admin puede mover/editar
     const tipoClase = ticket.tipo === 'flyer' ? 'badge-flyer' : (ticket.tipo === 'video' ? 'badge-video' : 'badge-letras');
     const tipoTexto = ticket.tipo === 'flyer' ? 'Flyer Digital' : (ticket.tipo === 'video' ? 'Edición de Video' : 'Proyección / Letras');
     const fechaLimite = ticket.fecha_limite ? new Date(ticket.fecha_limite).toLocaleDateString('es-ES') : 'Sin fecha';
@@ -6411,8 +6414,6 @@ async function adminUserManagement() {
                         </div>
                     </div>
 
-                    // Dentro del bucle que genera cada tarjeta de usuario, agrega después del checkbox de adminDepto:
-
 <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
     <label style="display: flex; align-items: center; gap: 0.4rem;">
         <input type="checkbox" id="adminIglesia_${m.id}" ${m.es_admin_iglesia ? 'checked' : ''}> Admin de Iglesia
@@ -6504,12 +6505,13 @@ window.adminUserManagement = adminUserManagement;
 window.updateUserByAdminNuevo = async (miembroId, userId) => {
     const nombre = document.getElementById(`nombre_${miembroId}`).value;
     const rol = document.getElementById(`rol_${miembroId}`).value;
-    const departamentoId = equipoId || null; // si no seleccionó equipo, se asigna null
+     const equipoId = document.getElementById(`equipoSelect_${miembroId}`).value || null;
+    const departamentoId = equipoId || null; 
     const rolMusical = document.getElementById(`rolMusical_${miembroId}`).value || null;
     const esAdminIglesia = document.getElementById(`adminIglesia_${miembroId}`).checked;
     const esAdminDepto = document.getElementById(`adminDepto_${miembroId}`).checked;
     const esAdminEquipo = document.getElementById(`adminEquipo_${miembroId}`).checked;
-    const equipoId = document.getElementById(`equipoSelect_${miembroId}`).value || null;
+   
     // Actualizar perfil
    
     await supabaseClient.from('perfiles').update({ nombre, rol }).eq('id', userId);
