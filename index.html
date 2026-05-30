@@ -890,6 +890,14 @@ body.tema-naranja { --primary: #C2410C; --primary-light: #F97316; }
 
 :root { --border-color: #E2E8F0; }
 body.dark { --border-color: #334155; }
+
+.move-up-btn:hover, .move-down-btn:hover {
+    transform: scale(1.1);
+    color: #2563eb !important;
+}
+.move-up-btn:active, .move-down-btn:active {
+    transform: scale(0.95);
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -2505,7 +2513,7 @@ async function renderListDetail() {
         return;
     }
 
-    // ========== PERMISO PARA EDITAR LA LISTA (usando la misma lógica que el botón de eliminar) ==========
+    // Determinar si el usuario puede editar la lista
     const puedeEditar = isAdminUser || isIglesiaAdmin ||
         (isEquipoAdmin && equipoAdminData && 
          ['alabanza', 'equipo de alabanza', 'artes', 'producción', 'multimedia', 'danza']
@@ -2519,8 +2527,6 @@ async function renderListDetail() {
             const padre = depto.padre_id ? departamentos.find(d => d.id === depto.padre_id) : null;
             return deptosPermitidos.includes(depto.nombre) || (padre && deptosPermitidos.includes(padre.nombre));
         })();
-
-    console.log("🟢 renderListDetail - puedeEditar:", puedeEditar); // <-- LOG
 
     // Cabecera de acciones
     document.getElementById('actionHeader').innerHTML = `
@@ -2547,22 +2553,26 @@ async function renderListDetail() {
             <h2>${escapeHtml(list.name)}</h2>
             <p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p>
         </div>
-        <div id="dragArea"></div>
+        <div id="songsListContainer"></div>
     `;
 
-    const dragArea = document.getElementById('dragArea');
-
-    // Renderizar canciones
+    const songsContainer = document.getElementById('songsListContainer');
     if (!list.items || list.items.length === 0) {
-        dragArea.innerHTML = `<p style="padding:1rem;text-align:center;">No hay canciones agregadas.</p>`;
+        songsContainer.innerHTML = `<p style="padding:1rem;text-align:center;">No hay canciones agregadas.</p>`;
     } else {
-        dragArea.innerHTML = list.items.map((item, idx) => {
+        songsContainer.innerHTML = list.items.map((item, idx) => {
             const song = songs.find(s => s.id === (item.songId || item.song_id));
             if (!song) return '';
             let currentTone = item.keyOverride || item.key_override || song.key;
             return `
-                <div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem;">
-                    <i class="fas fa-grip-vertical drag-handle" style="cursor: ${puedeEditar ? 'grab' : 'not-allowed'}; opacity: ${puedeEditar ? 1 : 0.5};"></i>
+                <div class="card" data-index="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem;">
+                    ${puedeEditar ? `
+                        <div style="display:flex; flex-direction:column; gap:0.2rem; margin-right:0.3rem;">
+                            ${idx > 0 ? `<button class="move-up-btn" style="background:transparent; border:none; cursor:pointer; color:#3b82f6; font-size:1rem; transition:0.1s;" onclick="moveSongInList('${list.id}', ${idx}, 'up')"><i class="fas fa-chevron-up"></i></button>` : '<div style="width:28px; height:28px;"></div>'}
+                            ${idx < list.items.length-1 ? `<button class="move-down-btn" style="background:transparent; border:none; cursor:pointer; color:#3b82f6; font-size:1rem; transition:0.1s;" onclick="moveSongInList('${list.id}', ${idx}, 'down')"><i class="fas fa-chevron-down"></i></button>` : '<div style="width:28px; height:28px;"></div>'}
+                        </div>
+                    ` : ''}
+                    <i class="fas fa-grip-vertical" style="color:#94a3b8; opacity:0.5;"></i>
                     <div style="flex:1">
                         <b style="color:var(--primary-light);">${escapeHtml(song.title)}</b>
                         <span class="card-category">${song.category}</span>
@@ -2594,76 +2604,23 @@ async function renderListDetail() {
     `;
     container.appendChild(commentsSection);
     await loadComments(list.id);
-
-    // ========== INICIALIZAR SORTABLE (con manejo de errores) ==========
-    if (sortableInstance) sortableInstance.destroy();
-
-    if (puedeEditar && list.items && list.items.length > 0) {
-        // Verificar si Sortable está disponible
-        if (typeof Sortable === 'undefined') {
-            console.error("❌ Sortable no está cargado. Revisa la CDN.");
-            showToast("Error: No se puede reordenar, falta librería.", "error");
-            return;
-        }
-
-        console.log("✅ Inicializando Sortable en dragArea");
-
-        // Asegurar que cada .card tenga un data-idx correcto (base)
-        document.querySelectorAll('#dragArea .card').forEach((card, i) => {
-            card.setAttribute('data-idx', i);
-        });
-
-        try {
-            sortableInstance = new Sortable(dragArea, {
-                handle: '.drag-handle',
-                animation: 200,
-                onEnd: () => {
-                    console.log("🔄 Reorden completado, guardando nuevo orden...");
-                    // Obtener el nuevo orden basado en la posición actual en el DOM
-                    const newOrder = [];
-                    const cards = document.querySelectorAll('#dragArea .card');
-                    for (let card of cards) {
-                        // Buscar el item original por su posición anterior (data-idx) o por título
-                        const originalIdx = parseInt(card.getAttribute('data-idx'));
-                        if (!isNaN(originalIdx) && list.items[originalIdx]) {
-                            newOrder.push(list.items[originalIdx]);
-                        } else {
-                            // Fallback: buscar por título (menos fiable)
-                            const titleElem = card.querySelector('b');
-                            if (titleElem) {
-                                const title = titleElem.innerText;
-                                const found = list.items.find(item => {
-                                    const s = songs.find(song => song.id === (item.songId || item.song_id));
-                                    return s && s.title === title;
-                                });
-                                if (found) newOrder.push(found);
-                            }
-                        }
-                    }
-                    if (newOrder.length === list.items.length) {
-                        list.items = newOrder;
-                        saveList(list);
-                        showToast("✅ Orden guardado correctamente", "success");
-                    } else {
-                        console.error("Error: longitud no coincide", newOrder.length, list.items.length);
-                        showToast("❌ Error al guardar el orden", "error");
-                    }
-                }
-            });
-        } catch (err) {
-            console.error("❌ Error al crear Sortable:", err);
-            showToast("Error al habilitar arrastre", "error");
-        }
-    } else {
-        console.log("⚠️ No se inicializa Sortable: puedeEditar =", puedeEditar, "items =", list.items?.length);
-        // Opcional: ocultar handles visualmente
-        document.querySelectorAll('#dragArea .drag-handle').forEach(h => {
-            h.style.cursor = 'not-allowed';
-            h.style.opacity = '0.3';
-        });
-    }
 }
 
+async function moveSongInList(listId, index, direction) {
+    const list = lists.find(l => l.id === listId);
+    if (!list || !list.items) return;
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= list.items.length) return;
+    
+    // Intercambiar posiciones
+    const items = [...list.items];
+    [items[index], items[newIndex]] = [items[newIndex], items[index]];
+    list.items = items;
+    
+    await saveList(list);
+    // Refrescar la vista para mostrar el nuevo orden
+    await renderListDetail();
+}    
     
     function openAddSongToListModal() { const list = lists.find(l=>l.id===selectedListId); if(!list) return; let songsHtml = ''; songs.forEach(song=>{ const alreadyInList = list.items.some(item=>(item.songId||item.song_id)===song.id); songsHtml += `<label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;cursor:pointer;"><input type="checkbox" class="song-checkbox" value="${song.id}" ${alreadyInList?'disabled':''}><span><b>${escapeHtml(song.title)}</b> (${song.key}) - ${song.category}</span>${alreadyInList?'<span style="color:green;"> ✓ Ya está</span>':''}</label>`; }); showModal(`<h3>Añadir canciones a "${escapeHtml(list.name)}"</h3><input type="text" id="filterSongsMulti" class="form-control" placeholder="Filtrar canciones..." style="margin-bottom:1rem"><div id="songsMultiList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);padding:0.5rem;border-radius:8px;">${songsHtml}</div><div style="margin-top:1rem;text-align:right;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addSelectedSongsToList('${list.id}')">Añadir seleccionadas</button></div>`); const filterInput = document.getElementById('filterSongsMulti'); if(filterInput) filterInput.addEventListener('input',(e)=>{ const term = e.target.value.toLowerCase(); const labels = document.querySelectorAll('#songsMultiList label'); labels.forEach(label=>{ const text = label.innerText.toLowerCase(); label.style.display = text.includes(term)?'flex':'none'; }); }); }
 async function addSelectedSongsToList(listId) { const list = lists.find(l=>l.id===listId); if(!list) return; const checkboxes = document.querySelectorAll('.song-checkbox:checked'); if(checkboxes.length===0){ showToast("Selecciona al menos una canción."); return; } for(let cb of checkboxes){ const songId = cb.value; if(list.items.some(item=>(item.songId||item.song_id)===songId)) continue; list.items.push({ songId, keyOverride:null }); } await saveList(list); closeModal(); renderListDetail(); }
@@ -2673,8 +2630,44 @@ function exportAllListsToExcel() { const data = [["Lista","Canción","Categoría
 function printList(listId) { registrarImpresionLista(listId); const list = lists.find(l=>l.id===listId); if(!list||!list.items||list.items.length===0) return showToast("Lista vacía"); const win = window.open(); win.document.write(`<html><head><title>${escapeHtml(list.name)}</title><style>body{font-family:sans-serif;margin:0.2cm}.print-area{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.print-card{border:1px solid #000;border-radius:8px;padding:6px;break-inside:avoid}.print-title{font-weight:bold;text-align:center;border-bottom:1px solid #aaa;margin-bottom:4px}.print-song{font-size:8pt;margin:2px 0}.print-footer{font-size:6pt;text-align:center;margin-top:4px}</style></head><body><div class="print-area">`); for(let i=0;i<12;i++){ win.document.write(`<div class="print-card"><div class="print-title">${escapeHtml(list.name)}</div>`); list.items.forEach(item=>{ const s = songs.find(s=>s.id===(item.songId||item.song_id)); if(s) win.document.write(`<div class="print-song">🎵 ${escapeHtml(s.title)} (${item.keyOverride||item.key_override||s.key})</div>`); }); win.document.write(`<div class="print-footer">G-Praise®</div></div>`); } win.document.write('</div></body></html>'); win.document.close(); win.print(); }
 function exportListToExcel(listId) { const list = lists.find(l=>l.id===listId); const data = [["Canción","Tonalidad"]]; if(list.items) list.items.forEach(item=>{ const s = songs.find(s=>s.id===(item.songId||item.song_id)); if(s) data.push([s.title, item.keyOverride||item.key_override||s.key]); }); const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, list.name.slice(0,31)); XLSX.writeFile(wb, `${list.name.replace(/[^a-z0-9]/gi,'_')}.xlsx`); }
 function shareListWhatsApp(listId) { const list = lists.find(l=>l.id===listId); if(!list||!list.items||list.items.length===0) return showToast("Lista vacía"); let message = `🎵 *${list.name}* 🎵\n📅 ${list.date||''}\n\n`; list.items.forEach((item,i)=>{ const song = songs.find(s=>s.id===(item.songId||item.song_id)); if(song) message += `${i+1}. ${song.title} (${item.keyOverride||item.key_override||song.key})\n`; }); window.open(`https://wa.me/?text=${encodeURIComponent(message)}`,'_blank'); }
-async function loadComments(listaId) { const { data: comments } = await supabaseClient.from('comentarios_lista').select('*, perfiles(nombre)').eq('lista_id', listaId).order('fecha',{ascending:false}); const container = document.getElementById('commentsList'); if(!container) return; container.innerHTML = comments.map(c=>`<div style="border-bottom:1px solid var(--border);padding:0.5rem;margin-bottom:0.5rem;"><strong>${escapeHtml(c.perfiles?.nombre||'Usuario')}</strong><small>${new Date(c.fecha).toLocaleString()}</small><p>${escapeHtml(c.contenido)}</p>${(isAdminUser||isIglesiaAdmin)?`<button class="btn-icon" onclick="deleteComment(${c.id},'${listaId}')"><i class="fas fa-trash"></i></button>`:''}</div>`).join('')||'<p>Sin comentarios. Sé el primero en comentar.</p>'; }
-async function addComment(listaId) { const contenido = document.getElementById('newComment').value.trim(); if(!contenido) return showToast("Escribe un comentario"); const { error } = await supabaseClient.from('comentarios_lista').insert({ lista_id: listaId, user_id: currentUser.id, contenido }); if(error) showToast("Error: " + error.message); else { document.getElementById('newComment').value=''; loadComments(listaId); } }
+
+async function loadComments(listaId) {
+    try {
+        const { data: comments, error } = await supabaseClient
+            .from('comentarios_lista')
+            .select('*')
+            .eq('lista_id', listaId)
+            .order('fecha', { ascending: false });
+        if (error) throw error;
+        const container = document.getElementById('commentsList');
+        if (!container) return;
+        if (!comments || comments.length === 0) {
+            container.innerHTML = '<p>Sin comentarios. Sé el primero en comentar.</p>';
+            return;
+        }
+        // Obtener nombres de perfiles manualmente
+        const userIds = [...new Set(comments.map(c => c.user_id))];
+        const { data: perfiles } = await supabaseClient
+            .from('perfiles')
+            .select('id, nombre')
+            .in('id', userIds);
+        const perfilMap = Object.fromEntries((perfiles || []).map(p => [p.id, p.nombre]));
+        container.innerHTML = comments.map(c => `
+            <div style="border-bottom:1px solid var(--border);padding:0.5rem;margin-bottom:0.5rem;">
+                <strong>${escapeHtml(perfilMap[c.user_id] || 'Usuario')}</strong>
+                <small>${new Date(c.fecha).toLocaleString()}</small>
+                <p>${escapeHtml(c.contenido)}</p>
+                ${(isAdminUser || isIglesiaAdmin) ? `<button class="btn-icon" onclick="deleteComment('${c.id}','${listaId}')"><i class="fas fa-trash"></i></button>` : ''}
+            </div>
+        `).join('');
+    } catch(e) {
+        console.error('Error loading comments:', e);
+        const container = document.getElementById('commentsList');
+        if (container) container.innerHTML = '<p>Error al cargar comentarios.</p>';
+    }
+}
+    
+    async function addComment(listaId) { const contenido = document.getElementById('newComment').value.trim(); if(!contenido) return showToast("Escribe un comentario"); const { error } = await supabaseClient.from('comentarios_lista').insert({ lista_id: listaId, user_id: currentUser.id, contenido }); if(error) showToast("Error: " + error.message); else { document.getElementById('newComment').value=''; loadComments(listaId); } }
 async function deleteComment(commentId, listaId) { if(confirm("¿Eliminar comentario?")) { await supabaseClient.from('comentarios_lista').delete().eq('id',commentId); loadComments(listaId); } }
 
 // ========== MÓDULO G-NOTES (Recursos por Instrumento) ==========
