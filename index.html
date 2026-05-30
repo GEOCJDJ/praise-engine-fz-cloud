@@ -2084,7 +2084,11 @@ function puedeVerGDesk() {
     return !!currentUser && !!currentIglesiaId;
 }
   
-    
+function formatearFechaEvento(fechaStr) {
+    const [year, month, day] = fechaStr.split('-');
+    const fechaObj = new Date(Date.UTC(year, month-1, day));
+    return fechaObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+}    
 // ========== RENDER PRINCIPAL ==========
 // ========== RENDER PRINCIPAL ==========
 function renderApp() {
@@ -8373,7 +8377,7 @@ function mostrarInterfazPlanner() {
                     ${plannerEventos.map((evento, idx) => `
                         <div onclick="seleccionarSemanaPlanner('${evento.id}')" class="planner-week-tab" data-id="${evento.id}" style="flex: 0 0 100px; background: ${plannerSemanaSeleccionada?.id === evento.id ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'var(--surface)'}; border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; text-align: center; cursor: pointer; transition: all 0.2s;">
                             <span style="font-size: 0.65rem; font-weight: 700; display: block; opacity: 0.7; color: ${plannerSemanaSeleccionada?.id === evento.id ? 'white' : 'var(--text-muted)'};">DOMINGO</span>
-                            <b style="font-size: 0.8rem; display: block; margin-top: 2px; color: ${plannerSemanaSeleccionada?.id === evento.id ? 'white' : 'var(--text-main)'};">${new Date(evento.fecha).toLocaleDateString('es-ES', { day:'numeric', month:'short' })}</b>
+                            <b style="font-size: 0.8rem; display: block; margin-top: 2px; color: ${plannerSemanaSeleccionada?.id === evento.id ? 'white' : 'var(--text-main)'};">${formatearFechaEvento(evento.fecha)}</b>
                         </div>
                     `).join('')}
                 </div>
