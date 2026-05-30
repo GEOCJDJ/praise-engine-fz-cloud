@@ -6105,6 +6105,11 @@ function renderAdmin() {
                 <h3>Gestionar Usuarios</h3>
                 <p>Asignar departamento, roles, etc.</p>
             </div>
+            <div class="card" onclick="gestionarUsuariosHuerfanos()">
+    <i class="fas fa-user-plus"></i>
+    <h3>Reasignar Usuarios</h3>
+    <p>Usuarios sin iglesia asignada</p>
+</div>
             <!-- NUEVA TARJETA PARA ELIMINAR TODAS LAS CANCIONES -->
             <div class="card" onclick="deleteAllSongs()" style="background:#EF4444; color:white;">
                 <i class="fas fa-trash-alt"></i>
@@ -6576,7 +6581,182 @@ window.deleteUserById = async (userId) => {
         showToast("Error al eliminar: " + err.message);
     }
 };
+   async function gestionarUsuariosHuerfanos() {
+    // Obtener todos los perfiles (usuarios registrados en auth)
+    const { data: todosPerfiles, error: perfError } = await supabaseClient
+        .from('perfiles')
+        .select('id, nombre, email, rol');
+    if (perfError) {
+        showToast("Error al cargar perfiles: " + perfError.message);
+        return;
+    }
+
+    // Obtener los IDs de usuarios que YA tienen registro en usuarios_iglesia para la iglesia actual
+    const { data: miembrosExistentes, error: existError } = await supabaseClient
+        .from('usuarios_iglesia')
+        .select('user_id')
+        .eq('iglesia_id', currentIglesiaId);
+    if (existError) {
+        showToast("Error al cargar miembros existentes: " + existError.message);
+        return;
+    }
+
+    const idsExistentes = new Set(miembrosExistentes.map(m => m.user_id));
+
+    // Filtrar los perfiles que NO están en la iglesia actual
+    const usuariosHuerfanos = todosPerfiles.filter(p => !idsExistentes.has(p.id));
+
+    if (usuariosHuerfanos.length === 0) {
+        showModal(`
+            <div style="text-align: center; padding: 1rem;">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #10b981;"></i>
+                <h3>No hay usuarios pendientes</h3>
+                <p>Todos los usuarios ya están asignados a esta iglesia.</p>
+                <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+            </div>
+        `);
+        return;
+    }
+
+    // Mostrar lista de usuarios huérfanos
+    let html = `
+        <h3><i class="fas fa-user-plus"></i> Usuarios sin iglesia asignada</h3>
+        <p style="margin-bottom: 1rem;">Estos usuarios ya están registrados en el sistema pero no pertenecen a ninguna iglesia. Puedes asignarlos manualmente.</p>
+        <div style="max-height: 60vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 0.75rem;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: var(--bg-app); position: sticky; top: 0;">
+                    <tr>
+                        <th style="padding: 0.5rem; text-align: left;">Usuario</th>
+                        <th style="padding: 0.5rem; text-align: left;">Email</th>
+                        <th style="padding: 0.5rem; text-align: center;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    for (const user of usuariosHuerfanos) {
+        html += `
+            <tr style="border-top: 1px solid var(--border);">
+                <td style="padding: 0.5rem;">${escapeHtml(user.nombre || 'Sin nombre')}</td>
+                <td style="padding: 0.5rem;">${escapeHtml(user.email)}</td>
+                <td style="padding: 0.5rem; text-align: center;">
+                    <button class="btn btn-primary" style="padding: 0.2rem 0.8rem; font-size: 0.7rem;" onclick="asignarUsuarioAIglesia('${user.id}', '${escapeHtml(user.nombre)}')">
+                        Asignar a esta iglesia
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top: 1rem; text-align: right;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+        </div>
+    `;
+
+    showModal(html);
+}
+
+window.asignarUsuarioAIglesia = async (userId, userName) => {
+    // Obtener departamentos (áreas y equipos) para mostrar opciones
+    const { data: deptos } = await supabaseClient
+        .from('departamentos')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId);
     
+    const departamentosActuales = deptos || [];
+    const areas = departamentosActuales.filter(d => d.padre_id === null && d.nombre !== 'GENERAL');
+    const equipos = departamentosActuales.filter(d => d.padre_id !== null);
+    const equiposPorArea = {};
+    equipos.forEach(e => {
+        if (!equiposPorArea[e.padre_id]) equiposPorArea[e.padre_id] = [];
+        equiposPorArea[e.padre_id].push(e);
+    });
+
+    // Construir selects dinámicos
+    let areasOptions = '<option value="">Selecciona área (opcional)</option>';
+    areas.forEach(a => {
+        areasOptions += `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`;
+    });
+
+    const modalContent = `
+        <div style="max-width: 500px; margin: 0 auto;">
+            <h3>Asignar usuario: ${escapeHtml(userName)}</h3>
+            <p>Selecciona el equipo al que pertenecerá en <strong>${escapeHtml(currentIglesiaData?.nombre)}</strong></p>
+            <div class="form-group">
+                <label>Área (opcional)</label>
+                <select id="asignarArea" class="form-control" onchange="cargarEquiposAsignacion()">
+                    ${areasOptions}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Equipo</label>
+                <select id="asignarEquipo" class="form-control">
+                    <option value="">Selecciona un equipo</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Rol musical (opcional)</label>
+                <select id="asignarRolMusical" class="form-control">
+                    <option value="">Sin rol</option>
+                    ${["Voz","Batería","Bajo","Guitarra","Teclado","Percusión","Otro"].map(r => `<option value="${r}">${r}</option>`).join('')}
+                </select>
+            </div>
+            <div style="margin-top: 1rem; text-align: right;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmarAsignarUsuario('${userId}')">Asignar</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+
+    // Registrar función para cargar equipos según área
+    window.cargarEquiposAsignacion = () => {
+        const areaId = document.getElementById('asignarArea').value;
+        const equipoSelect = document.getElementById('asignarEquipo');
+        if (!areaId) {
+            equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>';
+            return;
+        }
+        const equiposLista = equiposPorArea[areaId] || [];
+        equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + equiposLista.map(e => `<option value="${e.id}">${escapeHtml(e.nombre)}</option>`).join('');
+    };
+};
+
+window.confirmarAsignarUsuario = async (userId) => {
+    const equipoId = document.getElementById('asignarEquipo').value;
+    const rolMusical = document.getElementById('asignarRolMusical').value || null;
+
+    if (!equipoId) {
+        showToast("Debes seleccionar al menos un equipo", "warning");
+        return;
+    }
+
+    // Insertar en usuarios_iglesia
+    const { error } = await supabaseClient.from('usuarios_iglesia').insert({
+        user_id: userId,
+        iglesia_id: currentIglesiaId,
+        departamento_id: equipoId,
+        rol_musical: rolMusical,
+        es_admin_iglesia: false,
+        es_admin_departamento: false,
+        es_admin_equipo: false,
+        equipo_id: null
+    });
+
+    if (error) {
+        showToast("Error al asignar: " + error.message, "error");
+    } else {
+        showToast("Usuario asignado correctamente a la iglesia", "success");
+        closeModal();
+        await loadUserData();
+        renderCurrentView();
+        if (currentTab === 'admin') renderAdmin();
+    }
+}; 
     
     
     async function adminCourses() { let html=`<h3>Gestionar Cursos</h3>`; for(let curso of cursos){ html+=`<div class="card" style="margin-bottom:1rem;"><h4>${escapeHtml(curso.titulo)}</h4><p>${escapeHtml(curso.descripcion||'Sin descripción')}</p><button class="btn btn-primary" onclick="editCourse('${curso.id}')">Editar Curso</button><button class="btn btn-ghost" onclick="manageModules('${curso.id}')">Gestionar Lecciones</button></div>`; } html+=`<button class="btn btn-primary" onclick="createCourse()">➕ Nuevo Curso</button>`; showModal(html); }
