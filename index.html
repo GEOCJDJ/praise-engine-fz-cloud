@@ -8074,7 +8074,7 @@ async function abrirChecklistAmbiente() {
 }
 
  // ==================== MÓDULO G-DANCE (Danza) ====================
-let currentGrupoDanza = 'Azarel';
+let currentGrupoDanza = 'Asarel';
 let gdanceData = {};
 
 async function renderGDance() {
@@ -8101,7 +8101,7 @@ async function cargarDatosDanza() {
     gdanceData[grupo.nombre] = grupo;
   });
   // Si no hay datos, usar valores por defecto
-  if (!gdanceData['Azarel']) {
+  if (!gdanceData['Asarel']) {
     gdanceData['Asarel'] = {
       horario: 'Servicio 1: 08:30 AM',
       ensayo: 'Ensayo: Sáb 15:00',
@@ -8113,7 +8113,7 @@ async function cargarDatosDanza() {
       vestuario_detalle: 'Túnica Blanca + Heraldo Azul'
     };
   }
-  if (!gdanceData['Azarelitos']) {
+  if (!gdanceData['Asarelitos']) {
     gdanceData['Asarelitos'] = {
       horario: 'Servicio 2: 11:00 AM',
       ensayo: 'Ensayo: Sáb 10:30 AM',
@@ -8128,7 +8128,7 @@ async function cargarDatosDanza() {
 }
 
 function mostrarInterfazDanza() {
-  const grupo = gdanceData[currentGrupoDanza] || gdanceData['Azarel'];
+  const grupo = gdanceData[currentGrupoDanza] || gdanceData['Asarel'];
   const html = `
     <div style="max-width: 1000px; margin: 0 auto;">
       <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
@@ -8141,11 +8141,11 @@ function mostrarInterfazDanza() {
             <p style="color: var(--text-muted); font-size: 0.8rem; margin: 2px 0 0 0;">Coordinación y Expresión Corporal</p>
           </div>
           <div style="display: flex; background: var(--bg-app); padding: 4px; border-radius: 0.75rem; border: 1px solid var(--border);">
-            <button onclick="cambiarGrupoDanza('Asarel')" id="btnDanzaAzarel" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Azarel' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarel' ? 'white' : 'var(--text-main)'}; font-weight: bold; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
-              Azarel <span style="font-size: 10px; font-weight: normal; opacity: 0.8;">(≥12)</span>
+            <button onclick="cambiarGrupoDanza('Asarel')" id="btnDanzaAsarel" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Asarel' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarel' ? 'white' : 'var(--text-main)'}; font-weight: bold; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
+              Asarel <span style="font-size: 10px; font-weight: normal; opacity: 0.8;">(≥12)</span>
             </button>
-            <button onclick="cambiarGrupoDanza('Asarelitos')" id="btnDanzaAzarelitos" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Azarelitos' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarelitos' ? 'white' : 'var(--text-main)'}; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
-              Azarelitos <span style="font-size: 10px; font-weight: normal; opacity: 0.6;">(&lt;12)</span>
+            <button onclick="cambiarGrupoDanza('Asarelitos')" id="btnDanzaAsarelitos" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Asarelitos' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarelitos' ? 'white' : 'var(--text-main)'}; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
+              Asarelitos<span style="font-size: 10px; font-weight: normal; opacity: 0.6;">(&lt;12)</span>
             </button>
           </div>
         </div>
@@ -8340,8 +8340,8 @@ function mostrarInterfazPlanner() {
     }
 
     const fechaActual = plannerSemanaSeleccionada ? new Date(plannerSemanaSeleccionada.fecha) : new Date();
-    const balanceAzarel = plannerSemanaSeleccionada?.balance_azarel || 60;
-    const balanceAzarelitos = plannerSemanaSeleccionada?.balance_azarelitos || 40;
+    const balanceAsarel = plannerSemanaSeleccionada?.balance_Asarel || 60;
+    const balanceAsarelitos= plannerSemanaSeleccionada?.balance_Asarelitos|| 40;
 
     const html = `
         <div style="max-width: 1000px; margin: 0 auto;">
@@ -8362,12 +8362,12 @@ function mostrarInterfazPlanner() {
                 <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 1rem; padding: 0.7rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 1rem;">
                     <span><i class="fa-solid fa-chart-pie" style="color:#6366f1;"></i> Balance de Carga:</span>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="color: #a855f7; font-weight: bold;">Asarel ${balanceAzarel}%</span>
+                        <span style="color: #a855f7; font-weight: bold;">Asarel ${balanceAsarel}%</span>
                         <div style="height: 6px; width: 80px; background: #e5e7eb; border-radius: 999px; overflow: hidden; display: flex;">
-                            <div style="width: ${balanceAzarel}%; background: #a855f7;"></div>
-                            <div style="width: ${balanceAzarelitos}%; background: #ec4899;"></div>
+                            <div style="width: ${balanceAsarel}%; background: #a855f7;"></div>
+                            <div style="width: ${balanceAsarelitos}%; background: #ec4899;"></div>
                         </div>
-                        <span style="color: #ec4899; font-weight: bold;">${balanceAzarelitos}% Kids</span>
+                        <span style="color: #ec4899; font-weight: bold;">${balanceAsarelitos}% Kids</span>
                     </div>
                 </div>
 
@@ -8391,7 +8391,7 @@ function mostrarInterfazPlanner() {
                     <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 1rem; padding: 0.8rem;">
                         <span style="font-size: 0.65rem; font-weight: 800; color: #7e22ce; display: block;"><i class="fa-solid fa-church"></i> DOMINGO (08:30)</span>
                         <b id="plannerDomingoGrupo" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">
-    ${(plannerSemanaSeleccionada?.domingo_grupo || '').replace(/Azarel/g, 'Asarel')}
+    ${(plannerSemanaSeleccionada?.domingo_grupo || '').replace(/Asarel/g, 'Asarel')}
 </b>
                     </div>
                 </div>
@@ -8459,7 +8459,7 @@ window.setPlannerRol = (rol, btnElement) => {
 };
 function corregirNombreGrupo(nombre) {
     if (!nombre) return nombre;
-    return nombre.replace(/Azarel/g, 'Asarel');
+    return nombre.replace(/Asarel/g, 'Asarel');
 }
 function renderizarCancionesPlanner() {
     const container = document.getElementById('plannerCancionesContainer');
@@ -8626,7 +8626,7 @@ async function crearEventoPlanner() {
         fecha: fecha,
         titulo_domingo: titulo,
         sabado_actividad: 'Ensayo General',
-        domingo_grupo: 'Azarel (Principal)',
+        domingo_grupo: 'Asarel (Principal)',
         iglesia_id: currentIglesiaId
     });
     if (error) {
