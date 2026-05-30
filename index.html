@@ -2285,8 +2285,92 @@ async function renderHome() {
 // ========== CANCIONERO ==========
 async function renderSongsGrid() {
     console.log("🟢 renderSongsGrid() ejecutándose");
-    let favs = []; if (currentUser) { const { data, error } = await supabaseClient.from('favoritos').select('song_id').eq('user_id', currentUser.id); if (!error && data) favs = data.map(f => f.song_id); } const query = document.getElementById('globalSearch')?.value.toLowerCase() || ''; let filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.category.toLowerCase().includes(query)); filtered.sort((a,b)=>a.title.localeCompare(b.title)); document.getElementById('actionHeader').innerHTML = (isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button><button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar/Exportar</button>` : `<span class="text-muted">Canciones</span>`; const container = document.getElementById('mainContent'); container.innerHTML = `<div class="grid">${filtered.map((s,idx) => { const isFav = favs.includes(s.id); return `<div class="card" onclick="openCifraViewer('${s.id}',${idx})"><div style="display:flex;justify-content:space-between;"><span class="card-category">${s.category}</span><i class="fav-icon" style="color:gold;cursor:pointer;font-size:1.3rem;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')">${isFav ? '⭐' : '☆'}</i></div><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}</div></div>`; }).join('')}</div>`; }
-
+    
+    // Verificar que currentUser y currentIglesiaId existan
+    if (!currentUser) {
+        console.error("No hay usuario logueado");
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger">Debes iniciar sesión.</div>';
+        return;
+    }
+    
+    if (!currentIglesiaId) {
+        console.error("No hay iglesia seleccionada");
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger">No hay iglesia seleccionada.</div>';
+        return;
+    }
+    
+    // Recargar canciones para asegurar datos frescos
+    await loadUserData();
+    
+    console.log("Canciones después de loadUserData:", songs.length);
+    
+    if (songs.length === 0) {
+        document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">No hay canciones disponibles. Contacta al administrador.</div>';
+        return;
+    }
+    
+    // Obtener favoritos del usuario actual
+    let favs = [];
+    if (currentUser) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('favoritos')
+                .select('song_id')
+                .eq('user_id', currentUser.id);
+            if (!error && data) {
+                favs = data.map(f => f.song_id);
+            } else if (error) {
+                console.error("Error al cargar favoritos:", error);
+            }
+        } catch(e) {
+            console.error("Excepción al cargar favoritos:", e);
+        }
+    }
+    
+    const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
+    let filtered = songs.filter(s => 
+        (s.title && s.title.toLowerCase().includes(query)) || 
+        (s.category && s.category.toLowerCase().includes(query))
+    );
+    filtered.sort((a,b) => (a.title || '').localeCompare(b.title || ''));
+    
+    // Verificar si hay resultados después del filtro
+    if (filtered.length === 0) {
+        document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">No se encontraron canciones con ese criterio.</div>';
+        return;
+    }
+    
+    // Construir el HTML de la cuadrícula
+    let gridHtml = `<div class="grid">`;
+    for (let idx = 0; idx < filtered.length; idx++) {
+        const s = filtered[idx];
+        const isFav = favs.includes(s.id);
+        gridHtml += `
+            <div class="card" onclick="openCifraViewer('${s.id}', ${idx})">
+                <div style="display:flex; justify-content:space-between;">
+                    <span class="card-category">${escapeHtml(s.category || 'Adoración')}</span>
+                    <i class="fav-icon" style="color:gold;cursor:pointer;font-size:1.3rem;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')">${isFav ? '⭐' : '☆'}</i>
+                </div>
+                <div class="card-title">${escapeHtml(s.title || 'Sin título')}</div>
+                <div><i class="fas fa-music"></i> Tono: <b>${escapeHtml(s.key || 'C')}</b> | 🥁 ${s.bpm || '--'} BPM</div>
+                <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">
+                    ${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}
+                    <button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button>
+                    <button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button>
+                    <button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>
+                    ${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}
+                </div>
+            </div>
+        `;
+    }
+    gridHtml += `</div>`;
+    
+    document.getElementById('mainContent').innerHTML = gridHtml;
+    document.getElementById('actionHeader').innerHTML = (isAdminUser || isIglesiaAdmin) 
+        ? `<button class="btn btn-primary" onclick="openSongModal()"><i class="fas fa-plus"></i> Nueva Canción</button>
+           <button class="btn btn-ghost" onclick="openBackupModal()"><i class="fas fa-upload"></i> Importar/Exportar</button>` 
+        : `<span class="text-muted">Canciones</span>`;
+}
     
     async function renderFavorites() { if (!currentUser) return; const { data: favoritos } = await supabaseClient.from('favoritos').select('song_id').eq('user_id', currentUser.id); const favIds = favoritos.map(f=>f.song_id); const filtered = songs.filter(s=>favIds.includes(s.id)); filtered.sort((a,b)=>a.title.localeCompare(b.title)); document.getElementById('actionHeader').innerHTML = `<span class="text-muted">Tus canciones favoritas</span>`; const container = document.getElementById('mainContent'); if (filtered.length===0) { container.innerHTML='<p>Marca la estrella ⭐ en cualquier canción del CANCIONERO.</p>'; return; } container.innerHTML = `<div class="grid">${filtered.map((s,idx)=>`<div class="card" onclick="openCifraViewer('${s.id}',${idx})"><div style="display:flex;justify-content:space-between;"><span class="card-category">${s.category}</span><i class="fas fa-star fav-icon" style="color:gold;cursor:pointer;" onclick="event.stopPropagation(); toggleFavorite('${s.id}')"></i></div><div class="card-title">${escapeHtml(s.title)}</div><div><i class="fas fa-music"></i> Tono: <b>${s.key}</b> | 🥁 ${s.bpm||'--'} BPM</div><div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;" onclick="event.stopPropagation()">${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-ghost" onclick="openSongModal('${s.id}')">Editar</button>` : ''}<button class="btn btn-ghost" onclick="openMetronome('${s.id}')"><i class="fas fa-drumstick-bite"></i> Metrónomo</button><button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button><button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}</div></div>`).join('')}</div>`; }
 async function toggleFavorite(songId) { if (!currentUser) return showToast("Inicia sesión"); const { data: exists } = await supabaseClient.from('favoritos').select('id').eq('user_id', currentUser.id).eq('song_id', songId).single(); if (exists) await supabaseClient.from('favoritos').delete().eq('id', exists.id); else await supabaseClient.from('favoritos').insert({ user_id: currentUser.id, song_id: songId }); if (currentTab === 'favorites') await renderFavorites(); else if (currentTab === 'songs') await renderSongsGrid(); }
