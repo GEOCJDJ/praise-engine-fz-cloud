@@ -2245,6 +2245,7 @@ console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentU
     else if (currentTab === 'agenda') await renderAgenda();
     else if (currentTab === 'eventos') await renderEventosCompletos();
     else if (currentTab === 'gdesk') await renderGDesk();
+        else if (currentTab === 'songs') await renderSongsGrid();
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
