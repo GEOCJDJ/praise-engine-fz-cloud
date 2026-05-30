@@ -6439,7 +6439,7 @@ async function adminUserManagement() {
     }
 
     // Función para abrir modal de edición con todos los campos
-        window.abrirModalEditarUsuario = async (miembroId, userId) => {
+           window.abrirModalEditarUsuario = async (miembroId, userId) => {
         const { data: miembro, error: errMiembro } = await supabaseClient
             .from('usuarios_iglesia')
             .select('*, perfiles(nombre, email, rol)')
@@ -6656,7 +6656,6 @@ async function adminUserManagement() {
             adminUserManagement();
         }
     };
-
 // Asegurar que la función sea global
 window.adminUserManagement = adminUserManagement;
 
