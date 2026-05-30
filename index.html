@@ -1013,6 +1013,8 @@ let usuariosIglesia = [];
 let currentTab = 'home', selectedListId = null, listsViewMode = 'grid';
 let sortableInstance = null, metronomeInterval = null;
 let isAdminUser = false;
+let isEquipoAdmin = false;
+let equipoAdminData = null;   // objeto del equipo (nombre, id)
 let isIglesiaAdmin = false;
 let isDeptAdmin = false;
 let currentProfile = null;
@@ -1796,8 +1798,61 @@ function renderChordsOverLyrics(text) {
 // ========== AUTENTICACIÓN Y PERFIL ==========
 async function login(email, password) { try { const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; currentUser = data.user; await loadProfile(); await loadUserIglesia(); await loadUserData(); renderApp(); registrarActividad('login', email); } catch (err) { showToast("Error al iniciar sesión: " + err.message); } }
 async function loadProfile() { if (!currentUser) return; const { data, error } = await supabaseClient.from('perfiles').select('*').eq('id', currentUser.id).single(); if (error && error.code !== 'PGRST116') console.error(error); currentProfile = data || { id: currentUser.id, nombre: currentUser.email, rol: 'user' }; isAdminUser = (currentUser.email === 'emilychuncha@gmail.com'); }
-async function loadUserIglesia() { const { data, error } = await supabaseClient.from('usuarios_iglesia').select('*, iglesias(*)').eq('user_id', currentUser.id).maybeSingle(); if (error) { console.error(error); currentIglesiaId = null; currentUserIglesia = null; return; } currentUserIglesia = data; if (data) { currentIglesiaId = data.iglesia_id; currentIglesiaData = data.iglesias; isIglesiaAdmin = data.es_admin_iglesia || false; isDeptAdmin = data.es_admin_departamento || false; } else { if (isAdminUser) { currentIglesiaId = null; isIglesiaAdmin = false; isDeptAdmin = false; } else { currentIglesiaId = null; isIglesiaAdmin = false; isDeptAdmin = false; } } }
-async function updateProfile(updates) { await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id); await loadProfile(); showToast("Perfil actualizado"); }
+
+async function loadUserIglesia() {
+    const { data, error } = await supabaseClient
+        .from('usuarios_iglesia')
+        .select('*, iglesias(*)')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error(error);
+        currentIglesiaId = null;
+        currentUserIglesia = null;
+        isEquipoAdmin = false;
+        equipoAdminData = null;
+        return;
+    }
+
+    currentUserIglesia = data;
+    if (data) {
+        currentIglesiaId = data.iglesia_id;
+        currentIglesiaData = data.iglesias;
+        isIglesiaAdmin = data.es_admin_iglesia || false;
+        isDeptAdmin = data.es_admin_departamento || false;
+
+        // --- NUEVO: Admin de equipo ---
+        isEquipoAdmin = data.es_admin_equipo || false;
+        if (isEquipoAdmin && data.equipo_id) {
+            const { data: equipo } = await supabaseClient
+                .from('departamentos')
+                .select('*')
+                .eq('id', data.equipo_id)
+                .single();
+            equipoAdminData = equipo;
+        } else {
+            equipoAdminData = null;
+        }
+    } else {
+        if (isAdminUser) {
+            currentIglesiaId = null;
+            isIglesiaAdmin = false;
+            isDeptAdmin = false;
+            isEquipoAdmin = false;
+            equipoAdminData = null;
+        } else {
+            currentIglesiaId = null;
+            isIglesiaAdmin = false;
+            isDeptAdmin = false;
+            isEquipoAdmin = false;
+            equipoAdminData = null;
+        }
+    }
+}
+    
+    
+    async function updateProfile(updates) { await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id); await loadProfile(); showToast("Perfil actualizado"); }
 async function resetPassword(email) { try { await supabaseClient.auth.resetPasswordForEmail(email); showToast("Se ha enviado un enlace a tu correo."); } catch(err) { showToast("Error: " + err.message); } }
 async function logout() { await supabaseClient.auth.signOut(); currentUser = null; renderLogin(); }
 function renderRegister() { (async () => { const { data: iglesiasList, error } = await supabaseClient.from('iglesias').select('id, nombre'); if (error) console.error(error); const options = (iglesiasList || []).map(ig => `<option value="${ig.id}">${escapeHtml(ig.nombre)}</option>`).join(''); document.getElementById('appRoot').innerHTML = `<div class="login-container"><i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i><h2>Crear Cuenta</h2><div class="form-group"><input type="text" id="regName" class="form-control" placeholder="Nombre completo *" required></div><div class="form-group"><input type="email" id="regEmail" class="form-control" placeholder="Correo electrónico *" required></div><div class="form-group"><input type="date" id="regFecha" class="form-control" required></div><div class="form-group"><label>Iglesia a la que perteneces *</label><select id="regIglesia" class="form-control" required>${options}</select></div><div class="form-group"><input type="password" id="regPass" class="form-control" placeholder="Contraseña *" required></div><div class="form-group"><input type="password" id="regConfirmPass" class="form-control" placeholder="Confirmar contraseña *" required></div><button class="btn btn-primary w-100 mb-2" onclick="registerUser()">Registrarme</button><button class="btn btn-ghost w-100" onclick="renderLogin()">Volver al inicio</button></div>`; })(); }
@@ -1858,121 +1913,156 @@ async function loadUserData() {
 }
     
 // ========== GUARDADO ==========
-async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin) { showToast("No tienes permiso para editar canciones."); return false; } try { const cleanSong = { id: song.id || generateUniqueId(), user_id: currentUser.id, title: song.title || "Sin título", category: song.category || "Adoración", key: song.key || "C", bpm: parseInt(song.bpm) || 80, chords_url: song.chordsUrl || "", chords_data: song.chordsData || "", lyrics: song.lyrics || "", youtube: song.youtube || "", iglesia_id: currentIglesiaId, capo: song.capo || "" }; const { error } = await supabaseClient.from('canciones').upsert(cleanSong, { onConflict: 'id' }); if (error) throw error; await loadUserData(); renderCurrentView(); return true; } catch (err) { console.error(err); showToast("Error al guardar: " + err.message); return false; } }
-async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('canciones').delete().eq('id', id).eq('iglesia_id', currentIglesiaId); await loadUserData(); renderCurrentView(); }
+async function saveSong(song) { if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza')) {
+    showToast("No tienes permiso para editar canciones.");
+    return false;
+}
+
+async function deleteSong(id) { if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza')) return; await supabaseClient.from('canciones').delete().eq('id', id).eq('iglesia_id', currentIglesiaId); await loadUserData(); renderCurrentView(); }
 async function saveList(list) { if (!currentUser) return showToast("Debes iniciar sesión."); try { if (list.id) { await supabaseClient.from('listas').update({ name: list.name, date: list.date }).eq('id', list.id); await supabaseClient.from('lista_items').delete().eq('lista_id', list.id); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: list.id, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } else { const newId = generateUniqueId(); await supabaseClient.from('listas').insert({ id: newId, name: list.name, date: list.date, iglesia_id: currentIglesiaId }); const itemsToInsert = (list.items || []).map((item, i) => ({ lista_id: newId, song_id: item.songId || item.song_id, key_override: item.keyOverride || null, orden: i })); if (itemsToInsert.length) await supabaseClient.from('lista_items').insert(itemsToInsert); } await loadUserData(); renderCurrentView(); } catch(e) { console.error(e); showToast("Error guardando lista."); } }
-async function deleteList(id) { if (!isAdminUser && !isIglesiaAdmin) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
+async function deleteList(id) { if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza')) return; await supabaseClient.from('listas').delete().eq('id', id); if (selectedListId === id) selectedListId = null; await loadUserData(); renderCurrentView(); }
 
     // ========== FUNCIONES DE PERMISOS POR DEPARTAMENTO/EQUIPO ==========
 
 // Permiso para módulos de alabanza (CANCIONERO, LISTAS, FAVORITOS, G-NOTES)
 function puedeVerAlabanza() {
-  if (isAdminUser || isIglesiaAdmin) return true;
-  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-  if (!miembro) return false;
-  // Departamento debe ser "Artes" o "EQUIPO DE ARTES" (ajusta el nombre según tu BD)
-  const depto = departamentos.find(d => d.id === miembro.departamento_id);
-  if (!depto) return false;
-  // Permite si el departamento se llama "Artes" o "EQUIPO DE ARTES" (puedes poner el nombre exacto)
-  const esArtes = depto.nombre === 'Artes' || depto.nombre === 'EQUIPO DE ARTES';
-  // O si tiene un rol musical asignado (por si hay subdepartamentos)
-  const tieneRolMusical = miembro.rol_musical && miembro.rol_musical !== '';
-  return esArtes || tieneRolMusical;
+    if (isAdminUser || isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData) {
+        const equipo = equipoAdminData.nombre.toLowerCase();
+        return equipo === 'alabanza' || equipo === 'equipo de alabanza' || equipo === 'artes';
+    }
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    const depto = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!depto) return false;
+    const esArtes = depto.nombre === 'Artes' || depto.nombre === 'EQUIPO DE ARTES';
+    const tieneRolMusical = miembro.rol_musical && miembro.rol_musical !== '';
+    return esArtes || tieneRolMusical;
 }
-
-// Permiso para G-NOTES (mismos que alabanza, pero puede ser más restrictivo)
 function puedeVerGnotes() {
-  return puedeVerAlabanza(); // Por ahora igual, puedes ajustar después
+    if (isAdminUser || isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData) {
+        const equipo = equipoAdminData.nombre.toLowerCase();
+        return equipo === 'alabanza' || equipo === 'equipo de alabanza' || equipo === 'artes';
+    }
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    const depto = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!depto) return false;
+    const esArtes = depto.nombre === 'Artes' || depto.nombre === 'EQUIPO DE ARTES';
+    const tieneRolMusical = miembro.rol_musical && miembro.rol_musical !== '';
+    return puedeVerAlabanza();
+}
+function puedeVerListas() {
+    if (isAdminUser || isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData) {
+        const equipo = equipoAdminData.nombre.toLowerCase();
+        return equipo === 'alabanza' || equipo === 'danza' || equipo === 'equipo de alabanza';
+    }
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    const depto = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!depto) return false;
+    const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza'];
+    return deptosPermitidos.includes(depto.nombre);
 }
 
-// Permiso para FZKIDS (ya existe, la mantenemos)
+   function puedeVerGmedia() {
+    if (isAdminUser || isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData) {
+        const equipo = equipoAdminData.nombre.toLowerCase();
+        return equipo === 'multimedia' || equipo === 'alabanza' || equipo === 'artes';
+    }
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    const depto = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!depto) return false;
+    const esArtes = depto.nombre === 'Artes' || depto.nombre === 'EQUIPO DE ARTES';
+    const tieneRolMusical = miembro.rol_musical && miembro.rol_musical !== '';
+    return esArtes || tieneRolMusical;
+}
+    
 function puedeVerFzkids() {
-  if (isAdminUser || isIglesiaAdmin) return true;
-  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-  if (!miembro) return false;
-  const depto = departamentos.find(d => d.id === miembro.departamento_id);
-  if (!depto) return false;
-  // Departamento "Servicio" y equipo "Escuela Bíblica" (subdepartamento)
-  if (depto.nombre !== 'Escuela Bíblica') return false;
-  const deptoPadre = departamentos.find(d => d.id === depto.padre_id);
-  return deptoPadre && deptoPadre.nombre === 'Servicio';
+    if (isAdminUser || isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData) {
+        const equipo = equipoAdminData.nombre.toLowerCase();
+        return equipo === 'escuela bíblica' || equipo === 'escuela biblica';
+    }
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    const depto = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!depto) return false;
+    if (depto.nombre !== 'Escuela Bíblica') return false;
+    const deptoPadre = departamentos.find(d => d.id === depto.padre_id);
+    return deptoPadre && deptoPadre.nombre === 'Servicio';
 }
 
     
-// Permiso para FZ HOST (ya definida antes)
 function puedeVerFzHost() {
-  if (isAdminUser || isIglesiaAdmin) return true;
-  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-  if (!miembro) return false;
-  if (isDeptAdmin) {
-    const deptoServicio = departamentos.find(d => d.nombre === 'Servicio' && d.padre_id === null);
-    if (deptoServicio && currentUserIglesia?.departamento_id === deptoServicio.id) return true;
-  }
-  const deptoUsuario = departamentos.find(d => d.id === miembro.departamento_id);
-  if (!deptoUsuario) return false;
-  if (deptoUsuario.nombre !== 'Ujieres') return false;
-  const deptoPadre = departamentos.find(d => d.id === deptoUsuario.padre_id);
-  return deptoPadre && deptoPadre.nombre === 'Servicio';
+    if (isAdminUser || isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData) {
+        const equipo = equipoAdminData.nombre.toLowerCase();
+        return equipo === 'ujieres' || equipo === 'servicio';
+    }
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    if (isDeptAdmin) {
+        const deptoServicio = departamentos.find(d => d.nombre === 'Servicio' && d.padre_id === null);
+        if (deptoServicio && currentUserIglesia?.departamento_id === deptoServicio.id) return true;
+    }
+    const deptoUsuario = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!deptoUsuario) return false;
+    if (deptoUsuario.nombre !== 'Ujieres') return false;
+    const deptoPadre = departamentos.find(d => d.id === deptoUsuario.padre_id);
+    return deptoPadre && deptoPadre.nombre === 'Servicio';
 }
-
+    
 function puedeVerGDance() {
-  if (isAdminUser || isIglesiaAdmin) return true;
-  if (isDeptAdmin) {
-    // Si es administrador del departamento de Danza (ajusta nombre)
-    const deptoDanza = departamentos.find(d => d.nombre === 'Danza' && d.padre_id === null);
-    if (deptoDanza && currentUserIglesia?.departamento_id === deptoDanza.id) return true;
-  }
-  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-  if (!miembro) return false;
-  const deptoUsuario = departamentos.find(d => d.id === miembro.departamento_id);
-  if (!deptoUsuario) return false;
-  // Puede ser directamente departamento "Danza" o subdepartamento "Danza" (equipo)
-  if (deptoUsuario.nombre === 'Danza') return true;
-  const deptoPadre = departamentos.find(d => d.id === deptoUsuario.padre_id);
-  return deptoPadre && deptoPadre.nombre === 'Danza';
+    if (isAdminUser || isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData) {
+        const equipo = equipoAdminData.nombre.toLowerCase();
+        return equipo === 'danza';
+    }
+    if (isDeptAdmin) {
+        const deptoDanza = departamentos.find(d => d.nombre === 'Danza' && d.padre_id === null);
+        if (deptoDanza && currentUserIglesia?.departamento_id === deptoDanza.id) return true;
+    }
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    const deptoUsuario = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!deptoUsuario) return false;
+    if (deptoUsuario.nombre === 'Danza') return true;
+    const deptoPadre = departamentos.find(d => d.id === deptoUsuario.padre_id);
+    return deptoPadre && deptoPadre.nombre === 'Danza';
 }
     
 function puedeVerPlanner() {
-  if (isAdminUser || isIglesiaAdmin) return true;
-  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-  if (!miembro) return false;
-  const depto = departamentos.find(d => d.id === miembro.departamento_id);
-  if (!depto) return false;
-  const nombreDepto = depto.nombre.toLowerCase();
-  // Departamentos que pueden ver el planner (en minúsculas para comparar)
-  const deptosPermitidos = ['artes', 'danza', 'servicio', 'equipo de artes'];
-  return deptosPermitidos.includes(nombreDepto);
+    if (isAdminUser || isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData) {
+        const equipo = equipoAdminData.nombre.toLowerCase();
+        const equiposPlanner = ['alabanza', 'danza', 'multimedia', 'sonido', 'lideres'];
+        return equiposPlanner.includes(equipo);
+    }
+    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+    if (!miembro) return false;
+    const depto = departamentos.find(d => d.id === miembro.departamento_id);
+    if (!depto) return false;
+    const nombreDepto = depto.nombre.toLowerCase();
+    const deptosPermitidos = ['artes', 'danza', 'servicio', 'equipo de artes'];
+    return deptosPermitidos.includes(nombreDepto);
 }
 
-
-    function puedeVerListas() {
-  if (isAdminUser || isIglesiaAdmin) return true;
-  const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-  if (!miembro) return false;
-  const depto = departamentos.find(d => d.id === miembro.departamento_id);
-  if (!depto) return false;
-  // Departamentos que pueden ver Listas: Alabanza (Artes) y Danza
-  const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza'];
-  return deptosPermitidos.includes(depto.nombre);
-    }
     
 function puedeVerAgenda() {
     // Visible para cualquier usuario que haya iniciado sesión y tenga una iglesia asignada
     return !!currentUser && !!currentIglesiaId;
 }
 
-    function puedeVerGmedia() {
-    if (isAdminUser || isIglesiaAdmin) return true;
-    const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-    if (!miembro) return false;
-    const depto = departamentos.find(d => d.id === miembro.departamento_id);
-    if (!depto) return false;
-    // Solo "Artes" o "EQUIPO DE ARTES" pueden ver G-MEDIA
-    const esArtes = depto.nombre === 'Artes' || depto.nombre === 'EQUIPO DE ARTES';
-    // También si tiene rol musical (por si hay diseñadores multimedia dentro de alabanza)
-    const tieneRolMusical = miembro.rol_musical && miembro.rol_musical !== '';
-    return esArtes || tieneRolMusical;
+function puedeVerGDesk() {
+    // Cualquier usuario autenticado con iglesia puede ver G-DESK
+    return !!currentUser && !!currentIglesiaId;
 }
+  
     
 // ========== RENDER PRINCIPAL ==========
 // ========== RENDER PRINCIPAL ==========
@@ -3695,6 +3785,7 @@ async function renderGmedia() {
         return;
     }
     const container = document.getElementById('mainContent');
+    const puedeMover = isAdminUser || isIglesiaAdmin || (isEquipoAdmin && equipoAdminData?.nombre === 'Multimedia');
     const actionHeader = document.getElementById('actionHeader');
     actionHeader.innerHTML = `
         <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
@@ -6220,6 +6311,12 @@ async function adminUserManagement() {
         .select('*')
         .eq('iglesia_id', currentIglesiaId);
     const departamentosActuales = deptosActuales || [];
+    // Obtener equipos (subdepartamentos)
+    const { data: equiposDisponibles } = await supabaseClient
+    .from('departamentos')
+    .select('id, nombre')
+    .eq('iglesia_id', currentIglesiaId)
+    .not('padre_id', 'is', null);
 
     // Árbol de departamentos (para área y equipo)
     const generalDepto = departamentosActuales.find(d => d.nombre === 'GENERAL' && d.padre_id === null);
@@ -6314,15 +6411,29 @@ async function adminUserManagement() {
                         </div>
                     </div>
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 0.8rem;">
-                        <div style="display: flex; gap: 1rem;">
-                            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem;">
-                                <input type="checkbox" id="adminIglesia_${m.id}" ${m.es_admin_iglesia ? 'checked' : ''}> Administrador de iglesia
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem;">
-                                <input type="checkbox" id="adminDepto_${m.id}" ${m.es_admin_departamento ? 'checked' : ''}> Administrador de departamento
-                            </label>
-                        </div>
+                    // Dentro del bucle que genera cada tarjeta de usuario, agrega después del checkbox de adminDepto:
+
+<div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+    <label style="display: flex; align-items: center; gap: 0.4rem;">
+        <input type="checkbox" id="adminIglesia_${m.id}" ${m.es_admin_iglesia ? 'checked' : ''}> Admin de Iglesia
+    </label>
+    <label style="display: flex; align-items: center; gap: 0.4rem;">
+        <input type="checkbox" id="adminDepto_${m.id}" ${m.es_admin_departamento ? 'checked' : ''}> Admin de Departamento
+    </label>
+    <!-- NUEVO: Admin de equipo -->
+    <label style="display: flex; align-items: center; gap: 0.4rem;">
+        <input type="checkbox" id="adminEquipo_${m.id}" ${m.es_admin_equipo ? 'checked' : ''}> Admin de Equipo
+    </label>
+</div>
+
+<!-- Selector de equipo (solo equipos, no áreas) -->
+<div class="form-group" style="margin-top: 0.5rem;">
+    <label style="font-size: 0.7rem;">Equipo que administra:</label>
+    <select id="equipoSelect_${m.id}" class="form-control" style="font-size: 0.8rem;">
+        <option value="">Ninguno</option>
+        ${equiposDisponibles.map(eq => `<option value="${eq.id}" ${m.equipo_id === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('')}
+    </select>
+</div>
                         <button class="btn btn-primary" onclick="updateUserByAdminNuevo('${m.id}', '${m.user_id}')" style="padding: 0.4rem 1rem; font-size: 0.8rem;">
                             <i class="fas fa-save"></i> Guardar cambios
                         </button>
@@ -6393,15 +6504,25 @@ window.adminUserManagement = adminUserManagement;
 window.updateUserByAdminNuevo = async (miembroId, userId) => {
     const nombre = document.getElementById(`nombre_${miembroId}`).value;
     const rol = document.getElementById(`rol_${miembroId}`).value;
-    const equipoId = document.getElementById(`equipo_${miembroId}`).value;
     const departamentoId = equipoId || null; // si no seleccionó equipo, se asigna null
     const rolMusical = document.getElementById(`rolMusical_${miembroId}`).value || null;
     const esAdminIglesia = document.getElementById(`adminIglesia_${miembroId}`).checked;
     const esAdminDepto = document.getElementById(`adminDepto_${miembroId}`).checked;
+    const esAdminEquipo = document.getElementById(`adminEquipo_${miembroId}`).checked;
+    const equipoId = document.getElementById(`equipoSelect_${miembroId}`).value || null;
     // Actualizar perfil
+   
     await supabaseClient.from('perfiles').update({ nombre, rol }).eq('id', userId);
     // Actualizar usuarios_iglesia
-    await supabaseClient.from('usuarios_iglesia').update({ departamento_id: departamentoId, rol_musical: rolMusical, es_admin_iglesia: esAdminIglesia, es_admin_departamento: esAdminDepto }).eq('id', miembroId);
+    await supabaseClient.from('usuarios_iglesia').update({
+    departamento_id: departamentoId,
+    rol_musical: rolMusical,
+    es_admin_iglesia: esAdminIglesia,
+    es_admin_departamento: esAdminDepto,
+    es_admin_equipo: esAdminEquipo,
+    equipo_id: equipoId
+}).eq('id', miembroId);
+    
     showToast("Usuario actualizado correctamente");
     closeModal();
     adminUserManagement();
