@@ -2146,7 +2146,7 @@ function renderApp() {
 
     document.querySelectorAll('.nav-item[data-tab]').forEach(el => {
         el.addEventListener('click', () => {
-            console.log("Click en pestaña:", el.dataset.tab);
+            
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
             el.classList.add('active');
             currentTab = el.dataset.tab;
