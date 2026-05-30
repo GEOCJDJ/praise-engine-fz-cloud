@@ -8077,142 +8077,213 @@ async function abrirChecklistAmbiente() {
 let currentGrupoDanza = 'Asarel';
 let gdanceData = {};
 
+// Variables globales para G-DANCE
+let gdanceListaActual = null;      // lista seleccionada (próximo domingo)
+let gdanceCancionesDetalle = [];    // array con detalles coreográficos
+
 async function renderGDance() {
-  if (!puedeVerGDance()) {
-    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-    return;
-  }
-  await cargarDatosDanza();
-  mostrarInterfazDanza();
+    if (!puedeVerGDance()) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+        return;
+    }
+
+    // Obtener la lista del próximo domingo (la más cercana con fecha >= hoy)
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const proximoDomingo = new Date(hoy);
+    const diasHastaDomingo = (7 - hoy.getDay()) % 7 || 7;
+    proximoDomingo.setDate(hoy.getDate() + diasHastaDomingo);
+    const fechaProxDomingoStr = `${proximoDomingo.getDate().toString().padStart(2,'0')}/${(proximoDomingo.getMonth()+1).toString().padStart(2,'0')}/${proximoDomingo.getFullYear()}`;
+    
+    // Buscar lista que coincida con esa fecha
+    const listaProxDomingo = lists.find(l => l.date === fechaProxDomingoStr);
+    if (!listaProxDomingo) {
+        document.getElementById('mainContent').innerHTML = `
+            <div style="max-width:800px; margin:0 auto; text-align:center; padding:2rem;">
+                <i class="fas fa-calendar-times" style="font-size:3rem; color:var(--text-muted);"></i>
+                <h3>No hay lista programada para el próximo domingo (${fechaProxDomingoStr})</h3>
+                <p>Crea una lista con esa fecha en el módulo LISTAS para poder planificar la danza.</p>
+                <button class="btn btn-primary" onclick="navigateTo('lists')">Ir a LISTAS</button>
+            </div>
+        `;
+        return;
+    }
+    
+    gdanceListaActual = listaProxDomingo;
+    
+    // Cargar detalles coreográficos guardados para esta lista (si existen)
+    const { data: detallesGuardados } = await supabaseClient
+        .from('gdance_canciones')
+        .select('*')
+        .eq('lista_id', gdanceListaActual.id)
+        .order('orden', { ascending: true });
+    
+    if (detallesGuardados && detallesGuardados.length) {
+        gdanceCancionesDetalle = detallesGuardados;
+    } else {
+        // Inicializar con las canciones de la lista (sin detalles)
+        gdanceCancionesDetalle = gdanceListaActual.items.map((item, idx) => {
+            const song = songs.find(s => s.id === (item.songId || item.song_id));
+            return {
+                id: generateUniqueId(),
+                lista_id: gdanceListaActual.id,
+                cancion_id: song?.id,
+                orden: idx,
+                intro_desc: '',
+                coro_desc: '',
+                notas_adicionales: ''
+            };
+        });
+    }
+    
+    // Mostrar interfaz
+    mostrarInterfazGDance();
 }
 
-async function cargarDatosDanza() {
-  const { data, error } = await supabaseClient
-    .from('gdance_grupos')
-    .select('*')
-    .order('nombre');
-  if (error) {
-    console.error(error);
-    return;
-  }
-  // Guardar en un objeto para acceso rápido
-  gdanceData = {};
-  data.forEach(grupo => {
-    gdanceData[grupo.nombre] = grupo;
-  });
-  // Si no hay datos, usar valores por defecto
-  if (!gdanceData['Asarel']) {
-    gdanceData['Asarel'] = {
-      horario: 'Servicio 1: 08:30 AM',
-      ensayo: 'Ensayo: Sáb 15:00',
-      cancion: 'Hosanna (En vivo)',
-      intro_desc: 'Banderas Doradas',
-      coro_desc: 'Entrada General con Mantos',
-      color_gradual: 'linear-gradient(135deg, #e0f2fe 0%, #3b82f6 100%)',
-      vestuario_nombre: 'Manto Celestial',
-      vestuario_detalle: 'Túnica Blanca + Heraldo Azul'
-    };
-  }
-  if (!gdanceData['Asarelitos']) {
-    gdanceData['Asarelitos'] = {
-      horario: 'Servicio 2: 11:00 AM',
-      ensayo: 'Ensayo: Sáb 10:30 AM',
-      cancion: 'Fiesta Hay En La Casa',
-      intro_desc: 'Listones de Colores',
-      coro_desc: 'Coreografía de Manos Libres',
-      color_gradual: 'linear-gradient(135deg, #fef08a 0%, #eab308 100%)',
-      vestuario_nombre: 'Efod Real',
-      vestuario_detalle: 'Falda de Colores + Cinto Oro'
-    };
-  }
+function mostrarInterfazGDance() {
+    const container = document.getElementById('mainContent');
+    if (!gdanceListaActual) return;
+    
+    // Obtener fecha legible
+    const fechaLista = gdanceListaActual.date;
+    const [dia, mes, anio] = fechaLista.split('/');
+    const fechaObj = new Date(anio, mes-1, dia);
+    const fechaLegible = fechaObj.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    
+    // Construir HTML de canciones con detalles editables
+    let cancionesHtml = '';
+    for (let i = 0; i < gdanceCancionesDetalle.length; i++) {
+        const det = gdanceCancionesDetalle[i];
+        const song = songs.find(s => s.id === det.cancion_id);
+        if (!song) continue;
+        cancionesHtml += `
+            <div class="gdance-cancion-card" data-idx="${i}" style="background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <h4 style="margin:0; font-size:1rem; font-weight:800;">${escapeHtml(song.title)}</h4>
+                    <span style="font-size:0.7rem; background: var(--bg-app); padding:2px 8px; border-radius:20px;">Tono: ${song.key || 'C'} | BPM: ${song.bpm || '--'}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem;">
+                    <div>
+                        <label style="font-size:0.7rem; font-weight:bold;">🎵 Intro / Entrada</label>
+                        <input type="text" class="form-control gdance-intro" data-idx="${i}" value="${escapeHtml(det.intro_desc || '')}" placeholder="Ej: Banderas Doradas" style="font-size:0.75rem;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; font-weight:bold;">💃 Coro / Desarrollo</label>
+                        <input type="text" class="form-control gdance-coro" data-idx="${i}" value="${escapeHtml(det.coro_desc || '')}" placeholder="Ej: Entrada General con Mantos" style="font-size:0.75rem;">
+                    </div>
+                </div>
+                <div style="margin-top:0.5rem;">
+                    <label style="font-size:0.7rem; font-weight:bold;">📝 Notas adicionales (opcional)</label>
+                    <textarea class="form-control gdance-notas" data-idx="${i}" rows="2" style="font-size:0.75rem;">${escapeHtml(det.notas_adicionales || '')}</textarea>
+                </div>
+            </div>
+        `;
+    }
+    
+    const html = `
+        <div style="max-width: 1000px; margin: 0 auto;">
+            <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: var(--shadow);">
+                
+                <!-- Encabezado -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color: #a855f7;"></i> G-DANCE
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 0.8rem; margin: 2px 0 0 0;">Coordinación y Expresión Corporal</p>
+                    </div>
+                    <div style="background: #e0f2fe; border-radius: 2rem; padding: 0.3rem 1rem; font-size:0.75rem; font-weight:bold; color:#0369a1;">
+                        <i class="fa-regular fa-calendar"></i> Lista del: ${fechaLegible}
+                    </div>
+                </div>
+
+                <!-- Grupos (Asarel / Asarelitos) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; background: var(--bg-app); padding: 4px; border-radius: 0.75rem; border: 1px solid var(--border);">
+                        <button onclick="cambiarGrupoDanza('Asarel')" id="btnDanzaAsarel" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Asarel' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarel' ? 'white' : 'var(--text-main)'}; font-weight: bold; font-size: 0.8rem; cursor: pointer;">Asarel <span style="font-size: 10px; font-weight: normal;">(≥12)</span></button>
+                        <button onclick="cambiarGrupoDanza('Asarelitos')" id="btnDanzaAsarelitos" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Asarelitos' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarelitos' ? 'white' : 'var(--text-main)'}; font-weight: 600; font-size: 0.8rem; cursor: pointer;">Asarelitos <span style="font-size: 10px;">(&lt;12)</span></button>
+                    </div>
+                    <div style="background: #fef3c7; padding: 0.3rem 1rem; border-radius: 2rem; font-size:0.7rem;">
+                        <i class="fa-regular fa-clock"></i> Ensayo: Sábado 15:00
+                    </div>
+                </div>
+
+                <!-- Pauta Coreográfica (lista de canciones) -->
+                <div style="margin-top: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-music"></i> Pauta Coreográfica</h3>
+                        <button class="btn btn-primary" onclick="guardarDetallesGDance()" style="padding:0.3rem 1rem; font-size:0.7rem;"><i class="fas fa-save"></i> Guardar detalles</button>
+                    </div>
+                    <div id="gdanceCancionesContainer">
+                        ${cancionesHtml}
+                    </div>
+                </div>
+
+                <!-- Vestuario (se mantiene con datos de ejemplo o se puede cargar de Supabase) -->
+                <div style="margin-top: 2rem; background: var(--bg-app); border-radius: 1rem; padding: 1rem;">
+                    <h3 style="font-size:0.9rem; font-weight:800; margin:0 0 0.5rem 0;"><i class="fa-solid fa-shirt"></i> Vestuario Asignado</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #e0f2fe, #3b82f6); border: 2px solid white;"></div>
+                        <div>
+                            <strong>Manto Celestial</strong><br>
+                            <span style="font-size:0.7rem;">Túnica Blanca + Heraldo Azul</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button class="btn btn-ghost" onclick="abrirVideoGuia()"><i class="fa-solid fa-video"></i> Video Guía</button>
+                    <button class="btn btn-ghost" onclick="abrirFormaciones()"><i class="fa-solid fa-users-viewfinder"></i> Formaciones</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Agregar eventos para edición en tiempo real (opcional: auto-guardar al cambiar)
+    document.querySelectorAll('.gdance-intro, .gdance-coro, .gdance-notas').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const idx = parseInt(input.getAttribute('data-idx'));
+            if (isNaN(idx)) return;
+            const campo = input.classList.contains('gdance-intro') ? 'intro_desc' : 
+                          (input.classList.contains('gdance-coro') ? 'coro_desc' : 'notas_adicionales');
+            gdanceCancionesDetalle[idx][campo] = input.value;
+            // Auto-guardar cada cambio (opcional)
+            // guardarDetallesGDance();
+        });
+    });
 }
 
-function mostrarInterfazDanza() {
-  const grupo = gdanceData[currentGrupoDanza] || gdanceData['Asarel'];
-  const html = `
-    <div style="max-width: 1000px; margin: 0 auto;">
-      <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
-          <div>
-            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
-              <i class="fa-solid fa-wand-magic-sparkles" style="color: #a855f7;"></i> G-DANCE
-            </h2>
-            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 2px 0 0 0;">Coordinación y Expresión Corporal</p>
-          </div>
-          <div style="display: flex; background: var(--bg-app); padding: 4px; border-radius: 0.75rem; border: 1px solid var(--border);">
-            <button onclick="cambiarGrupoDanza('Asarel')" id="btnDanzaAsarel" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Asarel' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarel' ? 'white' : 'var(--text-main)'}; font-weight: bold; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
-              Asarel <span style="font-size: 10px; font-weight: normal; opacity: 0.8;">(≥12)</span>
-            </button>
-            <button onclick="cambiarGrupoDanza('Asarelitos')" id="btnDanzaAsarelitos" style="padding: 6px 12px; border-radius: 0.5rem; border: none; background: ${currentGrupoDanza === 'Asarelitos' ? '#a855f7' : 'transparent'}; color: ${currentGrupoDanza === 'Asarelitos' ? 'white' : 'var(--text-main)'}; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease;">
-              Asarelitos<span style="font-size: 10px; font-weight: normal; opacity: 0.6;">(&lt;12)</span>
-            </button>
-          </div>
-        </div>
-
-        <div style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); padding: 12px 16px; border-radius: 1rem; color: white; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <i class="fa-regular fa-clock" style="font-size: 1.1rem;"></i>
-            <div>
-              <span style="font-size: 10px; text-transform: uppercase; font-weight: bold; display: block; opacity: 0.8;">HORARIO DOMINGOS</span>
-              <b id="lblDanzaHorario" style="font-size: 0.9rem;">${grupo.horario}</b>
-            </div>
-          </div>
-          <span id="lblDanzaEnsayos" style="font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 999px; font-weight: 500;">${grupo.ensayo}</span>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
-          <div style="background: var(--bg-app); padding: 1.2rem; border-radius: 1rem; border: 1px solid var(--border);">
-            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-music" style="color: #6366f1;"></i> Pauta Coreográfica
-            </h3>
-            <div style="background: var(--surface); padding: 10px; border-radius: 0.75rem; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-              <div>
-                <b id="lblDanzaCancion" style="font-size: 0.85rem; display: block; color: var(--text-main);">${grupo.cancion}</b>
-                <span style="font-size: 11px; color: var(--text-muted);">Secuencia Dominical</span>
-              </div>
-              <button class="btn-play" style="background: #6366f1; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);">
-                <i class="fa-solid fa-play" style="font-size: 10px; margin-left: 2px;"></i>
-              </button>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-              <div style="display: flex; justify-content: space-between; font-size: 11px; padding: 6px; background: var(--surface); border-radius: 0.5rem; border-left: 3px solid #eab308;">
-                <span style="font-weight: 600; color: var(--text-main);">00:00 - Intro</span>
-                <span id="lblDanzaIntro" style="color: #a16207; font-weight: 500;">${grupo.intro_desc}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 11px; padding: 6px; background: var(--surface); border-radius: 0.5rem; border-left: 3px solid #3b82f6;">
-                <span style="font-weight: 600; color: var(--text-main);">01:15 - Coro 1</span>
-                <span id="lblDanzaCoro" style="color: #1d4ed8; font-weight: 500;">${grupo.coro_desc}</span>
-              </div>
-            </div>
-          </div>
-
-          <div style="background: var(--bg-app); padding: 1.2rem; border-radius: 1rem; border: 1px solid var(--border);">
-            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-shirt" style="color: #ec4899;"></i> Vestuario Asignado
-            </h3>
-            <div style="display: flex; gap: 12px; align-items: center; background: var(--surface); padding: 12px; border-radius: 0.75rem; border: 1px solid var(--border);">
-              <div id="badgeDanzaColor" style="width: 45px; height: 45px; border-radius: 50%; background: ${grupo.color_gradual}; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex-shrink: 0;"></div>
-              <div style="flex-grow: 1;">
-                <b id="lblDanzaVestuario" style="font-size: 0.9rem; display: block; color: var(--text-main);">${grupo.vestuario_nombre}</b>
-                <span id="lblDanzaDetalleVestuario" style="font-size: 11px; color: var(--text-muted);">${grupo.vestuario_detalle}</span>
-              </div>
-            </div>
-            <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-              <button onclick="abrirVideoGuia()" style="padding: 8px; font-size: 11px; font-weight: bold; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                <i class="fa-solid fa-video" style="color: #a855f7;"></i> Video Guía
-              </button>
-              <button onclick="abrirFormaciones()" style="padding: 8px; font-size: 11px; font-weight: bold; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                <i class="fa-solid fa-users-viewfinder" style="color: #14b8a6;"></i> Formaciones
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  document.getElementById('mainContent').innerHTML = html;
+// Función para guardar los detalles coreográficos en Supabase
+async function guardarDetallesGDance() {
+    if (!gdanceListaActual) return;
+    // Eliminar detalles anteriores para esta lista
+    await supabaseClient.from('gdance_canciones').delete().eq('lista_id', gdanceListaActual.id);
+    // Insertar los nuevos con IDs generados
+    if (gdanceCancionesDetalle.length) {
+        const inserts = gdanceCancionesDetalle.map(det => ({
+            ...det,
+            id: det.id || generateUniqueId()   // asegurar ID único
+        }));
+        const { error } = await supabaseClient.from('gdance_canciones').insert(inserts);
+        if (error) {
+            showToast('Error al guardar: ' + error.message, 'error');
+            console.error(error);
+        } else {
+            showToast('Detalles coreográficos guardados', 'success');
+        }
+    } else {
+        showToast('No hay detalles para guardar', 'warning');
+    }
 }
+
+// Función para cambiar grupo (global)
+window.cambiarGrupoDanza = (grupo) => {
+    currentGrupoDanza = grupo;
+    renderGDance(); // refrescar la vista (podrías actualizar solo estilos, pero por simplicidad)
+};
 
 // Función global para cambiar de grupo (desde los botones)
 window.cambiarGrupoDanza = (grupo) => {
