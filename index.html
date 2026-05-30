@@ -6730,6 +6730,16 @@ window.deleteUserById = async (userId) => {
     }
 
     let html = `
+    
+    <h3><i class="fas fa-user-plus"></i> Reasignar usuarios a ${escapeHtml(currentIglesiaData?.nombre)}</h3>
+    <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="buscarUsuarioPorEmail()" style="font-size: 0.7rem;">
+            🔍 Buscar usuario por email
+        </button>
+        <span style="font-size: 0.7rem; color: var(--text-muted);">Si no ves a un usuario, busca manualmente.</span>
+    </div>
+    <p style="margin-bottom: 1rem;">Usuarios registrados que no pertenecen a esta iglesia. Puedes asignarlos (si ya tienen otra iglesia, serán movidos).</p>
+
         <h3><i class="fas fa-user-plus"></i> Reasignar usuarios a ${escapeHtml(currentIglesiaData?.nombre)}</h3>
         <p style="margin-bottom: 1rem;">Usuarios registrados que no pertenecen a esta iglesia. Puedes asignarlos (si ya tienen otra iglesia, serán movidos).</p>
         <div style="max-height: 60vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 0.75rem;">
@@ -6894,6 +6904,51 @@ window.confirmarAsignarUsuario = async (userId, userName, tieneOtraIglesia, regi
         }
     }
 };
+   // Función para buscar usuario por email y reasignarlo a la iglesia actual
+window.buscarUsuarioPorEmail = async () => {
+    const email = prompt("Ingresa el email del usuario que deseas buscar y reasignar (ej: joel@example.com):");
+    if (!email) return;
+
+    // Buscar en perfiles
+    const { data: perfil, error } = await supabaseClient
+        .from('perfiles')
+        .select('id, nombre, email')
+        .eq('email', email)
+        .single();
+    
+    if (error || !perfil) {
+        showToast("No se encontró ningún usuario con ese email.", "error");
+        return;
+    }
+
+    // Verificar si ya pertenece a la iglesia actual
+    const { data: existe } = await supabaseClient
+        .from('usuarios_iglesia')
+        .select('id, iglesia_id')
+        .eq('user_id', perfil.id)
+        .eq('iglesia_id', currentIglesiaId)
+        .maybeSingle();
+    
+    if (existe) {
+        showToast(`El usuario ${perfil.nombre} ya pertenece a esta iglesia.`, "warning");
+        return;
+    }
+
+    // Obtener su iglesia actual (si tiene)
+    const { data: otraIglesia } = await supabaseClient
+        .from('usuarios_iglesia')
+        .select('iglesias(nombre)')
+        .eq('user_id', perfil.id)
+        .maybeSingle();
+    
+    const iglesiaActual = otraIglesia?.iglesias?.nombre || 'Ninguna';
+
+    // Confirmar reasignación
+    if (confirm(`Usuario encontrado: ${perfil.nombre} (${perfil.email})\nIglesia actual: ${iglesiaActual}\n¿Deseas asignarlo a ${currentIglesiaData?.nombre}?`)) {
+        // Abrir el mismo modal de asignación que usamos para huérfanos
+        asignarUsuarioAIglesia(perfil.id, perfil.nombre, !!otraIglesia, otraIglesia?.id || '');
+    }
+}; 
     
     async function adminCourses() { let html=`<h3>Gestionar Cursos</h3>`; for(let curso of cursos){ html+=`<div class="card" style="margin-bottom:1rem;"><h4>${escapeHtml(curso.titulo)}</h4><p>${escapeHtml(curso.descripcion||'Sin descripción')}</p><button class="btn btn-primary" onclick="editCourse('${curso.id}')">Editar Curso</button><button class="btn btn-ghost" onclick="manageModules('${curso.id}')">Gestionar Lecciones</button></div>`; } html+=`<button class="btn btn-primary" onclick="createCourse()">➕ Nuevo Curso</button>`; showModal(html); }
     function createCourse() { showModal(`<h3>Nuevo Curso</h3><div class="form-group"><label>Título</label><input id="newCourseTitle" class="form-control"></div><div class="form-group"><label>Descripción</label><textarea id="newCourseDesc" rows="3" class="form-control"></textarea></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewCourse()">Guardar</button></div>`); }
