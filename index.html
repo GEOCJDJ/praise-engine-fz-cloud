@@ -1989,19 +1989,27 @@ function puedeVerListas() {
 }
 
    function puedeVerGmedia() {
-    if (isAdminUser || isIglesiaAdmin) return true;
-    if (isEquipoAdmin && equipoAdminData) {
-        const equipo = equipoAdminData.nombre.toLowerCase();
-        return equipo === 'multimedia' || equipo === 'alabanza' || equipo === 'artes';
-    }
+    // 1. Admin general (superadmin) siempre ve
+    if (isAdminUser) return true;
+    
+    // 2. Miembros del departamento PRODUCCIÓN (nombre exacto "Producción" o "PRODUCCIÓN")
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
     if (!miembro) return false;
+    
     const depto = departamentos.find(d => d.id === miembro.departamento_id);
     if (!depto) return false;
-    const esArtes = depto.nombre === 'Artes' || depto.nombre === 'EQUIPO DE ARTES';
-    const tieneRolMusical = miembro.rol_musical && miembro.rol_musical !== '';
-    return esArtes || tieneRolMusical;
-}
+    
+    // 3. El departamento puede llamarse "Producción" o tener un padre "Producción" (subequipos)
+    const esProduccion = depto.nombre === 'Producción' || depto.nombre === 'PRODUCCIÓN';
+    const padre = depto.padre_id ? departamentos.find(d => d.id === depto.padre_id) : null;
+    const esHijoDeProduccion = padre && (padre.nombre === 'Producción' || padre.nombre === 'PRODUCCIÓN');
+    
+    // 4. También puede ser admin de equipo de producción (si existe esa lógica)
+    const esAdminEquipoProduccion = isEquipoAdmin && equipoAdminData && 
+        (equipoAdminData.nombre === 'Producción' || equipoAdminData.nombre === 'PRODUCCIÓN');
+    
+    return esProduccion || esHijoDeProduccion || esAdminEquipoProduccion;
+    }
     
 function puedeVerFzkids() {
     if (isAdminUser || isIglesiaAdmin) return true;
@@ -2137,7 +2145,11 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
     <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
     <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes" style="display: ${puedeVerGnotes() ? 'flex' : 'none'};"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
-    <div class="nav-item ${currentTab === 'gmedia' ? 'active' : ''}" data-tab="gmedia" style="display: ${puedeVerGmedia() ? 'flex' : 'none'};"><i class="fas fa-photo-film"></i><span>G-MEDIA</span></div>
+       
+    <div class="nav-item ${currentTab === 'gmedia' ? 'active' : ''}" data-tab="gmedia" style="display: ${puedeVerGmedia() ? 'flex' : 'none'};">
+    <i class="fas fa-photo-film"></i><span>G-MEDIA</span>
+</div>
+
     <div class="nav-item ${currentTab === 'gdesk' ? 'active' : ''}" data-tab="gdesk" style="display: ${puedeVerGDesk() ? 'flex' : 'none'};"><i class="fas fa-headset"></i><span>G-DESK</span></div>
     <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
     <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
