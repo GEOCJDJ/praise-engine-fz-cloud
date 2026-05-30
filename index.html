@@ -6678,7 +6678,7 @@ window.deleteUserById = async (userId) => {
     }
 };
    async function gestionarUsuariosHuerfanos() {
-    // Obtener todos los perfiles (usuarios registrados en auth)
+    // Obtener todos los perfiles
     const { data: todosPerfiles, error: perfError } = await supabaseClient
         .from('perfiles')
         .select('id, nombre, email, rol');
@@ -6688,7 +6688,7 @@ window.deleteUserById = async (userId) => {
     }
 
     // Obtener los IDs de usuarios que YA tienen registro en usuarios_iglesia para la iglesia actual
-    const { data: miembrosExistentes, error: existError } = await supabaseClient
+    const { data: miembrosActuales, error: existError } = await supabaseClient
         .from('usuarios_iglesia')
         .select('user_id')
         .eq('iglesia_id', currentIglesiaId);
@@ -6697,12 +6697,30 @@ window.deleteUserById = async (userId) => {
         return;
     }
 
-    const idsExistentes = new Set(miembrosExistentes.map(m => m.user_id));
+    const idsEnActual = new Set(miembrosActuales.map(m => m.user_id));
 
-    // Filtrar los perfiles que NO están en la iglesia actual
-    const usuariosHuerfanos = todosPerfiles.filter(p => !idsExistentes.has(p.id));
+    // Usuarios que NO están en la iglesia actual
+    const usuariosNoEnActual = todosPerfiles.filter(p => !idsEnActual.has(p.id));
 
-    if (usuariosHuerfanos.length === 0) {
+    // Para cada usuario, obtener su iglesia actual (si tiene) y si es la misma que la actual (ya filtrado)
+    const usuariosConInfo = [];
+    for (const user of usuariosNoEnActual) {
+        const { data: userIglesia } = await supabaseClient
+            .from('usuarios_iglesia')
+            .select('id, iglesia_id, iglesias(nombre)')
+            .eq('user_id', user.id)
+            .maybeSingle();
+        const iglesiaNombre = userIglesia?.iglesias?.nombre || 'Ninguna';
+        const tieneOtraIglesia = !!userIglesia;
+        usuariosConInfo.push({ 
+            ...user, 
+            iglesiaActual: iglesiaNombre,
+            tieneOtraIglesia,
+            registroId: userIglesia?.id || null
+        });
+    }
+
+    if (usuariosConInfo.length === 0) {
         showModal(`
             <div style="text-align: center; padding: 1rem;">
                 <i class="fas fa-check-circle" style="font-size: 3rem; color: #10b981;"></i>
@@ -6714,29 +6732,32 @@ window.deleteUserById = async (userId) => {
         return;
     }
 
-    // Mostrar lista de usuarios huérfanos
     let html = `
-        <h3><i class="fas fa-user-plus"></i> Usuarios sin iglesia asignada</h3>
-        <p style="margin-bottom: 1rem;">Estos usuarios ya están registrados en el sistema pero no pertenecen a ninguna iglesia. Puedes asignarlos manualmente.</p>
+        <h3><i class="fas fa-user-plus"></i> Reasignar usuarios a ${escapeHtml(currentIglesiaData?.nombre)}</h3>
+        <p style="margin-bottom: 1rem;">Usuarios registrados que no pertenecen a esta iglesia. Puedes asignarlos (si ya tienen otra iglesia, serán movidos).</p>
         <div style="max-height: 60vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 0.75rem;">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead style="background: var(--bg-app); position: sticky; top: 0;">
                     <tr>
                         <th style="padding: 0.5rem; text-align: left;">Usuario</th>
                         <th style="padding: 0.5rem; text-align: left;">Email</th>
+                        <th style="padding: 0.5rem; text-align: left;">Iglesia actual</th>
                         <th style="padding: 0.5rem; text-align: center;">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
 
-    for (const user of usuariosHuerfanos) {
+    for (const user of usuariosConInfo) {
+        const iglesiaActualDisplay = user.tieneOtraIglesia ? escapeHtml(user.iglesiaActual) : '<span style="color: #f59e0b;">Ninguna (huérfano)</span>';
         html += `
             <tr style="border-top: 1px solid var(--border);">
                 <td style="padding: 0.5rem;">${escapeHtml(user.nombre || 'Sin nombre')}</td>
                 <td style="padding: 0.5rem;">${escapeHtml(user.email)}</td>
+                <td style="padding: 0.5rem;">${iglesiaActualDisplay}</td>
                 <td style="padding: 0.5rem; text-align: center;">
-                    <button class="btn btn-primary" style="padding: 0.2rem 0.8rem; font-size: 0.7rem;" onclick="asignarUsuarioAIglesia('${user.id}', '${escapeHtml(user.nombre)}')">
+                    <button class="btn btn-primary" style="padding: 0.2rem 0.8rem; font-size: 0.7rem;" 
+                        onclick="asignarUsuarioAIglesia('${user.id}', '${escapeHtml(user.nombre)}', ${user.tieneOtraIglesia}, '${user.registroId || ''}')">
                         Asignar a esta iglesia
                     </button>
                 </td>
@@ -6756,7 +6777,7 @@ window.deleteUserById = async (userId) => {
     showModal(html);
 }
 
-window.asignarUsuarioAIglesia = async (userId, userName) => {
+window.asignarUsuarioAIglesia = async (userId, userName, tieneOtraIglesia, registroId) => {
     // Obtener departamentos (áreas y equipos) para mostrar opciones
     const { data: deptos } = await supabaseClient
         .from('departamentos')
@@ -6772,7 +6793,6 @@ window.asignarUsuarioAIglesia = async (userId, userName) => {
         equiposPorArea[e.padre_id].push(e);
     });
 
-    // Construir selects dinámicos
     let areasOptions = '<option value="">Selecciona área (opcional)</option>';
     areas.forEach(a => {
         areasOptions += `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`;
@@ -6782,6 +6802,7 @@ window.asignarUsuarioAIglesia = async (userId, userName) => {
         <div style="max-width: 500px; margin: 0 auto;">
             <h3>Asignar usuario: ${escapeHtml(userName)}</h3>
             <p>Selecciona el equipo al que pertenecerá en <strong>${escapeHtml(currentIglesiaData?.nombre)}</strong></p>
+            ${tieneOtraIglesia ? '<p class="text-warning" style="color: #f59e0b;">⚠️ Este usuario ya pertenece a otra iglesia. Al asignarlo, será movido a esta.</p>' : ''}
             <div class="form-group">
                 <label>Área (opcional)</label>
                 <select id="asignarArea" class="form-control" onchange="cargarEquiposAsignacion()">
@@ -6803,13 +6824,12 @@ window.asignarUsuarioAIglesia = async (userId, userName) => {
             </div>
             <div style="margin-top: 1rem; text-align: right;">
                 <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-                <button class="btn btn-primary" onclick="confirmarAsignarUsuario('${userId}')">Asignar</button>
+                <button class="btn btn-primary" onclick="confirmarAsignarUsuario('${userId}', '${escapeHtml(userName)}', ${tieneOtraIglesia}, '${registroId}')">Asignar</button>
             </div>
         </div>
     `;
     showModal(modalContent);
 
-    // Registrar función para cargar equipos según área
     window.cargarEquiposAsignacion = () => {
         const areaId = document.getElementById('asignarArea').value;
         const equipoSelect = document.getElementById('asignarEquipo');
@@ -6822,7 +6842,7 @@ window.asignarUsuarioAIglesia = async (userId, userName) => {
     };
 };
 
-window.confirmarAsignarUsuario = async (userId) => {
+window.confirmarAsignarUsuario = async (userId, userName, tieneOtraIglesia, registroId) => {
     const equipoId = document.getElementById('asignarEquipo').value;
     const rolMusical = document.getElementById('asignarRolMusical').value || null;
 
@@ -6831,29 +6851,52 @@ window.confirmarAsignarUsuario = async (userId) => {
         return;
     }
 
-    // Insertar en usuarios_iglesia
-    const { error } = await supabaseClient.from('usuarios_iglesia').insert({
-        user_id: userId,
-        iglesia_id: currentIglesiaId,
-        departamento_id: equipoId,
-        rol_musical: rolMusical,
-        es_admin_iglesia: false,
-        es_admin_departamento: false,
-        es_admin_equipo: false,
-        equipo_id: null
-    });
-
-    if (error) {
-        showToast("Error al asignar: " + error.message, "error");
+    if (tieneOtraIglesia && registroId) {
+        // Actualizar el registro existente a la iglesia actual
+        const { error: updateError } = await supabaseClient
+            .from('usuarios_iglesia')
+            .update({
+                iglesia_id: currentIglesiaId,
+                departamento_id: equipoId,
+                rol_musical: rolMusical,
+                es_admin_iglesia: false,
+                es_admin_departamento: false,
+                es_admin_equipo: false,
+                equipo_id: null
+            })
+            .eq('id', registroId);
+        if (updateError) {
+            showToast("Error al mover usuario: " + updateError.message, "error");
+        } else {
+            showToast(`Usuario ${userName} movido a ${currentIglesiaData?.nombre} correctamente`, "success");
+            closeModal();
+            await loadUserData();
+            renderCurrentView();
+            if (currentTab === 'admin') renderAdmin();
+        }
     } else {
-        showToast("Usuario asignado correctamente a la iglesia", "success");
-        closeModal();
-        await loadUserData();
-        renderCurrentView();
-        if (currentTab === 'admin') renderAdmin();
+        // Insertar nuevo registro (usuario huérfano)
+        const { error } = await supabaseClient.from('usuarios_iglesia').insert({
+            user_id: userId,
+            iglesia_id: currentIglesiaId,
+            departamento_id: equipoId,
+            rol_musical: rolMusical,
+            es_admin_iglesia: false,
+            es_admin_departamento: false,
+            es_admin_equipo: false,
+            equipo_id: null
+        });
+        if (error) {
+            showToast("Error al asignar: " + error.message, "error");
+        } else {
+            showToast(`Usuario ${userName} asignado correctamente`, "success");
+            closeModal();
+            await loadUserData();
+            renderCurrentView();
+            if (currentTab === 'admin') renderAdmin();
+        }
     }
-}; 
-    
+};
     
     async function adminCourses() { let html=`<h3>Gestionar Cursos</h3>`; for(let curso of cursos){ html+=`<div class="card" style="margin-bottom:1rem;"><h4>${escapeHtml(curso.titulo)}</h4><p>${escapeHtml(curso.descripcion||'Sin descripción')}</p><button class="btn btn-primary" onclick="editCourse('${curso.id}')">Editar Curso</button><button class="btn btn-ghost" onclick="manageModules('${curso.id}')">Gestionar Lecciones</button></div>`; } html+=`<button class="btn btn-primary" onclick="createCourse()">➕ Nuevo Curso</button>`; showModal(html); }
     function createCourse() { showModal(`<h3>Nuevo Curso</h3><div class="form-group"><label>Título</label><input id="newCourseTitle" class="form-control"></div><div class="form-group"><label>Descripción</label><textarea id="newCourseDesc" rows="3" class="form-control"></textarea></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewCourse()">Guardar</button></div>`); }
