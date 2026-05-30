@@ -8244,15 +8244,27 @@ let plannerSemanaSeleccionada = null;
 let plannerRolActivo = 'musica';
 
 async function renderPlanner() {
-  if (!puedeVerPlanner()) {
-    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-    return;
-  }
-  await cargarEventosPlanner();
-  mostrarInterfazPlanner();
+    if (!puedeVerPlanner()) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+        return;
+    }
+    await cargarEventosPlanner();
+    if (!plannerEventos || plannerEventos.length === 0) {
+        document.getElementById('mainContent').innerHTML = `
+            <div style="text-align: center; padding: 3rem;">
+                <i class="fas fa-calendar-times" style="font-size: 3rem; color: var(--text-muted);"></i>
+                <h3>No hay eventos programados</h3>
+                <p>Comienza creando el primer evento para el planner.</p>
+                ${(isAdminUser || isIglesiaAdmin) ? '<button class="btn btn-primary" onclick="crearEventoPlanner()">➕ Crear evento</button>' : ''}
+            </div>
+        `;
+        return;
+    }
+    mostrarInterfazPlanner();
 }
 
 async function cargarEventosPlanner() {
+    // Obtener TODOS los eventos sin filtrar por mes
     const { data: eventos, error: eventError } = await supabaseClient
         .from('cronograma_eventos')
         .select('*')
@@ -8262,48 +8274,55 @@ async function cargarEventosPlanner() {
         plannerEventos = [];
         return;
     }
-    // Para cada evento, obtener su lista asociada (si existe)
+
+    // Para cada evento, cargar su lista asociada y sus canciones
     for (let ev of eventos) {
-        // Convertir fecha del evento (YYYY-MM-DD) a formato dd/mm/aaaa para comparar con listas.date
+        // Convertir fecha del evento (YYYY-MM-DD) a formato dd/mm/aaaa
         const [year, month, day] = ev.fecha.split('-');
         const fechaStr = `${day}/${month}/${year}`;
+        
+        // Buscar lista que coincida exactamente con esa fecha
         const listaAsociada = lists.find(l => l.date === fechaStr);
         ev.listaAsociada = listaAsociada || null;
+
+        // Cargar canciones desde cronograma_canciones (si existen)
+        let { data: cancionesGuardadas } = await supabaseClient
+            .from('cronograma_canciones')
+            .select('*')
+            .eq('evento_id', ev.id)
+            .order('orden', { ascending: true });
         
-        // Si tiene lista asociada, cargar sus canciones ordenadas
-        if (listaAsociada && listaAsociada.items) {
-            ev.canciones = listaAsociada.items.map((item, idx) => {
+        // Si no hay canciones guardadas pero hay lista asociada, las importamos de la lista
+        if ((!cancionesGuardadas || cancionesGuardadas.length === 0) && listaAsociada && listaAsociada.items) {
+            const nuevasCanciones = listaAsociada.items.map((item, idx) => {
                 const song = songs.find(s => s.id === (item.songId || item.song_id));
                 if (!song) return null;
-                // Buscar si ya existe alguna nota guardada en cronograma_canciones (para no perder ediciones previas)
-                const existing = ev.cancionesGuardadas?.find(c => c.cancion_id === song.id);
                 return {
-                    id: existing?.id || generateUniqueId(),
+                    id: generateUniqueId(),
                     evento_id: ev.id,
                     cancion_id: song.id,
                     orden: idx,
-                    titulo: song.title,
                     tono: item.keyOverride || song.key,
                     bpm: song.bpm,
-                    nota_musica: existing?.nota_musica || '',
-                    nota_danza: existing?.nota_danza || '',
-                    nota_produccion: existing?.nota_produccion || ''
+                    nota_musica: '',
+                    nota_danza: '',
+                    nota_produccion: ''
                 };
             }).filter(c => c !== null);
-        } else {
-            // Si no hay lista asociada, usar las canciones ya guardadas en cronograma_canciones (si existen)
-            const { data: cancionesGuardadas } = await supabaseClient
-                .from('cronograma_canciones')
-                .select('*')
-                .eq('evento_id', ev.id)
-                .order('orden', { ascending: true });
-            ev.canciones = cancionesGuardadas || [];
-            ev.cancionesGuardadas = cancionesGuardadas;
+            if (nuevasCanciones.length) {
+                await supabaseClient.from('cronograma_canciones').insert(nuevasCanciones);
+                cancionesGuardadas = nuevasCanciones;
+            }
         }
+        ev.canciones = cancionesGuardadas || [];
+        ev.cancionesGuardadas = cancionesGuardadas;
     }
+
     plannerEventos = eventos;
     if (plannerEventos.length > 0 && !plannerSemanaSeleccionada) {
         plannerSemanaSeleccionada = plannerEventos[0];
+    } else if (plannerEventos.length === 0) {
+        plannerSemanaSeleccionada = null;
     }
 }
 
@@ -8582,6 +8601,28 @@ async function crearListaDesdePlanner(fecha) {
     await cargarEventosPlanner();
     mostrarInterfazPlanner();
 }
+
+async function crearEventoPlanner() {
+    const fecha = prompt('Ingresa la fecha del evento (formato YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+    if (!fecha) return;
+    const titulo = prompt('Título del evento (ej: "Domingo Especial"):', 'Culto Dominical');
+    if (!titulo) return;
+    const { error } = await supabaseClient.from('cronograma_eventos').insert({
+        id: generateUniqueId(),
+        fecha: fecha,
+        titulo_domingo: titulo,
+        sabado_actividad: 'Ensayo General',
+        domingo_grupo: 'Azarel (Principal)',
+        iglesia_id: currentIglesiaId
+    });
+    if (error) showToast('Error al crear: ' + error.message, 'error');
+    else {
+        showToast('Evento creado', 'success');
+        await cargarEventosPlanner();
+        renderPlanner();
+    }
+}
+    
 // ==================== MÓDULO G-DESK (Solicitudes entre departamentos) ====================
 let gdeskCurrentFilter = 'todos'; // 'todos', 'mis_tickets'
 
