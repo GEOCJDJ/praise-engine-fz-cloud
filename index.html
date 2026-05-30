@@ -8248,7 +8248,11 @@ async function renderPlanner() {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
     }
+    // Mostrar spinner
+    document.getElementById('mainContent').innerHTML = '<div class="text-center p-8"><i class="fas fa-spinner fa-pulse fa-2x"></i><br>Cargando planner...</div>';
+    
     await cargarEventosPlanner();
+    
     if (!plannerEventos || plannerEventos.length === 0) {
         document.getElementById('mainContent').innerHTML = `
             <div style="text-align: center; padding: 3rem;">
@@ -8264,68 +8268,96 @@ async function renderPlanner() {
 }
 
 async function cargarEventosPlanner() {
-    // Obtener TODOS los eventos sin filtrar por mes
-    const { data: eventos, error: eventError } = await supabaseClient
-        .from('cronograma_eventos')
-        .select('*')
-        .order('fecha', { ascending: true });
-    if (eventError) {
-        showToast('Error al cargar eventos: ' + eventError.message, 'error');
-        plannerEventos = [];
-        return;
-    }
+    console.log("🔄 Cargando eventos planner...");
+    try {
+        // 1. Obtener todos los eventos
+        const { data: eventos, error: eventError } = await supabaseClient
+            .from('cronograma_eventos')
+            .select('*')
+            .order('fecha', { ascending: true });
+        if (eventError) throw eventError;
+        if (!eventos.length) {
+            plannerEventos = [];
+            return;
+        }
 
-    // Para cada evento, cargar su lista asociada y sus canciones
-    for (let ev of eventos) {
-        // Convertir fecha del evento (YYYY-MM-DD) a formato dd/mm/aaaa
-        const [year, month, day] = ev.fecha.split('-');
-        const fechaStr = `${day}/${month}/${year}`;
-        
-        // Buscar lista que coincida exactamente con esa fecha
-        const listaAsociada = lists.find(l => l.date === fechaStr);
-        ev.listaAsociada = listaAsociada || null;
+        // 2. Obtener todas las listas con sus items (una sola consulta)
+        const { data: todasListas, error: listError } = await supabaseClient
+            .from('listas')
+            .select('*, lista_items(*)')
+            .eq('iglesia_id', currentIglesiaId);
+        if (listError) throw listError;
 
-        // Cargar canciones desde cronograma_canciones (si existen)
-        let { data: cancionesGuardadas } = await supabaseClient
+        // 3. Mapa de listas por fecha (normalizada)
+        const listasPorFecha = new Map();
+        todasListas.forEach(lista => {
+            if (lista.date) {
+                // Normalizar fecha: convertir dd/mm/aaaa a YYYY-MM-DD
+                const [dia, mes, anio] = lista.date.split('/');
+                const fechaNormalizada = `${anio}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+                listasPorFecha.set(fechaNormalizada, lista);
+            }
+        });
+
+        // 4. Obtener todas las canciones de cronograma_canciones de una vez
+        const eventosIds = eventos.map(e => e.id);
+        const { data: todasCancionesCrono, error: cronoError } = await supabaseClient
             .from('cronograma_canciones')
             .select('*')
-            .eq('evento_id', ev.id)
+            .in('evento_id', eventosIds)
             .order('orden', { ascending: true });
-        
-        // Si no hay canciones guardadas pero hay lista asociada, las importamos de la lista
-        if ((!cancionesGuardadas || cancionesGuardadas.length === 0) && listaAsociada && listaAsociada.items) {
-            const nuevasCanciones = listaAsociada.items.map((item, idx) => {
-                const song = songs.find(s => s.id === (item.songId || item.song_id));
-                if (!song) return null;
-                return {
-                    id: generateUniqueId(),
-                    evento_id: ev.id,
-                    cancion_id: song.id,
-                    orden: idx,
-                    tono: item.keyOverride || song.key,
-                    bpm: song.bpm,
-                    nota_musica: '',
-                    nota_danza: '',
-                    nota_produccion: ''
-                };
-            }).filter(c => c !== null);
-            if (nuevasCanciones.length) {
-                await supabaseClient.from('cronograma_canciones').insert(nuevasCanciones);
-                cancionesGuardadas = nuevasCanciones;
-            }
-        }
-        ev.canciones = cancionesGuardadas || [];
-        ev.cancionesGuardadas = cancionesGuardadas;
-    }
+        if (cronoError) throw cronoError;
 
-    plannerEventos = eventos;
-    if (plannerEventos.length > 0 && !plannerSemanaSeleccionada) {
-        plannerSemanaSeleccionada = plannerEventos[0];
-    } else if (plannerEventos.length === 0) {
-        plannerSemanaSeleccionada = null;
+        // Agrupar canciones por evento_id
+        const cancionesPorEvento = new Map();
+        (todasCancionesCrono || []).forEach(c => {
+            if (!cancionesPorEvento.has(c.evento_id)) cancionesPorEvento.set(c.evento_id, []);
+            cancionesPorEvento.get(c.evento_id).push(c);
+        });
+
+        // 5. Construir array final de eventos con sus canciones
+        for (let ev of eventos) {
+            const listaAsociada = listasPorFecha.get(ev.fecha) || null;
+            ev.listaAsociada = listaAsociada;
+
+            let canciones = cancionesPorEvento.get(ev.id) || [];
+            // Si no hay canciones en cronograma pero sí lista asociada, crear desde lista
+            if (canciones.length === 0 && listaAsociada && listaAsociada.lista_items) {
+                const itemsOrdenados = listaAsociada.lista_items.sort((a,b) => a.orden - b.orden);
+                canciones = itemsOrdenados.map((item, idx) => {
+                    const song = songs.find(s => s.id === item.song_id);
+                    if (!song) return null;
+                    return {
+                        id: generateUniqueId(),
+                        evento_id: ev.id,
+                        cancion_id: song.id,
+                        orden: idx,
+                        tono: item.key_override || song.key,
+                        bpm: song.bpm,
+                        nota_musica: '',
+                        nota_danza: '',
+                        nota_produccion: ''
+                    };
+                }).filter(c => c);
+                // Guardarlas en la base de datos para la próxima (opcional, pero mejora rendimiento)
+                if (canciones.length) {
+                    await supabaseClient.from('cronograma_canciones').insert(canciones);
+                }
+            }
+            ev.canciones = canciones;
+        }
+
+        plannerEventos = eventos;
+        if (plannerEventos.length && !plannerSemanaSeleccionada) {
+            plannerSemanaSeleccionada = plannerEventos[0];
+        }
+        console.log(`✅ Cargados ${plannerEventos.length} eventos.`);
+    } catch (err) {
+        console.error("Error en cargarEventosPlanner:", err);
+        showToast("Error al cargar el planner", "error");
+        plannerEventos = [];
     }
 }
-
 function mostrarInterfazPlanner() {
   if (!plannerEventos.length) {
     document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">No hay eventos programados. Contacta al administrador.</div>';
@@ -8603,9 +8635,9 @@ async function crearListaDesdePlanner(fecha) {
 }
 
 async function crearEventoPlanner() {
-    const fecha = prompt('Ingresa la fecha del evento (formato YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+    const fecha = prompt('Ingresa la fecha (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
     if (!fecha) return;
-    const titulo = prompt('Título del evento (ej: "Domingo Especial"):', 'Culto Dominical');
+    const titulo = prompt('Título del domingo:', 'Culto Dominical');
     if (!titulo) return;
     const { error } = await supabaseClient.from('cronograma_eventos').insert({
         id: generateUniqueId(),
@@ -8615,7 +8647,7 @@ async function crearEventoPlanner() {
         domingo_grupo: 'Azarel (Principal)',
         iglesia_id: currentIglesiaId
     });
-    if (error) showToast('Error al crear: ' + error.message, 'error');
+    if (error) showToast('Error: ' + error.message, 'error');
     else {
         showToast('Evento creado', 'success');
         await cargarEventosPlanner();
