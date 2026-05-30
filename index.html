@@ -6906,25 +6906,30 @@ window.confirmarAsignarUsuario = async (userId, userName, tieneOtraIglesia, regi
     }
 };
    // Función para buscar usuario por email y reasignarlo a la iglesia actual
-// Buscar usuario por email (incluso si no aparece en listas)
 window.buscarUsuarioPorEmail = async () => {
     const email = prompt("📧 Ingresa el email del usuario (ej: adrian.1999ch@gmail.com):");
     if (!email) return;
 
-    // Buscar en perfiles (case-insensitive)
-    const { data: perfil, error } = await supabaseClient
+    // 1. Buscar en auth.users (no se puede directamente desde cliente, usaremos una función edge o buscamos en perfiles primero)
+    // Pero como ya tenemos los IDs, haremos: primero buscar en perfiles, si no existe, intentar obtener desde auth mediante una RPC.
+    // Para simplicidad, si no existe en perfiles, mostraremos un mensaje para crearlo manualmente con SQL.
+    // Una alternativa: usar la función de admin para listar usuarios, pero requiere configuración.
+    // Mejor: si no existe en perfiles, ofrecer crearlo con el botón de búsqueda, pidiendo nombre.
+
+    let { data: perfil, error } = await supabaseClient
         .from('perfiles')
         .select('id, nombre, email')
-        .ilike('email', email) // búsqueda insensible a mayúsculas
+        .ilike('email', email)
         .maybeSingle();
     
     if (error || !perfil) {
-        // También buscar en auth? No se puede desde el cliente. Pero al menos reportamos.
-        showToast(`No se encontró ningún usuario con email "${email}". Verifica que esté escrito correctamente.`, "error");
+        // No está en perfiles. Preguntamos si queremos crearlo (necesitamos el ID desde auth, pero no tenemos acceso directo)
+        // Solución: pedir al admin que primero ejecute el SQL manualmente (como ya hicimos).
+        showToast(`No se encontró perfil para ${email}. Si el usuario ya está registrado, ejecuta el SQL de creación de perfil.`, "error");
         return;
     }
 
-    // Verificar si ya pertenece a la iglesia actual
+    // Resto igual...
     const { data: existe } = await supabaseClient
         .from('usuarios_iglesia')
         .select('id')
@@ -6937,10 +6942,9 @@ window.buscarUsuarioPorEmail = async () => {
         return;
     }
 
-    // Obtener su iglesia actual (si tiene alguna)
     const { data: otraIglesia } = await supabaseClient
         .from('usuarios_iglesia')
-        .select('iglesias(nombre)')
+        .select('iglesias(nombre), id')
         .eq('user_id', perfil.id)
         .maybeSingle();
     
@@ -6948,9 +6952,7 @@ window.buscarUsuarioPorEmail = async () => {
     const tieneRegistro = !!otraIglesia;
     const registroId = otraIglesia?.id || '';
 
-    // Confirmar reasignación
     if (confirm(`✅ Usuario encontrado:\n📛 ${perfil.nombre}\n📧 ${perfil.email}\n🏛️ Iglesia actual: ${iglesiaActual}\n\n¿Asignarlo a ${currentIglesiaData?.nombre}?`)) {
-        // Reutilizamos la función existente
         asignarUsuarioAIglesia(perfil.id, perfil.nombre, tieneRegistro, registroId);
     }
 };
