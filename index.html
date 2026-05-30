@@ -6323,20 +6323,17 @@ async function adminUserManagement() {
         .eq('iglesia_id', currentIglesiaId);
     const departamentosActuales = deptosActuales || [];
     
-    const { data: equiposDisponibles } = await supabaseClient
-        .from('departamentos')
-        .select('id, nombre')
-        .eq('iglesia_id', currentIglesiaId)
-        .not('padre_id', 'is', null);
-
-    // Construir áreas y equipos por área
+    // Equipos = departamentos que tienen padre_id (no son áreas, no son GENERAL)
+    const equipos = departamentosActuales.filter(d => d.padre_id !== null && d.nombre !== 'GENERAL');
+    equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
+    
+    // Áreas = departamentos con padre_id = null y que no se llamen GENERAL (para el modal de edición)
     const areas = departamentosActuales.filter(d => d.padre_id === null && d.nombre !== 'GENERAL');
+    // Equipos por área (para el modal)
     const equiposPorArea = {};
-    departamentosActuales.forEach(d => {
-        if (d.padre_id && d.padre_id !== null) {
-            if (!equiposPorArea[d.padre_id]) equiposPorArea[d.padre_id] = [];
-            equiposPorArea[d.padre_id].push(d);
-        }
+    equipos.forEach(e => {
+        if (!equiposPorArea[e.padre_id]) equiposPorArea[e.padre_id] = [];
+        equiposPorArea[e.padre_id].push(e);
     });
 
     // ========== RENDER TABLA PRINCIPAL ==========
@@ -6366,11 +6363,8 @@ async function adminUserManagement() {
 
     for (let m of miembrosData) {
         const perfil = m.perfiles;
-        // Obtener equipos (todos los departamentos que tienen padre_id, es decir, no son áreas ni GENERAL)
-const equipos = departamentosActuales.filter(d => d.padre_id !== null && d.nombre !== 'GENERAL');
-// Ordenar alfabéticamente
-equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
-        const nombreEquipo = equipo ? equipo.nombre : 'Sin asignar';
+        const equipoUsuario = equipos.find(e => e.id === m.departamento_id);
+        const nombreEquipo = equipoUsuario ? equipoUsuario.nombre : 'Sin asignar';
         const rolMusical = m.rol_musical || '—';
         
         let permisos = [];
@@ -6412,7 +6406,7 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
     showModal(html);
 
-    // Admin global: selector de iglesia
+    // ========== FUNCIÓN PARA CAMBIAR IGLESIA ACTIVA (ADMIN GLOBAL) ==========
     if (isAdminUser) {
         window.cambiarIglesiaAdminGlobal = async () => {
             const { data: iglesiasList, error } = await supabaseClient.from('iglesias').select('id, nombre');
@@ -6435,14 +6429,14 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
                     currentIglesiaData = iglesiaData;
                     await loadUserData();
                     closeModal();
-                    adminUserManagement();
+                    adminUserManagement(); // refrescar la tabla con la nueva iglesia
                 }
             };
         };
     }
 
-    // Función para abrir modal de edición con todos los campos
-           window.abrirModalEditarUsuario = async (miembroId, userId) => {
+    // ========== FUNCIÓN PARA ABRIR MODAL DE EDICIÓN DE USUARIO ==========
+    window.abrirModalEditarUsuario = async (miembroId, userId) => {
         const { data: miembro, error: errMiembro } = await supabaseClient
             .from('usuarios_iglesia')
             .select('*, perfiles(nombre, email, rol)')
@@ -6454,23 +6448,21 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
         }
         const perfil = miembro.perfiles;
         const deptoActual = departamentosActuales.find(d => d.id === miembro.departamento_id);
-        const esArea = deptoActual && deptoActual.padre_id === null;
-        const esEquipo = deptoActual && deptoActual.padre_id !== null;
-        const areaActual = esEquipo ? deptoActual.padre_id : (esArea ? miembro.departamento_id : '');
-        const equipoActual = esEquipo ? miembro.departamento_id : '';
+        const areaActual = deptoActual?.padre_id || '';
+        const equipoActual = miembro.departamento_id || '';
 
-        // Opciones de áreas
+        // Opciones de áreas (solo las que tienen equipos o se quieran mostrar)
         const areasHtml = `<option value="">Sin área</option>` + areas.map(a => `<option value="${a.id}" ${areaActual === a.id ? 'selected' : ''}>${escapeHtml(a.nombre)}</option>`).join('');
         
         // Función para generar opciones de equipos según área
         const generarEquiposHtml = (areaId, selectedEquipoId = null) => {
-            const equipos = equiposPorArea[areaId] || [];
-            return '<option value="">Selecciona un equipo</option>' + equipos.map(eq => `<option value="${eq.id}" ${selectedEquipoId === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('');
+            const equiposLista = equiposPorArea[areaId] || [];
+            return '<option value="">Selecciona un equipo</option>' + equiposLista.map(eq => `<option value="${eq.id}" ${selectedEquipoId === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('');
         };
         
         const equiposHtml = generarEquiposHtml(areaActual, equipoActual);
 
-        // Lista de iglesias para admin global (selector de cambio de iglesia)
+        // Selector de iglesia (solo admin global)
         let iglesiasSelectHtml = '';
         if (isAdminUser && iglesiasList.length > 0) {
             iglesiasSelectHtml = `
@@ -6512,7 +6504,7 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
                     </div>
                     <div>
                         <label style="font-size:0.7rem;">Equipo</label>
-                        <select id="editEquipo_${miembroId}" class="form-control" onchange="toggleRolMusicalPorEquipo('${miembroId}')">
+                        <select id="editEquipo_${miembroId}" class="form-control" onchange="toggleRolMusicalEnModal('${miembroId}')">
                             ${equiposHtml}
                         </select>
                     </div>
@@ -6529,7 +6521,7 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
                     <label style="font-size:0.7rem;">Equipo que administra (si es Admin de Equipo)</label>
                     <select id="editEquipoAdmin_${miembroId}" class="form-control">
                         <option value="">Ninguno</option>
-                        ${equiposDisponibles.map(eq => `<option value="${eq.id}" ${miembro.equipo_id === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('')}
+                        ${equipos.map(eq => `<option value="${eq.id}" ${miembro.equipo_id === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('')}
                     </select>
                 </div>
                 ${iglesiasSelectHtml}
@@ -6547,15 +6539,14 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
             if (!areaId) {
                 equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>';
             } else {
-                const equipos = equiposPorArea[areaId] || [];
-                equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + equipos.map(eq => `<option value="${eq.id}">${escapeHtml(eq.nombre)}</option>`).join('');
+                const equiposLista = equiposPorArea[areaId] || [];
+                equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + equiposLista.map(eq => `<option value="${eq.id}">${escapeHtml(eq.nombre)}</option>`).join('');
             }
-            // Al cambiar el área, también volver a evaluar el rol musical
-            window.toggleRolMusicalPorEquipo(id);
+            window.toggleRolMusicalEnModal(id);
         };
 
         // Función para mostrar/ocultar rol musical según el equipo seleccionado
-        window.toggleRolMusicalPorEquipo = (id) => {
+        window.toggleRolMusicalEnModal = (id) => {
             const equipoSelect = document.getElementById(`editEquipo_${id}`);
             const equipoId = equipoSelect.value;
             const contenedor = document.getElementById(`rolMusicalContainer_${id}`);
@@ -6563,10 +6554,8 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
                 contenedor.innerHTML = '';
                 return;
             }
-            // Buscar el nombre del equipo seleccionado
-            const equipoObj = departamentosActuales.find(d => d.id === equipoId);
+            const equipoObj = equipos.find(e => e.id === equipoId);
             const nombreEquipo = equipoObj ? equipoObj.nombre.toLowerCase() : '';
-            // Solo mostrar rol musical si el equipo pertenece a Alabanza (o contiene "alabanza", "música", "artes")
             const esEquipoAlabanza = nombreEquipo.includes('alabanza') || nombreEquipo.includes('música') || nombreEquipo.includes('artes');
             if (esEquipoAlabanza) {
                 contenedor.innerHTML = `
@@ -6574,7 +6563,7 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
                         <label style="font-size:0.7rem;">Rol musical</label>
                         <select id="editRolMusical_${id}" class="form-control">
                             <option value="">Sin rol</option>
-                            ${["Voz","Batería","Bajo","Guitarra","Teclado","Percusión","Otro"].map(r => `<option value="${r}" ${miembro.rol_musical === r ? 'selected' : ''}>${r}</option>`).join('')}
+                            ${["Voz","Batería","Bajo","Guitarra","Teclado","Percusión","Otro"].map(r => `<option value="${r}">${r}</option>`).join('')}
                         </select>
                     </div>
                 `;
@@ -6584,10 +6573,11 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
         };
 
         // Inicializar el estado del rol musical
-        window.toggleRolMusicalPorEquipo(miembroId);
+        window.toggleRolMusicalEnModal(miembroId);
     };
 
-        window.guardarEdicionUsuario = async (miembroId, userId) => {
+    // ========== FUNCIÓN PARA GUARDAR EDICIÓN DE USUARIO ==========
+    window.guardarEdicionUsuario = async (miembroId, userId) => {
         const nombre = document.getElementById(`editNombre_${miembroId}`).value.trim();
         const rolApp = document.getElementById(`editRol_${miembroId}`).value;
         const equipoId = document.getElementById(`editEquipo_${miembroId}`).value || null;
@@ -6598,8 +6588,10 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
         const equipoAdminId = document.getElementById(`editEquipoAdmin_${miembroId}`).value || null;
         const nuevaIglesiaId = document.getElementById(`editIglesia_${miembroId}`)?.value || null;
 
+        // Actualizar perfil siempre
         await supabaseClient.from('perfiles').update({ nombre, rol: rolApp }).eq('id', userId);
 
+        // Si el admin global cambió la iglesia, mover al usuario a esa iglesia
         if (isAdminUser && nuevaIglesiaId && nuevaIglesiaId !== currentIglesiaId) {
             const { data: existe } = await supabaseClient
                 .from('usuarios_iglesia')
@@ -6635,6 +6627,7 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
             return;
         }
 
+        // Si no cambió de iglesia, actualizar normalmente
         const { error } = await supabaseClient.from('usuarios_iglesia').update({
             departamento_id: equipoId,
             rol_musical: rolMusical,
@@ -6649,17 +6642,15 @@ equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
             showToast("Usuario actualizado correctamente", "success");
             closeModal();
             await loadUserData();
-            adminUserManagement();
+            adminUserManagement(); // refrescar tabla
         }
     };
-}   // <--- CIERRE DE adminUserManagement
+}   // <--- FIN DE LA FUNCIÓN adminUserManagement
 
 // Asegurar que la función sea global
 window.adminUserManagement = adminUserManagement;
-// Asegurar que la función sea global
-window.adminUserManagement = adminUserManagement;
 
-// Función auxiliar para eliminar usuario (se mantiene igual pero la reescribimos para orden)
+// Función auxiliar para eliminar usuario (se mantiene)
 window.deleteUserById = async (userId) => {
     if (!confirm("⚠️ ¿Eliminar permanentemente este usuario? Se borrarán todos sus datos.")) return;
     try {
@@ -6789,50 +6780,27 @@ window.deleteUserById = async (userId) => {
 }
 
 window.asignarUsuarioAIglesia = async (userId, userName, tieneOtraIglesia, registroId) => {
-    // Obtener departamentos (áreas y equipos) para mostrar opciones
-    const { data: deptos } = await supabaseClient
+    const { data: equipos } = await supabaseClient
         .from('departamentos')
-        .select('*')
-        .eq('iglesia_id', currentIglesiaId);
+        .select('id, nombre')
+        .eq('iglesia_id', currentIglesiaId)
+        .not('padre_id', 'is', null);
+    const equiposList = equipos || [];
+    equiposList.sort((a,b) => a.nombre.localeCompare(b.nombre));
     
-    const departamentosActuales = deptos || [];
-    const areas = departamentosActuales.filter(d => d.padre_id === null && d.nombre !== 'GENERAL');
-    const equipos = departamentosActuales.filter(d => d.padre_id !== null);
-    const equiposPorArea = {};
-    equipos.forEach(e => {
-        if (!equiposPorArea[e.padre_id]) equiposPorArea[e.padre_id] = [];
-        equiposPorArea[e.padre_id].push(e);
-    });
-
-    let areasOptions = '<option value="">Selecciona área (opcional)</option>';
-    areas.forEach(a => {
-        areasOptions += `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`;
-    });
-
     const modalContent = `
         <div style="max-width: 500px; margin: 0 auto;">
             <h3>Asignar usuario: ${escapeHtml(userName)}</h3>
             <p>Selecciona el equipo al que pertenecerá en <strong>${escapeHtml(currentIglesiaData?.nombre)}</strong></p>
             ${tieneOtraIglesia ? '<p class="text-warning" style="color: #f59e0b;">⚠️ Este usuario ya pertenece a otra iglesia. Al asignarlo, será movido a esta.</p>' : ''}
             <div class="form-group">
-                <label>Área (opcional)</label>
-                <select id="asignarArea" class="form-control" onchange="cargarEquiposAsignacion()">
-                    ${areasOptions}
-                </select>
-            </div>
-            <div class="form-group">
                 <label>Equipo</label>
                 <select id="asignarEquipo" class="form-control">
                     <option value="">Selecciona un equipo</option>
+                    ${equiposList.map(eq => `<option value="${eq.id}">${escapeHtml(eq.nombre)}</option>`).join('')}
                 </select>
             </div>
-            <div class="form-group">
-                <label>Rol musical (opcional)</label>
-                <select id="asignarRolMusical" class="form-control">
-                    <option value="">Sin rol</option>
-                    ${["Voz","Batería","Bajo","Guitarra","Teclado","Percusión","Otro"].map(r => `<option value="${r}">${r}</option>`).join('')}
-                </select>
-            </div>
+            <div id="asignarRolMusicalContainer" style="margin-top: 1rem;"></div>
             <div style="margin-top: 1rem; text-align: right;">
                 <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
                 <button class="btn btn-primary" onclick="confirmarAsignarUsuario('${userId}', '${escapeHtml(userName)}', ${tieneOtraIglesia}, '${registroId}')">Asignar</button>
@@ -6840,22 +6808,36 @@ window.asignarUsuarioAIglesia = async (userId, userName, tieneOtraIglesia, regis
         </div>
     `;
     showModal(modalContent);
-
-    window.cargarEquiposAsignacion = () => {
-        const areaId = document.getElementById('asignarArea').value;
-        const equipoSelect = document.getElementById('asignarEquipo');
-        if (!areaId) {
-            equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>';
+    
+    // Agregar evento para mostrar rol musical solo si es Alabanza
+    const equipoSelect = document.getElementById('asignarEquipo');
+    const rolContainer = document.getElementById('asignarRolMusicalContainer');
+    equipoSelect.addEventListener('change', () => {
+        const equipoId = equipoSelect.value;
+        if (!equipoId) {
+            rolContainer.innerHTML = '';
             return;
         }
-        const equiposLista = equiposPorArea[areaId] || [];
-        equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + equiposLista.map(e => `<option value="${e.id}">${escapeHtml(e.nombre)}</option>`).join('');
-    };
+        const equipoObj = equiposList.find(e => e.id === equipoId);
+        if (equipoObj && equipoObj.nombre.toLowerCase().includes('alabanza')) {
+            rolContainer.innerHTML = `
+                <div class="form-group">
+                    <label>Rol musical</label>
+                    <select id="asignarRolMusical" class="form-control">
+                        <option value="">Sin rol</option>
+                        ${["Voz","Batería","Bajo","Guitarra","Teclado","Percusión","Otro"].map(r => `<option value="${r}">${r}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+        } else {
+            rolContainer.innerHTML = '';
+        }
+    });
 };
 
 window.confirmarAsignarUsuario = async (userId, userName, tieneOtraIglesia, registroId) => {
     const equipoId = document.getElementById('asignarEquipo').value;
-    const rolMusical = document.getElementById('asignarRolMusical').value || null;
+const rolMusical = document.getElementById('asignarRolMusical')?.value || null;
 
     if (!equipoId) {
         showToast("Debes seleccionar al menos un equipo", "warning");
