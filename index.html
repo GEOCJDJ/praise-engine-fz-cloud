@@ -1964,14 +1964,20 @@ function puedeVerListas() {
     if (isAdminUser || isIglesiaAdmin) return true;
     if (isEquipoAdmin && equipoAdminData) {
         const equipo = equipoAdminData.nombre.toLowerCase();
-        return equipo === 'alabanza' || equipo === 'danza' || equipo === 'equipo de alabanza';
+        // Agregamos 'producción' y 'multimedia'
+        return equipo === 'alabanza' || equipo === 'danza' || equipo === 'equipo de alabanza' ||
+               equipo === 'producción' || equipo === 'multimedia' || equipo === 'artes';
     }
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
     if (!miembro) return false;
     const depto = departamentos.find(d => d.id === miembro.departamento_id);
     if (!depto) return false;
-    const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza'];
-    return deptosPermitidos.includes(depto.nombre);
+    // Lista ampliada
+    const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza', 'Producción', 'Multimedia'];
+    // Además, si el departamento tiene un padre que esté en la lista permitida
+    const padre = depto.padre_id ? departamentos.find(d => d.id === depto.padre_id) : null;
+    const permitido = deptosPermitidos.includes(depto.nombre) || (padre && deptosPermitidos.includes(padre.nombre));
+    return permitido;
 }
 
    function puedeVerGmedia() {
@@ -2490,8 +2496,147 @@ function renderLists() { const query = document.getElementById('globalSearch')?.
 function openCreateListModal() { showModal(`<h3>Nueva Lista</h3><div class="form-group"><input id="lName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="lDate" class="form-control" placeholder="Fecha"></div><button class="btn btn-primary" onclick="saveNewList()">Crear</button>`); flatpickr("#lDate",{locale:"es",dateFormat:"d/m/Y"}); }
 async function saveNewList() { const name = document.getElementById('lName').value.trim()||"Lista sin nombre"; const date = document.getElementById('lDate').value; await saveList({ id:null, name, date, items:[] }); closeModal(); registrarActividad('crear_lista',name); }
 async function editListName(id) { const list = lists.find(l=>l.id===id); const newName = prompt("Nuevo nombre:",list.name); if(newName) { list.name=newName; await saveList(list); } }
-async function renderListDetail() { const list = lists.find(l=>l.id===selectedListId); if(!list) { selectedListId=null; renderLists(); return; } document.getElementById('actionHeader').innerHTML = `<button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()"><i class="fas fa-arrow-left"></i> Volver</button><button class="btn btn-primary" onclick="openAddSongToListModal()"><i class="fas fa-plus"></i> Añadir Canción</button><button class="btn btn-ghost" onclick="printList('${list.id}')"><i class="fas fa-print"></i> Imprimir (12 copias)</button><button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')"><i class="fab fa-whatsapp"></i> WhatsApp</button><button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')"><i class="fas fa-file-excel"></i> Excel</button>`; const container = document.getElementById('mainContent'); container.innerHTML = `<div class="card" style="margin-bottom:1rem"><h2>${escapeHtml(list.name)}</h2><p>${list.date||''} • ${list.items?list.items.length:0} canciones</p></div><div id="dragArea"></div>`; const dragArea = document.getElementById('dragArea'); if(!list.items||list.items.length===0) dragArea.innerHTML=`<p style="padding:1rem;text-align:center;">No hay canciones agregadas.</p>`; else dragArea.innerHTML = list.items.map((item,idx)=>{ const song = songs.find(s=>s.id===(item.songId||item.song_id)); if(!song) return ''; let currentTone = item.keyOverride||item.key_override||song.key; return `<div class="card" data-idx="${idx}" style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.5rem;cursor:grab;"><i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i><div style="flex:1"><b style="color:var(--primary-light);">${escapeHtml(song.title)}</b><span class="card-category">${song.category}</span><div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm||'--'} BPM</div></div><div onclick="event.stopPropagation()" style="display:flex;gap:0.3rem;"><button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button><button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button><button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>${(isAdminUser||isIglesiaAdmin)?`<button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button><button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>`:''}</div></div>`; }).join(''); const commentsSection = document.createElement('div'); commentsSection.id='commentsSection'; commentsSection.style.marginTop='2rem'; commentsSection.innerHTML = `<h3>💬 Comentarios de la lista</h3><div id="commentsList"></div><textarea id="newComment" class="form-control" placeholder="Escribe un comentario..." rows="2"></textarea><button class="btn btn-primary" onclick="addComment('${list.id}')">Comentar</button>`; container.appendChild(commentsSection); await loadComments(list.id); if(sortableInstance) sortableInstance.destroy(); if((isAdminUser||isIglesiaAdmin) && list.items && list.items.length>0) { sortableInstance = new Sortable(dragArea, { handle:'.drag-handle', animation:200, onEnd:()=>{ const newOrder = Array.from(document.querySelectorAll('#dragArea .card')).map(el=>list.items[parseInt(el.dataset.idx)]); list.items = newOrder; saveList(list); } }); } }
-function openAddSongToListModal() { const list = lists.find(l=>l.id===selectedListId); if(!list) return; let songsHtml = ''; songs.forEach(song=>{ const alreadyInList = list.items.some(item=>(item.songId||item.song_id)===song.id); songsHtml += `<label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;cursor:pointer;"><input type="checkbox" class="song-checkbox" value="${song.id}" ${alreadyInList?'disabled':''}><span><b>${escapeHtml(song.title)}</b> (${song.key}) - ${song.category}</span>${alreadyInList?'<span style="color:green;"> ✓ Ya está</span>':''}</label>`; }); showModal(`<h3>Añadir canciones a "${escapeHtml(list.name)}"</h3><input type="text" id="filterSongsMulti" class="form-control" placeholder="Filtrar canciones..." style="margin-bottom:1rem"><div id="songsMultiList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);padding:0.5rem;border-radius:8px;">${songsHtml}</div><div style="margin-top:1rem;text-align:right;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addSelectedSongsToList('${list.id}')">Añadir seleccionadas</button></div>`); const filterInput = document.getElementById('filterSongsMulti'); if(filterInput) filterInput.addEventListener('input',(e)=>{ const term = e.target.value.toLowerCase(); const labels = document.querySelectorAll('#songsMultiList label'); labels.forEach(label=>{ const text = label.innerText.toLowerCase(); label.style.display = text.includes(term)?'flex':'none'; }); }); }
+
+async function renderListDetail() {
+    const list = lists.find(l => l.id === selectedListId);
+    if (!list) {
+        selectedListId = null;
+        renderLists();
+        return;
+    }
+
+    // ========== NUEVO: Determinar si el usuario puede editar la lista ==========
+    const puedeEditarLista = isAdminUser || isIglesiaAdmin ||
+        (isEquipoAdmin && equipoAdminData && 
+         ['alabanza', 'equipo de alabanza', 'artes', 'producción', 'multimedia', 'danza']
+            .includes(equipoAdminData.nombre.toLowerCase())) ||
+        (() => {
+            const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
+            if (!miembro) return false;
+            const depto = departamentos.find(d => d.id === miembro.departamento_id);
+            if (!depto) return false;
+            const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza', 'Producción', 'Multimedia'];
+            const padre = depto.padre_id ? departamentos.find(d => d.id === depto.padre_id) : null;
+            return deptosPermitidos.includes(depto.nombre) || (padre && deptosPermitidos.includes(padre.nombre));
+        })();
+
+    // Cabecera de acciones (igual que antes)
+    document.getElementById('actionHeader').innerHTML = `
+        <button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()">
+            <i class="fas fa-arrow-left"></i> Volver
+        </button>
+        <button class="btn btn-primary" onclick="openAddSongToListModal()">
+            <i class="fas fa-plus"></i> Añadir Canción
+        </button>
+        <button class="btn btn-ghost" onclick="printList('${list.id}')">
+            <i class="fas fa-print"></i> Imprimir (12 copias)
+        </button>
+        <button class="btn btn-ghost" onclick="shareListWhatsApp('${list.id}')">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+        </button>
+        <button class="btn btn-ghost" onclick="exportListToExcel('${list.id}')">
+            <i class="fas fa-file-excel"></i> Excel
+        </button>
+    `;
+
+    const container = document.getElementById('mainContent');
+    container.innerHTML = `
+        <div class="card" style="margin-bottom:1rem">
+            <h2>${escapeHtml(list.name)}</h2>
+            <p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p>
+        </div>
+        <div id="dragArea"></div>
+    `;
+
+    const dragArea = document.getElementById('dragArea');
+
+    // Renderizar canciones
+    if (!list.items || list.items.length === 0) {
+        dragArea.innerHTML = `<p style="padding:1rem;text-align:center;">No hay canciones agregadas.</p>`;
+    } else {
+        dragArea.innerHTML = list.items.map((item, idx) => {
+            const song = songs.find(s => s.id === (item.songId || item.song_id));
+            if (!song) return '';
+            let currentTone = item.keyOverride || item.key_override || song.key;
+            return `
+                <div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;">
+                    <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
+                    <div style="flex:1">
+                        <b style="color:var(--primary-light);">${escapeHtml(song.title)}</b>
+                        <span class="card-category">${song.category}</span>
+                        <div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm || '--'} BPM</div>
+                    </div>
+                    <div onclick="event.stopPropagation()" style="display:flex; gap:0.3rem;">
+                        <button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button>
+                        <button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
+                        ${puedeEditarLista ? `
+                            <button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button>
+                            <button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Sección de comentarios (sin cambios)
+    const commentsSection = document.createElement('div');
+    commentsSection.id = 'commentsSection';
+    commentsSection.style.marginTop = '2rem';
+    commentsSection.innerHTML = `
+        <h3>💬 Comentarios de la lista</h3>
+        <div id="commentsList"></div>
+        <textarea id="newComment" class="form-control" placeholder="Escribe un comentario..." rows="2"></textarea>
+        <button class="btn btn-primary" onclick="addComment('${list.id}')">Comentar</button>
+    `;
+    container.appendChild(commentsSection);
+    await loadComments(list.id);
+
+    // ========== SORTABLE: Arrastrar y reordenar (mejorado) ==========
+    if (sortableInstance) sortableInstance.destroy();
+
+    if (puedeEditarLista && list.items && list.items.length > 0) {
+        // Asegurar que cada tarjeta tenga un data-idx correcto
+        document.querySelectorAll('#dragArea .card').forEach((card, i) => {
+            card.setAttribute('data-idx', i);
+        });
+
+        try {
+            sortableInstance = new Sortable(dragArea, {
+                handle: '.drag-handle',
+                animation: 200,
+                onEnd: () => {
+                    const newOrder = [];
+                    const cards = document.querySelectorAll('#dragArea .card');
+                    for (let card of cards) {
+                        const originalIdx = parseInt(card.getAttribute('data-idx'));
+                        if (!isNaN(originalIdx) && list.items[originalIdx]) {
+                            newOrder.push(list.items[originalIdx]);
+                        }
+                    }
+                    if (newOrder.length === list.items.length) {
+                        list.items = newOrder;
+                        saveList(list);
+                        showToast('✅ Orden de la lista actualizado', 'success');
+                    } else {
+                        console.error('Error al reordenar: longitud no coincide');
+                        showToast('❌ No se pudo guardar el orden', 'error');
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('Error inicializando Sortable:', err);
+        }
+    } else {
+        // Si no puede editar, ocultar los handles visualmente (opcional)
+        document.querySelectorAll('#dragArea .drag-handle').forEach(handle => {
+            handle.style.opacity = '0.3';
+            handle.style.cursor = 'not-allowed';
+        });
+    }
+}
+    function openAddSongToListModal() { const list = lists.find(l=>l.id===selectedListId); if(!list) return; let songsHtml = ''; songs.forEach(song=>{ const alreadyInList = list.items.some(item=>(item.songId||item.song_id)===song.id); songsHtml += `<label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;cursor:pointer;"><input type="checkbox" class="song-checkbox" value="${song.id}" ${alreadyInList?'disabled':''}><span><b>${escapeHtml(song.title)}</b> (${song.key}) - ${song.category}</span>${alreadyInList?'<span style="color:green;"> ✓ Ya está</span>':''}</label>`; }); showModal(`<h3>Añadir canciones a "${escapeHtml(list.name)}"</h3><input type="text" id="filterSongsMulti" class="form-control" placeholder="Filtrar canciones..." style="margin-bottom:1rem"><div id="songsMultiList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);padding:0.5rem;border-radius:8px;">${songsHtml}</div><div style="margin-top:1rem;text-align:right;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addSelectedSongsToList('${list.id}')">Añadir seleccionadas</button></div>`); const filterInput = document.getElementById('filterSongsMulti'); if(filterInput) filterInput.addEventListener('input',(e)=>{ const term = e.target.value.toLowerCase(); const labels = document.querySelectorAll('#songsMultiList label'); labels.forEach(label=>{ const text = label.innerText.toLowerCase(); label.style.display = text.includes(term)?'flex':'none'; }); }); }
 async function addSelectedSongsToList(listId) { const list = lists.find(l=>l.id===listId); if(!list) return; const checkboxes = document.querySelectorAll('.song-checkbox:checked'); if(checkboxes.length===0){ showToast("Selecciona al menos una canción."); return; } for(let cb of checkboxes){ const songId = cb.value; if(list.items.some(item=>(item.songId||item.song_id)===songId)) continue; list.items.push({ songId, keyOverride:null }); } await saveList(list); closeModal(); renderListDetail(); }
 async function removeSongFromList(listId, idx) { if(confirm("¿Quitar canción?")) { const list = lists.find(l=>l.id===listId); list.items.splice(idx,1); await saveList(list); renderListDetail(); } }
 async function changeItemKey(listId, idx) { const list = lists.find(l=>l.id===listId); const item = list.items[idx]; const song = songs.find(s=>s.id===(item.songId||item.song_id)); const newKey = prompt(`Cambiar tonalidad de "${song.title}" para esta lista:`, item.keyOverride||item.key_override||song.key); if(newKey && keys.includes(newKey)) { item.keyOverride = newKey; await saveList(list); renderListDetail(); } else if(newKey) showToast("Tonalidad no válida."); }
