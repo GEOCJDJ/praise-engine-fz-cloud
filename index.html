@@ -6584,7 +6584,7 @@ async function adminUserManagement() {
         window.toggleRolMusicalPorEquipo(miembroId);
     };
 
-    window.guardarEdicionUsuario = async (miembroId, userId) => {
+        window.guardarEdicionUsuario = async (miembroId, userId) => {
         const nombre = document.getElementById(`editNombre_${miembroId}`).value.trim();
         const rolApp = document.getElementById(`editRol_${miembroId}`).value;
         const equipoId = document.getElementById(`editEquipo_${miembroId}`).value || null;
@@ -6595,12 +6595,9 @@ async function adminUserManagement() {
         const equipoAdminId = document.getElementById(`editEquipoAdmin_${miembroId}`).value || null;
         const nuevaIglesiaId = document.getElementById(`editIglesia_${miembroId}`)?.value || null;
 
-        // Actualizar perfil siempre
         await supabaseClient.from('perfiles').update({ nombre, rol: rolApp }).eq('id', userId);
 
-        // Si el admin global cambió la iglesia, mover al usuario a esa iglesia
         if (isAdminUser && nuevaIglesiaId && nuevaIglesiaId !== currentIglesiaId) {
-            // Verificar si el usuario ya existe en la nueva iglesia (para no duplicar)
             const { data: existe } = await supabaseClient
                 .from('usuarios_iglesia')
                 .select('id')
@@ -6611,12 +6608,11 @@ async function adminUserManagement() {
                 showToast("El usuario ya pertenece a esa iglesia. No se puede mover.", "warning");
                 return;
             }
-            // Actualizar el registro existente (cambiar iglesia_id y resetear departamento)
             const { error: updateError } = await supabaseClient
                 .from('usuarios_iglesia')
                 .update({
                     iglesia_id: nuevaIglesiaId,
-                    departamento_id: equipoId, // puede ser null o el nuevo equipo
+                    departamento_id: equipoId,
                     rol_musical: rolMusical,
                     es_admin_iglesia: esAdminIglesia,
                     es_admin_departamento: esAdminDepto,
@@ -6629,16 +6625,13 @@ async function adminUserManagement() {
                 return;
             }
             showToast(`Usuario movido a la iglesia ${iglesiasList.find(ig => ig.id === nuevaIglesiaId)?.nombre}`, "success");
-            // Recargar datos y cerrar modal
             await loadUserData();
             closeModal();
-            // Refrescar la vista de administración (posiblemente la iglesia activa cambió)
             if (currentTab === 'admin') renderAdmin();
             else adminUserManagement();
             return;
         }
 
-        // Si no cambió de iglesia, actualizar normalmente
         const { error } = await supabaseClient.from('usuarios_iglesia').update({
             departamento_id: equipoId,
             rol_musical: rolMusical,
@@ -6656,6 +6649,10 @@ async function adminUserManagement() {
             adminUserManagement();
         }
     };
+}   // <--- CIERRE DE adminUserManagement
+
+// Asegurar que la función sea global
+window.adminUserManagement = adminUserManagement;
 // Asegurar que la función sea global
 window.adminUserManagement = adminUserManagement;
 
