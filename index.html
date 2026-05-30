@@ -8248,7 +8248,7 @@ async function renderPlanner() {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
     }
-    // Mostrar spinner
+    // Mostrar carga
     document.getElementById('mainContent').innerHTML = '<div class="text-center p-8"><i class="fas fa-spinner fa-pulse fa-2x"></i><br>Cargando planner...</div>';
     
     await cargarEventosPlanner();
@@ -8258,7 +8258,7 @@ async function renderPlanner() {
             <div style="text-align: center; padding: 3rem;">
                 <i class="fas fa-calendar-times" style="font-size: 3rem; color: var(--text-muted);"></i>
                 <h3>No hay eventos programados</h3>
-                <p>Comienza creando el primer evento para el planner.</p>
+                <p>Crea el primer evento para empezar.</p>
                 ${(isAdminUser || isIglesiaAdmin) ? '<button class="btn btn-primary" onclick="crearEventoPlanner()">➕ Crear evento</button>' : ''}
             </div>
         `;
@@ -8268,215 +8268,188 @@ async function renderPlanner() {
 }
 
 async function cargarEventosPlanner() {
-    console.log("🔄 Cargando eventos planner...");
-    try {
-        // 1. Obtener todos los eventos
-        const { data: eventos, error: eventError } = await supabaseClient
-            .from('cronograma_eventos')
-            .select('*')
-            .order('fecha', { ascending: true });
-        if (eventError) throw eventError;
-        if (!eventos.length) {
-            plannerEventos = [];
-            return;
-        }
-
-        // 2. Obtener todas las listas con sus items (una sola consulta)
-        const { data: todasListas, error: listError } = await supabaseClient
-            .from('listas')
-            .select('*, lista_items(*)')
-            .eq('iglesia_id', currentIglesiaId);
-        if (listError) throw listError;
-
-        // 3. Mapa de listas por fecha (normalizada)
-        const listasPorFecha = new Map();
-        todasListas.forEach(lista => {
-            if (lista.date) {
-                // Normalizar fecha: convertir dd/mm/aaaa a YYYY-MM-DD
-                const [dia, mes, anio] = lista.date.split('/');
-                const fechaNormalizada = `${anio}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
-                listasPorFecha.set(fechaNormalizada, lista);
-            }
-        });
-
-        // 4. Obtener todas las canciones de cronograma_canciones de una vez
-        const eventosIds = eventos.map(e => e.id);
-        const { data: todasCancionesCrono, error: cronoError } = await supabaseClient
-            .from('cronograma_canciones')
-            .select('*')
-            .in('evento_id', eventosIds)
-            .order('orden', { ascending: true });
-        if (cronoError) throw cronoError;
-
-        // Agrupar canciones por evento_id
-        const cancionesPorEvento = new Map();
-        (todasCancionesCrono || []).forEach(c => {
-            if (!cancionesPorEvento.has(c.evento_id)) cancionesPorEvento.set(c.evento_id, []);
-            cancionesPorEvento.get(c.evento_id).push(c);
-        });
-
-        // 5. Construir array final de eventos con sus canciones
-        for (let ev of eventos) {
-            const listaAsociada = listasPorFecha.get(ev.fecha) || null;
-            ev.listaAsociada = listaAsociada;
-
-            let canciones = cancionesPorEvento.get(ev.id) || [];
-            // Si no hay canciones en cronograma pero sí lista asociada, crear desde lista
-            if (canciones.length === 0 && listaAsociada && listaAsociada.lista_items) {
-                const itemsOrdenados = listaAsociada.lista_items.sort((a,b) => a.orden - b.orden);
-                canciones = itemsOrdenados.map((item, idx) => {
-                    const song = songs.find(s => s.id === item.song_id);
-                    if (!song) return null;
-                    return {
-                        id: generateUniqueId(),
-                        evento_id: ev.id,
-                        cancion_id: song.id,
-                        orden: idx,
-                        tono: item.key_override || song.key,
-                        bpm: song.bpm,
-                        nota_musica: '',
-                        nota_danza: '',
-                        nota_produccion: ''
-                    };
-                }).filter(c => c);
-                // Guardarlas en la base de datos para la próxima (opcional, pero mejora rendimiento)
-                if (canciones.length) {
-                    await supabaseClient.from('cronograma_canciones').insert(canciones);
-                }
-            }
-            ev.canciones = canciones;
-        }
-
-        plannerEventos = eventos;
-        if (plannerEventos.length && !plannerSemanaSeleccionada) {
-            plannerSemanaSeleccionada = plannerEventos[0];
-        }
-        console.log(`✅ Cargados ${plannerEventos.length} eventos.`);
-    } catch (err) {
-        console.error("Error en cargarEventosPlanner:", err);
-        showToast("Error al cargar el planner", "error");
+    console.log("🔄 Cargando eventos...");
+    const { data: eventos, error: eventError } = await supabaseClient
+        .from('cronograma_eventos')
+        .select('*')
+        .order('fecha', { ascending: true });
+    if (eventError) {
+        console.error("❌ Error cargando eventos:", eventError);
+        showToast('Error al cargar eventos: ' + eventError.message, 'error');
         plannerEventos = [];
+        return;
     }
-}
-function mostrarInterfazPlanner() {
-  if (!plannerEventos.length) {
-    document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">No hay eventos programados. Contacta al administrador.</div>';
-    return;
-  }
+    console.log(`📅 Eventos encontrados: ${eventos?.length || 0}`, eventos);
 
-  const fechaActual = plannerSemanaSeleccionada ? new Date(plannerSemanaSeleccionada.fecha) : new Date();
-  const balanceAzarel = plannerSemanaSeleccionada?.balance_azarel || 60;
-  const balanceAzarelitos = plannerSemanaSeleccionada?.balance_azarelitos || 40;
-
-  const html = `
-    <div style="max-width: 1000px; margin: 0 auto;">
-      <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: var(--shadow);">
+    for (let ev of eventos) {
+        // Convertir fecha del evento (YYYY-MM-DD) a dd/mm/aaaa
+        const [year, month, day] = ev.fecha.split('-');
+        const fechaStr = `${day}/${month}/${year}`;
+        console.log(`Evento ${ev.fecha} -> fechaStr: ${fechaStr}`);
         
-        <!-- Encabezado -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-          <div>
-            <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-              <i class="fa-solid fa-calendar-days"></i> FZ-PLANNER
-            </h2>
-            <small style="color: var(--text-muted);">Planificación de Turnos y Repertorio</small>
-          </div>
-          <span style="font-size: 0.7rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px;">Jun - Dic 2026</span>
-        </div>
+        const listaAsociada = lists.find(l => l.date === fechaStr);
+        ev.listaAsociada = listaAsociada || null;
+        console.log(`Lista asociada:`, listaAsociada?.name || 'ninguna');
 
-        <!-- Balance de carga -->
-        <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 1rem; padding: 0.7rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 1rem;">
-          <span><i class="fa-solid fa-chart-pie" style="color:#6366f1;"></i> Balance de Carga:</span>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="color: #a855f7; font-weight: bold;">Azarel ${balanceAzarel}%</span>
-            <div style="height: 6px; width: 80px; background: #e5e7eb; border-radius: 999px; overflow: hidden; display: flex;">
-              <div style="width: ${balanceAzarel}%; background: #a855f7;"></div>
-              <div style="width: ${balanceAzarelitos}%; background: #ec4899;"></div>
-            </div>
-            <span style="color: #ec4899; font-weight: bold;">${balanceAzarelitos}% Kids</span>
-          </div>
-        </div>
-
-        <!-- Selector de semanas (scroll horizontal) -->
-        <p style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); margin: 0 0 0.5rem 0;">Selecciona un Fin de Semana</p>
-        <div id="plannerWeeksContainer" style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: thin;">
-          ${plannerEventos.map((evento, idx) => `
-            <div onclick="seleccionarSemanaPlanner('${evento.id}')" class="planner-week-tab" data-id="${evento.id}" style="flex: 0 0 100px; background: ${plannerSemanaSeleccionada?.id === evento.id ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'var(--surface)'}; border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; text-align: center; cursor: pointer; transition: all 0.2s;">
-              <span style="font-size: 0.65rem; font-weight: 700; display: block; opacity: 0.7; color: ${plannerSemanaSeleccionada?.id === evento.id ? 'white' : 'var(--text-muted)'};">DOMINGO</span>
-              <b style="font-size: 0.8rem; display: block; margin-top: 2px; color: ${plannerSemanaSeleccionada?.id === evento.id ? 'white' : 'var(--text-main)'};">${new Date(evento.fecha).toLocaleDateString('es-ES', { day:'numeric', month:'short' })}</b>
-            </div>
-          `).join('')}
-        </div>
-
-        <!-- Tarjetas de sábado y domingo -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
-          <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 1rem; padding: 0.8rem;">
-            <span style="font-size: 0.65rem; font-weight: 800; color: #b45309; display: block;"><i class="fa-solid fa-circle"></i> SÁBADO (15:30)</span>
-            <b id="plannerSabadoActividad" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">${plannerSemanaSeleccionada?.sabado_actividad || 'Cargando...'}</b>
-          </div>
-          <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 1rem; padding: 0.8rem;">
-            <span style="font-size: 0.65rem; font-weight: 800; color: #7e22ce; display: block;"><i class="fa-solid fa-church"></i> DOMINGO (08:30)</span>
-            <b id="plannerDomingoGrupo" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">${plannerSemanaSeleccionada?.domingo_grupo || 'Cargando...'}</b>
-          </div>
-        </div>
-
-        <!-- Matriz de canciones -->
-        <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;">Matriz de Ejecución</h3>
-            <span id="plannerFechaLista" style="font-size: 0.7rem; color: var(--text-muted);">${plannerSemanaSeleccionada?.titulo_domingo || ''}</span>
-          </div>
-          
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem; background: var(--bg-app); padding: 0.25rem; border-radius: 0.75rem; margin-bottom: 1rem;">
-            <button onclick="setPlannerRol('musica', this)" class="planner-rol-btn active" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: white; color: var(--text-main); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-guitar"></i> Músicos</button>
-            <button onclick="setPlannerRol('danza', this)" class="planner-rol-btn" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-wand-magic-sparkles"></i> Danza</button>
-            <button onclick="setPlannerRol('produccion', this)" class="planner-rol-btn" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-clapperboard"></i> Producción</button>
-          </div>
-
-          <div id="plannerCancionesContainer" style="margin-top: 0.5rem;">
-            <!-- Aquí se renderizarán las canciones según el rol -->
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  document.getElementById('mainContent').innerHTML = html;
-  renderizarCancionesPlanner();
-  // Aplicar estilo activo al botón del rol actual
-  document.querySelectorAll('.planner-rol-btn').forEach(btn => {
-    if ((plannerRolActivo === 'musica' && btn.innerText.includes('Músicos')) ||
-        (plannerRolActivo === 'danza' && btn.innerText.includes('Danza')) ||
-        (plannerRolActivo === 'produccion' && btn.innerText.includes('Producción'))) {
-      btn.style.background = 'white';
-      btn.style.color = 'var(--text-main)';
-      btn.classList.add('active');
-    } else {
-      btn.style.background = 'transparent';
-      btn.style.color = 'var(--text-muted)';
-      btn.classList.remove('active');
+        // Si tiene lista asociada, cargar sus canciones ordenadas
+        if (listaAsociada && listaAsociada.items) {
+            ev.canciones = listaAsociada.items.map((item, idx) => {
+                const song = songs.find(s => s.id === (item.songId || item.song_id));
+                if (!song) return null;
+                const existing = ev.cancionesGuardadas?.find(c => c.cancion_id === song.id);
+                return {
+                    id: existing?.id || generateUniqueId(),
+                    evento_id: ev.id,
+                    cancion_id: song.id,
+                    orden: idx,
+                    titulo: song.title,
+                    tono: item.keyOverride || song.key,
+                    bpm: song.bpm,
+                    nota_musica: existing?.nota_musica || '',
+                    nota_danza: existing?.nota_danza || '',
+                    nota_produccion: existing?.nota_produccion || ''
+                };
+            }).filter(c => c !== null);
+        } else {
+            // Si no hay lista asociada, usar canciones ya guardadas en cronograma_canciones
+            const { data: cancionesGuardadas } = await supabaseClient
+                .from('cronograma_canciones')
+                .select('*')
+                .eq('evento_id', ev.id)
+                .order('orden', { ascending: true });
+            ev.canciones = cancionesGuardadas || [];
+            ev.cancionesGuardadas = cancionesGuardadas;
+        }
     }
-  });
+
+    plannerEventos = eventos;
+    if (plannerEventos.length > 0 && !plannerSemanaSeleccionada) {
+        plannerSemanaSeleccionada = plannerEventos[0];
+    }
+}
+    
+function mostrarInterfazPlanner() {
+    const container = document.getElementById('mainContent');
+    if (!plannerEventos.length) {
+        container.innerHTML = '<div class="text-center p-8">No hay eventos programados. Contacta al administrador.</div>';
+        return;
+    }
+
+    const fechaActual = plannerSemanaSeleccionada ? new Date(plannerSemanaSeleccionada.fecha) : new Date();
+    const balanceAzarel = plannerSemanaSeleccionada?.balance_azarel || 60;
+    const balanceAzarelitos = plannerSemanaSeleccionada?.balance_azarelitos || 40;
+
+    const html = `
+        <div style="max-width: 1000px; margin: 0 auto;">
+            <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: var(--shadow);">
+                
+                <!-- Encabezado -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            <i class="fa-solid fa-calendar-days"></i> FZ-PLANNER
+                        </h2>
+                        <small style="color: var(--text-muted);">Planificación de Turnos y Repertorio</small>
+                    </div>
+                    <span style="font-size: 0.7rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px;">Todos los eventos</span>
+                </div>
+
+                <!-- Balance de carga -->
+                <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 1rem; padding: 0.7rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 1rem;">
+                    <span><i class="fa-solid fa-chart-pie" style="color:#6366f1;"></i> Balance de Carga:</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #a855f7; font-weight: bold;">Azarel ${balanceAzarel}%</span>
+                        <div style="height: 6px; width: 80px; background: #e5e7eb; border-radius: 999px; overflow: hidden; display: flex;">
+                            <div style="width: ${balanceAzarel}%; background: #a855f7;"></div>
+                            <div style="width: ${balanceAzarelitos}%; background: #ec4899;"></div>
+                        </div>
+                        <span style="color: #ec4899; font-weight: bold;">${balanceAzarelitos}% Kids</span>
+                    </div>
+                </div>
+
+                <!-- Selector de semanas (scroll horizontal) -->
+                <p style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); margin: 0 0 0.5rem 0;">Selecciona un Fin de Semana</p>
+                <div id="plannerWeeksContainer" style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: thin;">
+                    ${plannerEventos.map((evento, idx) => `
+                        <div onclick="seleccionarSemanaPlanner('${evento.id}')" class="planner-week-tab" data-id="${evento.id}" style="flex: 0 0 100px; background: ${plannerSemanaSeleccionada?.id === evento.id ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'var(--surface)'}; border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; text-align: center; cursor: pointer; transition: all 0.2s;">
+                            <span style="font-size: 0.65rem; font-weight: 700; display: block; opacity: 0.7; color: ${plannerSemanaSeleccionada?.id === evento.id ? 'white' : 'var(--text-muted)'};">DOMINGO</span>
+                            <b style="font-size: 0.8rem; display: block; margin-top: 2px; color: ${plannerSemanaSeleccionada?.id === evento.id ? 'white' : 'var(--text-main)'};">${new Date(evento.fecha).toLocaleDateString('es-ES', { day:'numeric', month:'short' })}</b>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- Tarjetas de sábado y domingo -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
+                    <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 1rem; padding: 0.8rem;">
+                        <span style="font-size: 0.65rem; font-weight: 800; color: #b45309; display: block;"><i class="fa-solid fa-circle"></i> SÁBADO (15:30)</span>
+                        <b id="plannerSabadoActividad" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">${plannerSemanaSeleccionada?.sabado_actividad || 'Cargando...'}</b>
+                    </div>
+                    <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 1rem; padding: 0.8rem;">
+                        <span style="font-size: 0.65rem; font-weight: 800; color: #7e22ce; display: block;"><i class="fa-solid fa-church"></i> DOMINGO (08:30)</span>
+                        <b id="plannerDomingoGrupo" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">${plannerSemanaSeleccionada?.domingo_grupo || 'Cargando...'}</b>
+                    </div>
+                </div>
+
+                <!-- Matriz de ejecución -->
+                <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;">Matriz de Ejecución</h3>
+                        <span id="plannerFechaLista" style="font-size: 0.7rem; color: var(--text-muted);">${plannerSemanaSeleccionada?.titulo_domingo || ''}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem; background: var(--bg-app); padding: 0.25rem; border-radius: 0.75rem; margin-bottom: 1rem;">
+                        <button onclick="setPlannerRol('musica', this)" class="planner-rol-btn active" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: white; color: var(--text-main); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-guitar"></i> Músicos</button>
+                        <button onclick="setPlannerRol('danza', this)" class="planner-rol-btn" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-wand-magic-sparkles"></i> Danza</button>
+                        <button onclick="setPlannerRol('produccion', this)" class="planner-rol-btn" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-clapperboard"></i> Producción</button>
+                    </div>
+
+                    <div id="plannerCancionesContainer" style="margin-top: 0.5rem;">
+                        <!-- Se llena con renderizarCancionesPlanner() -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    container.innerHTML = html;
+    renderizarCancionesPlanner();
+
+    // Estilo activo del rol
+    document.querySelectorAll('.planner-rol-btn').forEach(btn => {
+        if ((plannerRolActivo === 'musica' && btn.innerText.includes('Músicos')) ||
+            (plannerRolActivo === 'danza' && btn.innerText.includes('Danza')) ||
+            (plannerRolActivo === 'produccion' && btn.innerText.includes('Producción'))) {
+            btn.style.background = 'white';
+            btn.style.color = 'var(--text-main)';
+            btn.classList.add('active');
+        } else {
+            btn.style.background = 'transparent';
+            btn.style.color = 'var(--text-muted)';
+            btn.classList.remove('active');
+        }
+    });
 }
 
+// Función auxiliar para seleccionar semana
 window.seleccionarSemanaPlanner = (eventoId) => {
-  const evento = plannerEventos.find(e => e.id === eventoId);
-  if (evento) {
-    plannerSemanaSeleccionada = evento;
-    mostrarInterfazPlanner();
-  }
+    const evento = plannerEventos.find(e => e.id === eventoId);
+    if (evento) {
+        plannerSemanaSeleccionada = evento;
+        mostrarInterfazPlanner();
+    }
 };
 
+// Función auxiliar para cambiar rol
 window.setPlannerRol = (rol, btnElement) => {
-  plannerRolActivo = rol;
-  // Actualizar estilos de botones
-  document.querySelectorAll('.planner-rol-btn').forEach(btn => {
-    btn.style.background = 'transparent';
-    btn.style.color = 'var(--text-muted)';
-    btn.classList.remove('active');
-  });
-  btnElement.style.background = 'white';
-  btnElement.style.color = 'var(--text-main)';
-  btnElement.classList.add('active');
-  renderizarCancionesPlanner();
+    plannerRolActivo = rol;
+    document.querySelectorAll('.planner-rol-btn').forEach(btn => {
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--text-muted)';
+        btn.classList.remove('active');
+    });
+    btnElement.style.background = 'white';
+    btnElement.style.color = 'var(--text-main)';
+    btnElement.classList.add('active');
+    renderizarCancionesPlanner();
 };
 
 function renderizarCancionesPlanner() {
@@ -8635,7 +8608,7 @@ async function crearListaDesdePlanner(fecha) {
 }
 
 async function crearEventoPlanner() {
-    const fecha = prompt('Ingresa la fecha (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+    const fecha = prompt('Ingresa la fecha del evento (formato YYYY-MM-DD):', '2026-05-31');
     if (!fecha) return;
     const titulo = prompt('Título del domingo:', 'Culto Dominical');
     if (!titulo) return;
@@ -8647,9 +8620,10 @@ async function crearEventoPlanner() {
         domingo_grupo: 'Azarel (Principal)',
         iglesia_id: currentIglesiaId
     });
-    if (error) showToast('Error: ' + error.message, 'error');
-    else {
-        showToast('Evento creado', 'success');
+    if (error) {
+        showToast('Error al crear: ' + error.message, 'error');
+    } else {
+        showToast('Evento creado. Ahora puedes asignar una lista.', 'success');
         await cargarEventosPlanner();
         renderPlanner();
     }
