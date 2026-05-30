@@ -6941,6 +6941,227 @@ window.buscarUsuarioPorEmail = async () => {
         asignarUsuarioAIglesia(perfil.id, perfil.nombre, tieneRegistro, registroId);
     }
 };
+async function adminActividades() {
+    const { data: actividades, error } = await supabaseClient
+        .from('actividades')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('fecha', { ascending: true });
+
+    if (error) {
+        showToast("Error al cargar eventos: " + error.message, 'error');
+        return;
+    }
+
+    let html = `
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <h3 style="font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin:0;">
+                    <i class="fas fa-calendar-plus"></i> Gestión de Eventos Especiales
+                </h3>
+                <button class="btn btn-primary" onclick="showActividadForm()" style="background: linear-gradient(135deg, #a855f7, #6366f1); border: none;">
+                    <i class="fas fa-plus"></i> Nuevo Evento
+                </button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+    `;
+
+    for (let act of actividades) {
+        let tipoLabel = '';
+        let tipoIcon = '';
+        if (act.tipo === 'evento') {
+            tipoLabel = 'Servicio Especial';
+            tipoIcon = 'fa-church';
+        } else if (act.tipo === 'invitacion') {
+            tipoLabel = 'Invitación Externa';
+            tipoIcon = 'fa-map-location-dot';
+        } else {
+            tipoLabel = 'Reunión';
+            tipoIcon = 'fa-users';
+        }
+        const bgColor = act.tipo === 'evento' ? '#dbeafe' : (act.tipo === 'invitacion' ? '#dcfce7' : '#fef3c7');
+        const textColor = act.tipo === 'evento' ? '#1e40af' : (act.tipo === 'invitacion' ? '#166534' : '#b45309');
+
+        html += `
+            <div style="background: var(--surface); border-radius: 1rem; border: 1px solid var(--border); overflow: hidden; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="padding: 1rem 1.5rem; background: rgba(99,102,241,0.05); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="background: ${bgColor}; color: ${textColor}; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; font-weight: bold;">
+                            <i class="fa-solid ${tipoIcon}"></i> ${tipoLabel}
+                        </span>
+                        <span style="background: var(--bg-app); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; font-weight: bold;">
+                            <i class="far fa-calendar-alt"></i> ${act.fecha}
+                        </span>
+                        ${act.es_interno !== undefined ? `<span style="background: var(--bg-app); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem;">${act.es_interno ? '🏛️ Interno' : '🌍 Externo'}</span>` : ''}
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn-icon" onclick="editActividad('${act.id}')" title="Editar"><i class="fas fa-edit" style="color: #f59e0b;"></i></button>
+                        <button class="btn-icon" onclick="deleteActividad('${act.id}')" title="Eliminar"><i class="fas fa-trash-alt" style="color: #ef4444;"></i></button>
+                    </div>
+                </div>
+                <div style="padding: 1rem 1.5rem;">
+                    <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 0.25rem 0;">${escapeHtml(act.titulo)}</h4>
+                    ${act.grupo_organizador ? `<p style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-users"></i> Organiza: ${escapeHtml(act.grupo_organizador)}</p>` : ''}
+                    ${act.musica_asignada ? `<p style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-music"></i> Música: ${escapeHtml(act.musica_asignada)}</p>` : ''}
+                    ${act.lugar ? `<p style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-location-dot"></i> Lugar: ${escapeHtml(act.lugar)}</p>` : ''}
+                    ${act.descripcion ? `<p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-main);">${escapeHtml(act.descripcion)}</p>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    html += `</div><div style="margin-top: 1.5rem; text-align: right;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div></div>`;
+    showModal(html);
+}
+
+window.showActividadForm = (id = null) => {
+    const cargarEvento = async () => {
+        let actividad = null;
+        if (id) {
+            const { data, error } = await supabaseClient
+                .from('actividades')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) console.error(error);
+            else actividad = data;
+        }
+        const modalHtml = `
+            <div style="max-width: 650px; margin: 0 auto;">
+                <h3 style="font-size: 1.3rem; font-weight: bold; margin-bottom: 1rem; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    <i class="fas fa-calendar-alt"></i> ${id ? 'Editar' : 'Nuevo'} Evento
+                </h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label style="font-size:0.75rem;">Título del Evento *</label>
+                        <input id="actTitulo" class="form-control" value="${escapeHtml(actividad?.titulo || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.75rem;">Fecha *</label>
+                        <input type="text" id="actFecha" class="form-control" value="${actividad?.fecha || ''}" placeholder="dd/mm/aaaa">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.75rem;">Tipo de Evento</label>
+                        <select id="actTipo" class="form-control">
+                            <option value="evento" ${actividad?.tipo === 'evento' ? 'selected' : ''}>Servicio Especial / Evento</option>
+                            <option value="invitacion" ${actividad?.tipo === 'invitacion' ? 'selected' : ''}>Invitación Externa</option>
+                            <option value="reunion" ${actividad?.tipo === 'reunion' ? 'selected' : ''}>Reunión de Liderazgo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.75rem;">Ubicación / Lugar</label>
+                        <input id="actLugar" class="form-control" placeholder="Ej: Auditorio Principal" value="${escapeHtml(actividad?.lugar || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.75rem;">Lugar Específico</label>
+                        <select id="actEsInterno" class="form-control">
+                            <option value="true" ${actividad?.es_interno === true ? 'selected' : ''}>Interno (En la Iglesia)</option>
+                            <option value="false" ${actividad?.es_interno === false ? 'selected' : ''}>Externo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.75rem;">Grupo Organizador</label>
+                        <input id="actOrganizador" class="form-control" placeholder="Ej: Grupo de Jóvenes" value="${escapeHtml(actividad?.grupo_organizador || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.75rem;">Música a cargo</label>
+                        <select id="actMusica" class="form-control">
+                            <option value="Ministerio de alabanza" ${actividad?.musica_asignada === 'Ministerio de alabanza' ? 'selected' : ''}>Ministerio de alabanza</option>
+                            <option value="Uso de Pistas" ${actividad?.musica_asignada === 'Uso de Pistas' ? 'selected' : ''}>Uso de Pistas</option>
+                            <option value="Banda Invitada" ${actividad?.musica_asignada === 'Banda Invitada' ? 'selected' : ''}>Banda Invitada</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label style="font-size:0.75rem;">Descripción / Instrucciones</label>
+                        <textarea id="actDescripcion" rows="3" class="form-control">${escapeHtml(actividad?.descripcion || '')}</textarea>
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem; text-align: right;">
+                    <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="saveActividad('${id || ''}')" style="background: linear-gradient(135deg, #a855f7, #6366f1); border: none;">Guardar Evento</button>
+                </div>
+            </div>
+        `;
+        showModal(modalHtml);
+        flatpickr("#actFecha", { dateFormat: "d/m/Y", locale: "es" });
+    };
+    cargarEvento();
+};
+
+window.saveActividad = async (id) => {
+    const titulo = document.getElementById('actTitulo').value.trim();
+    const descripcion = document.getElementById('actDescripcion').value.trim();
+    const fecha = document.getElementById('actFecha').value;
+    const tipo = document.getElementById('actTipo').value;
+    const lugar = document.getElementById('actLugar').value.trim();
+    const esInterno = document.getElementById('actEsInterno').value === 'true';
+    const grupoOrganizador = document.getElementById('actOrganizador').value.trim();
+    const musicaAsignada = document.getElementById('actMusica').value;
+
+    if (!titulo || !fecha) {
+        showToast("Título y fecha son obligatorios", 'error');
+        return;
+    }
+    
+    const body = {
+        titulo,
+        descripcion: descripcion || null,
+        fecha,
+        tipo,
+        lugar: lugar || null,
+        es_interno: esInterno,
+        grupo_organizador: grupoOrganizador || null,
+        musica_asignada: musicaAsignada || null,
+        iglesia_id: currentIglesiaId
+    };
+    
+    let error;
+    if (id) {
+        const { error: updateError } = await supabaseClient
+            .from('actividades')
+            .update(body)
+            .eq('id', id);
+        error = updateError;
+    } else {
+        body.id = generateUniqueId();
+        body.creado_por = currentUser.id;
+        const { error: insertError } = await supabaseClient
+            .from('actividades')
+            .insert(body);
+        error = insertError;
+    }
+    
+    if (error) {
+        showToast("Error al guardar: " + error.message, 'error');
+    } else {
+        showToast(id ? "Evento actualizado" : "Evento creado", 'success');
+        closeModal();
+        adminActividades(); // refrescar lista
+        // También refrescar la agenda si está visible
+        if (currentTab === 'agenda') await renderAgenda();
+    }
+};
+
+window.editActividad = (id) => {
+    window.showActividadForm(id);
+};
+
+window.deleteActividad = async (id) => {
+    if (!confirm("¿Eliminar este evento permanentemente?")) return;
+    const { error } = await supabaseClient
+        .from('actividades')
+        .delete()
+        .eq('id', id);
+    if (error) {
+        showToast("Error al eliminar: " + error.message, 'error');
+    } else {
+        showToast("Evento eliminado", 'success');
+        closeModal();
+        adminActividades();
+        if (currentTab === 'agenda') await renderAgenda();
+    }
+};
+    
     
     async function adminCourses() { let html=`<h3>Gestionar Cursos</h3>`; for(let curso of cursos){ html+=`<div class="card" style="margin-bottom:1rem;"><h4>${escapeHtml(curso.titulo)}</h4><p>${escapeHtml(curso.descripcion||'Sin descripción')}</p><button class="btn btn-primary" onclick="editCourse('${curso.id}')">Editar Curso</button><button class="btn btn-ghost" onclick="manageModules('${curso.id}')">Gestionar Lecciones</button></div>`; } html+=`<button class="btn btn-primary" onclick="createCourse()">➕ Nuevo Curso</button>`; showModal(html); }
     function createCourse() { showModal(`<h3>Nuevo Curso</h3><div class="form-group"><label>Título</label><input id="newCourseTitle" class="form-control"></div><div class="form-group"><label>Descripción</label><textarea id="newCourseDesc" rows="3" class="form-control"></textarea></div><div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewCourse()">Guardar</button></div>`); }
