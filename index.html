@@ -6366,7 +6366,10 @@ async function adminUserManagement() {
 
     for (let m of miembrosData) {
         const perfil = m.perfiles;
-        const equipo = departamentosActuales.find(d => d.id === m.departamento_id);
+        // Obtener equipos (todos los departamentos que tienen padre_id, es decir, no son áreas ni GENERAL)
+const equipos = departamentosActuales.filter(d => d.padre_id !== null && d.nombre !== 'GENERAL');
+// Ordenar alfabéticamente
+equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
         const nombreEquipo = equipo ? equipo.nombre : 'Sin asignar';
         const rolMusical = m.rol_musical || '—';
         
