@@ -887,6 +887,9 @@ body.tema-naranja { --primary: #C2410C; --primary-light: #F97316; }
 .fzkids-btn-icon:active { transform: scale(0.95); }
 .plan-mensual-item { transition: all 0.2s; }
 .plan-mensual-item:hover { background-color: #f3f4f6; }
+
+:root { --border-color: #E2E8F0; }
+body.dark { --border-color: #334155; }
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -6436,7 +6439,7 @@ async function adminUserManagement() {
     }
 
     // Función para abrir modal de edición con todos los campos
-    window.abrirModalEditarUsuario = async (miembroId, userId) => {
+        window.abrirModalEditarUsuario = async (miembroId, userId) => {
         const { data: miembro, error: errMiembro } = await supabaseClient
             .from('usuarios_iglesia')
             .select('*, perfiles(nombre, email, rol)')
@@ -6455,11 +6458,29 @@ async function adminUserManagement() {
 
         // Opciones de áreas
         const areasHtml = `<option value="">Sin área</option>` + areas.map(a => `<option value="${a.id}" ${areaActual === a.id ? 'selected' : ''}>${escapeHtml(a.nombre)}</option>`).join('');
-        const cargarEquipos = (areaId) => {
+        
+        // Función para generar opciones de equipos según área
+        const generarEquiposHtml = (areaId, selectedEquipoId = null) => {
             const equipos = equiposPorArea[areaId] || [];
-            return `<option value="">Selecciona un equipo</option>` + equipos.map(eq => `<option value="${eq.id}" ${equipoActual === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('');
+            return '<option value="">Selecciona un equipo</option>' + equipos.map(eq => `<option value="${eq.id}" ${selectedEquipoId === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('');
         };
-        const equiposHtml = cargarEquipos(areaActual);
+        
+        const equiposHtml = generarEquiposHtml(areaActual, equipoActual);
+
+        // Lista de iglesias para admin global (selector de cambio de iglesia)
+        let iglesiasSelectHtml = '';
+        if (isAdminUser && iglesiasList.length > 0) {
+            iglesiasSelectHtml = `
+                <div class="form-group" style="margin-top: 0.5rem;">
+                    <label style="font-size:0.7rem;">🏛️ Cambiar de iglesia (solo admin global)</label>
+                    <select id="editIglesia_${miembroId}" class="form-control">
+                        <option value="">Selecciona una iglesia (mantener actual)</option>
+                        ${iglesiasList.map(ig => `<option value="${ig.id}" ${currentIglesiaId === ig.id ? 'selected' : ''}>${escapeHtml(ig.nombre)}</option>`).join('')}
+                    </select>
+                    <small class="text-muted" style="font-size: 0.6rem;">Si cambias la iglesia, el usuario será movido a esa congregación y perderá su equipo actual.</small>
+                </div>
+            `;
+        }
 
         const modalContent = `
             <div style="max-width: 650px; margin: 0 auto;">
@@ -6488,16 +6509,12 @@ async function adminUserManagement() {
                     </div>
                     <div>
                         <label style="font-size:0.7rem;">Equipo</label>
-                        <select id="editEquipo_${miembroId}" class="form-control">
+                        <select id="editEquipo_${miembroId}" class="form-control" onchange="toggleRolMusicalPorEquipo('${miembroId}')">
                             ${equiposHtml}
                         </select>
                     </div>
-                    <div>
-                        <label style="font-size:0.7rem;">Rol musical</label>
-                        <select id="editRolMusical_${miembroId}" class="form-control">
-                            <option value="">Sin rol</option>
-                            ${["Voz","Batería","Bajo","Guitarra","Teclado","Percusión","Otro"].map(r => `<option value="${r}" ${miembro.rol_musical === r ? 'selected' : ''}>${r}</option>`).join('')}
-                        </select>
+                    <div id="rolMusicalContainer_${miembroId}">
+                        <!-- Aquí se mostrará el rol musical solo si el equipo es de Alabanza -->
                     </div>
                 </div>
                 <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
@@ -6512,6 +6529,7 @@ async function adminUserManagement() {
                         ${equiposDisponibles.map(eq => `<option value="${eq.id}" ${miembro.equipo_id === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('')}
                     </select>
                 </div>
+                ${iglesiasSelectHtml}
                 <div style="margin-top: 1.5rem; text-align: right;">
                     <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
                     <button class="btn btn-primary" onclick="guardarEdicionUsuario('${miembroId}', '${userId}')">Guardar cambios</button>
@@ -6520,28 +6538,107 @@ async function adminUserManagement() {
         `;
         showModal(modalContent);
 
+        // Función para actualizar equipos según área seleccionada
         window.actualizarEquiposEnModal = (id, areaId) => {
             const equipoSelect = document.getElementById(`editEquipo_${id}`);
             if (!areaId) {
                 equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>';
+            } else {
+                const equipos = equiposPorArea[areaId] || [];
+                equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + equipos.map(eq => `<option value="${eq.id}">${escapeHtml(eq.nombre)}</option>`).join('');
+            }
+            // Al cambiar el área, también volver a evaluar el rol musical
+            window.toggleRolMusicalPorEquipo(id);
+        };
+
+        // Función para mostrar/ocultar rol musical según el equipo seleccionado
+        window.toggleRolMusicalPorEquipo = (id) => {
+            const equipoSelect = document.getElementById(`editEquipo_${id}`);
+            const equipoId = equipoSelect.value;
+            const contenedor = document.getElementById(`rolMusicalContainer_${id}`);
+            if (!equipoId) {
+                contenedor.innerHTML = '';
                 return;
             }
-            const equipos = equiposPorArea[areaId] || [];
-            equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + equipos.map(eq => `<option value="${eq.id}">${escapeHtml(eq.nombre)}</option>`).join('');
+            // Buscar el nombre del equipo seleccionado
+            const equipoObj = departamentosActuales.find(d => d.id === equipoId);
+            const nombreEquipo = equipoObj ? equipoObj.nombre.toLowerCase() : '';
+            // Solo mostrar rol musical si el equipo pertenece a Alabanza (o contiene "alabanza", "música", "artes")
+            const esEquipoAlabanza = nombreEquipo.includes('alabanza') || nombreEquipo.includes('música') || nombreEquipo.includes('artes');
+            if (esEquipoAlabanza) {
+                contenedor.innerHTML = `
+                    <div>
+                        <label style="font-size:0.7rem;">Rol musical</label>
+                        <select id="editRolMusical_${id}" class="form-control">
+                            <option value="">Sin rol</option>
+                            ${["Voz","Batería","Bajo","Guitarra","Teclado","Percusión","Otro"].map(r => `<option value="${r}" ${miembro.rol_musical === r ? 'selected' : ''}>${r}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            } else {
+                contenedor.innerHTML = '';
+            }
         };
+
+        // Inicializar el estado del rol musical
+        window.toggleRolMusicalPorEquipo(miembroId);
     };
 
     window.guardarEdicionUsuario = async (miembroId, userId) => {
         const nombre = document.getElementById(`editNombre_${miembroId}`).value.trim();
         const rolApp = document.getElementById(`editRol_${miembroId}`).value;
         const equipoId = document.getElementById(`editEquipo_${miembroId}`).value || null;
-        const rolMusical = document.getElementById(`editRolMusical_${miembroId}`).value || null;
+        const rolMusical = document.getElementById(`editRolMusical_${miembroId}`)?.value || null;
         const esAdminIglesia = document.getElementById(`editAdminIglesia_${miembroId}`).checked;
         const esAdminDepto = document.getElementById(`editAdminDepto_${miembroId}`).checked;
         const esAdminEquipo = document.getElementById(`editAdminEquipo_${miembroId}`).checked;
         const equipoAdminId = document.getElementById(`editEquipoAdmin_${miembroId}`).value || null;
+        const nuevaIglesiaId = document.getElementById(`editIglesia_${miembroId}`)?.value || null;
 
+        // Actualizar perfil siempre
         await supabaseClient.from('perfiles').update({ nombre, rol: rolApp }).eq('id', userId);
+
+        // Si el admin global cambió la iglesia, mover al usuario a esa iglesia
+        if (isAdminUser && nuevaIglesiaId && nuevaIglesiaId !== currentIglesiaId) {
+            // Verificar si el usuario ya existe en la nueva iglesia (para no duplicar)
+            const { data: existe } = await supabaseClient
+                .from('usuarios_iglesia')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('iglesia_id', nuevaIglesiaId)
+                .maybeSingle();
+            if (existe) {
+                showToast("El usuario ya pertenece a esa iglesia. No se puede mover.", "warning");
+                return;
+            }
+            // Actualizar el registro existente (cambiar iglesia_id y resetear departamento)
+            const { error: updateError } = await supabaseClient
+                .from('usuarios_iglesia')
+                .update({
+                    iglesia_id: nuevaIglesiaId,
+                    departamento_id: equipoId, // puede ser null o el nuevo equipo
+                    rol_musical: rolMusical,
+                    es_admin_iglesia: esAdminIglesia,
+                    es_admin_departamento: esAdminDepto,
+                    es_admin_equipo: esAdminEquipo,
+                    equipo_id: equipoAdminId
+                })
+                .eq('id', miembroId);
+            if (updateError) {
+                showToast("Error al mover de iglesia: " + updateError.message, "error");
+                return;
+            }
+            showToast(`Usuario movido a la iglesia ${iglesiasList.find(ig => ig.id === nuevaIglesiaId)?.nombre}`, "success");
+            // Recargar datos y cerrar modal
+            await loadUserData();
+            closeModal();
+            // Refrescar la vista de administración (posiblemente la iglesia activa cambió)
+            if (currentTab === 'admin') renderAdmin();
+            else adminUserManagement();
+            return;
+        }
+
+        // Si no cambió de iglesia, actualizar normalmente
         const { error } = await supabaseClient.from('usuarios_iglesia').update({
             departamento_id: equipoId,
             rol_musical: rolMusical,
@@ -6550,15 +6647,15 @@ async function adminUserManagement() {
             es_admin_equipo: esAdminEquipo,
             equipo_id: equipoAdminId
         }).eq('id', miembroId);
-        if (error) showToast("Error: " + error.message);
+        
+        if (error) showToast("Error: " + error.message, "error");
         else {
-            showToast("Usuario actualizado correctamente");
+            showToast("Usuario actualizado correctamente", "success");
             closeModal();
             await loadUserData();
             adminUserManagement();
         }
     };
-}
 
 // Asegurar que la función sea global
 window.adminUserManagement = adminUserManagement;
