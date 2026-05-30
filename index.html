@@ -2505,8 +2505,8 @@ async function renderListDetail() {
         return;
     }
 
-    // ========== NUEVO: Determinar si el usuario puede editar la lista ==========
-    const puedeEditarLista = isAdminUser || isIglesiaAdmin ||
+    // ========== PERMISO PARA EDITAR LA LISTA (usando la misma lógica que el botón de eliminar) ==========
+    const puedeEditar = isAdminUser || isIglesiaAdmin ||
         (isEquipoAdmin && equipoAdminData && 
          ['alabanza', 'equipo de alabanza', 'artes', 'producción', 'multimedia', 'danza']
             .includes(equipoAdminData.nombre.toLowerCase())) ||
@@ -2520,7 +2520,9 @@ async function renderListDetail() {
             return deptosPermitidos.includes(depto.nombre) || (padre && deptosPermitidos.includes(padre.nombre));
         })();
 
-    // Cabecera de acciones (igual que antes)
+    console.log("🟢 renderListDetail - puedeEditar:", puedeEditar); // <-- LOG
+
+    // Cabecera de acciones
     document.getElementById('actionHeader').innerHTML = `
         <button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()">
             <i class="fas fa-arrow-left"></i> Volver
@@ -2559,18 +2561,18 @@ async function renderListDetail() {
             if (!song) return '';
             let currentTone = item.keyOverride || item.key_override || song.key;
             return `
-                <div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem; cursor:grab;">
-                    <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
+                <div class="card" data-idx="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem;">
+                    <i class="fas fa-grip-vertical drag-handle" style="cursor: ${puedeEditar ? 'grab' : 'not-allowed'}; opacity: ${puedeEditar ? 1 : 0.5};"></i>
                     <div style="flex:1">
                         <b style="color:var(--primary-light);">${escapeHtml(song.title)}</b>
                         <span class="card-category">${song.category}</span>
                         <div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm || '--'} BPM</div>
                     </div>
-                    <div onclick="event.stopPropagation()" style="display:flex; gap:0.3rem;">
+                    <div style="display:flex; gap:0.3rem;">
                         <button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button>
                         <button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button>
                         <button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
-                        ${puedeEditarLista ? `
+                        ${puedeEditar ? `
                             <button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button>
                             <button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>
                         ` : ''}
@@ -2580,7 +2582,7 @@ async function renderListDetail() {
         }).join('');
     }
 
-    // Sección de comentarios (sin cambios)
+    // Sección de comentarios
     const commentsSection = document.createElement('div');
     commentsSection.id = 'commentsSection';
     commentsSection.style.marginTop = '2rem';
@@ -2593,11 +2595,20 @@ async function renderListDetail() {
     container.appendChild(commentsSection);
     await loadComments(list.id);
 
-    // ========== SORTABLE: Arrastrar y reordenar (mejorado) ==========
+    // ========== INICIALIZAR SORTABLE (con manejo de errores) ==========
     if (sortableInstance) sortableInstance.destroy();
 
-    if (puedeEditarLista && list.items && list.items.length > 0) {
-        // Asegurar que cada tarjeta tenga un data-idx correcto
+    if (puedeEditar && list.items && list.items.length > 0) {
+        // Verificar si Sortable está disponible
+        if (typeof Sortable === 'undefined') {
+            console.error("❌ Sortable no está cargado. Revisa la CDN.");
+            showToast("Error: No se puede reordenar, falta librería.", "error");
+            return;
+        }
+
+        console.log("✅ Inicializando Sortable en dragArea");
+
+        // Asegurar que cada .card tenga un data-idx correcto (base)
         document.querySelectorAll('#dragArea .card').forEach((card, i) => {
             card.setAttribute('data-idx', i);
         });
@@ -2607,35 +2618,53 @@ async function renderListDetail() {
                 handle: '.drag-handle',
                 animation: 200,
                 onEnd: () => {
+                    console.log("🔄 Reorden completado, guardando nuevo orden...");
+                    // Obtener el nuevo orden basado en la posición actual en el DOM
                     const newOrder = [];
                     const cards = document.querySelectorAll('#dragArea .card');
                     for (let card of cards) {
+                        // Buscar el item original por su posición anterior (data-idx) o por título
                         const originalIdx = parseInt(card.getAttribute('data-idx'));
                         if (!isNaN(originalIdx) && list.items[originalIdx]) {
                             newOrder.push(list.items[originalIdx]);
+                        } else {
+                            // Fallback: buscar por título (menos fiable)
+                            const titleElem = card.querySelector('b');
+                            if (titleElem) {
+                                const title = titleElem.innerText;
+                                const found = list.items.find(item => {
+                                    const s = songs.find(song => song.id === (item.songId || item.song_id));
+                                    return s && s.title === title;
+                                });
+                                if (found) newOrder.push(found);
+                            }
                         }
                     }
                     if (newOrder.length === list.items.length) {
                         list.items = newOrder;
                         saveList(list);
-                        showToast('✅ Orden de la lista actualizado', 'success');
+                        showToast("✅ Orden guardado correctamente", "success");
                     } else {
-                        console.error('Error al reordenar: longitud no coincide');
-                        showToast('❌ No se pudo guardar el orden', 'error');
+                        console.error("Error: longitud no coincide", newOrder.length, list.items.length);
+                        showToast("❌ Error al guardar el orden", "error");
                     }
                 }
             });
         } catch (err) {
-            console.error('Error inicializando Sortable:', err);
+            console.error("❌ Error al crear Sortable:", err);
+            showToast("Error al habilitar arrastre", "error");
         }
     } else {
-        // Si no puede editar, ocultar los handles visualmente (opcional)
-        document.querySelectorAll('#dragArea .drag-handle').forEach(handle => {
-            handle.style.opacity = '0.3';
-            handle.style.cursor = 'not-allowed';
+        console.log("⚠️ No se inicializa Sortable: puedeEditar =", puedeEditar, "items =", list.items?.length);
+        // Opcional: ocultar handles visualmente
+        document.querySelectorAll('#dragArea .drag-handle').forEach(h => {
+            h.style.cursor = 'not-allowed';
+            h.style.opacity = '0.3';
         });
     }
 }
+
+    
     function openAddSongToListModal() { const list = lists.find(l=>l.id===selectedListId); if(!list) return; let songsHtml = ''; songs.forEach(song=>{ const alreadyInList = list.items.some(item=>(item.songId||item.song_id)===song.id); songsHtml += `<label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;cursor:pointer;"><input type="checkbox" class="song-checkbox" value="${song.id}" ${alreadyInList?'disabled':''}><span><b>${escapeHtml(song.title)}</b> (${song.key}) - ${song.category}</span>${alreadyInList?'<span style="color:green;"> ✓ Ya está</span>':''}</label>`; }); showModal(`<h3>Añadir canciones a "${escapeHtml(list.name)}"</h3><input type="text" id="filterSongsMulti" class="form-control" placeholder="Filtrar canciones..." style="margin-bottom:1rem"><div id="songsMultiList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);padding:0.5rem;border-radius:8px;">${songsHtml}</div><div style="margin-top:1rem;text-align:right;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addSelectedSongsToList('${list.id}')">Añadir seleccionadas</button></div>`); const filterInput = document.getElementById('filterSongsMulti'); if(filterInput) filterInput.addEventListener('input',(e)=>{ const term = e.target.value.toLowerCase(); const labels = document.querySelectorAll('#songsMultiList label'); labels.forEach(label=>{ const text = label.innerText.toLowerCase(); label.style.display = text.includes(term)?'flex':'none'; }); }); }
 async function addSelectedSongsToList(listId) { const list = lists.find(l=>l.id===listId); if(!list) return; const checkboxes = document.querySelectorAll('.song-checkbox:checked'); if(checkboxes.length===0){ showToast("Selecciona al menos una canción."); return; } for(let cb of checkboxes){ const songId = cb.value; if(list.items.some(item=>(item.songId||item.song_id)===songId)) continue; list.items.push({ songId, keyOverride:null }); } await saveList(list); closeModal(); renderListDetail(); }
 async function removeSongFromList(listId, idx) { if(confirm("¿Quitar canción?")) { const list = lists.find(l=>l.id===listId); list.items.splice(idx,1); await saveList(list); renderListDetail(); } }
