@@ -2289,63 +2289,55 @@ async function renderHome() {
 
 // ========== CANCIONERO ==========
 async function renderSongsGrid() {
-    console.log("🟢 renderSongsGrid() ejecutándose");
+
     
-    // Verificar que currentUser y currentIglesiaId existan
     if (!currentUser) {
-        console.error("No hay usuario logueado");
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger">Debes iniciar sesión.</div>';
         return;
     }
-    
     if (!currentIglesiaId) {
-        console.error("No hay iglesia seleccionada");
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger">No hay iglesia seleccionada.</div>';
         return;
     }
-    
-    // Recargar canciones para asegurar datos frescos
-    await loadUserData();
-    
-    console.log("Canciones después de loadUserData:", songs.length);
-    
+
+    // Si no hay canciones cargadas, las traemos (solo una vez)
     if (songs.length === 0) {
-        document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">No hay canciones disponibles. Contacta al administrador.</div>';
-        return;
-    }
-    
-    // Obtener favoritos del usuario actual
-    let favs = [];
-    if (currentUser) {
-        try {
-            const { data, error } = await supabaseClient
-                .from('favoritos')
-                .select('song_id')
-                .eq('user_id', currentUser.id);
-            if (!error && data) {
-                favs = data.map(f => f.song_id);
-            } else if (error) {
-                console.error("Error al cargar favoritos:", error);
-            }
-        } catch(e) {
-            console.error("Excepción al cargar favoritos:", e);
+        const { data, error } = await supabaseClient
+            .from('canciones')
+            .select('*')
+            .eq('iglesia_id', currentIglesiaId);
+        if (!error && data) {
+            songs = data.map(song => ({ ...song, capo: song.capo || '' }));
+        } else {
+            document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">No se pudieron cargar las canciones.</div>';
+            return;
         }
     }
-    
+
+    // Cargar favoritos del usuario (consulta ligera)
+    let favs = [];
+    try {
+        const { data, error } = await supabaseClient
+            .from('favoritos')
+            .select('song_id')
+            .eq('user_id', currentUser.id);
+        if (!error && data) favs = data.map(f => f.song_id);
+    } catch(e) {
+        console.error("Error cargando favoritos:", e);
+    }
+
     const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
     let filtered = songs.filter(s => 
         (s.title && s.title.toLowerCase().includes(query)) || 
         (s.category && s.category.toLowerCase().includes(query))
     );
     filtered.sort((a,b) => (a.title || '').localeCompare(b.title || ''));
-    
-    // Verificar si hay resultados después del filtro
+
     if (filtered.length === 0) {
         document.getElementById('mainContent').innerHTML = '<div class="text-center p-8">No se encontraron canciones con ese criterio.</div>';
         return;
     }
-    
-    // Construir el HTML de la cuadrícula
+
     let gridHtml = `<div class="grid">`;
     for (let idx = 0; idx < filtered.length; idx++) {
         const s = filtered[idx];
