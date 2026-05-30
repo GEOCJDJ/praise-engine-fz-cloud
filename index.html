@@ -8253,19 +8253,58 @@ async function renderPlanner() {
 }
 
 async function cargarEventosPlanner() {
-  const { data, error } = await supabaseClient
-    .from('cronograma_eventos')
-    .select('*, canciones:cronograma_canciones(*)')
-    .order('fecha', { ascending: true });
-  if (error) {
-    showToast('Error al cargar planificación: ' + error.message, 'error');
-    plannerEventos = [];
-    return;
-  }
-  plannerEventos = data || [];
-  if (plannerEventos.length > 0 && !plannerSemanaSeleccionada) {
-    plannerSemanaSeleccionada = plannerEventos[0];
-  }
+    const { data: eventos, error: eventError } = await supabaseClient
+        .from('cronograma_eventos')
+        .select('*')
+        .order('fecha', { ascending: true });
+    if (eventError) {
+        showToast('Error al cargar eventos: ' + eventError.message, 'error');
+        plannerEventos = [];
+        return;
+    }
+    // Para cada evento, obtener su lista asociada (si existe)
+    for (let ev of eventos) {
+        // Convertir fecha del evento (YYYY-MM-DD) a formato dd/mm/aaaa para comparar con listas.date
+        const [year, month, day] = ev.fecha.split('-');
+        const fechaStr = `${day}/${month}/${year}`;
+        const listaAsociada = lists.find(l => l.date === fechaStr);
+        ev.listaAsociada = listaAsociada || null;
+        
+        // Si tiene lista asociada, cargar sus canciones ordenadas
+        if (listaAsociada && listaAsociada.items) {
+            ev.canciones = listaAsociada.items.map((item, idx) => {
+                const song = songs.find(s => s.id === (item.songId || item.song_id));
+                if (!song) return null;
+                // Buscar si ya existe alguna nota guardada en cronograma_canciones (para no perder ediciones previas)
+                const existing = ev.cancionesGuardadas?.find(c => c.cancion_id === song.id);
+                return {
+                    id: existing?.id || generateUniqueId(),
+                    evento_id: ev.id,
+                    cancion_id: song.id,
+                    orden: idx,
+                    titulo: song.title,
+                    tono: item.keyOverride || song.key,
+                    bpm: song.bpm,
+                    nota_musica: existing?.nota_musica || '',
+                    nota_danza: existing?.nota_danza || '',
+                    nota_produccion: existing?.nota_produccion || ''
+                };
+            }).filter(c => c !== null);
+        } else {
+            // Si no hay lista asociada, usar las canciones ya guardadas en cronograma_canciones (si existen)
+            const { data: cancionesGuardadas } = await supabaseClient
+                .from('cronograma_canciones')
+                .select('*')
+                .eq('evento_id', ev.id)
+                .order('orden', { ascending: true });
+            ev.canciones = cancionesGuardadas || [];
+            ev.cancionesGuardadas = cancionesGuardadas;
+        }
+    }
+    plannerEventos = eventos;
+    if (plannerEventos.length > 0 && !plannerSemanaSeleccionada) {
+        plannerSemanaSeleccionada = plannerEventos[0];
+    }
 }
 
 function mostrarInterfazPlanner() {
@@ -8390,36 +8429,159 @@ window.setPlannerRol = (rol, btnElement) => {
 };
 
 function renderizarCancionesPlanner() {
-  const container = document.getElementById('plannerCancionesContainer');
-  if (!container) return;
-  if (!plannerSemanaSeleccionada || !plannerSemanaSeleccionada.canciones || plannerSemanaSeleccionada.canciones.length === 0) {
-    container.innerHTML = '<p class="text-center text-muted">No hay canciones programadas para esta fecha.</p>';
-    return;
-  }
+    const container = document.getElementById('plannerCancionesContainer');
+    if (!container) return;
+    if (!plannerSemanaSeleccionada || !plannerSemanaSeleccionada.canciones || plannerSemanaSeleccionada.canciones.length === 0) {
+        container.innerHTML = `
+            <div class="text-center p-4">
+                <p class="text-muted">No hay canciones programadas para esta fecha.</p>
+                ${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-primary" onclick="asignarListaAPlanner('${plannerSemanaSeleccionada?.id}')">➕ Asignar lista existente</button>
+                <button class="btn btn-ghost" onclick="crearListaDesdePlanner('${plannerSemanaSeleccionada?.fecha}')">📝 Crear nueva lista</button>` : ''}
+            </div>
+        `;
+        return;
+    }
 
-  const canciones = plannerSemanaSeleccionada.canciones.sort((a,b) => a.orden - b.orden);
-  container.innerHTML = canciones.map(song => {
-    let nota = '';
-    let icono = '';
-    if (plannerRolActivo === 'musica') { nota = song.nota_musica; icono = 'fa-guitar'; }
-    else if (plannerRolActivo === 'danza') { nota = song.nota_danza; icono = 'fa-wand-magic-sparkles'; }
-    else { nota = song.nota_produccion; icono = 'fa-clapperboard'; }
+    const canciones = plannerSemanaSeleccionada.canciones.sort((a,b) => a.orden - b.orden);
+    container.innerHTML = canciones.map((song, idx) => {
+        let nota = '';
+        let icono = '';
+        if (plannerRolActivo === 'musica') { nota = song.nota_musica; icono = 'fa-guitar'; }
+        else if (plannerRolActivo === 'danza') { nota = song.nota_danza; icono = 'fa-wand-magic-sparkles'; }
+        else { nota = song.nota_produccion; icono = 'fa-clapperboard'; }
 
-    return `
-      <div style="border-bottom: 1px solid var(--border); padding: 0.8rem 0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-          <b style="font-size: 0.85rem; color: var(--text-main);">${song.orden}. ${escapeHtml(song.titulo)}</b>
-          <span style="font-size: 0.65rem; background: var(--bg-app); padding: 2px 6px; border-radius: 4px; color: var(--text-muted);">Tono: ${song.tono || '?'} | BPM: ${song.bpm || '?'}</span>
+        return `
+            <div class="planner-song-item" data-id="${song.id}" data-cancion-id="${song.cancion_id}" style="border-bottom: 1px solid var(--border); padding: 0.8rem 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-weight: bold; font-size: 0.85rem; color: var(--text-main);">${idx+1}. ${escapeHtml(song.titulo)}</span>
+                        <span style="font-size: 0.65rem; background: var(--bg-app); padding: 2px 6px; border-radius: 4px;">Tono: ${escapeHtml(song.tono || '?')} | BPM: ${song.bpm || '?'}</span>
+                    </div>
+                    ${(isAdminUser || isIglesiaAdmin) ? `
+                        <div style="display: flex; gap: 0.3rem;">
+                            <button class="btn-icon" onclick="editarNotaRol('${song.id}', '${plannerRolActivo}')" title="Editar nota"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon" onclick="quitarCancionDePlanner('${plannerSemanaSeleccionada.id}', '${song.cancion_id}')" title="Quitar"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="planner-nota" style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; background: var(--bg-app); padding: 0.5rem; border-radius: 0.5rem; border-left: 3px solid #6366f1;">
+                    <i class="fa-solid ${icono}" style="color: #6366f1;"></i>
+                    <span>${escapeHtml(nota || 'Sin nota para este rol. Haz clic en el lápiz para agregar.')}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+async function asignarListaAPlanner(eventoId) {
+    const evento = plannerEventos.find(e => e.id === eventoId);
+    if (!evento) return;
+    // Mostrar selector de listas disponibles (solo las que tengan fecha)
+    const listasDisponibles = lists.filter(l => l.date && l.items && l.items.length > 0);
+    if (listasDisponibles.length === 0) {
+        showToast('No hay listas con fecha asignada. Crea una primero.', 'warning');
+        return;
+    }
+    let opciones = '<option value="">Selecciona una lista...</option>';
+    listasDisponibles.forEach(l => {
+        opciones += `<option value="${l.id}">${escapeHtml(l.name)} (${l.date})</option>`;
+    });
+    showModal(`
+        <h3>Asignar lista al evento ${evento.titulo_domingo || evento.fecha}</h3>
+        <select id="selectListaPlanner" class="form-control">${opciones}</select>
+        <div style="margin-top: 1rem; text-align: right;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmarAsignarLista('${eventoId}')">Asignar</button>
         </div>
-        <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; background: var(--bg-app); padding: 0.5rem; border-radius: 0.5rem; border-left: 3px solid #6366f1;">
-          <i class="fa-solid ${icono}" style="color: #6366f1;"></i>
-          <span>${escapeHtml(nota || 'Sin nota para este rol.')}</span>
-        </p>
-      </div>
-    `;
-  }).join('');
+    `);
 }
 
+async function confirmarAsignarLista(eventoId) {
+    const listaId = document.getElementById('selectListaPlanner').value;
+    if (!listaId) return;
+    const lista = lists.find(l => l.id === listaId);
+    if (!lista) return;
+    const evento = plannerEventos.find(e => e.id === eventoId);
+    if (!evento) return;
+    // Eliminar canciones previas del evento
+    await supabaseClient.from('cronograma_canciones').delete().eq('evento_id', eventoId);
+    // Insertar las canciones de la lista en cronograma_canciones
+    const nuevasCanciones = lista.items.map((item, idx) => {
+        const song = songs.find(s => s.id === (item.songId || item.song_id));
+        if (!song) return null;
+        return {
+            id: generateUniqueId(),
+            evento_id: eventoId,
+            cancion_id: song.id,
+            orden: idx,
+            tono: item.keyOverride || song.key,
+            bpm: song.bpm,
+            nota_musica: '',
+            nota_danza: '',
+            nota_produccion: ''
+        };
+    }).filter(c => c !== null);
+    if (nuevasCanciones.length) {
+        await supabaseClient.from('cronograma_canciones').insert(nuevasCanciones);
+    }
+    // Actualizar evento con la fecha de la lista (para futuras sincronizaciones)
+    await supabaseClient.from('cronograma_eventos').update({ lista_asociada_id: listaId }).eq('id', eventoId);
+    closeModal();
+    await cargarEventosPlanner();
+    mostrarInterfazPlanner();
+}
+
+async function editarNotaRol(cancionCronogramaId, rol) {
+    const cancion = plannerSemanaSeleccionada?.canciones?.find(c => c.id === cancionCronogramaId);
+    if (!cancion) return;
+    let campo = '';
+    let titulo = '';
+    if (rol === 'musica') { campo = 'nota_musica'; titulo = 'Nota para Músicos'; }
+    else if (rol === 'danza') { campo = 'nota_danza'; titulo = 'Nota para Danza'; }
+    else { campo = 'nota_produccion'; titulo = 'Nota para Producción'; }
+    const notaActual = cancion[campo] || '';
+    const nuevaNota = prompt(`${titulo} (deja vacío para borrar):`, notaActual);
+    if (nuevaNota !== null) {
+        const update = {};
+        update[campo] = nuevaNota;
+        const { error } = await supabaseClient
+            .from('cronograma_canciones')
+            .update(update)
+            .eq('id', cancionCronogramaId);
+        if (error) showToast('Error al guardar nota: ' + error.message, 'error');
+        else {
+            cancion[campo] = nuevaNota;
+            renderizarCancionesPlanner();
+            showToast('Nota actualizada', 'success');
+        }
+    }
+}
+
+async function quitarCancionDePlanner(eventoId, cancionId) {
+    if (!confirm('¿Eliminar esta canción del evento? No se borrará de la lista original.')) return;
+    await supabaseClient.from('cronograma_canciones').delete().eq('evento_id', eventoId).eq('cancion_id', cancionId);
+    await cargarEventosPlanner();
+    mostrarInterfazPlanner();
+}
+    
+async function crearListaDesdePlanner(fecha) {
+    // fecha en formato YYYY-MM-DD
+    const [year, month, day] = fecha.split('-');
+    const fechaDDMMYYYY = `${day}/${month}/${year}`;
+    const nombreLista = `Lista ${fechaDDMMYYYY}`;
+    const nuevaLista = {
+        id: generateUniqueId(),
+        name: nombreLista,
+        date: fechaDDMMYYYY,
+        iglesia_id: currentIglesiaId,
+        items: []
+    };
+    await supabaseClient.from('listas').insert(nuevaLista);
+    await loadUserData(); // recargar listas
+    showToast(`Lista "${nombreLista}" creada. Ahora puedes añadir canciones desde el botón "Añadir Canción".`, 'success');
+    // Recargar planner para que aparezca la nueva lista
+    await cargarEventosPlanner();
+    mostrarInterfazPlanner();
+}
 // ==================== MÓDULO G-DESK (Solicitudes entre departamentos) ====================
 let gdeskCurrentFilter = 'todos'; // 'todos', 'mis_tickets'
 
