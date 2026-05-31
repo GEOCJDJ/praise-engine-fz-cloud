@@ -8169,14 +8169,13 @@ function mostrarInterfazPlanner() {
     const fechaActual = plannerSemanaSeleccionada ? new Date(plannerSemanaSeleccionada.fecha) : new Date();
     const balanceAsarel = plannerSemanaSeleccionada?.balance_Asarel || 60;
     const balanceAsarelitos = plannerSemanaSeleccionada?.balance_Asarelitos || 40;
-    // Obtener vestuario guardado (si existe)
     const vestuarioActual = plannerSemanaSeleccionada?.vestuario || '';
 
     const html = `
         <div style="max-width: 1000px; margin: 0 auto;">
             <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: var(--shadow);">
                 
-                <!-- Encabezado (igual que antes) -->
+                <!-- Encabezado -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
                         <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
@@ -8200,7 +8199,7 @@ function mostrarInterfazPlanner() {
                     </div>
                 </div>
 
-                <!-- Selector de semanas (scroll horizontal) -->
+                <!-- Selector de semanas -->
                 <p style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); margin: 0 0 0.5rem 0;">Selecciona un Fin de Semana</p>
                 <div id="plannerWeeksContainer" style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: thin;">
                     ${plannerEventos.map((evento, idx) => `
@@ -8225,26 +8224,8 @@ function mostrarInterfazPlanner() {
                     </div>
                 </div>
 
-                <!-- Matriz de ejecución (igual, no se modifica) -->
+                <!-- ========== BLOQUE DE DANZA MOVIDO AQUÍ (arriba) ========== -->
                 <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;">Matriz de Ejecución</h3>
-                        <span id="plannerFechaLista" style="font-size: 0.7rem; color: var(--text-muted);">${plannerSemanaSeleccionada?.titulo_domingo || ''}</span>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem; background: var(--bg-app); padding: 0.25rem; border-radius: 0.75rem; margin-bottom: 1rem;">
-                        <button onclick="setPlannerRol('musica', this)" class="planner-rol-btn active" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: white; color: var(--text-main); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-guitar"></i> Músicos</button>
-                        <button onclick="setPlannerRol('danza', this)" class="planner-rol-btn" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-wand-magic-sparkles"></i> Danza</button>
-                        <button onclick="setPlannerRol('produccion', this)" class="planner-rol-btn" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-clapperboard"></i> Producción</button>
-                    </div>
-
-                    <div id="plannerCancionesContainer" style="margin-top: 0.5rem;">
-                        <!-- Se llena con renderizarCancionesPlanner() -->
-                    </div>
-                </div>
-
-                <!-- ========== NUEVO BLOQUE: G-DANCE (Vestuario, Video Guía, Formaciones) ========== -->
-                <div style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-wand-magic-sparkles"></i> Planificación de Danza</h3>
                     </div>
@@ -8275,14 +8256,32 @@ function mostrarInterfazPlanner() {
                         </button>
                     </div>
                 </div>
-                <!-- FIN DEL BLOQUE NUEVO -->
+                <!-- ========== FIN DEL BLOQUE DE DANZA ========== -->
+
+                <!-- Matriz de ejecución (sin cambios) -->
+                <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;">Matriz de Ejecución</h3>
+                        <span id="plannerFechaLista" style="font-size: 0.7rem; color: var(--text-muted);">${plannerSemanaSeleccionada?.titulo_domingo || ''}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem; background: var(--bg-app); padding: 0.25rem; border-radius: 0.75rem; margin-bottom: 1rem;">
+                        <button onclick="setPlannerRol('musica', this)" class="planner-rol-btn active" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: white; color: var(--text-main); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-guitar"></i> Músicos</button>
+                        <button onclick="setPlannerRol('danza', this)" class="planner-rol-btn" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-wand-magic-sparkles"></i> Danza</button>
+                        <button onclick="setPlannerRol('produccion', this)" class="planner-rol-btn" style="padding: 0.5rem; font-size: 0.7rem; font-weight: bold; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-clapperboard"></i> Producción</button>
+                    </div>
+
+                    <div id="plannerCancionesContainer" style="margin-top: 0.5rem;">
+                        <!-- Se llena con renderizarCancionesPlanner() -->
+                    </div>
+                </div>
 
             </div>
         </div>
     `;
     container.innerHTML = html;
     renderizarCancionesPlanner();
-    
+
     // Estilo activo del rol
     document.querySelectorAll('.planner-rol-btn').forEach(btn => {
         if ((plannerRolActivo === 'musica' && btn.innerText.includes('Músicos')) ||
