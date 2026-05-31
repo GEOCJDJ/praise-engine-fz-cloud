@@ -8073,90 +8073,139 @@ async function abrirChecklistAmbiente() {
 let plannerEventos = [];
 let plannerSemanaSeleccionada = null;
 let plannerRolActivo = 'musica';
+let refreshPlanner = false;  // ← añade esta línea
 
 async function renderPlanner() {
     if (!puedeVerPlanner()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
     }
-    // Mostrar carga
-    document.getElementById('mainContent').innerHTML = '<div class="text-center p-8"><i class="fas fa-spinner fa-pulse fa-2x"></i><br>Cargando planner...</div>';
-    
-    await cargarEventosPlanner();
-    
-    if (!plannerEventos || plannerEventos.length === 0) {
-        document.getElementById('mainContent').innerHTML = `
-            <div style="text-align: center; padding: 3rem;">
-                <i class="fas fa-calendar-times" style="font-size: 3rem; color: var(--text-muted);"></i>
-                <h3>No hay eventos programados</h3>
-                <p>Crea el primer evento para empezar.</p>
-                ${(isAdminUser || isIglesiaAdmin) ? '<button class="btn btn-primary" onclick="crearEventoPlanner()">➕ Crear evento</button>' : ''}
-            </div>
-        `;
+
+    // Si ya tenemos eventos cargados, mostrar la interfaz inmediatamente
+    if (plannerEventos.length > 0 && plannerSemanaSeleccionada) {
+        mostrarInterfazPlanner();
+        // Refrescar en segundo plano (opcional)
+        window.refreshPlanner = true;
+        cargarEventosPlanner().then(() => {
+            if (plannerSemanaSeleccionada) mostrarInterfazPlanner();
+        }).catch(console.error);
         return;
     }
-    mostrarInterfazPlanner();
-}
 
+    // Primera carga: mostrar spinner pequeño
+    document.getElementById('mainContent').innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-pulse fa-2x"></i><br><span style="font-size:0.8rem;">Cargando planificación...</span></div>';
+    
+    try {
+        await cargarEventosPlanner();
+        if (plannerEventos.length === 0) {
+            document.getElementById('mainContent').innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-calendar-times" style="font-size: 3rem; color: var(--text-muted);"></i>
+                    <h3>No hay eventos programados</h3>
+                    <p>Crea el primer evento para empezar.</p>
+                    ${(isAdminUser || isIglesiaAdmin) ? '<button class="btn btn-primary" onclick="crearEventoPlanner()">➕ Crear evento</button>' : ''}
+                </div>
+            `;
+        } else {
+            mostrarInterfazPlanner();
+        }
+    } catch (err) {
+        console.error(err);
+        document.getElementById('mainContent').innerHTML = '<div class="text-center p-8 text-red-500">Error al cargar el planner. Recarga la página.</div>';
+    }
+}
 async function cargarEventosPlanner() {
-    console.log("🔄 Cargando eventos...");
+    console.log("🔄 Cargando eventos planner (modo rápido)...");
+    // Si ya tenemos eventos cargados y no hay cambios, podemos retornar rápido
+    if (plannerEventos.length > 0 && !window.refreshPlanner) {
+        console.log("✅ Usando caché local");
+        return;
+    }
+    window.refreshPlanner = false;
+
+    // 1. Obtener todos los eventos de una sola vez (sin filtros adicionales)
     const { data: eventos, error: eventError } = await supabaseClient
         .from('cronograma_eventos')
         .select('*')
         .order('fecha', { ascending: true });
-    if (eventError) {
-        console.error("❌ Error cargando eventos:", eventError);
-        showToast('Error al cargar eventos: ' + eventError.message, 'error');
+    if (eventError) throw eventError;
+    if (!eventos.length) {
         plannerEventos = [];
         return;
     }
-    console.log(`📅 Eventos encontrados: ${eventos?.length || 0}`, eventos);
 
+    // 2. Obtener todas las listas y sus items (solo las que tienen fecha)
+    const { data: todasListas, error: listError } = await supabaseClient
+        .from('listas')
+        .select('*, lista_items(*)')
+        .eq('iglesia_id', currentIglesiaId)
+        .not('date', 'is', null);
+    if (listError) throw listError;
+
+    // Mapa rápido: fecha (dd/mm/aaaa) -> lista
+    const listasPorFecha = new Map();
+    todasListas.forEach(lista => {
+        if (lista.date) {
+            // Normalizar fecha (dd/mm/aaaa)
+            listasPorFecha.set(lista.date, lista);
+        }
+    });
+
+    // 3. Obtener todas las canciones de cronograma_canciones de una vez
+    const eventosIds = eventos.map(e => e.id);
+    const { data: todasCancionesCrono, error: cronoError } = await supabaseClient
+        .from('cronograma_canciones')
+        .select('*')
+        .in('evento_id', eventosIds)
+        .order('orden', { ascending: true });
+    if (cronoError) throw cronoError;
+
+    // Agrupar por evento_id
+    const cancionesPorEvento = new Map();
+    (todasCancionesCrono || []).forEach(c => {
+        if (!cancionesPorEvento.has(c.evento_id)) cancionesPorEvento.set(c.evento_id, []);
+        cancionesPorEvento.get(c.evento_id).push(c);
+    });
+
+    // 4. Construir array final de eventos
     for (let ev of eventos) {
-        // Convertir fecha del evento (YYYY-MM-DD) a dd/mm/aaaa
-        const [year, month, day] = ev.fecha.split('-');
-        const fechaStr = `${day}/${month}/${year}`;
-        console.log(`Evento ${ev.fecha} -> fechaStr: ${fechaStr}`);
-        
-        const listaAsociada = lists.find(l => l.date === fechaStr);
-        ev.listaAsociada = listaAsociada || null;
-        console.log(`Lista asociada:`, listaAsociada?.name || 'ninguna');
+        const fechaStr = ev.fecha.split('-').reverse().join('/'); // YYYY-MM-DD -> dd/mm/aaaa
+        const listaAsociada = listasPorFecha.get(fechaStr) || null;
+        ev.listaAsociada = listaAsociada;
 
-        // Si tiene lista asociada, cargar sus canciones ordenadas
-        if (listaAsociada && listaAsociada.items) {
-            ev.canciones = listaAsociada.items.map((item, idx) => {
-                const song = songs.find(s => s.id === (item.songId || item.song_id));
+        let canciones = cancionesPorEvento.get(ev.id) || [];
+        // Si no hay canciones en cronograma pero sí lista asociada, crear desde lista
+        if (canciones.length === 0 && listaAsociada && listaAsociada.lista_items) {
+            const itemsOrdenados = listaAsociada.lista_items.sort((a,b) => a.orden - b.orden);
+            canciones = itemsOrdenados.map((item, idx) => {
+                const song = songs.find(s => s.id === item.song_id);
                 if (!song) return null;
-                const existing = ev.cancionesGuardadas?.find(c => c.cancion_id === song.id);
                 return {
-                    id: existing?.id || generateUniqueId(),
+                    id: generateUniqueId(),
                     evento_id: ev.id,
                     cancion_id: song.id,
                     orden: idx,
                     titulo: song.title,
-                    tono: item.keyOverride || song.key,
+                    tono: item.key_override || song.key,
                     bpm: song.bpm,
-                    nota_musica: existing?.nota_musica || '',
-                    nota_danza: existing?.nota_danza || '',
-                    nota_produccion: existing?.nota_produccion || ''
+                    nota_musica: '',
+                    nota_danza: '',
+                    nota_produccion: ''
                 };
-            }).filter(c => c !== null);
-        } else {
-            // Si no hay lista asociada, usar canciones ya guardadas en cronograma_canciones
-            const { data: cancionesGuardadas } = await supabaseClient
-                .from('cronograma_canciones')
-                .select('*')
-                .eq('evento_id', ev.id)
-                .order('orden', { ascending: true });
-            ev.canciones = cancionesGuardadas || [];
-            ev.cancionesGuardadas = cancionesGuardadas;
+            }).filter(c => c);
+            // Guardarlas en segundo plano (no esperar)
+            if (canciones.length) {
+                supabaseClient.from('cronograma_canciones').insert(canciones).then(() => {}).catch(console.error);
+            }
         }
+        ev.canciones = canciones;
     }
 
     plannerEventos = eventos;
-    if (plannerEventos.length > 0 && !plannerSemanaSeleccionada) {
+    if (plannerEventos.length && !plannerSemanaSeleccionada) {
         plannerSemanaSeleccionada = plannerEventos[0];
     }
+    console.log(`✅ Cargados ${plannerEventos.length} eventos.`);
 }
     
 function mostrarInterfazPlanner() {
