@@ -2184,6 +2184,19 @@ function renderApp() {
     if (currentTab === 'profile') {
         setTimeout(() => renderUserProfile(), 500);
     }
+    // Precarga del planner al pasar el mouse sobre el botón
+setTimeout(() => {
+    const plannerNav = document.querySelector('.nav-item[data-tab="planner"]');
+    if (plannerNav && !window.plannerPrecargado) {
+        plannerNav.addEventListener('mouseenter', () => {
+            if (!window.plannerPrecargado && !plannerEventos.length) {
+                window.plannerPrecargado = true;
+                // Llamamos suavemente a cargarEventosPlanner sin await
+                cargarEventosPlanner().catch(console.error);
+            }
+        });
+    }
+}, 1000);
 }
 
 function darkModeToggle() {
