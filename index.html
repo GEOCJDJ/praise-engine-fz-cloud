@@ -2136,6 +2136,11 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'scriptura' ? 'active' : ''}" data-tab="scriptura"><i class="fas fa-book-bible"></i><span>MI BIBLIA</span></div>
     <div class="nav-item ${currentTab === 'profile' ? 'active' : ''}" data-tab="profile"><i class="fas fa-user"></i><span>MI PERFIL</span></div>
     ${(isAdminUser || isIglesiaAdmin) ? `<div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div>` : ''}
+    <div class="nav-item" id="notificacionesBtn" style="position: relative;">
+    <i class="fas fa-bell"></i>
+    <span id="notificacionesBadge" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; display: none;">0</span>
+    <span>NOTIF.</span>
+</div>
     <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
     <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
 </div>
@@ -8773,18 +8778,18 @@ async function guardarTicketGDesk() {
 }
 
 async function cambiarEstadoTicketGDesk(ticketId, nuevoEstado) {
-    if (!isAdminUser && !isIglesiaAdmin && !isEquipoAdmin) {  // ← añadí !isEquipoAdmin
-        showToast('Solo administradores pueden cambiar el estado', 'error');
+    // Verificar permisos: admin global, admin de iglesia, o admin de equipo (cualquier equipo)
+    if (!isAdminUser && !isIglesiaAdmin && !isEquipoAdmin) {
+        showToast('No tienes permiso para cambiar el estado', 'error');
         return;
     }
     
-    // Primero obtener el ticket actual para saber su departamento y otros datos
+    // Obtener ticket actual
     const { data: ticketActual, error: fetchError } = await supabaseClient
         .from('gdesk_tickets')
         .select('*')
         .eq('id', ticketId)
         .single();
-    
     if (fetchError) {
         showToast('Error al obtener el ticket: ' + fetchError.message, 'error');
         return;
@@ -8795,16 +8800,65 @@ async function cambiarEstadoTicketGDesk(ticketId, nuevoEstado) {
         .from('gdesk_tickets')
         .update({ estado: nuevoEstado, actualizado_en: new Date() })
         .eq('id', ticketId);
-    
     if (error) {
-        showToast('Error: ' + error.message, 'error');
+        showToast('Error al actualizar: ' + error.message, 'error');
         return;
     }
     
-    // *** Sincronización con G-MEDIA ***
-    // Si el ticket es de multimedia y el nuevo estado es 'en_proceso', creamos una tarjeta en G-MEDIA
+    // --- NOTIFICACIÓN AL SOLICITANTE ---
+    const estadoTexto = nuevoEstado === 'pendiente' ? 'Pendiente' : (nuevoEstado === 'en_proceso' ? 'En Proceso' : 'Finalizado');
+    const mensajeSolicitante = `El ticket "${ticketActual.titulo}" ha cambiado a estado: ${estadoTexto}`;
+    await crearNotificacion(
+        ticketActual.solicitante_id,
+        ticketId,
+        'estado',
+        `Estado de ticket actualizado`,
+        mensajeSolicitante
+    );
+    
+    // --- NOTIFICACIÓN A ADMINISTRADORES DEL DEPARTAMENTO CORRESPONDIENTE ---
+    // Mapeo de departamento a nombre del equipo (según tu estructura)
+    const deptoEquipoMap = {
+        'alabanza': 'Alabanza',
+        'multimedia': 'Multimedia',
+        'danza': 'Danza',
+        'liderazgo': 'Liderazgo'
+    };
+    const nombreEquipo = deptoEquipoMap[ticketActual.departamento];
+    if (nombreEquipo) {
+        // Obtener el ID del equipo correspondiente (buscando en departamentos)
+        const { data: equipo } = await supabaseClient
+            .from('departamentos')
+            .select('id')
+            .eq('nombre', nombreEquipo)
+            .eq('iglesia_id', currentIglesiaId)
+            .single();
+        
+        if (equipo) {
+            // Obtener todos los administradores de ese equipo (es_admin_equipo = true y equipo_id = equipo.id)
+            const { data: adminsEquipo } = await supabaseClient
+                .from('usuarios_iglesia')
+                .select('user_id')
+                .eq('iglesia_id', currentIglesiaId)
+                .eq('es_admin_equipo', true)
+                .eq('equipo_id', equipo.id);
+            
+            for (let admin of adminsEquipo || []) {
+                if (admin.user_id !== currentUser.id) {
+                    await crearNotificacion(
+                        admin.user_id,
+                        ticketId,
+                        'estado',
+                        `Ticket de ${nombreEquipo} actualizado`,
+                        `${currentProfile?.nombre} cambió el estado del ticket "${ticketActual.titulo}" a ${estadoTexto}`
+                    );
+                }
+            }
+        }
+    }
+    
+    // --- SINCRONIZACIÓN CON G-MEDIA (solo para multimedia y estado 'en_proceso') ---
     if (ticketActual.departamento === 'multimedia' && nuevoEstado === 'en_proceso') {
-        // Verificar si ya existe una tarjeta en G-MEDIA con el mismo título para no duplicar
         const { data: existente } = await supabaseClient
             .from('gmedia_tickets')
             .select('id')
@@ -8817,11 +8871,11 @@ async function cambiarEstadoTicketGDesk(ticketId, nuevoEstado) {
                 id: generateUniqueId(),
                 titulo: ticketActual.titulo,
                 descripcion: ticketActual.descripcion,
-                tipo: 'flyer', // o podrías mapear según prioridad, pero ponemos un default
+                tipo: 'flyer',
                 fecha_limite: ticketActual.fecha_limite,
                 solicitante_id: ticketActual.solicitante_id,
                 iglesia_id: currentIglesiaId,
-                estado: 'nuevo', // en G-MEDIA empieza en "Nuevas Solicitudes"
+                estado: 'nuevo',
                 prioridad: ticketActual.prioridad,
                 creado_en: new Date(),
                 actualizado_en: new Date()
@@ -8840,17 +8894,27 @@ async function cambiarEstadoTicketGDesk(ticketId, nuevoEstado) {
         }
     }
     
-    showToast(`Ticket marcado como ${nuevoEstado}`, 'success');
-    renderGDesk();
+    // Mostrar mensaje de éxito
+    showToast(`Ticket marcado como ${estadoTexto}`, 'success');
     
-    // Notificar al solicitante (simulado)
-    showToast(`📢 El solicitante recibirá notificación del cambio`, 'info');
+    // Recargar la vista de G-DESK (sin recargar página)
+    await renderGDesk();
+    
+    // Actualizar badge de notificaciones
+    cargarNotificaciones();
 }
 
 async function agregarComentarioTicket(ticketId) {
     const input = document.getElementById(`commentInput-${ticketId}`);
     const mensaje = input?.value.trim();
     if (!mensaje) return;
+    const { data: ticket, error: fetchError } = await supabaseClient
+        .from('gdesk_tickets')
+        .select('solicitante_id, departamento')
+        .eq('id', ticketId)
+        .single();
+    if (fetchError) return showToast('Error al obtener ticket', 'error');
+    
     const { error } = await supabaseClient.from('gdesk_comentarios').insert({
         id: generateUniqueId(),
         ticket_id: ticketId,
@@ -8861,7 +8925,30 @@ async function agregarComentarioTicket(ticketId) {
         showToast('Error al enviar comentario: ' + error.message, 'error');
     } else {
         input.value = '';
-        cargarComentariosTicket(ticketId); // recarga solo este ticket
+        // Notificar al solicitante y a los admins del departamento
+        await crearNotificacion(
+            ticket.solicitante_id,
+            ticketId,
+            'comentario',
+            `Nuevo comentario en ticket`,
+            `${currentProfile?.nombre} comentó: "${mensaje.substring(0, 100)}"`
+        );
+        // Opcional: notificar a admins de danza si el ticket es de danza
+        if (ticket.departamento === 'danza') {
+            const { data: adminsDanza } = await supabaseClient
+                .from('usuarios_iglesia')
+                .select('user_id')
+                .eq('iglesia_id', currentIglesiaId)
+                .eq('es_admin_equipo', true)
+                .eq('equipo_id', equipoAdminData?.id || '');
+            for (let admin of adminsDanza || []) {
+                if (admin.user_id !== currentUser.id) {
+                    await crearNotificacion(admin.user_id, ticketId, 'comentario', `Nuevo comentario en ticket de Danza`, `${currentProfile?.nombre} comentó en "${ticket.titulo}"`);
+                }
+            }
+        }
+        cargarComentariosTicket(ticketId);
+        cargarNotificaciones(); // actualizar badge
     }
 }
 
@@ -9230,25 +9317,101 @@ window.guardarFormaciones = async () => {
     closeModal();
 };
 
-    
+    // Cargar notificaciones no leídas
+async function cargarNotificaciones() {
+    if (!currentUser) return;
+    const { data, error } = await supabaseClient
+        .from('notificaciones')
+        .select('*')
+        .eq('usuario_id', currentUser.id)
+        .eq('leida', false)
+        .order('creado_en', { ascending: false });
+    if (!error && data) {
+        const badge = document.getElementById('notificacionesBadge');
+        if (badge) {
+            const count = data.length;
+            if (count > 0) {
+                badge.style.display = 'flex';
+                badge.innerText = count > 99 ? '99+' : count;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+}
 
-// ========== INICIALIZACIÓN ==========
+// Marcar notificación como leída
+async function marcarNotificacionLeida(id) {
+    await supabaseClient.from('notificaciones').update({ leida: true }).eq('id', id);
+    cargarNotificaciones();
+}
+
+// Abrir centro de notificaciones (modal)
+async function abrirCentroNotificaciones() {
+    const { data, error } = await supabaseClient
+        .from('notificaciones')
+        .select('*')
+        .eq('usuario_id', currentUser.id)
+        .order('creado_en', { ascending: false })
+        .limit(50);
+    if (error) return;
+    let html = `<h3 style="margin-bottom:1rem;"><i class="fas fa-bell"></i> Centro de Notificaciones</h3>`;
+    if (!data || data.length === 0) {
+        html += '<p class="text-muted">No tienes notificaciones.</p>';
+    } else {
+        html += `<div style="max-height: 60vh; overflow-y: auto;">`;
+        data.forEach(notif => {
+            html += `
+                <div class="card" style="margin-bottom:0.5rem; padding:0.8rem; ${!notif.leida ? 'border-left: 3px solid #3b82f6;' : ''}">
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong>${escapeHtml(notif.titulo)}</strong>
+                        <small>${new Date(notif.creado_en).toLocaleString()}</small>
+                    </div>
+                    <p style="margin:0.5rem 0;">${escapeHtml(notif.mensaje)}</p>
+                    ${!notif.leida ? `<button class="btn-icon" onclick="marcarNotificacionLeida('${notif.id}')">Marcar como leída</button>` : ''}
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    html += `<div style="margin-top:1rem; text-align:right;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
+    showModal(html);
+}
+
+// Crear notificación
+async function crearNotificacion(usuarioId, ticketId, tipo, titulo, mensaje) {
+    await supabaseClient.from('notificaciones').insert({
+        usuario_id: usuarioId,
+        ticket_id: ticketId,
+        tipo: tipo,
+        titulo: titulo,
+        mensaje: mensaje
+    });
+    // Si el usuario actual es el destinatario, refrescar badge
+    if (usuarioId === currentUser?.id) cargarNotificaciones();
+}
+
+// Evento para abrir notificaciones
+document.addEventListener('click', (e) => {
+    const btn = document.getElementById('notificacionesBtn');
+    if (btn && btn.contains(e.target)) {
+        abrirCentroNotificaciones();
+    }
+});
+// INICIALIZACION---
 (async () => {
     const savedTheme = localStorage.getItem('user_theme');
-if (savedTheme) aplicarTema(savedTheme);
+    if (savedTheme) aplicarTema(savedTheme);
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         currentUser = session.user;
         await loadProfile();
         await loadUserIglesia();
-        
-        // Aplicar el tema guardado en el perfil (si existe)
         if (currentProfile && currentProfile.tema) {
             aplicarTema(currentProfile.tema);
         } else {
-            aplicarTema('default'); // Aplicar tema por defecto
+            aplicarTema('default');
         }
-        
         if (currentIglesiaId || isAdminUser) {
             await loadUserData();
             renderApp();
@@ -9258,6 +9421,13 @@ if (savedTheme) aplicarTema(savedTheme);
     } else {
         renderLogin();
     }
+    
+    // Actualizar notificaciones cada 30 segundos (solo si el usuario está logueado)
+    setInterval(() => {
+        if (currentUser && typeof cargarNotificaciones === 'function') {
+            cargarNotificaciones();
+        }
+    }, 30000);
 })();
 
 </script>
