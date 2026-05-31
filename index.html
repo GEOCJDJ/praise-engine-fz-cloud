@@ -5217,7 +5217,8 @@ window.verModulo = async (moduloId) => {
 };
     
 async function cargarEvaluacionesGemini() {
-    const container = document.getElementById('tab-evaluaciones');
+    const container = document.getElementById('av-tab-evaluaciones'); // ← ID corregido
+    if (!container) return;
     const { data: examenes } = await supabaseClient.from('examenes').select('*, modulos(titulo)');
     if (!examenes || examenes.length === 0) {
         container.innerHTML = '<p class="text-center text-slate-500">No hay exámenes disponibles.</p>';
@@ -5241,14 +5242,14 @@ async function cargarEvaluacionesGemini() {
         let aprobado = false;
         
         if (realizado) {
-    nota = parseFloat(intentos[0].puntaje);
-    aprobado = nota >= 14;
-    estadoHtml = `<span class="text-xs font-bold px-3 py-1 rounded ${aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
-                    ${aprobado ? '✅ Aprobado' : '❌ Reprobado'}
-                  </span>`;
-    puntajeMostrado = `<div class="text-xs text-slate-500 mt-1">Nota: ${nota} / 20</div>`;
-    botonHtml = `<button class="bg-slate-600 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-slate-700 transition" onclick="verDetalleExamen('${ex.id}')">📋 Revisar</button>`;
-} else {
+            nota = parseFloat(intentos[0].puntaje);
+            aprobado = nota >= 14;
+            estadoHtml = `<span class="text-xs font-bold px-3 py-1 rounded ${aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                            ${aprobado ? '✅ Aprobado' : '❌ Reprobado'}
+                          </span>`;
+            puntajeMostrado = `<div class="text-xs text-slate-500 mt-1">Nota: ${nota} / 20</div>`;
+            botonHtml = `<button class="bg-slate-600 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-slate-700 transition" onclick="verDetalleExamen('${ex.id}')">📋 Revisar</button>`;
+        } else {
             botonHtml = `<button class="bg-blue-900 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="startExam('${ex.id}')">📝 Iniciar Cuestionario</button>`;
         }
         
@@ -5271,7 +5272,6 @@ async function cargarEvaluacionesGemini() {
     }
     container.innerHTML = html;
 }
-
     
     async function verDetalleExamen(examenId) {
     const { data: intentos } = await supabaseClient
@@ -5298,15 +5298,19 @@ async function cargarEvaluacionesGemini() {
 }
     
 async function cargarTareasGemini() {
-    const container = document.getElementById('tab-tareas');
+    const container = document.getElementById('av-tab-tareas'); // ← ID corregido
+    if (!container) return;
     const { data: tareas } = await supabaseClient.from('tareas_aula').select('*').eq('iglesia_id', currentIglesiaId);
-    if (!tareas || tareas.length === 0) { container.innerHTML = '<p class="text-center text-slate-500">No hay tareas asignadas.</p>'; return; }
+    if (!tareas || tareas.length === 0) { 
+        container.innerHTML = '<p class="text-center text-slate-500">No hay tareas asignadas.</p>'; 
+        return; 
+    }
     let html = `<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Tareas de Investigación y Evidencia</p>`;
     for (let t of tareas) {
         html += `<div class="av-task-card bg-white border rounded-xl p-4 mb-3"><div class="flex justify-between items-start"><div><span class="av-cat av-cat-amber">Plazo: ${t.fecha_limite}</span><h3 class="text-sm font-bold text-slate-800 mt-1">${t.titulo}</h3><p class="text-xs text-slate-500 mt-1">${t.descripcion || ''}</p></div></div><div class="mt-2"><input type="text" id="link_${t.id}" class="w-full border rounded p-2 text-sm" placeholder="Pega tu enlace de entrega (Drive, YouTube)"><button class="mt-2 bg-blue-900 text-white px-4 py-1 rounded text-xs" onclick="entregarTareaGemini('${t.id}', '${t.titulo}')">Entregar Tarea</button></div></div>`;
     }
     container.innerHTML = html;
-}
+    }
 
 window.entregarTareaGemini = async (tareaId, titulo) => {
     const linkInput = document.getElementById(`link_${tareaId}`);
@@ -5319,7 +5323,8 @@ window.entregarTareaGemini = async (tareaId, titulo) => {
 };
 
 async function cargarDevocionalUI() {
-    const container = document.getElementById('tab-devocional');
+    const container = document.getElementById('av-tab-devocional'); // ← ID corregido
+    if (!container) return;
     const versiculo = devocionalGemini?.versiculo || 'Juan 4:23 — Mas la hora viene, y ahora es, cuando los verdaderos adoradores adorarán al Padre en espíritu y en verdad.';
     const reflexion = devocionalGemini?.reflexion || '¿De qué manera estás purificando tus intenciones para que tu adoración sea en verdad y no por aplauso?';
     container.innerHTML = `
@@ -5335,8 +5340,8 @@ async function cargarDevocionalUI() {
             <div class="flex justify-between items-center mt-3"><div class="text-xs text-slate-500"><i class="ti ti-flame text-orange-500"></i> Racha actual: ${rachaGemini} días consecutivos</div><button class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded-md hover:bg-blue-950 transition" onclick="guardarDevocionalGemini()">Guardar Meditación e Incrementar Racha (+30 XP)</button></div>
         </div>
     `;
-}
-
+    }
+    
 window.guardarDevocionalGemini = async () => {
     const texto = document.getElementById('devocionalTexto')?.value.trim();
     if (!texto) return showToast('Escribe tu reflexión antes de guardar.');
@@ -5499,11 +5504,13 @@ async function mostrarLogrosEnPanel() {
     
     
 async function cargarRetosGemini() {
-    const container = document.getElementById('tab-retos');
+    const container = document.getElementById('av-tab-retos'); // ← ID corregido
+    if (!container) return;
+    // ... resto del código igual (sin cambios en la lógica, solo el container)
+    // Asegúrate de que el resto de la función use container para inyectar el HTML
     const otros = usuariosIglesia.filter(u => u.user_id !== currentUser.id);
     const opciones = otros.map(u => `<option value="${u.user_id}">${u.perfiles?.nombre || 'Usuario'}</option>`).join('');
     let desafiosHtml = '<div class="space-y-2">';
-    // Consulta CORREGIDA (sin usar relaciones directas en el select, haremos dos consultas)
     const { data: pendientes, error } = await supabaseClient
         .from('desafios')
         .select('*')
@@ -5514,7 +5521,6 @@ async function cargarRetosGemini() {
     if (error) console.error("Error cargando desafíos:", error);
     
     if (pendientes && pendientes.length > 0) {
-        // Obtener los nombres de los usuarios que enviaron los desafíos
         const deUsuariosIds = [...new Set(pendientes.map(d => d.de_usuario_id))];
         const { data: perfiles } = await supabaseClient.from('perfiles').select('id, nombre').in('id', deUsuariosIds);
         const perfilMap = Object.fromEntries((perfiles || []).map(p => [p.id, p.nombre]));
