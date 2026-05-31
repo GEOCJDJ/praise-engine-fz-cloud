@@ -8366,12 +8366,12 @@ function renderizarCancionesPlanner() {
                         <span style="font-weight: bold; font-size: 0.85rem; color: var(--text-main);">${idx+1}. ${escapeHtml(song.titulo)}</span>
                         <span style="font-size: 0.65rem; background: var(--bg-app); padding: 2px 6px; border-radius: 4px;">Tono: ${escapeHtml(song.tono || '?')} | BPM: ${song.bpm || '?'}</span>
                     </div>
-                    ${(isAdminUser || isIglesiaAdmin) ? `
-                        <div style="display: flex; gap: 0.3rem;">
-                            <button class="btn-icon" onclick="editarNotaRol('${song.id}', '${plannerRolActivo}')" title="Editar nota"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon" onclick="quitarCancionDePlanner('${plannerSemanaSeleccionada.id}', '${song.cancion_id}')" title="Quitar"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                    ` : ''}
+                   ${(isAdminUser || isIglesiaAdmin || (isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) ? `
+    <div style="display: flex; gap: 0.3rem;">
+        <button class="btn-icon" onclick="editarNotaRol('${song.id}', '${plannerRolActivo}')" title="Editar nota"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon" onclick="quitarCancionDePlanner('${plannerSemanaSeleccionada.id}', '${song.cancion_id}')" title="Quitar"><i class="fas fa-trash-alt"></i></button>
+    </div>
+` : ''}
                 </div>
                 <div class="planner-nota" style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; background: var(--bg-app); padding: 0.5rem; border-radius: 0.5rem; border-left: 3px solid #6366f1;">
                     <i class="fa-solid ${icono}" style="color: #6366f1;"></i>
@@ -8648,7 +8648,7 @@ function renderTicketGDesk(ticket) {
     const esAdmin = isAdminUser || isIglesiaAdmin;
     const esSolicitante = ticket.solicitante_id === currentUser?.id;
     const puedeEditar = esAdmin || esSolicitante;
-    const puedeCambiarEstado = esAdmin; // solo admin puede cambiar estado
+    const puedeCambiarEstado = esAdmin || (isEquipoAdmin && equipoAdminData?.nombre === 'Danza');
     const fechaLimite = ticket.fecha_limite ? new Date(ticket.fecha_limite).toLocaleDateString('es-ES') : 'Sin fecha';
     const estadoClass = ticket.estado === 'pendiente' ? 'status-pendiente' : (ticket.estado === 'en_proceso' ? 'status-proceso' : 'status-finalizado');
     const estadoTexto = ticket.estado === 'pendiente' ? 'Pendiente' : (ticket.estado === 'en_proceso' ? 'En Proceso' : 'Finalizado');
