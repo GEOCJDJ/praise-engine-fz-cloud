@@ -8424,13 +8424,15 @@ function mostrarInterfazPlanner() {
 
     const fechaActual = plannerSemanaSeleccionada ? new Date(plannerSemanaSeleccionada.fecha) : new Date();
     const balanceAsarel = plannerSemanaSeleccionada?.balance_Asarel || 60;
-    const balanceAsarelitos= plannerSemanaSeleccionada?.balance_Asarelitos|| 40;
+    const balanceAsarelitos = plannerSemanaSeleccionada?.balance_Asarelitos || 40;
+    // Obtener vestuario guardado (si existe)
+    const vestuarioActual = plannerSemanaSeleccionada?.vestuario || '';
 
     const html = `
         <div style="max-width: 1000px; margin: 0 auto;">
             <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: var(--shadow);">
                 
-                <!-- Encabezado -->
+                <!-- Encabezado (igual que antes) -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
                         <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
@@ -8474,12 +8476,12 @@ function mostrarInterfazPlanner() {
                     <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 1rem; padding: 0.8rem;">
                         <span style="font-size: 0.65rem; font-weight: 800; color: #7e22ce; display: block;"><i class="fa-solid fa-church"></i> DOMINGO (08:30)</span>
                         <b id="plannerDomingoGrupo" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">
-    ${(plannerSemanaSeleccionada?.domingo_grupo || '').replace(/Asarel/g, 'Asarel')}
-</b>
+                            ${(plannerSemanaSeleccionada?.domingo_grupo || '').replace(/Azarel/g, 'Asarel')}
+                        </b>
                     </div>
                 </div>
 
-                <!-- Matriz de ejecución -->
+                <!-- Matriz de ejecución (igual, no se modifica) -->
                 <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                         <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;">Matriz de Ejecución</h3>
@@ -8496,12 +8498,47 @@ function mostrarInterfazPlanner() {
                         <!-- Se llena con renderizarCancionesPlanner() -->
                     </div>
                 </div>
+
+                <!-- ========== NUEVO BLOQUE: G-DANCE (Vestuario, Video Guía, Formaciones) ========== -->
+                <div style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-wand-magic-sparkles"></i> Planificación de Danza</h3>
+                    </div>
+                    
+                    <!-- Vestuario -->
+                    <div style="background: var(--bg-app); border-radius: 1rem; padding: 0.8rem 1rem; margin-bottom: 1rem; border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <i class="fa-solid fa-shirt" style="color: #ec4899; font-size: 1.2rem;"></i>
+                                <div>
+                                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vestuario Asignado</span>
+                                    <div id="vestuario-text-${plannerSemanaSeleccionada.id}" style="font-size: 0.9rem; font-weight: 600; color: #C8972A;">${vestuarioActual || 'No asignado'}</div>
+                                </div>
+                            </div>
+                            <button onclick="editarVestuarioPlanner('${plannerSemanaSeleccionada.id}', '${escapeHtml(vestuarioActual)}')" class="btn-icon" style="background: none; color: var(--text-muted);">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botones Video Guía y Formaciones -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <button onclick="abrirVideoGuiaPlanner('${plannerSemanaSeleccionada.id}')" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.8rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <i class="fas fa-play-circle"></i> Video Guía
+                        </button>
+                        <button onclick="abrirFormacionesPlanner('${plannerSemanaSeleccionada.id}')" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.8rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <i class="fas fa-draw-polygon"></i> Formaciones
+                        </button>
+                    </div>
+                </div>
+                <!-- FIN DEL BLOQUE NUEVO -->
+
             </div>
         </div>
     `;
     container.innerHTML = html;
     renderizarCancionesPlanner();
-
+    
     // Estilo activo del rol
     document.querySelectorAll('.planner-rol-btn').forEach(btn => {
         if ((plannerRolActivo === 'musica' && btn.innerText.includes('Músicos')) ||
@@ -9104,7 +9141,79 @@ function cambiarFiltroGDesk(filtro) {
     renderGDesk();
 }
     
-// Función de permisos (puedes ajustarla
+// ==================== FUNCIONES G-DANCE INTEGRADAS EN PLANNER ====================
+
+// Editar vestuario
+window.editarVestuarioPlanner = (eventoId, vestuarioActual) => {
+    const valorActual = (vestuarioActual === 'undefined' || !vestuarioActual) ? '' : vestuarioActual;
+    showModal(`
+        <div style="text-align: center;">
+            <h3 style="margin-bottom: 15px; color: var(--text-main); font-weight: 800;">👗 Asignar Vestuario</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Escribe la descripción del vestuario para esta fecha.</p>
+            <input type="text" id="input-vestuario" value="${escapeHtml(valorActual)}" placeholder="Ej: Túnica Blanca + Manto Azul" style="width: 100%; margin-bottom: 20px; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-app); color: var(--text-main); outline: none;">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="guardarVestuarioPlanner('${eventoId}')" style="background: #10B981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">Guardar</button>
+                <button onclick="closeModal()" style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cancelar</button>
+            </div>
+        </div>
+    `);
+};
+
+// Guardar vestuario en la base de datos
+window.guardarVestuarioPlanner = async (eventoId) => {
+    const nuevoVestuario = document.getElementById('input-vestuario').value.trim();
+    // Actualizar la tabla cronograma_eventos (asumiendo que existe la columna 'vestuario')
+    const { error } = await supabaseClient
+        .from('cronograma_eventos')
+        .update({ vestuario: nuevoVestuario })
+        .eq('id', eventoId);
+    if (error) {
+        showToast('Error al guardar el vestuario: ' + error.message, 'error');
+        return;
+    }
+    // Actualizar la vista local
+    const textoVestuario = document.getElementById(`vestuario-text-${eventoId}`);
+    if (textoVestuario) {
+        textoVestuario.innerText = nuevoVestuario || 'No asignado';
+    }
+    // Actualizar también la variable local plannerSemanaSeleccionada
+    if (plannerSemanaSeleccionada && plannerSemanaSeleccionada.id === eventoId) {
+        plannerSemanaSeleccionada.vestuario = nuevoVestuario;
+    }
+    showToast('Vestuario asignado correctamente', 'success');
+    closeModal();
+};
+
+// Video Guía (modal interactivo)
+window.abrirVideoGuiaPlanner = (eventoId) => {
+    // Aquí puedes cargar un enlace desde la base de datos si lo deseas
+    showModal(`
+        <div style="text-align: center;">
+            <h3 style="color: var(--text-main); font-weight: 800; margin-bottom: 10px;"><i class="fas fa-play-circle" style="color: #3b82f6;"></i> Video Guía Coreográfica</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Referencia en video para este servicio.</p>
+            <div style="background: var(--bg-app); border-radius: 12px; height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed var(--border); margin-bottom: 20px;">
+                <i class="fas fa-video-slash" style="font-size: 3rem; color: var(--border); margin-bottom: 10px;"></i>
+                <span style="color: var(--text-muted); font-size: 0.8rem;">El enlace al video se conectará aquí</span>
+            </div>
+            <button onclick="closeModal()" style="width: 100%; background: var(--border); color: var(--text-main); border: none; border-radius: 8px; padding: 12px; font-weight: bold; cursor: pointer;">Cerrar</button>
+        </div>
+    `);
+};
+
+// Formaciones (diagrama de posiciones)
+window.abrirFormacionesPlanner = (eventoId) => {
+    showModal(`
+        <div style="text-align: center;">
+            <h3 style="color: var(--text-main); font-weight: 800; margin-bottom: 10px;"><i class="fas fa-draw-polygon" style="color: #10b981;"></i> Formaciones en el Altar</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Diagramas de posiciones y marcaciones.</p>
+            <div style="background: var(--bg-app); border-radius: 12px; height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed var(--border); margin-bottom: 20px;">
+                <i class="fas fa-users" style="font-size: 3rem; color: var(--border); margin-bottom: 10px;"></i>
+                <span style="color: var(--text-muted); font-size: 0.8rem;">Próximamente: diagramas interactivos</span>
+            </div>
+            <button onclick="closeModal()" style="width: 100%; background: var(--border); color: var(--text-main); border: none; border-radius: 8px; padding: 12px; font-weight: bold; cursor: pointer;">Cerrar</button>
+        </div>
+    `);
+};
 
 // ========== INICIALIZACIÓN ==========
 (async () => {
