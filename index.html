@@ -8597,6 +8597,11 @@ async function renderGDesk() {
         return;
     }
 
+    // Agrupar por estado (aunque no los uses en el HTML, los mantengo)
+    const pendientes = tickets?.filter(t => t.estado === 'pendiente') || [];
+    const enProceso = tickets?.filter(t => t.estado === 'en_proceso') || [];
+    const finalizados = tickets?.filter(t => t.estado === 'finalizado') || [];
+
     const html = `
     <div style="max-width: 1000px; margin: 0 auto; padding-bottom: 2rem;">
         <!-- Cabecera -->
@@ -8621,13 +8626,14 @@ async function renderGDesk() {
 
     container.innerHTML = html;
 
-    // Cargar comentarios para cada ticket recién renderizado
+    // ========== MEJORAS PARA COMENTARIOS ==========
+    // 1. Cargar comentarios de cada ticket recién creado
     document.querySelectorAll('.gdesk-ticket-card').forEach(card => {
         const id = card.getAttribute('data-id');
         if (id) cargarComentariosTicket(id);
     });
 
-    // Iniciar refresco automático de comentarios (cada 8 segundos)
+    // 2. Refrescar comentarios cada 8 segundos (sin recargar toda la página)
     if (window.comentariosInterval) clearInterval(window.comentariosInterval);
     window.comentariosInterval = setInterval(() => {
         document.querySelectorAll('.gdesk-ticket-card').forEach(card => {
@@ -8767,7 +8773,7 @@ async function guardarTicketGDesk() {
 }
 
 async function cambiarEstadoTicketGDesk(ticketId, nuevoEstado) {
-    if (!isAdminUser && !isIglesiaAdmin) {
+    if (!isAdminUser && !isIglesiaAdmin && !isEquipoAdmin) {  // ← añadí !isEquipoAdmin
         showToast('Solo administradores pueden cambiar el estado', 'error');
         return;
     }
