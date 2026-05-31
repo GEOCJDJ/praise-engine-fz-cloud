@@ -8229,62 +8229,88 @@ function mostrarInterfazPlanner() {
                     `).join('')}
                 </div>
 
-                <!-- Tarjetas de sábado y domingo -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
-                    <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 1rem; padding: 0.8rem;">
-                        <span style="font-size: 0.65rem; font-weight: 800; color: #b45309; display: block;"><i class="fa-solid fa-circle"></i> SÁBADO (15:30)</span>
-                        <b id="plannerSabadoActividad" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">${plannerSemanaSeleccionada?.sabado_actividad || 'Cargando...'}</b>
-                    </div>
-                    <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 1rem; padding: 0.8rem;">
-    <span style="font-size: 0.65rem; font-weight: 800; color: #7e22ce; display: block;"><i class="fa-solid fa-church"></i> DOMINGO (08:30)</span>
-    <div id="plannerDomingoGrupo" style="font-size: 0.85rem; margin-top: 4px; color: var(--text-main);">
-        ${(plannerSemanaSeleccionada?.domingo_grupo || 'Asarel').replace(/Azarel/g, 'Asarel')}
-        <span id="contadorAsarel" style="font-size: 0.7rem; color: var(--text-muted); display: block;">Cargando...</span>
+               <!-- Tarjetas de sábado y domingo -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
+    <!-- SÁBADO -->
+    <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 1rem; padding: 0.8rem;">
+        <span style="font-size: 0.65rem; font-weight: 800; color: #b45309; display: block;"><i class="fa-solid fa-circle"></i> SÁBADO (15:30)</span>
+        <b id="plannerSabadoActividad" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">${plannerSemanaSeleccionada?.sabado_actividad || 'Cargando...'}</b>
     </div>
-    <div id="contadorAsarelitos" style="font-size: 0.7rem; margin-top: 0.25rem; color: var(--text-muted);">Asarelitos: Cargando...</div>
+    
+    <!-- DOMINGO -->
+    <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 1rem; padding: 0.8rem;">
+        <span style="font-size: 0.65rem; font-weight: 800; color: #7e22ce; display: block;"><i class="fa-solid fa-church"></i> DOMINGO (08:30)</span>
+        <div id="plannerDomingoGrupo" style="font-size: 0.85rem; margin-top: 4px; color: var(--text-main);">
+            ${(plannerSemanaSeleccionada?.domingo_grupo || 'Asarel').replace(/Azarel/g, 'Asarel')}
+        </div>
+        <div style="font-size: 0.7rem; margin-top: 0.25rem; color: var(--text-muted);" id="grupoAsignadoDetalle">
+            ${plannerSemanaSeleccionada?.grupo_danza_id ? '<span id="nombreGrupoAsignado">Cargando...</span>' : 'Sin grupo asignado'}
+        </div>
+    </div>
 </div>
-                </div>
 
-                <!-- ========== BLOQUE DE DANZA MOVIDO AQUÍ (arriba) ========== -->
-                <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-wand-magic-sparkles"></i> Planificación de Danza</h3>
-                    </div>
-                    <!-- Botón para gestionar miembros (solo admin de danza) -->
-${(isEquipoAdmin && equipoAdminData?.nombre === 'Danza') ? `
-<div style="text-align: right; margin-bottom: 0.5rem;">
-    <button onclick="abrirGestionMiembrosDanza()" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); padding: 0.4rem 1rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.7rem; cursor: pointer;">
-        <i class="fas fa-users-cog"></i> Gestionar Miembros
-    </button>
+<!-- ========== BLOQUE DE DANZA ========== -->
+<div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-wand-magic-sparkles"></i> Planificación de Danza</h3>
+    </div>
+
+    <!-- Botones de administración (solo admin de danza) -->
+    ${(isEquipoAdmin && equipoAdminData?.nombre === 'Danza') ? `
+    <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-bottom: 0.8rem;">
+        <button onclick="abrirGestionMiembrosDanza()" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); padding: 0.4rem 1rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.7rem; cursor: pointer;">
+            <i class="fas fa-users-cog"></i> Gestionar Miembros
+        </button>
+        <button onclick="abrirGestionGruposDanza()" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.4rem 1rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.7rem; cursor: pointer;">
+            <i class="fas fa-layer-group"></i> Gestionar Grupos
+        </button>
+    </div>
+    ` : ''}
+
+    <!-- Vestuario -->
+    <div style="background: var(--bg-app); border-radius: 1rem; padding: 0.8rem 1rem; margin-bottom: 1rem; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                <i class="fa-solid fa-shirt" style="color: #ec4899; font-size: 1.2rem;"></i>
+                <div>
+                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vestuario Asignado</span>
+                    <div id="vestuario-text-${plannerSemanaSeleccionada.id}" style="font-size: 0.9rem; font-weight: 600; color: #C8972A;">${vestuarioActual || 'No asignado'}</div>
+                </div>
+            </div>
+            <button onclick="editarVestuarioPlanner('${plannerSemanaSeleccionada.id}', '${escapeHtml(vestuarioActual)}')" class="btn-icon" style="background: none; color: var(--text-muted);">
+                <i class="fas fa-edit"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Selector de grupo para este evento -->
+    <div style="background: var(--bg-app); border-radius: 1rem; padding: 0.8rem 1rem; margin-bottom: 1rem; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                <i class="fas fa-layer-group" style="color: #a855f7;"></i>
+                <div>
+                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Grupo que danza</span>
+                    <div id="grupoSeleccionadoDisplay" style="font-size: 0.9rem; font-weight: 600; color: #a855f7;">${plannerSemanaSeleccionada?.grupo_danza_id ? 'Cargando...' : 'No asignado'}</div>
+                </div>
+            </div>
+            ${(isEquipoAdmin && equipoAdminData?.nombre === 'Danza') ? `
+            <button onclick="asignarGrupoAEvento('${plannerSemanaSeleccionada.id}')" class="btn-icon" style="background: none; color: var(--text-muted);">
+                <i class="fas fa-exchange-alt"></i>
+            </button>
+            ` : ''}
+        </div>
+    </div>
+
+    <!-- Botones Video Guía y Formaciones -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <button onclick="abrirVideoGuiaPlanner('${plannerSemanaSeleccionada.id}')" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.8rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <i class="fas fa-play-circle"></i> Video Guía
+        </button>
+        <button onclick="abrirFormacionesPlanner('${plannerSemanaSeleccionada.id}')" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.8rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <i class="fas fa-draw-polygon"></i> Formaciones
+        </button>
+    </div>
 </div>
-` : ''}
-                    <!-- Vestuario -->
-                    <div style="background: var(--bg-app); border-radius: 1rem; padding: 0.8rem 1rem; margin-bottom: 1rem; border: 1px solid var(--border);">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                <i class="fa-solid fa-shirt" style="color: #ec4899; font-size: 1.2rem;"></i>
-                                <div>
-                                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vestuario Asignado</span>
-                                    <div id="vestuario-text-${plannerSemanaSeleccionada.id}" style="font-size: 0.9rem; font-weight: 600; color: #C8972A;">${vestuarioActual || 'No asignado'}</div>
-                                </div>
-                            </div>
-                            <button onclick="editarVestuarioPlanner('${plannerSemanaSeleccionada.id}', '${escapeHtml(vestuarioActual)}')" class="btn-icon" style="background: none; color: var(--text-muted);">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Botones Video Guía y Formaciones -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <button onclick="abrirVideoGuiaPlanner('${plannerSemanaSeleccionada.id}')" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.8rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            <i class="fas fa-play-circle"></i> Video Guía
-                        </button>
-                        <button onclick="abrirFormacionesPlanner('${plannerSemanaSeleccionada.id}')" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.8rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            <i class="fas fa-draw-polygon"></i> Formaciones
-                        </button>
-                    </div>
-                </div>
-                <!-- ========== FIN DEL BLOQUE DE DANZA ========== -->
 
                 <!-- Matriz de ejecución (sin cambios) -->
                 <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
@@ -8309,6 +8335,7 @@ ${(isEquipoAdmin && equipoAdminData?.nombre === 'Danza') ? `
     `;
     container.innerHTML = html;
     renderizarCancionesPlanner();
+    actualizarInfoGrupoEnPlanner();
 
     // Estilo activo del rol
     document.querySelectorAll('.planner-rol-btn').forEach(btn => {
@@ -9644,6 +9671,350 @@ async function actualizarContadoresGruposDanza() {
     if (contAsarel) contAsarel.innerText = `Asarel: ${totalAsarel} miembros activos`;
     if (contAsarelitos) contAsarelitos.innerText = `Asarelitos: ${totalAsarelitos} miembros activos`;
 }    
+    // ==================== GESTIÓN DE GRUPOS DE DANZA ====================
+let currentGrupoSeleccionadoEnModal = null;
+
+async function abrirGestionGruposDanza() {
+    if (!(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
+        showToast('No tienes permiso para gestionar grupos de danza', 'error');
+        return;
+    }
+    await cargarGruposDanza();
+    mostrarModalGestionGrupos();
+}
+
+async function cargarGruposDanza() {
+    const { data, error } = await supabaseClient
+        .from('danza_grupos')
+        .select('*, danza_grupo_miembros(miembro_id, danza_miembros(nombre, grupo))')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('nombre', { ascending: true });
+    if (error) {
+        showToast('Error al cargar grupos: ' + error.message, 'error');
+        return [];
+    }
+    return data || [];
+}
+
+function mostrarModalGestionGrupos() {
+    const html = `
+        <div style="max-width: 900px; margin: 0 auto;">
+            <div style="background: var(--surface); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid var(--border); box-shadow: var(--shadow);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.2rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        <i class="fas fa-layer-group"></i> Grupos de Danza
+                    </h3>
+                    <button onclick="closeModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);"><i class="fas fa-times"></i></button>
+                </div>
+                
+                <div id="listaGruposContainer">
+                    <div class="text-center p-4"><i class="fas fa-spinner fa-pulse"></i> Cargando...</div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button onclick="abrirFormularioNuevoGrupo()" class="btn btn-primary" style="background: #10B981;"><i class="fas fa-plus"></i> Nuevo Grupo</button>
+                    <button onclick="closeModal()" class="btn btn-ghost">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    showModal(html);
+    renderizarListaGrupos();
+}
+
+async function renderizarListaGrupos() {
+    const container = document.getElementById('listaGruposContainer');
+    if (!container) return;
+    const grupos = await cargarGruposDanza();
+    if (grupos.length === 0) {
+        container.innerHTML = '<div class="text-center p-4" style="color: var(--text-muted);">No hay grupos creados. Crea uno nuevo.</div>';
+        return;
+    }
+    let html = '<div style="display: flex; flex-direction: column; gap: 1rem;">';
+    for (let grupo of grupos) {
+        const miembros = grupo.danza_grupo_miembros || [];
+        const totalMiembros = miembros.length;
+        html += `
+            <div style="background: var(--bg-app); border-radius: 1rem; padding: 1rem; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <strong style="font-size: 1rem;">${escapeHtml(grupo.nombre)}</strong>
+                        ${grupo.descripcion ? `<p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">${escapeHtml(grupo.descripcion)}</p>` : ''}
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.3rem;">
+                            <i class="fas fa-users"></i> ${totalMiembros} miembros
+                            ${grupo.fecha_asignada ? ` | <i class="fas fa-calendar-alt"></i> Fecha fija: ${new Date(grupo.fecha_asignada).toLocaleDateString()}` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button onclick="editarGrupo('${grupo.id}')" class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="verMiembrosGrupo('${grupo.id}')" class="btn-icon" title="Ver/Asignar miembros"><i class="fas fa-users-cog"></i></button>
+                        <button onclick="eliminarGrupo('${grupo.id}')" class="btn-icon" style="color:#ef4444;" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+window.abrirFormularioNuevoGrupo = () => {
+    showModal(`
+        <div style="max-width: 500px; margin: 0 auto;">
+            <h3 style="margin-bottom: 1rem;">Nuevo Grupo</h3>
+            <div class="form-group">
+                <label>Nombre del grupo</label>
+                <input type="text" id="grupoNombre" class="form-control" placeholder="Ej: Grupo 1, Grupo 2, etc.">
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="grupoDesc" class="form-control" rows="2" placeholder="Descripción del grupo"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Fecha fija (opcional - si siempre se presenta esta fecha)</label>
+                <input type="text" id="grupoFecha" class="form-control" placeholder="dd/mm/aaaa">
+            </div>
+            <div style="margin-top: 1rem; text-align: right;">
+                <button onclick="closeModal()" class="btn btn-ghost">Cancelar</button>
+                <button onclick="guardarNuevoGrupo()" class="btn btn-primary">Guardar Grupo</button>
+            </div>
+        </div>
+    `);
+    flatpickr("#grupoFecha", { dateFormat: "d/m/Y", locale: "es" });
+};
+
+window.guardarNuevoGrupo = async () => {
+    const nombre = document.getElementById('grupoNombre').value.trim();
+    if (!nombre) return showToast('El nombre es obligatorio', 'error');
+    const descripcion = document.getElementById('grupoDesc').value.trim() || null;
+    const fechaStr = document.getElementById('grupoFecha').value;
+    let fechaAsignada = null;
+    if (fechaStr) {
+        const [dia, mes, anio] = fechaStr.split('/');
+        fechaAsignada = `${anio}-${mes}-${dia}`;
+    }
+    const { error } = await supabaseClient.from('danza_grupos').insert({
+        iglesia_id: currentIglesiaId,
+        nombre: nombre,
+        descripcion: descripcion,
+        fecha_asignada: fechaAsignada
+    });
+    if (error) {
+        showToast('Error al crear grupo: ' + error.message, 'error');
+    } else {
+        showToast('Grupo creado', 'success');
+        closeModal();
+        await cargarGruposDanza();
+        renderizarListaGrupos();
+    }
+};
+
+window.editarGrupo = async (grupoId) => {
+    const { data: grupo } = await supabaseClient.from('danza_grupos').select('*').eq('id', grupoId).single();
+    if (!grupo) return;
+    const fechaFormateada = grupo.fecha_asignada ? new Date(grupo.fecha_asignada).toLocaleDateString('es-ES') : '';
+    showModal(`
+        <div style="max-width: 500px; margin: 0 auto;">
+            <h3>Editar Grupo</h3>
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" id="editGrupoNombre" class="form-control" value="${escapeHtml(grupo.nombre)}">
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="editGrupoDesc" class="form-control" rows="2">${escapeHtml(grupo.descripcion || '')}</textarea>
+            </div>
+            <div class="form-group">
+                <label>Fecha fija</label>
+                <input type="text" id="editGrupoFecha" class="form-control" value="${fechaFormateada}" placeholder="dd/mm/aaaa">
+            </div>
+            <div style="margin-top: 1rem; text-align: right;">
+                <button onclick="closeModal()" class="btn btn-ghost">Cancelar</button>
+                <button onclick="guardarEdicionGrupo('${grupoId}')" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    `);
+    flatpickr("#editGrupoFecha", { dateFormat: "d/m/Y", locale: "es" });
+};
+
+window.guardarEdicionGrupo = async (grupoId) => {
+    const nombre = document.getElementById('editGrupoNombre').value.trim();
+    if (!nombre) return showToast('El nombre es obligatorio', 'error');
+    const descripcion = document.getElementById('editGrupoDesc').value.trim() || null;
+    const fechaStr = document.getElementById('editGrupoFecha').value;
+    let fechaAsignada = null;
+    if (fechaStr) {
+        const [dia, mes, anio] = fechaStr.split('/');
+        fechaAsignada = `${anio}-${mes}-${dia}`;
+    }
+    const { error } = await supabaseClient.from('danza_grupos').update({
+        nombre: nombre,
+        descripcion: descripcion,
+        fecha_asignada: fechaAsignada
+    }).eq('id', grupoId);
+    if (error) {
+        showToast('Error al actualizar: ' + error.message, 'error');
+    } else {
+        showToast('Grupo actualizado', 'success');
+        closeModal();
+        await cargarGruposDanza();
+        renderizarListaGrupos();
+    }
+};
+
+window.verMiembrosGrupo = async (grupoId) => {
+    currentGrupoSeleccionadoEnModal = grupoId;
+    // Obtener todos los miembros de danza (Asarel y Asarelitos)
+    const { data: todosMiembros } = await supabaseClient
+        .from('danza_miembros')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('grupo', { ascending: true })
+        .order('nombre', { ascending: true });
+    // Obtener miembros ya asignados a este grupo
+    const { data: miembrosGrupo } = await supabaseClient
+        .from('danza_grupo_miembros')
+        .select('miembro_id')
+        .eq('grupo_id', grupoId);
+    const miembrosAsignadosIds = (miembrosGrupo || []).map(m => m.miembro_id);
+    let html = `<h3>Asignar miembros al grupo</h3>
+                <div style="max-height: 60vh; overflow-y: auto;">
+                    <table style="width:100%; border-collapse: collapse;">`;
+    for (let m of todosMiembros || []) {
+        const isChecked = miembrosAsignadosIds.includes(m.id);
+        html += `
+            <tr style="border-top:1px solid var(--border);">
+                <td style="padding: 0.5rem;">
+                    <input type="checkbox" id="miembro_${m.id}" ${isChecked ? 'checked' : ''}>
+                </td>
+                <td style="padding: 0.5rem;">${escapeHtml(m.nombre)}</td>
+                <td style="padding: 0.5rem;">${m.grupo}</td>
+            </tr>
+        `;
+    }
+    html += `</table></div>
+             <div style="margin-top: 1rem; text-align: right;">
+                <button onclick="guardarMiembrosGrupo()" class="btn btn-primary">Guardar Asignación</button>
+                <button onclick="closeModal()" class="btn btn-ghost">Cancelar</button>
+             </div>`;
+    showModal(html);
+};
+
+window.guardarMiembrosGrupo = async () => {
+    if (!currentGrupoSeleccionadoEnModal) return;
+    // Eliminar todas las asignaciones actuales
+    await supabaseClient.from('danza_grupo_miembros').delete().eq('grupo_id', currentGrupoSeleccionadoEnModal);
+    // Insertar las nuevas seleccionadas
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    const nuevas = [];
+    for (let cb of checkboxes) {
+        if (cb.checked) {
+            const miembroId = cb.id.replace('miembro_', '');
+            nuevas.push({ grupo_id: currentGrupoSeleccionadoEnModal, miembro_id: miembroId });
+        }
+    }
+    if (nuevas.length) {
+        const { error } = await supabaseClient.from('danza_grupo_miembros').insert(nuevas);
+        if (error) {
+            showToast('Error al guardar: ' + error.message, 'error');
+            return;
+        }
+    }
+    showToast('Asignación guardada', 'success');
+    closeModal();
+    await cargarGruposDanza();
+    renderizarListaGrupos();
+};
+
+window.eliminarGrupo = async (grupoId) => {
+    if (!confirm('¿Eliminar este grupo permanentemente? Se perderá la asignación de miembros y la planificación.')) return;
+    await supabaseClient.from('danza_grupo_miembros').delete().eq('grupo_id', grupoId);
+    const { error } = await supabaseClient.from('danza_grupos').delete().eq('id', grupoId);
+    if (error) {
+        showToast('Error al eliminar: ' + error.message, 'error');
+    } else {
+        showToast('Grupo eliminado', 'success');
+        await cargarGruposDanza();
+        renderizarListaGrupos();
+    }
+};
+    async function asignarGrupoAEvento(eventoId) {
+    // Obtener lista de grupos disponibles
+    const { data: grupos } = await supabaseClient
+        .from('danza_grupos')
+        .select('id, nombre')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('nombre');
+    if (!grupos || grupos.length === 0) {
+        showToast('No hay grupos creados. Crea uno primero.', 'warning');
+        return;
+    }
+    let opciones = '<option value="">Sin grupo</option>';
+    grupos.forEach(g => {
+        opciones += `<option value="${g.id}">${escapeHtml(g.nombre)}</option>`;
+    });
+    const evento = plannerEventos.find(e => e.id === eventoId);
+    const grupoActual = evento?.grupo_danza_id || '';
+    showModal(`
+        <div style="max-width: 400px; margin: 0 auto;">
+            <h3>Asignar grupo al domingo ${evento ? formatearFechaEvento(evento.fecha) : ''}</h3>
+            <select id="selectGrupoEvento" class="form-control">${opciones}</select>
+            <div style="margin-top: 1rem; text-align: right;">
+                <button onclick="closeModal()" class="btn btn-ghost">Cancelar</button>
+                <button onclick="guardarAsignacionGrupoEvento('${eventoId}')" class="btn btn-primary">Asignar</button>
+            </div>
+        </div>
+    `);
+    if (grupoActual) document.getElementById('selectGrupoEvento').value = grupoActual;
+}
+
+async function guardarAsignacionGrupoEvento(eventoId) {
+    const grupoId = document.getElementById('selectGrupoEvento').value || null;
+    const { error } = await supabaseClient
+        .from('cronograma_eventos')
+        .update({ grupo_danza_id: grupoId })
+        .eq('id', eventoId);
+    if (error) {
+        showToast('Error al asignar grupo: ' + error.message, 'error');
+    } else {
+        showToast('Grupo asignado', 'success');
+        closeModal();
+        await cargarEventosPlanner();
+        mostrarInterfazPlanner();
+    }
+}
+    async function actualizarInfoGrupoEnPlanner() {
+    if (!plannerSemanaSeleccionada) return;
+    const grupoId = plannerSemanaSeleccionada.grupo_danza_id;
+    const containerNombre = document.getElementById('nombreGrupoAsignado');
+    const displaySelector = document.getElementById('grupoSeleccionadoDisplay');
+    if (grupoId) {
+        const { data: grupo } = await supabaseClient
+            .from('danza_grupos')
+            .select('nombre')
+            .eq('id', grupoId)
+            .single();
+        if (grupo) {
+            if (containerNombre) containerNombre.innerText = `🎭 Grupo: ${grupo.nombre}`;
+            if (displaySelector) displaySelector.innerText = grupo.nombre;
+            // Cargar miembros del grupo para tooltip
+            const { data: miembrosGrupo } = await supabaseClient
+                .from('danza_grupo_miembros')
+                .select('danza_miembros(nombre, grupo)')
+                .eq('grupo_id', grupoId);
+            if (miembrosGrupo && miembrosGrupo.length > 0) {
+                const lista = miembrosGrupo.map(m => `${m.danza_miembros.nombre} (${m.danza_miembros.grupo})`).join(', ');
+                if (containerNombre) containerNombre.title = `Miembros: ${lista}`;
+            }
+        } else {
+            if (containerNombre) containerNombre.innerText = 'Grupo no encontrado';
+            if (displaySelector) displaySelector.innerText = 'No asignado';
+        }
+    } else {
+        if (containerNombre) containerNombre.innerText = 'Sin grupo asignado';
+        if (displaySelector) displaySelector.innerText = 'No asignado';
+    }
+}
     
 // INICIALIZACION---
 (async () => {
