@@ -8944,20 +8944,262 @@ window.abrirVideoGuiaPlanner = (eventoId) => {
     `);
 };
 
-// Formaciones (diagrama de posiciones)
+// ==================== EDITOR DE FORMACIONES INTERACTIVO ====================
+let currentFormationState = [];      // array de { init, color, x, y }
+let currentFormationEventId = null;
+let activeDragIndex = -1;
+let dragStartX, dragStartY, initialLeft, initialTop;
+
 window.abrirFormacionesPlanner = (eventoId) => {
+    currentFormationEventId = eventoId;
+    // Buscar el evento actual en plannerEventos
+    const evento = plannerEventos.find(e => e.id === eventoId);
+    if (!evento) {
+        showToast('Evento no encontrado', 'error');
+        return;
+    }
+    // Cargar formaciones guardadas (si existen)
+    try {
+        if (evento.formaciones && Array.isArray(evento.formaciones)) {
+            currentFormationState = evento.formaciones;
+        } else if (evento.formaciones && typeof evento.formaciones === 'string') {
+            currentFormationState = JSON.parse(evento.formaciones);
+        } else {
+            currentFormationState = [];
+        }
+    } catch(e) {
+        currentFormationState = [];
+        console.error('Error parsing formaciones', e);
+    }
+
+    const styleCanvas = `
+        <style>
+            #stage-area {
+                position: relative;
+                width: 100%;
+                height: 300px;
+                background: linear-gradient(180deg, var(--bg-app) 0%, var(--surface) 100%);
+                border: 2px solid var(--border);
+                border-radius: 12px;
+                overflow: hidden;
+                margin-bottom: 20px;
+                touch-action: none;
+            }
+            .altar-bg {
+                position: absolute;
+                bottom: -20px; left: 10%; width: 80%; height: 120px;
+                border: 2px solid rgba(255,255,255,0.1);
+                border-radius: 50% 50% 0 0;
+                background: rgba(200, 151, 42, 0.1);
+                pointer-events: none;
+            }
+            .silla-bg {
+                position: absolute;
+                top: 20px;
+                width: 40px;
+                height: 15px;
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.15);
+                border-radius: 3px;
+                pointer-events: none;
+            }
+            .danzor-circle {
+                position: absolute;
+                width: 35px;
+                height: 35px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 800;
+                font-size: 0.75rem;
+                color: white;
+                cursor: grab;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                border: 2px solid rgba(255,255,255,0.9);
+                transform: translate(-50%, -50%);
+                user-select: none;
+                transition: transform 0.1s;
+            }
+            .danzor-circle:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.05); }
+            @media (max-width: 600px) {
+                .danzor-circle { width: 30px; height: 30px; font-size: 0.7rem; }
+            }
+        </style>
+    `;
+
     showModal(`
+        ${styleCanvas}
         <div style="text-align: center;">
-            <h3 style="color: var(--text-main); font-weight: 800; margin-bottom: 10px;"><i class="fas fa-draw-polygon" style="color: #10b981;"></i> Formaciones en el Altar</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Diagramas de posiciones y marcaciones.</p>
-            <div style="background: var(--bg-app); border-radius: 12px; height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed var(--border); margin-bottom: 20px;">
-                <i class="fas fa-users" style="font-size: 3rem; color: var(--border); margin-bottom: 10px;"></i>
-                <span style="color: var(--text-muted); font-size: 0.8rem;">Próximamente: diagramas interactivos</span>
+            <h3 style="color: var(--text-main); font-weight: 800; margin-bottom: 5px;">
+                <i class="fas fa-draw-polygon" style="color: #10b981;"></i> Formaciones en el Altar
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 15px;">
+                Arrastra los círculos. Haz clic en uno para eliminarlo.
+            </p>
+            <div id="stage-area">
+                <div class="altar-bg"></div>
+                <div class="silla-bg" style="left: 20%;"></div>
+                <div class="silla-bg" style="left: 45%;"></div>
+                <div class="silla-bg" style="left: 70%;"></div>
             </div>
-            <button onclick="closeModal()" style="width: 100%; background: var(--border); color: var(--text-main); border: none; border-radius: 8px; padding: 12px; font-weight: bold; cursor: pointer;">Cerrar</button>
+            <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; background: var(--bg-app); padding: 10px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap;">
+                <input type="text" id="danzor-init" placeholder="Inicial (G1)" maxlength="3" style="width: 80px; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); text-align: center; text-transform: uppercase;">
+                <input type="color" id="danzor-color" value="#3b82f6" style="width: 40px; height: 36px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent;">
+                <button onclick="agregarDanzorAlLienzo()" style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border); padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">+ Añadir</button>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="btnGuardarFormaciones" style="flex: 2; background: #10B981; color: white; border: none; border-radius: 8px; padding: 12px; font-weight: bold; cursor: pointer;">Guardar Formación</button>
+                <button onclick="closeModal()" style="flex: 1; background: var(--border); color: var(--text-main); border: none; border-radius: 8px; padding: 12px; font-weight: bold; cursor: pointer;">Cerrar</button>
+            </div>
         </div>
     `);
+
+    // Renderizar los círculos existentes después de que el DOM esté listo
+    setTimeout(() => renderizarLienzoFormaciones(), 100);
 };
+
+// Dibuja todos los círculos en el lienzo
+function renderizarLienzoFormaciones() {
+    const stage = document.getElementById('stage-area');
+    if (!stage) return;
+    // Eliminar círculos anteriores (solo los .danzor-circle)
+    const viejos = stage.querySelectorAll('.danzor-circle');
+    viejos.forEach(d => d.remove());
+
+    currentFormationState.forEach((danzor, idx) => {
+        const el = document.createElement('div');
+        el.className = 'danzor-circle';
+        el.style.left = danzor.x + '%';
+        el.style.top = danzor.y + '%';
+        el.style.backgroundColor = danzor.color;
+        el.innerText = danzor.init || '?';
+        // Eventos de arrastre
+        el.onmousedown = (e) => iniciarArrastreFormacion(e, idx, el);
+        el.ontouchstart = (e) => iniciarArrastreFormacion(e, idx, el);
+        // Clic para eliminar
+        el.onclick = (e) => {
+            e.stopPropagation();
+            if (el.dataset.dragged === 'true') {
+                delete el.dataset.dragged;
+                return;
+            }
+            if (confirm(`¿Eliminar a ${danzor.init} de la formación?`)) {
+                currentFormationState.splice(idx, 1);
+                renderizarLienzoFormaciones();
+            }
+        };
+        stage.appendChild(el);
+    });
+}
+
+// Agregar un nuevo danzante
+window.agregarDanzorAlLienzo = () => {
+    const initInput = document.getElementById('danzor-init');
+    const colorInput = document.getElementById('danzor-color');
+    let iniciales = initInput.value.trim().toUpperCase();
+    if (!iniciales) iniciales = '?';
+    currentFormationState.push({
+        init: iniciales,
+        color: colorInput.value,
+        x: 50,
+        y: 50
+    });
+    initInput.value = '';
+    renderizarLienzoFormaciones();
+};
+
+// Iniciar arrastre
+function iniciarArrastreFormacion(e, index, el) {
+    e.preventDefault();
+    activeDragIndex = index;
+    delete el.dataset.dragged;
+    const evt = e.type.includes('mouse') ? e : e.touches[0];
+    dragStartX = evt.clientX;
+    dragStartY = evt.clientY;
+    const stage = document.getElementById('stage-area');
+    const rect = stage.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
+    const currentLeftPx = (parseFloat(el.style.left) / 100) * stageRect.width;
+    const currentTopPx = (parseFloat(el.style.top) / 100) * stageRect.height;
+    initialLeft = currentLeftPx;
+    initialTop = currentTopPx;
+    document.addEventListener('mousemove', moverFormacion);
+    document.addEventListener('touchmove', moverFormacion, { passive: false });
+    document.addEventListener('mouseup', soltarFormacion);
+    document.addEventListener('touchend', soltarFormacion);
+}
+
+function moverFormacion(e) {
+    if (activeDragIndex === -1) return;
+    e.preventDefault();
+    const stage = document.getElementById('stage-area');
+    const el = stage.querySelectorAll('.danzor-circle')[activeDragIndex];
+    if (!el) return;
+    const evt = e.type.includes('mouse') ? e : e.touches[0];
+    const dx = evt.clientX - dragStartX;
+    const dy = evt.clientY - dragStartY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        el.dataset.dragged = 'true';
+    }
+    let newLeftPx = initialLeft + dx;
+    let newTopPx = initialTop + dy;
+    const stageRect = stage.getBoundingClientRect();
+    newLeftPx = Math.max(0, Math.min(newLeftPx, stageRect.width));
+    newTopPx = Math.max(0, Math.min(newTopPx, stageRect.height));
+    el.style.left = (newLeftPx / stageRect.width) * 100 + '%';
+    el.style.top = (newTopPx / stageRect.height) * 100 + '%';
+}
+
+function soltarFormacion() {
+    if (activeDragIndex !== -1) {
+        const stage = document.getElementById('stage-area');
+        const el = stage.querySelectorAll('.danzor-circle')[activeDragIndex];
+        if (el) {
+            const stageRect = stage.getBoundingClientRect();
+            const pctX = (el.offsetLeft / stageRect.width) * 100;
+            const pctY = (el.offsetTop / stageRect.height) * 100;
+            currentFormationState[activeDragIndex].x = Math.min(100, Math.max(0, pctX));
+            currentFormationState[activeDragIndex].y = Math.min(100, Math.max(0, pctY));
+        }
+    }
+    activeDragIndex = -1;
+    document.removeEventListener('mousemove', moverFormacion);
+    document.removeEventListener('touchmove', moverFormacion);
+    document.removeEventListener('mouseup', soltarFormacion);
+    document.removeEventListener('touchend', soltarFormacion);
+}
+
+// Guardar en Supabase
+window.guardarFormaciones = async () => {
+    const btn = document.getElementById('btnGuardarFormaciones');
+    if (!btn) return;
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    btn.disabled = true;
+
+    const payload = currentFormationState;
+    const { error } = await supabaseClient
+        .from('cronograma_eventos')
+        .update({ formaciones: payload })
+        .eq('id', currentFormationEventId);
+
+    if (error) {
+        showToast('Error al guardar la formación: ' + error.message, 'error');
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+        return;
+    }
+
+    // Actualizar en plannerEventos local
+    const evento = plannerEventos.find(e => e.id === currentFormationEventId);
+    if (evento) evento.formaciones = payload;
+
+    showToast('Formación guardada con éxito', 'success');
+    closeModal();
+};
+
+    
 
 // ========== INICIALIZACIÓN ==========
 (async () => {
