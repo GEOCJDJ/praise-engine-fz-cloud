@@ -8554,7 +8554,7 @@ async function renderGDesk() {
     const container = document.getElementById('mainContent');
     const actionHeader = document.getElementById('actionHeader');
     
-    // Barra de filtros (solo para administradores o para usuarios que quieran ver sus solicitudes)
+    // Barra de filtros
     actionHeader.innerHTML = `
         <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
             <button class="btn btn-primary" onclick="mostrarFormularioGDesk()">
@@ -8574,7 +8574,6 @@ async function renderGDesk() {
         .eq('iglesia_id', currentIglesiaId)
         .order('creado_en', { ascending: false });
 
-    // Aplicar filtros según permisos
     const esAdmin = isAdminUser || isIglesiaAdmin;
     if (!esAdmin) {
         const deptosPermitidos = ticketsPermitidosParaUsuario();
@@ -8584,7 +8583,6 @@ async function renderGDesk() {
             if (deptosPermitidos.length > 0) {
                 query = query.in('departamento', deptosPermitidos);
             } else {
-                // Usuario sin departamento asignado: solo ve sus propios tickets
                 query = query.eq('solicitante_id', currentUser.id);
             }
         }
@@ -8598,11 +8596,6 @@ async function renderGDesk() {
         container.innerHTML = '<div class="text-center p-8">Error cargando datos.</div>';
         return;
     }
-
-    // Agrupar por estado para el diseño (opcional, pero útil)
-    const pendientes = tickets?.filter(t => t.estado === 'pendiente') || [];
-    const enProceso = tickets?.filter(t => t.estado === 'en_proceso') || [];
-    const finalizados = tickets?.filter(t => t.estado === 'finalizado') || [];
 
     const html = `
     <div style="max-width: 1000px; margin: 0 auto; padding-bottom: 2rem;">
@@ -8619,7 +8612,6 @@ async function renderGDesk() {
             </div>
         </div>
 
-        <!-- Listado de tickets (diseño de columnas opcional, aquí usamos lista simple pero con tarjetas) -->
         <div style="display: flex; flex-direction: column; gap: 1rem;">
             ${tickets?.length === 0 ? '<div class="text-center p-8">No hay tickets para mostrar.</div>' : 
                 tickets.map(ticket => renderTicketGDesk(ticket)).join('')
@@ -8628,7 +8620,23 @@ async function renderGDesk() {
     </div>`;
 
     container.innerHTML = html;
+
+    // Cargar comentarios para cada ticket recién renderizado
+    document.querySelectorAll('.gdesk-ticket-card').forEach(card => {
+        const id = card.getAttribute('data-id');
+        if (id) cargarComentariosTicket(id);
+    });
+
+    // Iniciar refresco automático de comentarios (cada 8 segundos)
+    if (window.comentariosInterval) clearInterval(window.comentariosInterval);
+    window.comentariosInterval = setInterval(() => {
+        document.querySelectorAll('.gdesk-ticket-card').forEach(card => {
+            const id = card.getAttribute('data-id');
+            if (id) cargarComentariosTicket(id);
+        });
+    }, 8000);
 }
+    
 
 function renderTicketGDesk(ticket) {
     const esAdmin = isAdminUser || isIglesiaAdmin;
@@ -8847,49 +8855,54 @@ async function agregarComentarioTicket(ticketId) {
         showToast('Error al enviar comentario: ' + error.message, 'error');
     } else {
         input.value = '';
-        cargarComentariosTicket(ticketId);
+        cargarComentariosTicket(ticketId); // recarga solo este ticket
     }
 }
 
 async function cargarComentariosTicket(ticketId) {
     const container = document.getElementById(`comments-${ticketId}`);
     if (!container) return;
-    const { data, error } = await supabaseClient
-        .from('gdesk_comentarios')
-        .select('*, perfiles!usuario_id(nombre)')
-        .eq('ticket_id', ticketId)
-        .order('creado_en', { ascending: true });
-    if (error) {
-        container.innerHTML = '<div style="font-size:0.7rem; color:red;">Error cargando comentarios</div>';
-        return;
+    container.innerHTML = '<div class="comment-loading" style="font-size:0.7rem;">Cargando comentarios...</div>';
+    try {
+        const { data, error } = await supabaseClient
+            .from('gdesk_comentarios')
+            .select('*, perfiles!gdesk_comentarios_usuario_id_fkey (nombre)')
+            .eq('ticket_id', ticketId)
+            .order('creado_en', { ascending: true });
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div style="font-size:0.7rem; color: var(--text-muted);">Sin comentarios. Sé el primero en comentar.</div>';
+            return;
+        }
+        let html = '';
+        for (const c of data) {
+            const nombre = c.perfiles?.nombre || 'Usuario';
+            const fecha = new Date(c.creado_en).toLocaleString();
+            html += `
+                <div style="background: var(--bg-app); padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 0.5rem; font-size: 0.75rem;">
+                    <strong>${escapeHtml(nombre)}</strong> <small style="color: var(--text-muted);">${fecha}</small>
+                    <p style="margin: 0.2rem 0 0 0;">${escapeHtml(c.mensaje)}</p>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    } catch (err) {
+        console.error('Error cargando comentarios:', err);
+        container.innerHTML = '<div style="font-size:0.7rem; color:red;">Error al cargar comentarios.</div>';
     }
-    if (!data || data.length === 0) {
-        container.innerHTML = '<div style="font-size:0.7rem; color: var(--text-muted);">Sin comentarios. Sé el primero en comentar.</div>';
-        return;
-    }
-    let html = '';
-    for (const c of data) {
-        const nombre = c.perfiles?.nombre || 'Usuario';
-        const fecha = new Date(c.creado_en).toLocaleString();
-        html += `
-            <div style="background: var(--bg-app); padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 0.5rem; font-size: 0.75rem;">
-                <strong>${escapeHtml(nombre)}</strong> <small style="color: var(--text-muted);">${fecha}</small>
-                <p style="margin: 0.2rem 0 0 0;">${escapeHtml(c.mensaje)}</p>
-            </div>
-        `;
-    }
-    container.innerHTML = html;
 }
 
 // Función para refrescar comentarios cada cierto tiempo (opcional)
 function iniciarRefrescoComentarios() {
-    setInterval(() => {
+    // Evita múltiples intervalos
+    if (window.comentariosInterval) clearInterval(window.comentariosInterval);
+    window.comentariosInterval = setInterval(() => {
         const tickets = document.querySelectorAll('.gdesk-ticket-card');
         tickets.forEach(card => {
             const id = card.getAttribute('data-id');
             if (id) cargarComentariosTicket(id);
         });
-    }, 10000);
+    }, 8000); // cada 8 segundos
 }
 
 function cambiarFiltroGDesk(filtro) {
