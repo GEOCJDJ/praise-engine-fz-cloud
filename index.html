@@ -9962,15 +9962,28 @@ async function guardarAsignacionGrupoEvento(eventoId) {
 // ==========================================================
 
 window.abrirDashboardEvaluaciones = async () => {
-   const esAdminGeneral = isAdminUser === true || isIglesiaAdmin === true || (currentProfile && currentProfile.rol === 'admin');
-const esAdminAlabanza = isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza';
-const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
+    // 1. Permisos
+    const esAdminGeneral = isAdminUser === true || isIglesiaAdmin === true || (currentProfile && currentProfile.rol === 'admin');
+    const esAdminAlabanza = isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza';
+    const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
 
     if (!esAdminGeneral && !esAdminAlabanza && !esAdminDanza) {
         showToast("No tienes permisos para ver las evaluaciones.", "error");
-        console.log("➡️ Permiso denegado");
         return;
     }
+
+    // 2. Determinar pestaña activa (¡ANTES de usarla!)
+    let ministerioActivo = 'alabanza';
+    if (esAdminDanza && !esAdminGeneral) ministerioActivo = 'danza';
+
+    // 3. Estilos y modal (ahora ministerioActivo ya existe)
+    const evaluacionStyles = `...`; // (tu CSS)
+
+    showModal(`...`); // aquí dentro usas ministerioActivo en los tabs
+
+    // 4. Estado y carga de datos
+    window.evalModuleState = { ministerioActivo, datosCompletos: [] };
+    await window.cargarDatosEvaluaciones();    
 
     const evaluacionStyles = `
         <style>
@@ -10121,10 +10134,7 @@ const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
 
 window.cambiarPestañaEvaluacion = (min) => {
     window.evalModuleState.ministerioActivo = min;
-    const btns = document.querySelectorAll('.eval-tab-btn');
-    btns.forEach(b => b.classList.remove('active'));
-    if (event && event.currentTarget) event.currentTarget.classList.add('active');
-    window.filtrarEvaluaciones();
+    window.filtrarEvaluaciones(); // esto reconstruye el contenido, incluyendo los tabs
 };
 
 window.cargarDatosEvaluaciones = async () => {
