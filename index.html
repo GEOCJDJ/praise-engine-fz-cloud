@@ -8250,13 +8250,12 @@ async function cargarEventosPlanner() {
         // Convertir fecha del evento (YYYY-MM-DD) a dd/mm/aaaa
         const [year, month, day] = ev.fecha.split('-');
         const fechaStr = `${day}/${month}/${year}`;
-        console.log(`Evento ${ev.fecha} -> fechaStr: ${fechaStr}`);
         
+        // Cargar lista asociada
         const listaAsociada = lists.find(l => l.date === fechaStr);
         ev.listaAsociada = listaAsociada || null;
-        console.log(`Lista asociada:`, listaAsociada?.name || 'ninguna');
 
-        // Si tiene lista asociada, cargar sus canciones ordenadas
+        // Cargar canciones (igual que antes)
         if (listaAsociada && listaAsociada.items) {
             ev.canciones = listaAsociada.items.map((item, idx) => {
                 const song = songs.find(s => s.id === (item.songId || item.song_id));
@@ -8276,7 +8275,6 @@ async function cargarEventosPlanner() {
                 };
             }).filter(c => c !== null);
         } else {
-            // Si no hay lista asociada, usar canciones ya guardadas en cronograma_canciones
             const { data: cancionesGuardadas } = await supabaseClient
                 .from('cronograma_canciones')
                 .select('*')
@@ -8284,6 +8282,21 @@ async function cargarEventosPlanner() {
                 .order('orden', { ascending: true });
             ev.canciones = cancionesGuardadas || [];
             ev.cancionesGuardadas = cancionesGuardadas;
+        }
+        
+        // ========== NUEVO: Asegurar que formaciones sea un array ==========
+        if (ev.formaciones) {
+            // Si ya es un array, lo dejamos; si es string, lo parseamos
+            if (typeof ev.formaciones === 'string') {
+                try {
+                    ev.formaciones = JSON.parse(ev.formaciones);
+                } catch(e) {
+                    console.warn("Error parseando formaciones para evento", ev.id, e);
+                    ev.formaciones = [];
+                }
+            }
+        } else {
+            ev.formaciones = []; // inicializar vacío si no existe
         }
     }
 
@@ -9222,24 +9235,19 @@ let dragStartX, dragStartY, initialLeft, initialTop;
 
 window.abrirFormacionesPlanner = (eventoId) => {
     currentFormationEventId = eventoId;
-    // Buscar el evento actual en plannerEventos
     const evento = plannerEventos.find(e => e.id === eventoId);
     if (!evento) {
         showToast('Evento no encontrado', 'error');
         return;
     }
-    // Cargar formaciones guardadas (si existen)
-    try {
-        if (evento.formaciones && Array.isArray(evento.formaciones)) {
-            currentFormationState = evento.formaciones;
-        } else if (evento.formaciones && typeof evento.formaciones === 'string') {
-            currentFormationState = JSON.parse(evento.formaciones);
-        } else {
-            currentFormationState = [];
-        }
-    } catch(e) {
+    
+    // Cargar formaciones guardadas (ya deberían estar como array)
+    if (evento.formaciones && Array.isArray(evento.formaciones) && evento.formaciones.length > 0) {
+        currentFormationState = evento.formaciones;
+        console.log("📌 Formaciones cargadas desde DB:", currentFormationState);
+    } else {
         currentFormationState = [];
-        console.error('Error parsing formaciones', e);
+        console.log("📌 No hay formaciones guardadas, empezando vacío");
     }
 
     const styleCanvas = `
