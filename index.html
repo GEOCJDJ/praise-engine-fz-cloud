@@ -899,6 +899,30 @@ body.dark { --border-color: #334155; }
 .move-up-btn:active, .move-down-btn:active {
     transform: scale(0.95);
 }
+
+        /* Avatar de cuerpo entero (estilo Free Fire / cuerpo completo) */
+.profile-avatar-fullbody {
+    width: 100%;
+    max-width: 160px;
+    height: 220px;          /* suficiente para cabeza + torso */
+    border-radius: 1rem;    /* esquinas suaves, pero no círculo */
+    border: 3px solid var(--primary);
+    object-fit: contain;    /* ¡clave! no recorta, muestra todo */
+    background: var(--bg-app);
+    display: block;
+    margin: 0 auto 1rem;
+    box-shadow: var(--shadow);
+}
+
+/* Versión pequeña para el header */
+.avatar-header {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;     /* solo en el header sí es círculo (por espacio) */
+    object-fit: cover;
+    border: 1px solid #C8972A;
+}
+        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -2320,10 +2344,10 @@ const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
     if (miembro && miembro.departamento_id) { const depto = departamentos.find(d => d.id === miembro.departamento_id); deptoNombre = depto ? depto.nombre : 'No asignado'; }
     const html = `
     
-    <div class="profile-avatar" style="background:rgba(255,255,255,0.2);width:80px;height:80px;margin:0; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+    <div class="profile-avatar" style="background:rgba(255,255,255,0.2); width: 80px; height: 100px; margin:0; display: flex; align-items: center; justify-content: center; border-radius: 1rem; overflow: hidden;">
     ${currentProfile?.avatar_url ? 
-        `<img src="${currentProfile.avatar_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` :
-        (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : `<i class="fas fa-user fa-3x"></i>`)
+        `<img src="${currentProfile.avatar_url}" style="width: 100%; height: 100%; object-fit: contain;">` :
+        (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user fa-3x"></i>`)
     }
 </div>
     
@@ -6010,17 +6034,17 @@ async function renderUserProfile() {
 
     let html = `
     <div class="profile-modern-card" style="max-width: 1000px; margin: 0 auto;">
-        <div class="profile-header-gradient">
-            <div style="display: flex; flex-direction: row; align-items: center; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
-                <div style="position: relative;">
-                    ${avatarImgUrl ? 
-                        `<img src="${avatarImgUrl}" class="profile-avatar-modern" style="object-fit: cover; width: 100px; height: 100px; border-radius: 50%; border: 4px solid white;">` :
-                        `<div class="profile-avatar-modern" style="background: white; color: var(--primary);">${iniciales}</div>`
-                    }
-                    <!-- Botón para abrir el creador de avatar (icono máscara) -->
-                    <button onclick="abrirCreadorAvatar()" style="position: absolute; bottom: 0; right: 0; background: #C8972A; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.2s;">
-                        <i class="fas fa-mask" style="color: white; font-size: 0.9rem;"></i>
-                    </button>
+        // Dentro del div .profile-header-gradient, donde está el avatar
+const avatarImgUrl = getAvatarUrl(currentProfile);
+<div style="position: relative;">
+    ${avatarImgUrl ? 
+        `<img src="${avatarImgUrl}" class="profile-avatar-fullbody" alt="Avatar">` :
+        `<div class="profile-avatar-fullbody" style="background: white; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2rem;">${iniciales}</div>`
+    }
+    <button onclick="abrirCreadorAvatar()" style="position: absolute; bottom: 0; right: 0; background: #C8972A; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+        <i class="fas fa-mask" style="color: white;"></i>
+    </button>
+</div>
                 </div>
                 <div style="text-align: center;">
                     <h2 style="margin: 0; font-size: 1.6rem;">${escapeHtml(currentProfile?.nombre || currentUser?.email || 'Usuario')}</h2>
@@ -10919,28 +10943,27 @@ window.guardarAvatarEnSupabase = async () => {
     const avatarUrl = document.getElementById('liveAvatarPreview').src;
     const guardarBtn = document.activeElement;
     const originalText = guardarBtn.innerHTML;
-    guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando imagen...';
     guardarBtn.disabled = true;
     
     try {
+        // Subir a Supabase Storage (convierte SVG a PNG)
+        const publicUrl = await subirAvatarASupabase(avatarUrl);
+        
+        // Guardar la URL pública en la tabla perfiles
         const { error } = await supabaseClient
             .from('perfiles')
-            .update({ avatar_url: avatarUrl })
+            .update({ avatar_url: publicUrl })
             .eq('id', currentUser.id);
         if (error) throw error;
         
-        if (currentProfile) currentProfile.avatar_url = avatarUrl;
+        if (currentProfile) currentProfile.avatar_url = publicUrl;
         await loadProfile();
-        showToast("✅ Avatar guardado con éxito", "success");
+        showToast("✅ Avatar guardado permanentemente", "success");
         
         // Confeti
         if (typeof confetti === 'function') {
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#C8972A', '#10b981', '#a855f7'] });
-        } else {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1';
-            script.onload = () => confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#C8972A', '#10b981', '#a855f7'] });
-            document.head.appendChild(script);
         }
         
         closeModal();
@@ -10969,6 +10992,60 @@ function getAvatarUrl(profile) {
     if (profile?.foto_url) return profile.foto_url;
     return 'https://api.dicebear.com/7.x/identicon/svg?seed=' + (profile?.id || 'default');
 }
+
+async function subirAvatarASupabase(svgUrl) {
+    try {
+        // 1. Descargar el SVG como texto
+        const response = await fetch(svgUrl);
+        const svgText = await response.text();
+        
+        // 2. Crear un canvas para dibujar el SVG
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        // Esperar a que la imagen se cargue
+        await new Promise((resolve, reject) => {
+            img.onload = () => {
+                // Fijar tamaño del canvas (proporción 1:1.4 para cuerpo entero)
+                canvas.width = 400;
+                canvas.height = 560;
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Dibujar la imagen centrada y escalada
+                const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                const x = (canvas.width - img.width * scale) / 2;
+                const y = (canvas.height - img.height * scale) / 2;
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                resolve();
+            };
+            img.onerror = reject;
+            img.src = svgUrl;
+        });
+        
+        // 3. Convertir canvas a blob PNG
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        
+        // 4. Subir a Supabase Storage
+        const fileName = `avatar_${currentUser.id}_${Date.now()}.png`;
+        const { error: uploadError } = await supabaseClient.storage
+            .from('avatars')
+            .upload(fileName, blob);
+        if (uploadError) throw uploadError;
+        
+        // 5. Obtener URL pública
+        const { data: urlData } = supabaseClient.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+        
+        return urlData.publicUrl;
+        
+    } catch (error) {
+        console.error("Error al subir avatar:", error);
+        throw error;
+    }
+}
+    
     
 // INICIALIZACION---
 (async () => {
