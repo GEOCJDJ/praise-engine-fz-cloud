@@ -9957,7 +9957,7 @@ async function guardarAsignacionGrupoEvento(eventoId) {
     }
 }
 
-    // ==========================================================
+  // ==========================================================
 // MÓDULO INTERACTIVO: DASHBOARD DE EVALUACIONES (G-SUITE)
 // ==========================================================
 
@@ -9976,7 +9976,7 @@ window.abrirDashboardEvaluaciones = async () => {
     let ministerioActivo = 'alabanza';
     if (esAdminDanza && !esAdminGeneral) ministerioActivo = 'danza';
 
-    // 3. Estilos CSS del dashboard (igual que antes)
+    // 3. Estilos CSS del dashboard (se mantienen igual)
     const evaluacionStyles = `
         <style>
             .eval-dashboard {
@@ -10036,6 +10036,7 @@ window.abrirDashboardEvaluaciones = async () => {
                 flex-direction: column;
                 gap: 10px;
                 transition: transform 0.2s;
+                cursor: pointer;
             }
             .eval-member-row:hover {
                 transform: translateY(-2px);
@@ -10122,7 +10123,7 @@ window.abrirDashboardEvaluaciones = async () => {
     await window.cargarDatosEvaluaciones();
 };
 
-// ========== NUEVAS FUNCIONES PARA DATOS REALES DEL AULA VIRTUAL ==========
+// ========== FUNCIONES PARA DATOS REALES ==========
 
 window.cambiarPestañaEvaluacion = (min) => {
     window.evalModuleState.ministerioActivo = min;
@@ -10154,25 +10155,42 @@ window.cargarDatosEvaluaciones = async () => {
         const userIds = miembros.map(m => m.user_id);
         const { data: intentos, error: errIntentos } = await supabaseClient
             .from('intentos_examen')
-            .select('user_id, puntaje')
+            .select('user_id, puntaje, examen_id, created_at')
             .in('user_id', userIds)
             .eq('completado', true);
         
         if (errIntentos) throw errIntentos;
         
-        // 3. Calcular promedio por usuario
-        const promediosPorUsuario = {};
+        // 3. Obtener los nombres de los exámenes (para después mostrar en el detalle)
+        const examenIds = [...new Set((intentos || []).map(i => i.examen_id))];
+        let examenesMap = new Map();
+        if (examenIds.length) {
+            const { data: examenes } = await supabaseClient
+                .from('examenes')
+                .select('id, titulo')
+                .in('id', examenIds);
+            if (examenes) examenes.forEach(e => examenesMap.set(e.id, e.titulo));
+        }
+        
+        // 4. Calcular promedio por usuario y guardar también la lista de intentos
+        const datosPorUsuario = {};
         if (intentos) {
             intentos.forEach(intento => {
-                if (!promediosPorUsuario[intento.user_id]) {
-                    promediosPorUsuario[intento.user_id] = { suma: 0, count: 0 };
+                if (!datosPorUsuario[intento.user_id]) {
+                    datosPorUsuario[intento.user_id] = { suma: 0, count: 0, intentos: [] };
                 }
-                promediosPorUsuario[intento.user_id].suma += parseFloat(intento.puntaje);
-                promediosPorUsuario[intento.user_id].count++;
+                datosPorUsuario[intento.user_id].suma += parseFloat(intento.puntaje);
+                datosPorUsuario[intento.user_id].count++;
+                datosPorUsuario[intento.user_id].intentos.push({
+                    examen_id: intento.examen_id,
+                    examen_titulo: examenesMap.get(intento.examen_id) || 'Examen',
+                    puntaje: parseFloat(intento.puntaje),
+                    fecha: intento.created_at
+                });
             });
         }
         
-        // 4. Obtener nombres de departamentos (para clasificar alabanza/danza)
+        // 5. Obtener nombres de departamentos
         const { data: deptos } = await supabaseClient
             .from('departamentos')
             .select('id, nombre')
@@ -10180,17 +10198,17 @@ window.cargarDatosEvaluaciones = async () => {
         const deptoMap = new Map();
         if (deptos) deptos.forEach(d => deptoMap.set(d.id, d.nombre.toLowerCase()));
         
-        // 5. Construir lista de evaluados (solo quienes tengan al menos un examen)
+        // 6. Construir lista de evaluados (solo quienes tengan al menos un examen)
         const evaluacionesReales = [];
         for (const miembro of miembros) {
-            const promedioObj = promediosPorUsuario[miembro.user_id];
-            if (!promedioObj) continue; // solo mostrar quienes tienen exámenes
+            const usuarioData = datosPorUsuario[miembro.user_id];
+            if (!usuarioData) continue;
             
-            const promedio = (promedioObj.suma / promedioObj.count).toFixed(1);
+            const promedio = (usuarioData.suma / usuarioData.count).toFixed(1);
             const nombre = miembro.perfiles?.nombre || 'Usuario';
             
             // Determinar ministerio según departamento
-            let ministerio = 'alabanza'; // por defecto
+            let ministerio = 'alabanza';
             if (miembro.departamento_id && deptoMap.has(miembro.departamento_id)) {
                 const nombreDepto = deptoMap.get(miembro.departamento_id);
                 if (nombreDepto.includes('danza')) ministerio = 'danza';
@@ -10198,11 +10216,13 @@ window.cargarDatosEvaluaciones = async () => {
             }
             
             evaluacionesReales.push({
+                user_id: miembro.user_id,
                 miembro_name: nombre,
                 ministerio: ministerio,
                 grupo_clase: miembro.rol_musical || 'Sin rol',
                 nota_promedio: parseFloat(promedio),
-                cantidad_examenes: promedioObj.count
+                cantidad_examenes: usuarioData.count,
+                intentos: usuarioData.intentos
             });
         }
         
@@ -10253,14 +10273,14 @@ window.renderMétricasEvaluacion = (lista, min) => {
         return;
     }
 
-    // Mostrar cada miembro con su promedio y cantidad de exámenes
+    // Renderizar cada miembro con onclick para ver detalle
     listContainer.innerHTML = lista.map(item => {
         let colorScore = '#10b981';
         if (item.nota_promedio < 14) colorScore = '#f59e0b';
         if (item.nota_promedio < 10) colorScore = '#ef4444';
 
         return `
-            <div class="eval-member-row">
+            <div class="eval-member-row" onclick="window.verDetalleMiembro('${item.user_id}')">
                 <div class="eval-row-header">
                     <div>
                         <strong style="font-size: 0.95rem;">${escapeHtml(item.miembro_name)}</strong>
@@ -10284,6 +10304,84 @@ window.renderMétricasEvaluacion = (lista, min) => {
             </div>
         `;
     }).join('');
+};
+
+// ========== NUEVA FUNCIÓN: VER DETALLE DE EXÁMENES POR MIEMBRO ==========
+window.verDetalleMiembro = async (userId) => {
+    try {
+        // Obtener el miembro de la lista ya cargada (para no repetir consultas)
+        const miembro = window.evalModuleState.datosCompletos.find(m => m.user_id === userId);
+        if (!miembro) {
+            showToast("No se encontraron datos de este miembro", "error");
+            return;
+        }
+        
+        const intentos = miembro.intentos || [];
+        if (intentos.length === 0) {
+            showToast("Este miembro no tiene exámenes registrados", "warning");
+            return;
+        }
+        
+        // Ordenar por fecha descendente
+        intentos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        // Construir HTML del modal
+        let examenesHtml = `
+            <div style="max-height: 60vh; overflow-y: auto; padding-right: 8px;">
+                <h3 style="margin: 0 0 5px 0; font-size: 1.2rem;">📋 ${escapeHtml(miembro.miembro_name)}</h3>
+                <p style="margin-top: 0; color: var(--text-muted); font-size: 0.8rem;">${escapeHtml(miembro.grupo_clase)}</p>
+                <hr style="margin: 10px 0;">
+        `;
+        
+        intentos.forEach((intento, idx) => {
+            const fechaFormateada = new Date(intento.fecha).toLocaleDateString('es-ES', {
+                day: 'numeric', month: 'short', year: 'numeric'
+            });
+            const notaClase = intento.puntaje >= 14 ? 'aprobado' : (intento.puntaje >= 10 ? 'regular' : 'reprobado');
+            let colorNota = '#10b981';
+            if (intento.puntaje < 14) colorNota = '#f59e0b';
+            if (intento.puntaje < 10) colorNota = '#ef4444';
+            
+            examenesHtml += `
+                <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 0.75rem; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <strong style="font-size: 0.9rem;">${escapeHtml(intento.examen_titulo)}</strong>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">
+                                <i class="far fa-calendar-alt"></i> ${fechaFormateada}
+                            </div>
+                        </div>
+                        <div>
+                            <span style="background: ${colorNota}20; color: ${colorNota}; font-weight: bold; padding: 4px 10px; border-radius: 20px; font-size: 0.9rem;">
+                                ${intento.puntaje.toFixed(1)} / 20
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-bar-container" style="margin-top: 10px;">
+                        <div class="chart-bar-bg">
+                            <div class="chart-bar-fill" style="width: ${(intento.puntaje / 20) * 100}%; background: ${colorNota};"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        examenesHtml += `
+                <div style="margin-top: 15px; text-align: center;">
+                    <strong>Promedio general:</strong> ${miembro.nota_promedio.toFixed(1)} / 20
+                </div>
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+            </div>
+        `;
+        
+        showModal(examenesHtml);
+        
+    } catch (err) {
+        console.error("Error al cargar detalle:", err);
+        showToast("Error al cargar los exámenes del miembro", "error");
+    }
 };
     
 // INICIALIZACION---
