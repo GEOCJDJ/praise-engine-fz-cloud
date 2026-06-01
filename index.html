@@ -9972,19 +9972,11 @@ window.abrirDashboardEvaluaciones = async () => {
         return;
     }
 
-    // 2. Determinar pestaña activa (¡ANTES de usarla!)
+    // 2. Determinar pestaña activa
     let ministerioActivo = 'alabanza';
     if (esAdminDanza && !esAdminGeneral) ministerioActivo = 'danza';
 
-    // 3. Estilos y modal (ahora ministerioActivo ya existe)
-    const evaluacionStyles = `...`; // (tu CSS)
-
-    showModal(`...`); // aquí dentro usas ministerioActivo en los tabs
-
-    // 4. Estado y carga de datos
-    window.evalModuleState = { ministerioActivo, datosCompletos: [] };
-    await window.cargarDatosEvaluaciones();    
-
+    // 3. Estilos CSS
     const evaluacionStyles = `
         <style>
             .eval-dashboard {
@@ -10086,6 +10078,7 @@ window.abrirDashboardEvaluaciones = async () => {
         </style>
     `;
 
+    // 4. Mostrar modal
     showModal(`
         ${evaluacionStyles}
         <div class="eval-dashboard">
@@ -10124,17 +10117,15 @@ window.abrirDashboardEvaluaciones = async () => {
         </div>
     `);
 
-    window.evalModuleState = {
-        ministerioActivo: ministerioActivo,
-        datosCompletos: []
-    };
-
+    // 5. Estado y carga de datos
+    window.evalModuleState = { ministerioActivo, datosCompletos: [] };
     await window.cargarDatosEvaluaciones();
 };
 
+// Funciones auxiliares (globales)
 window.cambiarPestañaEvaluacion = (min) => {
     window.evalModuleState.ministerioActivo = min;
-    window.filtrarEvaluaciones(); // esto reconstruye el contenido, incluyendo los tabs
+    window.filtrarEvaluaciones();
 };
 
 window.cargarDatosEvaluaciones = async () => {
@@ -10147,7 +10138,6 @@ window.cargarDatosEvaluaciones = async () => {
         window.evalModuleState.datosCompletos = data || [];
     } catch (err) {
         console.warn("Usando datos mock para evaluaciones:", err);
-        // Mock adaptado a tus ministerios
         window.evalModuleState.datosCompletos = [
             { id: 1, miembro_name: "Kerly", ministerio: "danza", grupo_clase: "Grupo 1 - Clase 1", nota_tecnica: 9.2, nota_asistencia: 10, nota_caracter: 9.5, nota_expresion: 9.0, promedio: 9.4, observaciones: "Excelente fluidez coreográfica en el altar." },
             { id: 2, miembro_name: "Maite", ministerio: "danza", grupo_clase: "Grupo 1 - Clase 1", nota_tecnica: 8.5, nota_asistencia: 9.0, nota_caracter: 9.0, nota_expresion: 8.8, promedio: 8.8, observaciones: "Gran actitud, pulir precisión en la transición." },
@@ -10249,7 +10239,295 @@ window.renderMétricasEvaluacion = (lista, min) => {
             </div>
         `;
     }).join('');
-};    
+};
+
+window.cambiarPestañaEvaluacion = (min) => {
+    window.evalModuleState.ministerioActivo = min;
+    window.filtrarEvaluaciones(); // esto reconstruye el contenido, incluyendo los tabs
+};
+// ==========================================================
+// MÓDULO INTERACTIVO: DASHBOARD DE EVALUACIONES (G-SUITE)
+// ==========================================================
+
+window.abrirDashboardEvaluaciones = async () => {
+    // 1. Permisos
+    const esAdminGeneral = isAdminUser === true || isIglesiaAdmin === true || (currentProfile && currentProfile.rol === 'admin');
+    const esAdminAlabanza = isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza';
+    const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
+
+    if (!esAdminGeneral && !esAdminAlabanza && !esAdminDanza) {
+        showToast("No tienes permisos para ver las evaluaciones.", "error");
+        return;
+    }
+
+    // 2. Determinar pestaña activa
+    let ministerioActivo = 'alabanza';
+    if (esAdminDanza && !esAdminGeneral) ministerioActivo = 'danza';
+
+    // 3. Estilos CSS
+    const evaluacionStyles = `
+        <style>
+            .eval-dashboard {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                text-align: left;
+                font-family: 'Inter', sans-serif;
+            }
+            .eval-tabs {
+                display: flex;
+                gap: 10px;
+                border-bottom: 2px solid var(--border, #2d2d2d);
+                padding-bottom: 10px;
+            }
+            .eval-tab-btn {
+                background: transparent;
+                border: none;
+                color: var(--text-muted, #888);
+                padding: 8px 16px;
+                font-weight: 700;
+                cursor: pointer;
+                font-size: 0.95rem;
+                transition: all 0.3s ease;
+                border-radius: 6px;
+            }
+            .eval-tab-btn.active {
+                color: #10b981;
+                background: rgba(16, 185, 129, 0.1);
+            }
+            .eval-grid-kpis {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 15px;
+            }
+            .eval-kpi-card {
+                background: var(--surface, #1e1e1e);
+                border: 1px solid var(--border, #2d2d2d);
+                border-radius: 12px;
+                padding: 15px;
+                text-align: center;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            .eval-kpi-val {
+                font-size: 1.8rem;
+                font-weight: 800;
+                color: var(--text-main, #fff);
+                margin-top: 5px;
+            }
+            .eval-member-row {
+                background: var(--surface, #1e1e1e);
+                border: 1px solid var(--border, #2d2d2d);
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                transition: transform 0.2s;
+            }
+            .eval-member-row:hover {
+                transform: translateY(-2px);
+                border-color: #10b981;
+            }
+            .eval-row-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .eval-badge {
+                padding: 4px 8px;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                font-weight: 700;
+            }
+            .chart-bar-container {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                margin-top: 5px;
+            }
+            .chart-label-group {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.75rem;
+                color: var(--text-muted, #aaa);
+            }
+            .chart-bar-bg {
+                background: rgba(255,255,255,0.05);
+                height: 6px;
+                border-radius: 3px;
+                overflow: hidden;
+            }
+            .chart-bar-fill {
+                height: 100%;
+                border-radius: 3px;
+                transition: width 0.5s ease-in-out;
+            }
+        </style>
+    `;
+
+    // 4. Mostrar modal
+    showModal(`
+        ${evaluacionStyles}
+        <div class="eval-dashboard">
+            <div>
+                <h2 style="color: var(--text-main, #fff); font-weight: 800; margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-chart-line" style="color: #10b981;"></i> Rendimiento y Evaluaciones
+                </h2>
+                <p style="color: var(--text-muted, #888); font-size: 0.85rem; margin: 4px 0 0 0;">Panel estratégico de control de calidad ministerial.</p>
+            </div>
+
+            ${esAdminGeneral ? `
+                <div class="eval-tabs">
+                    <button class="eval-tab-btn ${ministerioActivo === 'alabanza' ? 'active' : ''}" onclick="window.cambiarPestañaEvaluacion('alabanza')">
+                        <i class="fas fa-music"></i> Alabanza
+                    </button>
+                    <button class="eval-tab-btn ${ministerioActivo === 'danza' ? 'active' : ''}" onclick="window.cambiarPestañaEvaluacion('danza')">
+                        <i class="fas fa-shoe-prints"></i> Danza
+                    </button>
+                </div>
+            ` : ''}
+
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <input type="text" id="eval-search" placeholder="Buscar integrante..." oninput="window.filtrarEvaluaciones()" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border, #2d2d2d); background: var(--bg-app, #121212); color: var(--text-main, #fff); font-size: 0.9rem;">
+            </div>
+
+            <div class="eval-grid-kpis" id="eval-kpis-container"></div>
+
+            <div id="eval-list-container" style="max-height: 350px; overflow-y: auto; padding-right: 5px;">
+                <div style="text-align: center; padding: 40px; color: var(--text-muted, #888);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p>Cargando métricas...</p>
+                </div>
+            </div>
+
+            <button onclick="closeModal()" style="width: 100%; background: var(--border, #2d2d2d); color: var(--text-main, #fff); border: none; border-radius: 8px; padding: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Cerrar Panel</button>
+        </div>
+    `);
+
+    // 5. Estado y carga de datos
+    window.evalModuleState = { ministerioActivo, datosCompletos: [] };
+    await window.cargarDatosEvaluaciones();
+};
+
+// Funciones auxiliares (globales)
+window.cambiarPestañaEvaluacion = (min) => {
+    window.evalModuleState.ministerioActivo = min;
+    window.filtrarEvaluaciones();
+};
+
+window.cargarDatosEvaluaciones = async () => {
+    try {
+        const { data, error } = await supabaseClient
+            .from('evaluaciones')
+            .select('*')
+            .order('promedio', { ascending: false });
+        if (error) throw error;
+        window.evalModuleState.datosCompletos = data || [];
+    } catch (err) {
+        console.warn("Usando datos mock para evaluaciones:", err);
+        window.evalModuleState.datosCompletos = [
+            { id: 1, miembro_name: "Kerly", ministerio: "danza", grupo_clase: "Grupo 1 - Clase 1", nota_tecnica: 9.2, nota_asistencia: 10, nota_caracter: 9.5, nota_expresion: 9.0, promedio: 9.4, observaciones: "Excelente fluidez coreográfica en el altar." },
+            { id: 2, miembro_name: "Maite", ministerio: "danza", grupo_clase: "Grupo 1 - Clase 1", nota_tecnica: 8.5, nota_asistencia: 9.0, nota_caracter: 9.0, nota_expresion: 8.8, promedio: 8.8, observaciones: "Gran actitud, pulir precisión en la transición." },
+            { id: 3, miembro_name: "Carlos Romero", ministerio: "alabanza", grupo_clase: "Músicos (Piano)", nota_tecnica: 9.5, nota_asistencia: 9.5, nota_caracter: 10, nota_expresion: 9.0, promedio: 9.5, observaciones: "Excelente dirección armónica." },
+            { id: 4, miembro_name: "Daniela", ministerio: "danza", grupo_clase: "Grupo 1 - Clase 2", nota_tecnica: 7.8, nota_asistencia: 8.5, nota_caracter: 8.0, nota_expresion: 8.5, promedio: 8.2, observaciones: "Enfocarse en puntualidad." },
+            { id: 5, miembro_name: "Estefany", ministerio: "danza", grupo_clase: "Grupo 1 - Clase 1", nota_tecnica: 9.0, nota_asistencia: 10, nota_caracter: 9.5, nota_expresion: 9.2, promedio: 9.4, observaciones: "Muy consagrada y excelente técnica de mantos." }
+        ];
+    }
+    window.filtrarEvaluaciones();
+};
+
+window.filtrarEvaluaciones = () => {
+    const query = document.getElementById('eval-search')?.value.toLowerCase() || '';
+    const min = window.evalModuleState.ministerioActivo;
+    const filtrados = window.evalModuleState.datosCompletos.filter(item => {
+        const matchesMin = item.ministerio === min;
+        const matchesSearch = item.miembro_name.toLowerCase().includes(query) || (item.grupo_clase && item.grupo_clase.toLowerCase().includes(query));
+        return matchesMin && matchesSearch;
+    });
+    window.renderMétricasEvaluacion(filtrados, min);
+};
+
+window.renderMétricasEvaluacion = (lista, min) => {
+    const kpiContainer = document.getElementById('eval-kpis-container');
+    const listContainer = document.getElementById('eval-list-container');
+    if (!kpiContainer || !listContainer) return;
+
+    const totalEvaluados = lista.length;
+    const promedioGeneral = totalEvaluados > 0 ? (lista.reduce((acc, curr) => acc + parseFloat(curr.promedio), 0) / totalEvaluados).toFixed(1) : "0.0";
+    const colorMin = min === 'alabanza' ? '#3b82f6' : '#ec4899';
+
+    kpiContainer.innerHTML = `
+        <div class="eval-kpi-card">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted, #888); text-transform: uppercase;">Evaluados</div>
+            <div class="eval-kpi-val" style="color: ${colorMin};">${totalEvaluados}</div>
+        </div>
+        <div class="eval-kpi-card">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted, #888); text-transform: uppercase;">Promedio General</div>
+            <div class="eval-kpi-val" style="color: #10b981;">${promedioGeneral} <span style="font-size: 0.8rem; color: var(--text-muted); font-weight:400;">/10</span></div>
+        </div>
+    `;
+
+    if (lista.length === 0) {
+        listContainer.innerHTML = `
+            <div style="text-align: center; padding: 30px; color: var(--text-muted, #888);">
+                <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 8px;"></i>
+                <p style="font-size: 0.85rem;">No se encontraron registros de evaluaciones en esta sección.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const labelTecnica = min === 'alabanza' ? 'Técnica Musical/Vocal' : 'Precisión Coreográfica';
+    const labelExpresion = min === 'alabanza' ? 'Fluidez en Altar' : 'Expresión y Proyección';
+
+    listContainer.innerHTML = lista.map(item => {
+        let colorScore = '#10b981';
+        if (item.promedio < 8.5 && item.promedio >= 7.5) colorScore = '#f59e0b';
+        if (item.promedio < 7.5) colorScore = '#ef4444';
+
+        return `
+            <div class="eval-member-row">
+                <div class="eval-row-header">
+                    <div>
+                        <strong style="color: var(--text-main, #fff); font-size: 0.95rem;">${escapeHtml(item.miembro_name)}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted, #888); margin-top: 2px;"><i class="fas fa-users"></i> ${escapeHtml(item.grupo_clase || 'Sin grupo')}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="eval-badge" style="background: rgba(16, 185, 129, 0.1); color: ${colorScore}; font-size: 0.95rem; padding: 6px 10px;">
+                            ${parseFloat(item.promedio).toFixed(1)}
+                        </span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
+                    <div class="chart-bar-container">
+                        <div class="chart-label-group"><span>${labelTecnica}</span><strong>${item.nota_tecnica}</strong></div>
+                        <div class="chart-bar-bg"><div class="chart-bar-fill" style="width: ${item.nota_tecnica * 10}%; background: ${colorMin};"></div></div>
+                    </div>
+                    <div class="chart-bar-container">
+                        <div class="chart-label-group"><span>Asistencia y Puntualidad</span><strong>${item.nota_asistencia}</strong></div>
+                        <div class="chart-bar-bg"><div class="chart-bar-fill" style="width: ${item.nota_asistencia * 10}%; background: #10b981;"></div></div>
+                    </div>
+                    <div class="chart-bar-container">
+                        <div class="chart-label-group"><span>Carácter y Compromiso</span><strong>${item.nota_caracter}</strong></div>
+                        <div class="chart-bar-bg"><div class="chart-bar-fill" style="width: ${item.nota_caracter * 10}%; background: #f59e0b;"></div></div>
+                    </div>
+                    <div class="chart-bar-container">
+                        <div class="chart-label-group"><span>${labelExpresion}</span><strong>${item.nota_expresion}</strong></div>
+                        <div class="chart-bar-bg"><div class="chart-bar-fill" style="width: ${item.nota_expresion * 10}%; background: #8b5cf6;"></div></div>
+                    </div>
+                </div>
+
+                ${item.observaciones ? `
+                    <div style="background: rgba(255,255,255,0.02); padding: 8px 10px; border-radius: 6px; border-left: 3px solid #10b981; font-size: 0.78rem; color: var(--text-muted, #aaa); margin-top: 5px; font-style: italic;">
+                        "${escapeHtml(item.observaciones)}"
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+};
     
 // INICIALIZACION---
 (async () => {
