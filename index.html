@@ -6357,101 +6357,275 @@ window.changeAdminIglesia = async () => {
 };
 function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
 
+// ========== ESTADÍSTICAS DE USO (VERSIÓN MODERNA) ==========
 async function showEstadisticas() {
     try {
+        // Fecha límite: últimos 30 días
         const fechaLimite = new Date();
         fechaLimite.setDate(fechaLimite.getDate() - 30);
         const fechaStr = fechaLimite.toISOString();
         
-        // Canciones más vistas (sin usar .group)
+        // 1. Canciones más vistas
         const { data: cancionesData, error: songsError } = await supabaseClient
             .from('estadisticas_canciones')
             .select('song_id')
-            .eq('fecha', '>=', fechaStr)
+            .gte('fecha', fechaStr)
             .eq('iglesia_id', currentIglesiaId);
         
-        // Contar manualmente
         const songCounts = {};
         if (cancionesData && !songsError) {
             cancionesData.forEach(item => {
-                const songId = item.song_id;
-                songCounts[songId] = (songCounts[songId] || 0) + 1;
+                songCounts[item.song_id] = (songCounts[item.song_id] || 0) + 1;
             });
         }
         let topSongs = Object.entries(songCounts).map(([id, count]) => ({ song_id: id, count }));
         topSongs.sort((a,b) => b.count - a.count);
         topSongs = topSongs.slice(0, 5);
         
-        // Listas más impresas
+        // Obtener títulos de canciones
+        const songIds = topSongs.map(s => s.song_id);
+        let songsMap = new Map();
+        if (songIds.length) {
+            const { data: songsData } = await supabaseClient
+                .from('canciones')
+                .select('id, title')
+                .in('id', songIds);
+            if (songsData) songsData.forEach(s => songsMap.set(s.id, s.title));
+        }
+        
+        // 2. Listas más impresas
         const { data: listasData, error: listsError } = await supabaseClient
             .from('estadisticas_listas')
             .select('lista_id')
-            .eq('fecha', '>=', fechaStr)
+            .gte('fecha', fechaStr)
             .eq('iglesia_id', currentIglesiaId);
         
         const listCounts = {};
         if (listasData && !listsError) {
             listasData.forEach(item => {
-                const listaId = item.lista_id;
-                listCounts[listaId] = (listCounts[listaId] || 0) + 1;
+                listCounts[item.lista_id] = (listCounts[item.lista_id] || 0) + 1;
             });
         }
         let topLists = Object.entries(listCounts).map(([id, count]) => ({ lista_id: id, count }));
         topLists.sort((a,b) => b.count - a.count);
         topLists = topLists.slice(0, 5);
         
-        // Usuarios más activos
+        // Obtener nombres de listas
+        const listIds = topLists.map(l => l.lista_id);
+        let listsMap = new Map();
+        if (listIds.length) {
+            const { data: listsData } = await supabaseClient
+                .from('listas')
+                .select('id, name')
+                .in('id', listIds);
+            if (listsData) listsData.forEach(l => listsMap.set(l.id, l.name));
+        }
+        
+        // 3. Usuarios más activos
         const { data: usuariosData, error: usersError } = await supabaseClient
             .from('estadisticas_usuarios')
             .select('user_id')
-            .eq('fecha', '>=', fechaStr)
+            .gte('fecha', fechaStr)
             .eq('iglesia_id', currentIglesiaId);
         
         const userCounts = {};
         if (usuariosData && !usersError) {
             usuariosData.forEach(item => {
-                const userId = item.user_id;
-                userCounts[userId] = (userCounts[userId] || 0) + 1;
+                userCounts[item.user_id] = (userCounts[item.user_id] || 0) + 1;
             });
         }
         let topUsers = Object.entries(userCounts).map(([id, count]) => ({ user_id: id, count }));
         topUsers.sort((a,b) => b.count - a.count);
         topUsers = topUsers.slice(0, 5);
         
-        let html = `<h3>📈 Estadísticas de uso (últimos 30 días)</h3>
-                    <div class="card"><h4>🎵 Canciones más vistas</h4><ul>`;
-        if (topSongs.length) {
-            for (let item of topSongs) {
-                const song = songs.find(s => s.id === item.song_id);
-                html += `<li><strong>${song ? escapeHtml(song.title) : 'Desconocida'}</strong> - ${item.count} vistas</li>`;
-            }
-        } else {
-            html += `<li>Sin datos aún</li>`;
+        // Obtener nombres de usuarios
+        const userIds = topUsers.map(u => u.user_id);
+        let usersMap = new Map();
+        if (userIds.length) {
+            const { data: perfiles } = await supabaseClient
+                .from('perfiles')
+                .select('id, nombre')
+                .in('id', userIds);
+            if (perfiles) perfiles.forEach(p => usersMap.set(p.id, p.nombre));
         }
-        html += `</ul></div>
-                 <div class="card"><h4>📄 Listas más impresas</h4><ul>`;
-        if (topLists.length) {
-            for (let item of topLists) {
-                const lista = lists.find(l => l.id === item.lista_id);
-                html += `<li><strong>${lista ? escapeHtml(lista.name) : 'Desconocida'}</strong> - ${item.count} impresiones</li>`;
-            }
-        } else {
-            html += `<li>Sin datos aún</li>`;
-        }
-        html += `</ul></div>
-                 <div class="card"><h4>👥 Usuarios más activos</h4><ul>`;
-        if (topUsers.length) {
-            for (let item of topUsers) {
-                const { data: profile } = await supabaseClient.from('perfiles').select('nombre').eq('id', item.user_id).single();
-                html += `<li><strong>${profile ? escapeHtml(profile.nombre) : 'Usuario'}</strong> - ${item.count} acciones</li>`;
-            }
-        } else {
-            html += `<li>Sin datos aún</li>`;
-        }
-        html += `</ul></div>
-                 <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`;
+        
+        // ========== RENDERIZADO MODERNO ==========
+        const totalCancionesVistas = cancionesData?.length || 0;
+        const totalListasImpresas = listasData?.length || 0;
+        const totalAccionesUsuarios = usuariosData?.length || 0;
+        
+        // Estilos modernos (similares al dashboard de evaluaciones)
+        const statsStyles = `
+            <style>
+                .stats-dashboard {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                    font-family: 'Inter', sans-serif;
+                }
+                .stats-grid-kpis {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                    gap: 15px;
+                }
+                .stats-kpi-card {
+                    background: var(--surface, #1e1e1e);
+                    border: 1px solid var(--border, #2d2d2d);
+                    border-radius: 12px;
+                    padding: 15px;
+                    text-align: center;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                }
+                .stats-kpi-val {
+                    font-size: 1.8rem;
+                    font-weight: 800;
+                    color: var(--text-main, #fff);
+                    margin-top: 5px;
+                }
+                .stats-section {
+                    background: var(--surface, #1e1e1e);
+                    border: 1px solid var(--border, #2d2d2d);
+                    border-radius: 12px;
+                    padding: 20px;
+                }
+                .stats-section-title {
+                    font-size: 1.1rem;
+                    font-weight: 800;
+                    margin-bottom: 15px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    color: var(--primary-light, #3b82f6);
+                }
+                .stats-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 12px;
+                    padding: 8px 0;
+                    border-bottom: 1px solid var(--border, #2d2d2d);
+                }
+                .stats-item-name {
+                    font-weight: 500;
+                }
+                .stats-item-count {
+                    background: rgba(16,185,129,0.1);
+                    padding: 4px 10px;
+                    border-radius: 20px;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: #10b981;
+                }
+                .stats-empty {
+                    text-align: center;
+                    padding: 20px;
+                    color: var(--text-muted);
+                    font-style: italic;
+                }
+                .stats-progress-bar {
+                    flex: 1;
+                    margin: 0 15px;
+                    height: 6px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 3px;
+                    overflow: hidden;
+                }
+                .stats-progress-fill {
+                    height: 100%;
+                    border-radius: 3px;
+                    background: #3b82f6;
+                }
+            </style>
+        `;
+        
+        // Función para calcular el máximo de una lista (para las barras)
+        const maxCount = (items) => items.length ? Math.max(...items.map(i => i.count)) : 0;
+        const maxCanciones = maxCount(topSongs);
+        const maxListas = maxCount(topLists);
+        const maxUsuarios = maxCount(topUsers);
+        
+        let html = `
+            ${statsStyles}
+            <div class="stats-dashboard">
+                <div>
+                    <h2 style="color: var(--text-main, #fff); font-weight: 800; margin: 0; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-chart-simple" style="color: #10b981;"></i> Estadísticas de uso
+                    </h2>
+                    <p style="color: var(--text-muted, #888); font-size: 0.85rem; margin: 4px 0 0 0;">Últimos 30 días</p>
+                </div>
+                
+                <div class="stats-grid-kpis">
+                    <div class="stats-kpi-card">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">🎵 Canciones vistas</div>
+                        <div class="stats-kpi-val" style="color: #3b82f6;">${totalCancionesVistas}</div>
+                    </div>
+                    <div class="stats-kpi-card">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">📄 Listas impresas</div>
+                        <div class="stats-kpi-val" style="color: #f59e0b;">${totalListasImpresas}</div>
+                    </div>
+                    <div class="stats-kpi-card">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">👥 Acciones de usuarios</div>
+                        <div class="stats-kpi-val" style="color: #10b981;">${totalAccionesUsuarios}</div>
+                    </div>
+                </div>
+                
+                <div class="stats-section">
+                    <div class="stats-section-title"><i class="fas fa-music"></i> Canciones más vistas</div>
+                    ${topSongs.length === 0 ? '<div class="stats-empty">Sin datos aún. Los usuarios deben ver canciones desde el cancionero.</div>' : `
+                        ${topSongs.map(song => {
+                            const nombre = songsMap.get(song.song_id) || 'Canción eliminada';
+                            const porcentaje = maxCanciones ? (song.count / maxCanciones) * 100 : 0;
+                            return `
+                                <div class="stats-item">
+                                    <span class="stats-item-name">${escapeHtml(nombre)}</span>
+                                    <div class="stats-progress-bar"><div class="stats-progress-fill" style="width: ${porcentaje}%;"></div></div>
+                                    <span class="stats-item-count">${song.count} vista${song.count !== 1 ? 's' : ''}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    `}
+                </div>
+                
+                <div class="stats-section">
+                    <div class="stats-section-title"><i class="fas fa-list-ul"></i> Listas más impresas</div>
+                    ${topLists.length === 0 ? '<div class="stats-empty">Sin datos aún. Imprime listas desde el módulo LISTAS.</div>' : `
+                        ${topLists.map(lista => {
+                            const nombre = listsMap.get(lista.lista_id) || 'Lista eliminada';
+                            const porcentaje = maxListas ? (lista.count / maxListas) * 100 : 0;
+                            return `
+                                <div class="stats-item">
+                                    <span class="stats-item-name">${escapeHtml(nombre)}</span>
+                                    <div class="stats-progress-bar"><div class="stats-progress-fill" style="width: ${porcentaje}%;"></div></div>
+                                    <span class="stats-item-count">${lista.count} impresión${lista.count !== 1 ? 'es' : ''}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    `}
+                </div>
+                
+                <div class="stats-section">
+                    <div class="stats-section-title"><i class="fas fa-users"></i> Usuarios más activos</div>
+                    ${topUsers.length === 0 ? '<div class="stats-empty">Sin datos aún. Los usuarios deben iniciar sesión y usar la app.</div>' : `
+                        ${topUsers.map(user => {
+                            const nombre = usersMap.get(user.user_id) || 'Usuario';
+                            const porcentaje = maxUsuarios ? (user.count / maxUsuarios) * 100 : 0;
+                            return `
+                                <div class="stats-item">
+                                    <span class="stats-item-name">${escapeHtml(nombre)}</span>
+                                    <div class="stats-progress-bar"><div class="stats-progress-fill" style="width: ${porcentaje}%;"></div></div>
+                                    <span class="stats-item-count">${user.count} accione${user.count !== 1 ? 's' : ''}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    `}
+                </div>
+                
+                <button onclick="closeModal()" style="width: 100%; background: var(--border, #2d2d2d); color: var(--text-main, #fff); border: none; border-radius: 8px; padding: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Cerrar</button>
+            </div>
+        `;
         
         showModal(html);
+        
     } catch (error) {
         console.error("Error en estadísticas:", error);
         showToast("Error al cargar estadísticas: " + error.message);
