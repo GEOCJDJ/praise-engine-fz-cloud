@@ -10640,222 +10640,53 @@ window.verDetalleMiembro = async (userId) => {
 };
 
  // ==========================================================
-// MÓDULO G-AVATAR: CREADOR LOCAL CON CANVAS (sin API externa)
+// MÓDULO G-AVATAR: CREADOR DE PERSONAJES PREMIUM (DiceBear)
 // ==========================================================
 
-const AVATAR_OPTIONS_LOCAL = {
-    // Estilos de pelo (formas)
-    hair: ['default', 'short', 'long', 'bob', 'mohawk', 'curly', 'straight'],
-    // Colores de pelo
-    hairColor: ['#000000', '#4a3123', '#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#a855f7', '#e2e8f0'],
-    // Tonos de piel
-    skinColor: ['#f8d2b9', '#e2a37f', '#94603b', '#5c3a21', '#ffb6c1', '#d5a98f'],
-    // Ojos
-    eyes: ['default', 'happy', 'surprised', 'closed', 'glasses'],
-    // Boca
-    mouth: ['smile', 'sad', 'surprised', 'serious', 'tongue'],
-    // Cejas
-    eyebrows: ['default', 'angry', 'sad', 'raised'],
-    // Ropa (color)
-    clothingColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#a855f7', '#1e293b', '#dc2626'],
-    // Accesorios (solo implementaremos algunos)
-    accessory: ['none', 'glasses', 'sunglasses', 'hat']
+// Opciones de personalización (puedes ampliarlas después)
+const AVATAR_OPTIONS = {
+    hair: ['short01', 'short02', 'short03', 'short04', 'short05', 'long01', 'long02', 'long03', 'long04', 'long05', 'long19', 'bob', 'pixie', 'dreads', 'frida'],
+    hairColor: ['000000', '4a3123', 'f59e0b', 'ef4444', '3b82f6', '10b981', 'a855f7', 'e2e8f0', '8b5cf6', 'ec4899'],
+    skinColor: ['f8d2b9', 'e2a37f', '94603b', '5c3a21', 'ffb6c1', 'd5a98f', '8d5524', 'c68642'],
+    eyes: ['variant02', 'variant03', 'variant04', 'variant05', 'variant06', 'variant08', 'variant09', 'variant10'],
+    mouth: ['variant02', 'variant03', 'variant04', 'variant08', 'variant09', 'variant10', 'variant11'],
+    backgroundColor: ['b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', '1e293b', '0f172a', '2d2d2d', '10b981', '3b82f6']
 };
 
-let currentAvatarStateLocal = {
+// Estado actual del avatar (se reinicia al abrir el creador)
+let currentAvatarState = {
+    seed: '',
     hairIdx: 0,
     hairColorIdx: 0,
     skinIdx: 0,
     eyesIdx: 0,
     mouthIdx: 0,
-    eyebrowsIdx: 0,
-    clothingColorIdx: 0,
-    accessoryIdx: 0
+    bgIdx: 0
 };
 
-// Función para dibujar el avatar en un canvas
-function dibujarAvatarEnCanvas(ctx, width, height, config) {
-    const centerX = width / 2;
-    const centerY = height / 2;
-    
-    // Limpiar canvas
-    ctx.clearRect(0, 0, width, height);
-    
-    // Fondo (opcional, transparente)
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-    
-    // 1. Cuerpo (torso)
-    ctx.fillStyle = '#c0aede'; // color base de ropa (lo cambiaremos según clothingColor)
-    ctx.fillRect(centerX - 50, centerY + 30, 100, 80);
-    // Color de ropa
-    const clothingColor = AVATAR_OPTIONS_LOCAL.clothingColor[config.clothingColorIdx];
-    ctx.fillStyle = clothingColor;
-    ctx.fillRect(centerX - 45, centerY + 35, 90, 70);
-    // Detalle de cuello
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(centerX - 15, centerY + 25, 30, 15);
-    
-    // 2. Cabeza (círculo)
-    const skinColor = AVATAR_OPTIONS_LOCAL.skinColor[config.skinIdx];
-    ctx.fillStyle = skinColor;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, 55, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    
-    // 3. Ojos según tipo
-    const eyesType = AVATAR_OPTIONS_LOCAL.eyes[config.eyesIdx];
-    ctx.fillStyle = '#1e293b';
-    if (eyesType === 'default') {
-        ctx.fillRect(centerX - 25, centerY - 15, 12, 12);
-        ctx.fillRect(centerX + 13, centerY - 15, 12, 12);
-    } else if (eyesType === 'happy') {
-        ctx.beginPath();
-        ctx.arc(centerX - 19, centerY - 12, 7, 0, Math.PI);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(centerX + 19, centerY - 12, 7, 0, Math.PI);
-        ctx.fill();
-    } else if (eyesType === 'surprised') {
-        ctx.beginPath();
-        ctx.arc(centerX - 19, centerY - 12, 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(centerX + 19, centerY - 12, 8, 0, Math.PI * 2);
-        ctx.fill();
-    } else if (eyesType === 'closed') {
-        ctx.beginPath();
-        ctx.moveTo(centerX - 28, centerY - 12);
-        ctx.lineTo(centerX - 12, centerY - 8);
-        ctx.lineTo(centerX - 12, centerY - 16);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(centerX + 28, centerY - 12);
-        ctx.lineTo(centerX + 12, centerY - 8);
-        ctx.lineTo(centerX + 12, centerY - 16);
-        ctx.fill();
-    } else if (eyesType === 'glasses') {
-        ctx.fillStyle = '#000';
-        ctx.fillRect(centerX - 30, centerY - 18, 22, 16);
-        ctx.fillRect(centerX + 8, centerY - 18, 22, 16);
-        ctx.beginPath();
-        ctx.moveTo(centerX - 8, centerY - 10);
-        ctx.lineTo(centerX + 8, centerY - 10);
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    }
-    
-    // 4. Boca
-    const mouthType = AVATAR_OPTIONS_LOCAL.mouth[config.mouthIdx];
-    ctx.beginPath();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    if (mouthType === 'smile') {
-        ctx.arc(centerX, centerY + 15, 15, 0.1, Math.PI - 0.1);
-        ctx.stroke();
-    } else if (mouthType === 'sad') {
-        ctx.arc(centerX, centerY + 25, 15, Math.PI + 0.1, 2 * Math.PI - 0.1);
-        ctx.stroke();
-    } else if (mouthType === 'surprised') {
-        ctx.arc(centerX, centerY + 18, 10, 0, Math.PI * 2);
-        ctx.fillStyle = '#ef4444';
-        ctx.fill();
-    } else if (mouthType === 'tongue') {
-        ctx.arc(centerX, centerY + 15, 12, 0, Math.PI);
-        ctx.fillStyle = '#ef4444';
-        ctx.fill();
-        ctx.fillStyle = '#ffb6c1';
-        ctx.fillRect(centerX - 5, centerY + 15, 10, 8);
-    } else {
-        ctx.arc(centerX, centerY + 15, 10, 0, Math.PI);
-        ctx.fillStyle = '#000';
-        ctx.fill();
-    }
-    
-    // 5. Cejas
-    const eyebrowsType = AVATAR_OPTIONS_LOCAL.eyebrows[config.eyebrowsIdx];
-    ctx.fillStyle = AVATAR_OPTIONS_LOCAL.hairColor[config.hairColorIdx];
-    if (eyebrowsType === 'default') {
-        ctx.fillRect(centerX - 30, centerY - 28, 20, 6);
-        ctx.fillRect(centerX + 10, centerY - 28, 20, 6);
-    } else if (eyebrowsType === 'angry') {
-        ctx.fillRect(centerX - 30, centerY - 30, 20, 6);
-        ctx.fillRect(centerX + 10, centerY - 30, 20, 6);
-    } else if (eyebrowsType === 'sad') {
-        ctx.fillRect(centerX - 30, centerY - 26, 20, 6);
-        ctx.fillRect(centerX + 10, centerY - 26, 20, 6);
-    } else if (eyebrowsType === 'raised') {
-        ctx.fillRect(centerX - 30, centerY - 32, 20, 6);
-        ctx.fillRect(centerX + 10, centerY - 32, 20, 6);
-    }
-    
-    // 6. Pelo
-    const hairType = AVATAR_OPTIONS_LOCAL.hair[config.hairIdx];
-    const hairColor = AVATAR_OPTIONS_LOCAL.hairColor[config.hairColorIdx];
-    ctx.fillStyle = hairColor;
-    if (hairType === 'default') {
-        ctx.fillRect(centerX - 55, centerY - 55, 110, 40);
-        ctx.fillRect(centerX - 45, centerY - 60, 90, 30);
-    } else if (hairType === 'short') {
-        ctx.fillRect(centerX - 50, centerY - 55, 100, 30);
-    } else if (hairType === 'long') {
-        ctx.fillRect(centerX - 55, centerY - 60, 110, 50);
-        ctx.fillRect(centerX - 45, centerY - 65, 90, 40);
-    } else if (hairType === 'bob') {
-        ctx.fillRect(centerX - 55, centerY - 55, 110, 35);
-        ctx.fillRect(centerX - 50, centerY - 60, 100, 25);
-    } else if (hairType === 'mohawk') {
-        ctx.fillRect(centerX - 15, centerY - 70, 30, 45);
-        ctx.fillRect(centerX - 50, centerY - 55, 100, 30);
-    } else if (hairType === 'curly') {
-        ctx.fillRect(centerX - 55, centerY - 55, 110, 40);
-        for (let i = 0; i < 8; i++) {
-            ctx.beginPath();
-            ctx.arc(centerX - 40 + i * 12, centerY - 60, 8, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    } else if (hairType === 'straight') {
-        ctx.fillRect(centerX - 55, centerY - 60, 110, 50);
-    }
-    
-    // 7. Accesorios (gafas ya se dibujaron en ojos, aquí añadimos sombrero)
-    const accessory = AVATAR_OPTIONS_LOCAL.accessory[config.accessoryIdx];
-    if (accessory === 'hat') {
-        ctx.fillStyle = '#a855f7';
-        ctx.fillRect(centerX - 45, centerY - 70, 90, 20);
-        ctx.fillRect(centerX - 35, centerY - 85, 70, 15);
-    }
+// Función para generar una seed aleatoria (8 caracteres)
+function generarSeedAleatoria() {
+    return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
 }
 
-// Generar un dataURL del avatar actual
-function generarAvatarDataURL(config) {
-    return new Promise((resolve) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 560;
-        const ctx = canvas.getContext('2d');
-        dibujarAvatarEnCanvas(ctx, 400, 560, config);
-        resolve(canvas.toDataURL('image/png'));
-    });
-}
-
+// Abrir el creador de avatares (modal premium)
 window.abrirCreadorAvatar = async () => {
-    // Inicializar valores aleatorios
-    currentAvatarStateLocal.hairIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.hair.length);
-    currentAvatarStateLocal.hairColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.hairColor.length);
-    currentAvatarStateLocal.skinIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.skinColor.length);
-    currentAvatarStateLocal.eyesIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.eyes.length);
-    currentAvatarStateLocal.mouthIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.mouth.length);
-    currentAvatarStateLocal.eyebrowsIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.eyebrows.length);
-    currentAvatarStateLocal.clothingColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.clothingColor.length);
-    currentAvatarStateLocal.accessoryIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.accessory.length);
+    // Cargar avatar actual si existe (para previsualizar)
+    if (currentProfile?.avatar_url) {
+        // Opcional: intentar extraer los parámetros de la URL (avanzado, no necesario)
+        // Por simplicidad, empezamos con valores aleatorios atractivos
+    }
     
-    // Actualizar vista previa
-    const previewDataURL = await generarAvatarDataURL(currentAvatarStateLocal);
+    // Generar seed única y valores iniciales aleatorios (variedad)
+    currentAvatarState.seed = generarSeedAleatoria();
+    currentAvatarState.hairIdx = Math.floor(Math.random() * AVATAR_OPTIONS.hair.length);
+    currentAvatarState.hairColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.hairColor.length);
+    currentAvatarState.skinIdx = Math.floor(Math.random() * AVATAR_OPTIONS.skinColor.length);
+    currentAvatarState.eyesIdx = Math.floor(Math.random() * AVATAR_OPTIONS.eyes.length);
+    currentAvatarState.mouthIdx = Math.floor(Math.random() * AVATAR_OPTIONS.mouth.length);
+    currentAvatarState.bgIdx = Math.floor(Math.random() * AVATAR_OPTIONS.backgroundColor.length);
     
+    // Construir el HTML del modal
     const modalHtml = `
         <style>
             .avatar-studio {
@@ -10863,12 +10694,12 @@ window.abrirCreadorAvatar = async () => {
                 flex-direction: column;
                 align-items: center;
                 gap: 20px;
-                max-width: 750px;
+                max-width: 500px;
                 margin: 0 auto;
             }
             .avatar-preview-box {
-                width: 240px;
-                height: 240px;
+                width: 200px;
+                height: 200px;
                 background: var(--surface);
                 border-radius: 2rem;
                 border: 4px solid #C8972A;
@@ -10877,32 +10708,33 @@ window.abrirCreadorAvatar = async () => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                transition: 0.2s;
             }
             .avatar-preview-box img {
                 width: 100%;
                 height: 100%;
                 object-fit: contain;
             }
-            .avatar-control-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.75rem;
+            .avatar-control-group {
                 width: 100%;
                 background: var(--bg-app);
                 border: 1px solid var(--border);
                 border-radius: 1rem;
-                padding: 1rem;
-                max-height: 320px;
-                overflow-y: auto;
+                padding: 0.8rem 1rem;
+                margin-bottom: 0.5rem;
             }
             .avatar-control-row {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
+                margin-bottom: 0.5rem;
+            }
+            .avatar-control-row:last-child {
+                margin-bottom: 0;
             }
             .avatar-control-row span {
                 font-weight: 700;
-                font-size: 0.75rem;
+                font-size: 0.8rem;
                 color: var(--text-muted);
                 width: 100px;
             }
@@ -10910,11 +10742,12 @@ window.abrirCreadorAvatar = async () => {
                 background: var(--surface);
                 color: var(--text-main);
                 border: 1px solid var(--border);
-                width: 30px;
-                height: 30px;
+                width: 32px;
+                height: 32px;
                 border-radius: 8px;
                 cursor: pointer;
                 transition: 0.2s;
+                font-weight: bold;
             }
             .avatar-btn-nav:hover {
                 background: #C8972A;
@@ -10930,129 +10763,160 @@ window.abrirCreadorAvatar = async () => {
                 font-size: 0.7rem;
                 font-weight: bold;
                 cursor: pointer;
+                transition: 0.2s;
             }
             .avatar-random-btn:hover {
                 background: #059669;
-            }
-            @media (max-width: 600px) {
-                .avatar-control-grid { grid-template-columns: 1fr; }
-                .avatar-control-row span { width: 80px; }
-                .avatar-preview-box { width: 180px; height: 180px; }
+                transform: scale(1.02);
             }
         </style>
         <div class="avatar-studio">
-            <h2 style="font-weight: 900; margin:0;"><i class="fas fa-mask" style="color: #a855f7;"></i> Estudio G-AVATAR</h2>
-            <p style="color: var(--text-muted); font-size: 0.8rem;">Personaliza cada detalle (cuerpo completo incluido)</p>
+            <h2 style="font-weight: 900; color: var(--text-main); margin: 0;">
+                <i class="fas fa-mask" style="color: #a855f7;"></i> Estudio G-AVATAR
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0;">Personaliza tu personaje. ¡Aparecerá en tu perfil y en los rankings!</p>
             
             <div class="avatar-preview-box">
-                <img id="liveAvatarPreview" src="${previewDataURL}" alt="Avatar Preview">
+                <img id="liveAvatarPreview" src="" alt="Avatar Preview">
             </div>
             
             <div style="width: 100%; text-align: right;">
-                <button class="avatar-random-btn" onclick="randomizarAvatarCompletoLocal()">
+                <button class="avatar-random-btn" onclick="randomizarAvatarCompleto()">
                     <i class="fas fa-dice-d6"></i> Aleatorio
                 </button>
             </div>
             
-            <div class="avatar-control-grid">
-                <div class="avatar-control-row"><span>👱 Estilo pelo</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('hair', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('hair', 1)">▶</button></div></div>
-                <div class="avatar-control-row"><span>🎨 Color pelo</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('hairColor', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('hairColor', 1)">▶</button></div></div>
-                <div class="avatar-control-row"><span>🖐️ Tono piel</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('skin', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('skin', 1)">▶</button></div></div>
-                <div class="avatar-control-row"><span>👁️ Ojos</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('eyes', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('eyes', 1)">▶</button></div></div>
-                <div class="avatar-control-row"><span>👄 Boca</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('mouth', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('mouth', 1)">▶</button></div></div>
-                <div class="avatar-control-row"><span>🤨 Cejas</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('eyebrows', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('eyebrows', 1)">▶</button></div></div>
-                <div class="avatar-control-row"><span>👕 Color ropa</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('clothingColor', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('clothingColor', 1)">▶</button></div></div>
-                <div class="avatar-control-row"><span>🧢 Accesorio</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('accessory', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatarLocal('accessory', 1)">▶</button></div></div>
+            <div class="avatar-control-group">
+                <div class="avatar-control-row">
+                    <span><i class="fas fa-fingerprint"></i> Estilo pelo</span>
+                    <div>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hair', -1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hair', 1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="avatar-control-row">
+                    <span><i class="fas fa-palette"></i> Color pelo</span>
+                    <div>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hairColor', -1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hairColor', 1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="avatar-control-row">
+                    <span><i class="fas fa-hand-peace"></i> Tono piel</span>
+                    <div>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('skin', -1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('skin', 1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="avatar-control-row">
+                    <span><i class="fas fa-eye"></i> Ojos</span>
+                    <div>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('eyes', -1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('eyes', 1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="avatar-control-row">
+                    <span><i class="fas fa-smile"></i> Boca</span>
+                    <div>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('mouth', -1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('mouth', 1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="avatar-control-row">
+                    <span><i class="fas fa-fill-drip"></i> Fondo</span>
+                    <div>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('bg', -1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('bg', 1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
             </div>
             
-            <div style="display: flex; gap: 15px; width: 100%;">
-                <button onclick="guardarAvatarEnSupabaseLocal()" style="flex: 2; background: #C8972A; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer;">
+            <div style="display: flex; gap: 15px; width: 100%; margin-top: 10px;">
+                <button onclick="guardarAvatarEnSupabase()" style="flex: 2; background: #C8972A; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.2s;">
                     <i class="fas fa-save"></i> Guardar Avatar
                 </button>
-                <button onclick="closeModal()" style="flex: 1; background: var(--border); color: var(--text-main); border: none; padding: 12px; border-radius: 12px; cursor: pointer;">Cancelar</button>
+                <button onclick="closeModal()" style="flex: 1; background: var(--border); color: var(--text-main); border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
             </div>
         </div>
     `;
+    
     showModal(modalHtml);
-    // Ya tenemos la imagen en el preview
+    actualizarImagenAvatar();
 };
 
-// Funciones auxiliares
-async function actualizarVistaPreviaLocal() {
-    const dataURL = await generarAvatarDataURL(currentAvatarStateLocal);
-    const img = document.getElementById('liveAvatarPreview');
-    if (img) img.src = dataURL;
-}
-
-window.cambiarRasgoAvatarLocal = async (rasgo, direccion) => {
+// Cambiar un rasgo específico
+window.cambiarRasgoAvatar = (rasgo, direccion) => {
     let propIdx = rasgo + 'Idx';
     let optionsArray;
-    if (rasgo === 'hair') optionsArray = AVATAR_OPTIONS_LOCAL.hair;
-    else if (rasgo === 'hairColor') optionsArray = AVATAR_OPTIONS_LOCAL.hairColor;
-    else if (rasgo === 'skin') optionsArray = AVATAR_OPTIONS_LOCAL.skinColor;
-    else if (rasgo === 'eyes') optionsArray = AVATAR_OPTIONS_LOCAL.eyes;
-    else if (rasgo === 'mouth') optionsArray = AVATAR_OPTIONS_LOCAL.mouth;
-    else if (rasgo === 'eyebrows') optionsArray = AVATAR_OPTIONS_LOCAL.eyebrows;
-    else if (rasgo === 'clothingColor') optionsArray = AVATAR_OPTIONS_LOCAL.clothingColor;
-    else if (rasgo === 'accessory') optionsArray = AVATAR_OPTIONS_LOCAL.accessory;
+    if (rasgo === 'hair') optionsArray = AVATAR_OPTIONS.hair;
+    else if (rasgo === 'hairColor') optionsArray = AVATAR_OPTIONS.hairColor;
+    else if (rasgo === 'skin') optionsArray = AVATAR_OPTIONS.skinColor;
+    else if (rasgo === 'eyes') optionsArray = AVATAR_OPTIONS.eyes;
+    else if (rasgo === 'mouth') optionsArray = AVATAR_OPTIONS.mouth;
+    else if (rasgo === 'bg') optionsArray = AVATAR_OPTIONS.backgroundColor;
     else return;
     
-    currentAvatarStateLocal[propIdx] = (currentAvatarStateLocal[propIdx] + direccion + optionsArray.length) % optionsArray.length;
-    await actualizarVistaPreviaLocal();
+    currentAvatarState[propIdx] = (currentAvatarState[propIdx] + direccion + optionsArray.length) % optionsArray.length;
+    actualizarImagenAvatar();
 };
 
-window.randomizarAvatarCompletoLocal = async () => {
-    currentAvatarStateLocal.hairIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.hair.length);
-    currentAvatarStateLocal.hairColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.hairColor.length);
-    currentAvatarStateLocal.skinIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.skinColor.length);
-    currentAvatarStateLocal.eyesIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.eyes.length);
-    currentAvatarStateLocal.mouthIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.mouth.length);
-    currentAvatarStateLocal.eyebrowsIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.eyebrows.length);
-    currentAvatarStateLocal.clothingColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.clothingColor.length);
-    currentAvatarStateLocal.accessoryIdx = Math.floor(Math.random() * AVATAR_OPTIONS_LOCAL.accessory.length);
-    await actualizarVistaPreviaLocal();
+// Generar configuración completamente aleatoria
+window.randomizarAvatarCompleto = () => {
+    currentAvatarState.hairIdx = Math.floor(Math.random() * AVATAR_OPTIONS.hair.length);
+    currentAvatarState.hairColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.hairColor.length);
+    currentAvatarState.skinIdx = Math.floor(Math.random() * AVATAR_OPTIONS.skinColor.length);
+    currentAvatarState.eyesIdx = Math.floor(Math.random() * AVATAR_OPTIONS.eyes.length);
+    currentAvatarState.mouthIdx = Math.floor(Math.random() * AVATAR_OPTIONS.mouth.length);
+    currentAvatarState.bgIdx = Math.floor(Math.random() * AVATAR_OPTIONS.backgroundColor.length);
+    currentAvatarState.seed = generarSeedAleatoria();
+    actualizarImagenAvatar();
 };
 
-window.guardarAvatarEnSupabaseLocal = async () => {
-    const guardarBtn = document.activeElement;
+// Actualizar la imagen de vista previa
+window.actualizarImagenAvatar = () => {
+    const hair = AVATAR_OPTIONS.hair[currentAvatarState.hairIdx];
+    const hairColor = AVATAR_OPTIONS.hairColor[currentAvatarState.hairColorIdx];
+    const skinColor = AVATAR_OPTIONS.skinColor[currentAvatarState.skinIdx];
+    const eyes = AVATAR_OPTIONS.eyes[currentAvatarState.eyesIdx];
+    const mouth = AVATAR_OPTIONS.mouth[currentAvatarState.mouthIdx];
+    const bg = AVATAR_OPTIONS.backgroundColor[currentAvatarState.bgIdx];
+    const seed = currentAvatarState.seed;
+    
+    const url = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&hair=${hair}&hairColor=${hairColor}&skinColor=${skinColor}&eyes=${eyes}&mouth=${mouth}&backgroundColor=${bg}`;
+    
+    const imgElement = document.getElementById('liveAvatarPreview');
+    if (imgElement) imgElement.src = url;
+};
+
+// Guardar el avatar en Supabase (campo avatar_url)
+window.guardarAvatarEnSupabase = async () => {
+    const avatarUrl = document.getElementById('liveAvatarPreview').src;
+    const guardarBtn = document.activeElement; // el botón que llamó
     const originalText = guardarBtn.innerHTML;
-    guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando imagen...';
+    guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
     guardarBtn.disabled = true;
     
     try {
-        // Generar dataURL del avatar actual
-        const dataURL = await generarAvatarDataURL(currentAvatarStateLocal);
-        // Convertir dataURL a Blob y subir a Supabase
-        const blob = dataURLToBlob(dataURL);
-        const fileName = `avatar_${currentUser.id}_${Date.now()}.png`;
-        const { error: uploadError } = await supabaseClient.storage
-            .from('avatars')
-            .upload(fileName, blob);
-        if (uploadError) throw uploadError;
-        
-        const { data: urlData } = supabaseClient.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
-        const publicUrl = urlData.publicUrl;
-        
-        // Guardar URL en perfil
-        const { error: updateError } = await supabaseClient
+        const { error } = await supabaseClient
             .from('perfiles')
-            .update({ avatar_url: publicUrl })
+            .update({ avatar_url: avatarUrl })
             .eq('id', currentUser.id);
-        if (updateError) throw updateError;
         
-        if (currentProfile) currentProfile.avatar_url = publicUrl;
-        await loadProfile();
-        showToast("✅ Avatar guardado permanentemente", "success");
+        if (error) throw error;
         
-        if (typeof confetti === 'function') {
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#C8972A', '#10b981', '#a855f7'] });
-        }
-        
+        // Actualizar variable global y recargar perfil
+        if (currentProfile) currentProfile.avatar_url = avatarUrl;
+        await loadProfile();  // recargar perfil para tener datos frescos
+        showToast("✅ Avatar guardado con éxito", "success");
         closeModal();
+        
+        // Refrescar las vistas donde se muestre el avatar
         if (currentTab === 'profile') renderUserProfile();
         else if (currentTab === 'home') renderHome();
+        
+        // También actualizar el header si muestras avatar allí (lo haremos después)
         actualizarAvatarEnHeader();
         
     } catch (error) {
@@ -11064,21 +10928,7 @@ window.guardarAvatarEnSupabaseLocal = async () => {
     }
 };
 
-// Asegurar que dataURLtoBlob esté definida (ya existe en tu código, pero por si acaso)
-if (typeof dataURLtoBlob !== 'function') {
-    window.dataURLtoBlob = function(dataURL) {
-        const arr = dataURL.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) u8arr[n] = bstr.charCodeAt(n);
-        return new Blob([u8arr], { type: mime });
-    };
-}
-
-// Mantener actualizarAvatarEnHeader y getAvatarUrl (ya existen)
-    // Función para actualizar el avatar en el header
+// Función para actualizar el avatar en el header (opcional)
 function actualizarAvatarEnHeader() {
     const avatarContainer = document.querySelector('.user-info .avatar-display');
     if (avatarContainer && currentProfile?.avatar_url) {
@@ -11086,7 +10936,7 @@ function actualizarAvatarEnHeader() {
     }
 }
 
-// Función para obtener la mejor URL de avatar
+// Función para obtener la mejor URL de avatar (avatar personalizado > foto real > default)
 function getAvatarUrl(profile) {
     if (profile?.avatar_url) return profile.avatar_url;
     if (profile?.foto_url) return profile.foto_url;
