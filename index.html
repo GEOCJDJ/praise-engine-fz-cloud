@@ -2291,9 +2291,9 @@ console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentU
 
 // ========== VISTA HOME ==========
 async function renderHome() {
-    const esAdminGeneral = window.isAdminUser === true || window.isIglesiaAdmin === true || (window.currentProfile && window.currentProfile.rol === 'admin');
-const esAdminAlabanza = window.isEquipoAdmin && window.equipoAdminData?.nombre === 'Alabanza';
-const esAdminDanza = window.isEquipoAdmin && window.equipoAdminData?.nombre === 'Danza';
+ const esAdminGeneral = isAdminUser === true || isIglesiaAdmin === true || (currentProfile && currentProfile.rol === 'admin');
+const esAdminAlabanza = isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza';
+const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
     const miembroId = miembro?.id;
     let proximosTurnos = [];
