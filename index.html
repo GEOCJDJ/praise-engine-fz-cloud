@@ -2313,7 +2313,7 @@ const esAdminDanza = window.isEquipoAdmin && window.equipoAdminData?.nombre === 
     
     <div class="card" style="background:linear-gradient(135deg,#10B981,#34D399);color:white;"><h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : `<ul>${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`}</div>
    
-   div class="card quick-access-card" onclick="window.abrirDashboardEvaluaciones()" style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: white; border: none;">
+   <div class="card quick-access-card" onclick="window.abrirDashboardEvaluaciones()" style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: white; border: none;">
     <i class="fas fa-chart-line" style="color: white;"></i>
     <h3 style="color: white;">Evaluaciones G‑SUITE</h3>
     <p style="color: rgba(255,255,255,0.9);">Ver rendimiento de Alabanza y Danza</p>
