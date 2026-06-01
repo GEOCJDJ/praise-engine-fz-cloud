@@ -901,18 +901,17 @@ body.dark { --border-color: #334155; }
 }
 
         /* Avatar de cuerpo entero (estilo Free Fire / cuerpo completo) */
-.profile-avatar-fullbody {
-    width: 100%;
-    max-width: 160px;
-    height: 220px;          /* suficiente para cabeza + torso */
-    border-radius: 1rem;    /* esquinas suaves, pero no círculo */
-    border: 3px solid var(--primary);
-    object-fit: contain;    /* ¡clave! no recorta, muestra todo */
+
+        .profile-avatar-fullbody {
+    width: 120px;
+    height: 160px;
+    border-radius: 1rem;
+    border: 3px solid white;
+    object-fit: contain;
     background: var(--bg-app);
-    display: block;
-    margin: 0 auto 1rem;
-    box-shadow: var(--shadow);
+    margin: 0 auto;
 }
+        
 
 /* Versión pequeña para el header */
 .avatar-header {
@@ -5957,7 +5956,7 @@ async function verDetalleExamen(examenId) {
 }
 // ========== PERFIL DE USUARIO ==========
 let progressChart = null;
-    
+
 async function renderUserProfile() {
     // Función para obtener el user_id de forma fiable
     async function obtenerUserId() {
@@ -6028,22 +6027,22 @@ async function renderUserProfile() {
         .single();
     const rachaActual = progreso?.racha || 0;
 
-    // ========== NUEVO: Obtener avatar personalizado (avatar_url > foto_url > default) ==========
-    const avatarImgUrl = getAvatarUrl(currentProfile);
+    // ========== OBTENER AVATAR ==========
+    const avatarImgUrl = getAvatarUrl(currentProfile);  // debe retornar URL válida o null
     const iniciales = (currentProfile?.nombre || currentUser?.email || 'U').charAt(0).toUpperCase();
 
     let html = `
     <div class="profile-modern-card" style="max-width: 1000px; margin: 0 auto;">
-const avatarImgUrl = getAvatarUrl(currentProfile);
-<div style="position: relative;">
-    ${avatarImgUrl ? 
-        `<img src="${avatarImgUrl}" class="profile-avatar-fullbody" alt="Avatar">` :
-        `<div class="profile-avatar-fullbody" style="background: white; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2rem;">${iniciales}</div>`
-    }
-    <button onclick="abrirCreadorAvatar()" style="position: absolute; bottom: 0; right: 0; background: #C8972A; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-        <i class="fas fa-mask" style="color: white;"></i>
-    </button>
-</div>
+        <div class="profile-header-gradient">
+            <div style="display: flex; flex-direction: row; align-items: center; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
+                <div style="position: relative;">
+                    ${avatarImgUrl ? 
+                        `<img src="${avatarImgUrl}" class="profile-avatar-fullbody" alt="Avatar" style="width: 120px; height: 160px; object-fit: contain; border-radius: 1rem; border: 3px solid white;">` :
+                        `<div class="profile-avatar-fullbody" style="background: white; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; width: 120px; height: 160px; border-radius: 1rem;">${iniciales}</div>`
+                    }
+                    <button onclick="abrirCreadorAvatar()" style="position: absolute; bottom: 5px; right: 5px; background: #C8972A; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                        <i class="fas fa-mask" style="color: white;"></i>
+                    </button>
                 </div>
                 <div style="text-align: center;">
                     <h2 style="margin: 0; font-size: 1.6rem;">${escapeHtml(currentProfile?.nombre || currentUser?.email || 'Usuario')}</h2>
@@ -6087,7 +6086,6 @@ const avatarImgUrl = getAvatarUrl(currentProfile);
                 <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
                     <button class="btn-modern btn-modern-primary" onclick="editUserProfile()"><i class="fas fa-edit"></i> Editar perfil</button>
                     <button class="btn-modern btn-modern-amber" onclick="mostrarLogrosEnPanel()"><i class="fas fa-trophy"></i> Ver logros</button>
-                    <!-- NUEVO BOTÓN: Crear mi Avatar -->
                     <button class="btn-modern" style="background: #a855f7; color: white; border: none;" onclick="abrirCreadorAvatar()">
                         <i class="fas fa-mask"></i> Crear mi Avatar
                     </button>
@@ -6128,6 +6126,8 @@ const avatarImgUrl = getAvatarUrl(currentProfile);
         }
     }
 }
+
+
     
     function editUserProfile() {
     const fotoActual = currentProfile.foto_url || '';
