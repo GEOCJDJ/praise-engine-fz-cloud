@@ -13,6 +13,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     <style>
         /* ===== ESTILOS GLOBALES (igual que antes, conservando el footer) ===== */
         :root { --primary: #1E3A8A; --primary-light: #3B82F6; --primary-rgb: 30,58,138; --bg-app: #F8FAFC; --surface: #FFFFFF; --text-main: #1E293B; --text-muted: #64748B; --border: #E2E8F0; --shadow: 0 10px 25px rgba(0,0,0,0.08); --radius-lg: 1.5rem; --radius-sm: 1rem; }
@@ -2143,8 +2144,16 @@ function renderApp() {
     <span>NOTIF.</span>
 </div>
     
-    <div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
-    
+    <div class="user-info">
+    <span class="avatar-display" style="display: inline-flex; align-items: center; margin-right: 5px;">
+        ${currentProfile?.avatar_url ? 
+            `<img src="${currentProfile.avatar_url}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid #C8972A;">` :
+            (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">` : `<i class="fas fa-user-circle"></i>`)
+        }
+    </span>
+    ${escapeHtml(currentProfile?.nombre || currentUser.email)} 
+    <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+</div>
     
     <div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div>
 </div>
@@ -10607,21 +10616,80 @@ window.verDetalleMiembro = async (userId) => {
     }
 };
 
-    // ==========================================================
+   // ==========================================================
 // MÓDULO G-AVATAR: CREADOR DE PERSONAJES PREMIUM (DiceBear)
+// Versión 2.0 - Más opciones y confeti
 // ==========================================================
 
-// Opciones de personalización (puedes ampliarlas después)
 const AVATAR_OPTIONS = {
-    hair: ['short01', 'short02', 'short03', 'short04', 'short05', 'long01', 'long02', 'long03', 'long04', 'long05', 'long19', 'bob', 'pixie', 'dreads', 'frida'],
-    hairColor: ['000000', '4a3123', 'f59e0b', 'ef4444', '3b82f6', '10b981', 'a855f7', 'e2e8f0', '8b5cf6', 'ec4899'],
-    skinColor: ['f8d2b9', 'e2a37f', '94603b', '5c3a21', 'ffb6c1', 'd5a98f', '8d5524', 'c68642'],
-    eyes: ['variant02', 'variant03', 'variant04', 'variant05', 'variant06', 'variant08', 'variant09', 'variant10'],
-    mouth: ['variant02', 'variant03', 'variant04', 'variant08', 'variant09', 'variant10', 'variant11'],
-    backgroundColor: ['b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', '1e293b', '0f172a', '2d2d2d', '10b981', '3b82f6']
+    // Peinados (ampliados)
+    hair: [
+        'short01', 'short02', 'short03', 'short04', 'short05', 
+        'long01', 'long02', 'long03', 'long04', 'long05', 'long19',
+        'bob', 'pixie', 'dreads', 'frida', 'curly', 'straight01', 'straight02',
+        'mohawk', 'ponytail', 'wavy', 'updo', 'bun', 'halfshaved'
+    ],
+    // Colores de pelo
+    hairColor: [
+        '000000', '4a3123', 'f59e0b', 'ef4444', '3b82f6', '10b981', 
+        'a855f7', 'e2e8f0', '8b5cf6', 'ec4899', 'f97316', 'd946ef', '14b8a6'
+    ],
+    // Tonos de piel
+    skinColor: [
+        'f8d2b9', 'e2a37f', '94603b', '5c3a21', 'ffb6c1', 'd5a98f', 
+        '8d5524', 'c68642', 'f1c27d', 'e0ac69', 'c5834e'
+    ],
+    // Ojos
+    eyes: [
+        'variant02', 'variant03', 'variant04', 'variant05', 'variant06', 
+        'variant08', 'variant09', 'variant10', 'variant11', 'variant12'
+    ],
+    // Boca
+    mouth: [
+        'variant02', 'variant03', 'variant04', 'variant08', 'variant09', 
+        'variant10', 'variant11', 'variant12', 'variant13', 'variant14'
+    ],
+    // Cejas (nuevo)
+    eyebrows: [
+        'variant01', 'variant02', 'variant03', 'variant04', 'variant05',
+        'variant06', 'variant07', 'variant08', 'variant09', 'variant10'
+    ],
+    // Barba / vello facial (nuevo)
+    facialHair: [
+        'none', 'beard', 'beardLight', 'beardMajestic', 'beardMedium', 
+        'goatee', 'mustache', 'scruff', 'stubble'
+    ],
+    // Color de barba (usa los mismos colores de pelo)
+    facialHairColor: [
+        '000000', '4a3123', 'f59e0b', 'ef4444', '3b82f6', '10b981', 
+        'a855f7', 'e2e8f0', '8b5cf6', 'ec4899', 'f97316'
+    ],
+    // Accesorios (gafas, etc.) - nuevo
+    accessories: [
+        'none', 'glasses', 'glasses01', 'glasses02', 'glasses03', 
+        'glasses04', 'glasses05', 'sunglasses', 'sunglasses01'
+    ],
+    // Color de accesorios (opcional)
+    accessoriesColor: ['3b82f6', 'ef4444', '10b981', 'f59e0b', 'a855f7', '1e293b'],
+    // Ropa (nuevo)
+    clothing: [
+        'blazer', 'blazerAndSweater', 'collar', 'crewneck', 'hoodie', 
+        'hoodie01', 'jumper', 'oversized', 'polo', 'shirt', 'shirt01', 
+        'sweater', 'tshirt', 'vneck', 'vneck01'
+    ],
+    // Color de ropa
+    clothingColor: [
+        '3b82f6', 'ef4444', '10b981', 'f59e0b', 'a855f7', '1e293b', 
+        '475569', 'dc2626', '059669', 'd97706', '7c3aed'
+    ],
+    // Fondo
+    backgroundColor: [
+        'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', '1e293b', 
+        '0f172a', '2d2d2d', '10b981', '3b82f6', 'f43f5e', '8b5cf6'
+    ]
 };
 
-// Estado actual del avatar (se reinicia al abrir el creador)
+// Estado actual del avatar (incluye nuevas categorías)
 let currentAvatarState = {
     seed: '',
     hairIdx: 0,
@@ -10629,32 +10697,39 @@ let currentAvatarState = {
     skinIdx: 0,
     eyesIdx: 0,
     mouthIdx: 0,
+    eyebrowsIdx: 0,
+    facialHairIdx: 0,
+    facialHairColorIdx: 0,
+    accessoriesIdx: 0,
+    accessoriesColorIdx: 0,
+    clothingIdx: 0,
+    clothingColorIdx: 0,
     bgIdx: 0
 };
 
-// Función para generar una seed aleatoria (8 caracteres)
+// Función para generar una seed aleatoria
 function generarSeedAleatoria() {
     return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
 }
 
 // Abrir el creador de avatares (modal premium)
 window.abrirCreadorAvatar = async () => {
-    // Cargar avatar actual si existe (para previsualizar)
-    if (currentProfile?.avatar_url) {
-        // Opcional: intentar extraer los parámetros de la URL (avanzado, no necesario)
-        // Por simplicidad, empezamos con valores aleatorios atractivos
-    }
-    
-    // Generar seed única y valores iniciales aleatorios (variedad)
+    // Generar semilla y valores aleatorios iniciales
     currentAvatarState.seed = generarSeedAleatoria();
     currentAvatarState.hairIdx = Math.floor(Math.random() * AVATAR_OPTIONS.hair.length);
     currentAvatarState.hairColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.hairColor.length);
     currentAvatarState.skinIdx = Math.floor(Math.random() * AVATAR_OPTIONS.skinColor.length);
     currentAvatarState.eyesIdx = Math.floor(Math.random() * AVATAR_OPTIONS.eyes.length);
     currentAvatarState.mouthIdx = Math.floor(Math.random() * AVATAR_OPTIONS.mouth.length);
+    currentAvatarState.eyebrowsIdx = Math.floor(Math.random() * AVATAR_OPTIONS.eyebrows.length);
+    currentAvatarState.facialHairIdx = Math.floor(Math.random() * AVATAR_OPTIONS.facialHair.length);
+    currentAvatarState.facialHairColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.facialHairColor.length);
+    currentAvatarState.accessoriesIdx = Math.floor(Math.random() * AVATAR_OPTIONS.accessories.length);
+    currentAvatarState.accessoriesColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.accessoriesColor.length);
+    currentAvatarState.clothingIdx = Math.floor(Math.random() * AVATAR_OPTIONS.clothing.length);
+    currentAvatarState.clothingColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.clothingColor.length);
     currentAvatarState.bgIdx = Math.floor(Math.random() * AVATAR_OPTIONS.backgroundColor.length);
     
-    // Construir el HTML del modal
     const modalHtml = `
         <style>
             .avatar-studio {
@@ -10662,7 +10737,7 @@ window.abrirCreadorAvatar = async () => {
                 flex-direction: column;
                 align-items: center;
                 gap: 20px;
-                max-width: 500px;
+                max-width: 700px;
                 margin: 0 auto;
             }
             .avatar-preview-box {
@@ -10676,33 +10751,30 @@ window.abrirCreadorAvatar = async () => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                transition: 0.2s;
             }
             .avatar-preview-box img {
                 width: 100%;
                 height: 100%;
                 object-fit: contain;
             }
-            .avatar-control-group {
+            .avatar-control-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
                 width: 100%;
                 background: var(--bg-app);
                 border: 1px solid var(--border);
                 border-radius: 1rem;
-                padding: 0.8rem 1rem;
-                margin-bottom: 0.5rem;
+                padding: 1rem;
             }
             .avatar-control-row {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-bottom: 0.5rem;
-            }
-            .avatar-control-row:last-child {
-                margin-bottom: 0;
             }
             .avatar-control-row span {
                 font-weight: 700;
-                font-size: 0.8rem;
+                font-size: 0.75rem;
                 color: var(--text-muted);
                 width: 100px;
             }
@@ -10710,12 +10782,11 @@ window.abrirCreadorAvatar = async () => {
                 background: var(--surface);
                 color: var(--text-main);
                 border: 1px solid var(--border);
-                width: 32px;
-                height: 32px;
+                width: 30px;
+                height: 30px;
                 border-radius: 8px;
                 cursor: pointer;
                 transition: 0.2s;
-                font-weight: bold;
             }
             .avatar-btn-nav:hover {
                 background: #C8972A;
@@ -10731,18 +10802,18 @@ window.abrirCreadorAvatar = async () => {
                 font-size: 0.7rem;
                 font-weight: bold;
                 cursor: pointer;
-                transition: 0.2s;
             }
             .avatar-random-btn:hover {
                 background: #059669;
-                transform: scale(1.02);
+            }
+            @media (max-width: 600px) {
+                .avatar-control-grid { grid-template-columns: 1fr; }
+                .avatar-control-row span { width: 80px; }
             }
         </style>
         <div class="avatar-studio">
-            <h2 style="font-weight: 900; color: var(--text-main); margin: 0;">
-                <i class="fas fa-mask" style="color: #a855f7;"></i> Estudio G-AVATAR
-            </h2>
-            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0;">Personaliza tu personaje. ¡Aparecerá en tu perfil y en los rankings!</p>
+            <h2 style="font-weight: 900;"><i class="fas fa-mask" style="color: #a855f7;"></i> Estudio G-AVATAR</h2>
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Personaliza cada detalle de tu personaje</p>
             
             <div class="avatar-preview-box">
                 <img id="liveAvatarPreview" src="" alt="Avatar Preview">
@@ -10754,67 +10825,35 @@ window.abrirCreadorAvatar = async () => {
                 </button>
             </div>
             
-            <div class="avatar-control-group">
-                <div class="avatar-control-row">
-                    <span><i class="fas fa-fingerprint"></i> Estilo pelo</span>
-                    <div>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hair', -1)"><i class="fas fa-chevron-left"></i></button>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hair', 1)"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                </div>
-                <div class="avatar-control-row">
-                    <span><i class="fas fa-palette"></i> Color pelo</span>
-                    <div>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hairColor', -1)"><i class="fas fa-chevron-left"></i></button>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hairColor', 1)"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                </div>
-                <div class="avatar-control-row">
-                    <span><i class="fas fa-hand-peace"></i> Tono piel</span>
-                    <div>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('skin', -1)"><i class="fas fa-chevron-left"></i></button>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('skin', 1)"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                </div>
-                <div class="avatar-control-row">
-                    <span><i class="fas fa-eye"></i> Ojos</span>
-                    <div>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('eyes', -1)"><i class="fas fa-chevron-left"></i></button>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('eyes', 1)"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                </div>
-                <div class="avatar-control-row">
-                    <span><i class="fas fa-smile"></i> Boca</span>
-                    <div>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('mouth', -1)"><i class="fas fa-chevron-left"></i></button>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('mouth', 1)"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                </div>
-                <div class="avatar-control-row">
-                    <span><i class="fas fa-fill-drip"></i> Fondo</span>
-                    <div>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('bg', -1)"><i class="fas fa-chevron-left"></i></button>
-                        <button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('bg', 1)"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                </div>
+            <div class="avatar-control-grid">
+                <div class="avatar-control-row"><span>👱 Estilo pelo</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hair', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hair', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>🎨 Color pelo</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hairColor', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('hairColor', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>🖐️ Tono piel</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('skin', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('skin', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>👁️ Ojos</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('eyes', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('eyes', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>👄 Boca</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('mouth', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('mouth', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>🤨 Cejas</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('eyebrows', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('eyebrows', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>🧔 Barba</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('facialHair', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('facialHair', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>🎨 Color barba</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('facialHairColor', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('facialHairColor', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>👓 Accesorios</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('accessories', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('accessories', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>🎨 Color acc.</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('accessoriesColor', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('accessoriesColor', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>👕 Ropa</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('clothing', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('clothing', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>🎨 Color ropa</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('clothingColor', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('clothingColor', 1)">▶</button></div></div>
+                <div class="avatar-control-row"><span>🖼️ Fondo</span><div><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('bg', -1)">◀</button><button class="avatar-btn-nav" onclick="cambiarRasgoAvatar('bg', 1)">▶</button></div></div>
             </div>
             
-            <div style="display: flex; gap: 15px; width: 100%; margin-top: 10px;">
-                <button onclick="guardarAvatarEnSupabase()" style="flex: 2; background: #C8972A; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.2s;">
+            <div style="display: flex; gap: 15px; width: 100%;">
+                <button onclick="guardarAvatarEnSupabase()" style="flex: 2; background: #C8972A; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer;">
                     <i class="fas fa-save"></i> Guardar Avatar
                 </button>
-                <button onclick="closeModal()" style="flex: 1; background: var(--border); color: var(--text-main); border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">
-                    Cancelar
-                </button>
+                <button onclick="closeModal()" style="flex: 1; background: var(--border); color: var(--text-main); border: none; padding: 12px; border-radius: 12px; cursor: pointer;">Cancelar</button>
             </div>
         </div>
     `;
-    
     showModal(modalHtml);
     actualizarImagenAvatar();
 };
 
-// Cambiar un rasgo específico
+// Cambiar un rasgo específico (ahora con más categorías)
 window.cambiarRasgoAvatar = (rasgo, direccion) => {
     let propIdx = rasgo + 'Idx';
     let optionsArray;
@@ -10823,6 +10862,13 @@ window.cambiarRasgoAvatar = (rasgo, direccion) => {
     else if (rasgo === 'skin') optionsArray = AVATAR_OPTIONS.skinColor;
     else if (rasgo === 'eyes') optionsArray = AVATAR_OPTIONS.eyes;
     else if (rasgo === 'mouth') optionsArray = AVATAR_OPTIONS.mouth;
+    else if (rasgo === 'eyebrows') optionsArray = AVATAR_OPTIONS.eyebrows;
+    else if (rasgo === 'facialHair') optionsArray = AVATAR_OPTIONS.facialHair;
+    else if (rasgo === 'facialHairColor') optionsArray = AVATAR_OPTIONS.facialHairColor;
+    else if (rasgo === 'accessories') optionsArray = AVATAR_OPTIONS.accessories;
+    else if (rasgo === 'accessoriesColor') optionsArray = AVATAR_OPTIONS.accessoriesColor;
+    else if (rasgo === 'clothing') optionsArray = AVATAR_OPTIONS.clothing;
+    else if (rasgo === 'clothingColor') optionsArray = AVATAR_OPTIONS.clothingColor;
     else if (rasgo === 'bg') optionsArray = AVATAR_OPTIONS.backgroundColor;
     else return;
     
@@ -10830,38 +10876,52 @@ window.cambiarRasgoAvatar = (rasgo, direccion) => {
     actualizarImagenAvatar();
 };
 
-// Generar configuración completamente aleatoria
+// Aleatorio completo (incluye todos los nuevos campos)
 window.randomizarAvatarCompleto = () => {
     currentAvatarState.hairIdx = Math.floor(Math.random() * AVATAR_OPTIONS.hair.length);
     currentAvatarState.hairColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.hairColor.length);
     currentAvatarState.skinIdx = Math.floor(Math.random() * AVATAR_OPTIONS.skinColor.length);
     currentAvatarState.eyesIdx = Math.floor(Math.random() * AVATAR_OPTIONS.eyes.length);
     currentAvatarState.mouthIdx = Math.floor(Math.random() * AVATAR_OPTIONS.mouth.length);
+    currentAvatarState.eyebrowsIdx = Math.floor(Math.random() * AVATAR_OPTIONS.eyebrows.length);
+    currentAvatarState.facialHairIdx = Math.floor(Math.random() * AVATAR_OPTIONS.facialHair.length);
+    currentAvatarState.facialHairColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.facialHairColor.length);
+    currentAvatarState.accessoriesIdx = Math.floor(Math.random() * AVATAR_OPTIONS.accessories.length);
+    currentAvatarState.accessoriesColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.accessoriesColor.length);
+    currentAvatarState.clothingIdx = Math.floor(Math.random() * AVATAR_OPTIONS.clothing.length);
+    currentAvatarState.clothingColorIdx = Math.floor(Math.random() * AVATAR_OPTIONS.clothingColor.length);
     currentAvatarState.bgIdx = Math.floor(Math.random() * AVATAR_OPTIONS.backgroundColor.length);
     currentAvatarState.seed = generarSeedAleatoria();
     actualizarImagenAvatar();
 };
 
-// Actualizar la imagen de vista previa
+// Actualizar la imagen de vista previa (incluye nuevos parámetros)
 window.actualizarImagenAvatar = () => {
     const hair = AVATAR_OPTIONS.hair[currentAvatarState.hairIdx];
     const hairColor = AVATAR_OPTIONS.hairColor[currentAvatarState.hairColorIdx];
     const skinColor = AVATAR_OPTIONS.skinColor[currentAvatarState.skinIdx];
     const eyes = AVATAR_OPTIONS.eyes[currentAvatarState.eyesIdx];
     const mouth = AVATAR_OPTIONS.mouth[currentAvatarState.mouthIdx];
+    const eyebrows = AVATAR_OPTIONS.eyebrows[currentAvatarState.eyebrowsIdx];
+    const facialHair = AVATAR_OPTIONS.facialHair[currentAvatarState.facialHairIdx];
+    const facialHairColor = AVATAR_OPTIONS.facialHairColor[currentAvatarState.facialHairColorIdx];
+    const accessories = AVATAR_OPTIONS.accessories[currentAvatarState.accessoriesIdx];
+    const accessoriesColor = AVATAR_OPTIONS.accessoriesColor[currentAvatarState.accessoriesColorIdx];
+    const clothing = AVATAR_OPTIONS.clothing[currentAvatarState.clothingIdx];
+    const clothingColor = AVATAR_OPTIONS.clothingColor[currentAvatarState.clothingColorIdx];
     const bg = AVATAR_OPTIONS.backgroundColor[currentAvatarState.bgIdx];
     const seed = currentAvatarState.seed;
     
-    const url = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&hair=${hair}&hairColor=${hairColor}&skinColor=${skinColor}&eyes=${eyes}&mouth=${mouth}&backgroundColor=${bg}`;
+    const url = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&hair=${hair}&hairColor=${hairColor}&skinColor=${skinColor}&eyes=${eyes}&mouth=${mouth}&eyebrows=${eyebrows}&facialHair=${facialHair}&facialHairColor=${facialHairColor}&accessories=${accessories}&accessoriesColor=${accessoriesColor}&clothing=${clothing}&clothingColor=${clothingColor}&backgroundColor=${bg}`;
     
     const imgElement = document.getElementById('liveAvatarPreview');
     if (imgElement) imgElement.src = url;
 };
 
-// Guardar el avatar en Supabase (campo avatar_url)
+// Guardar el avatar en Supabase (con confeti)
 window.guardarAvatarEnSupabase = async () => {
     const avatarUrl = document.getElementById('liveAvatarPreview').src;
-    const guardarBtn = document.activeElement; // el botón que llamó
+    const guardarBtn = document.activeElement;
     const originalText = guardarBtn.innerHTML;
     guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
     guardarBtn.disabled = true;
@@ -10874,17 +10934,27 @@ window.guardarAvatarEnSupabase = async () => {
         
         if (error) throw error;
         
-        // Actualizar variable global y recargar perfil
         if (currentProfile) currentProfile.avatar_url = avatarUrl;
-        await loadProfile();  // recargar perfil para tener datos frescos
+        await loadProfile();
         showToast("✅ Avatar guardado con éxito", "success");
-        closeModal();
         
-        // Refrescar las vistas donde se muestre el avatar
+        // 🔥 CONFETI 🔥
+        if (typeof confetti === 'function') {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#C8972A', '#10b981', '#a855f7'] });
+        } else {
+            console.warn("Confetti no disponible, instalando...");
+            // Cargar canvas-confetti dinámicamente si no existe
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1';
+            script.onload = () => {
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#C8972A', '#10b981', '#a855f7'] });
+            };
+            document.head.appendChild(script);
+        }
+        
+        closeModal();
         if (currentTab === 'profile') renderUserProfile();
         else if (currentTab === 'home') renderHome();
-        
-        // También actualizar el header si muestras avatar allí (lo haremos después)
         actualizarAvatarEnHeader();
         
     } catch (error) {
@@ -10896,7 +10966,7 @@ window.guardarAvatarEnSupabase = async () => {
     }
 };
 
-// Función para actualizar el avatar en el header (opcional)
+// Función para actualizar el avatar en el header
 function actualizarAvatarEnHeader() {
     const avatarContainer = document.querySelector('.user-info .avatar-display');
     if (avatarContainer && currentProfile?.avatar_url) {
@@ -10904,7 +10974,7 @@ function actualizarAvatarEnHeader() {
     }
 }
 
-// Función para obtener la mejor URL de avatar (avatar personalizado > foto real > default)
+// Función para obtener la mejor URL de avatar
 function getAvatarUrl(profile) {
     if (profile?.avatar_url) return profile.avatar_url;
     if (profile?.foto_url) return profile.foto_url;
