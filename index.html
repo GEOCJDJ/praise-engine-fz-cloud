@@ -9431,6 +9431,7 @@ function soltarFormacion() {
             const pctY = (el.offsetTop / stageRect.height) * 100;
             currentFormationState[activeDragIndex].x = Math.min(100, Math.max(0, pctX));
             currentFormationState[activeDragIndex].y = Math.min(100, Math.max(0, pctY));
+            console.log(`Posición actualizada: ${currentFormationState[activeDragIndex].init} -> (${pctX.toFixed(1)}%, ${pctY.toFixed(1)}%)`);
         }
     }
     activeDragIndex = -1;
@@ -9440,33 +9441,67 @@ function soltarFormacion() {
     document.removeEventListener('touchend', soltarFormacion);
 }
 
-// Guardar en Supabase
 window.guardarFormaciones = async () => {
     const btn = document.getElementById('btnGuardarFormaciones');
-    if (!btn) return;
+    if (!btn) {
+        console.error("❌ Botón guardar no encontrado en el DOM");
+        showToast("Error interno: botón no encontrado", "error");
+        return;
+    }
+    
+    if (!currentFormationEventId) {
+        console.error("❌ currentFormationEventId es nulo");
+        showToast("No se ha seleccionado un evento válido", "error");
+        return;
+    }
+    
     const textoOriginal = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
     btn.disabled = true;
 
-    const payload = currentFormationState;
-    const { error } = await supabaseClient
-        .from('cronograma_eventos')
-        .update({ formaciones: payload })
-        .eq('id', currentFormationEventId);
-
-    if (error) {
-        showToast('Error al guardar la formación: ' + error.message, 'error');
+    // Asegurar que los datos sean un array plano (sin referencias circulares)
+    const payload = currentFormationState.map(c => ({
+        init: c.init,
+        color: c.color,
+        x: c.x,
+        y: c.y
+    }));
+    
+    console.log("📦 Guardando formaciones para evento:", currentFormationEventId);
+    console.log("Payload:", payload);
+    
+    try {
+        const { error } = await supabaseClient
+            .from('cronograma_eventos')
+            .update({ formaciones: payload })
+            .eq('id', currentFormationEventId);
+        
+        if (error) {
+            console.error("❌ Error de Supabase:", error);
+            showToast("Error al guardar: " + error.message, "error");
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+            return;
+        }
+        
+        // Actualizar en plannerEventos local
+        const evento = plannerEventos.find(e => e.id === currentFormationEventId);
+        if (evento) evento.formaciones = payload;
+        
+        showToast("✅ Formación guardada con éxito", "success");
+        closeModal();
+        
+        // Opcional: refrescar la vista del planner para mostrar la formación guardada
+        if (typeof mostrarInterfazPlanner === 'function') {
+            mostrarInterfazPlanner();
+        }
+        
+    } catch (err) {
+        console.error("❌ Excepción al guardar:", err);
+        showToast("Error inesperado: " + err.message, "error");
         btn.innerHTML = textoOriginal;
         btn.disabled = false;
-        return;
     }
-
-    // Actualizar en plannerEventos local
-    const evento = plannerEventos.find(e => e.id === currentFormationEventId);
-    if (evento) evento.formaciones = payload;
-
-    showToast('Formación guardada con éxito', 'success');
-    closeModal();
 };
 
     // Cargar notificaciones no leídas
