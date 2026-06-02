@@ -2565,16 +2565,16 @@ async function renderSongsGrid() {
                     <button class="btn btn-ghost" onclick="viewChords('${s.id}')"><i class="fas fa-file-pdf"></i> Acordes</button>
                     <button class="btn btn-ghost" onclick="openLyricsEditor('${s.id}')"><i class="fas fa-music"></i> Letra/Acordes</button>
                     ${(isAdminUser || isIglesiaAdmin) ? `<button class="btn btn-danger" onclick="deleteSongConfirm('${s.id}')">Eliminar</button>` : ''}
-                    // Al final del gridHtml, antes de cerrar </div>
-if (!currentSearchQuery && songs.length < totalSongsCount) {
-    gridHtml += `<div class="text-center p-4">
-        <button class="btn btn-primary" onclick="loadMoreSongs()" id="loadMoreBtn">📥 Cargar más canciones (${songs.length}/${totalSongsCount})</button>
-    </div>`;
-}
+
                 </div>
             </div>
         `;
     }
+    if (!currentSearchQuery && songs.length < totalSongsCount) {
+    gridHtml += `<div class="text-center p-4">
+        <button class="btn btn-primary" onclick="loadMoreSongs()" id="loadMoreBtn">📥 Cargar más canciones (${songs.length}/${totalSongsCount})</button>
+                       </div>`;
+}
     gridHtml += `</div>`;
     
     document.getElementById('mainContent').innerHTML = gridHtml;
