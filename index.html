@@ -2084,8 +2084,71 @@ async function loadUserIglesia() {
     async function updateProfile(updates) { await supabaseClient.from('perfiles').update(updates).eq('id', currentUser.id); await loadProfile(); showToast("Perfil actualizado"); }
 async function resetPassword(email) { try { await supabaseClient.auth.resetPasswordForEmail(email); showToast("Se ha enviado un enlace a tu correo."); } catch(err) { showToast("Error: " + err.message); } }
 async function logout() { await supabaseClient.auth.signOut(); currentUser = null; renderLogin(); }
-function renderRegister() { (async () => { const { data: iglesiasList, error } = await supabaseClient.from('iglesias').select('id, nombre'); if (error) console.error(error); const options = (iglesiasList || []).map(ig => `<option value="${ig.id}">${escapeHtml(ig.nombre)}</option>`).join(''); document.getElementById('appRoot').innerHTML = `<div class="login-container"><i class="fas fa-church" style="font-size: 3rem; color: var(--primary);"></i><h2>Crear Cuenta</h2><div class="form-group"><input type="text" id="regName" class="form-control" placeholder="Nombre completo *" required></div><div class="form-group"><input type="email" id="regEmail" class="form-control" placeholder="Correo electrónico *" required></div><div class="form-group"><input type="date" id="regFecha" class="form-control" required></div><div class="form-group"><label>Iglesia a la que perteneces *</label><select id="regIglesia" class="form-control" required>${options}</select></div><div class="form-group"><input type="password" id="regPass" class="form-control" placeholder="Contraseña *" required></div><div class="form-group"><input type="password" id="regConfirmPass" class="form-control" placeholder="Confirmar contraseña *" required></div><button class="btn btn-primary w-100 mb-2" onclick="registerUser()">Registrarme</button><button class="btn btn-ghost w-100" onclick="renderLogin()">Volver al inicio</button></div>`; })(); }
-async function registerUser() { const name = document.getElementById('regName').value.trim(); const email = document.getElementById('regEmail').value.trim(); const fecha = document.getElementById('regFecha').value; const password = document.getElementById('regPass').value; const confirm = document.getElementById('regConfirmPass').value; const iglesiaId = document.getElementById('regIglesia').value; if (!name || !email || !fecha || !password || !iglesiaId) { showToast("Completa todos los campos"); return; } if (password !== confirm) { showToast("Las contraseñas no coinciden"); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password }); if (error) throw error; if (data.user) { await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, email: email, fecha_nacimiento: fecha, rol: 'user' }]); await supabaseClient.from('usuarios_iglesia').insert([{ user_id: data.user.id, iglesia_id: iglesiaId, departamento_id: null, es_admin_iglesia: false, es_admin_departamento: false, rol_musical: null }]); showToast("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión."); renderLogin(); } } catch (err) { if (err.message.includes("User already registered")) showToast("Este correo ya está registrado."); else showToast("Error en el registro: " + err.message); } }
+
+   function renderRegister() {
+    (async () => {
+        const { data: iglesiasList, error } = await supabaseClient.from('iglesias').select('id, nombre');
+        if (error) console.error(error);
+        const options = (iglesiasList || []).map(ig => `<option value="${ig.id}">${escapeHtml(ig.nombre)}</option>`).join('');
+        document.getElementById('appRoot').innerHTML = `
+            <div class="login-modern-wrapper">
+                <div class="login-modern-card" style="max-width: 480px;">
+                    <div class="login-icon-container">
+                        <!-- Mismo ícono que en login (coherencia) -->
+                        <svg class="login-brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polygon points="10 8 16 12 10 16 10 8"/>
+                            <path d="M6 12h.01M18 12h.01"/>
+                        </svg>
+                        <h2 class="login-brand-title">Crear Cuenta</h2>
+                    </div>
+
+                    <!-- Campos del formulario (mismos IDs) -->
+                    <div class="login-input-group">
+                        <input type="text" id="regName" class="login-input" placeholder="Nombre completo *" required>
+                    </div>
+                    <div class="login-input-group">
+                        <input type="email" id="regEmail" class="login-input" placeholder="Correo electrónico *" required>
+                    </div>
+                    <div class="login-input-group">
+                        <input type="date" id="regFecha" class="login-input" placeholder="dd/mm/aaaa" required>
+                    </div>
+                    <div class="login-input-group">
+                        <label style="display: block; font-size: 0.75rem; margin-bottom: 0.3rem; color: var(--text-muted);">Iglesia a la que perteneces *</label>
+                        <select id="regIglesia" class="login-input" required style="appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"%2364748b\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 9 12 15 18 9\"></polyline></svg>'); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1rem;">
+                            ${options}
+                        </select>
+                    </div>
+                    <div class="login-input-group">
+                        <input type="password" id="regPass" class="login-input" placeholder="Contraseña *" required>
+                    </div>
+                    <div class="login-input-group">
+                        <input type="password" id="regConfirmPass" class="login-input" placeholder="Confirmar contraseña *" required>
+                    </div>
+
+                    <button class="login-btn-primary" onclick="registerUser()">Registrarme</button>
+
+                    <div class="login-footer-links" style="margin-top: 1.2rem;">
+                        <button class="login-link-btn" onclick="renderLogin()">Volver al inicio</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Mejora visual para input date (placeholder simulado)
+        const fechaInput = document.getElementById('regFecha');
+        if (fechaInput) {
+            fechaInput.addEventListener('focus', () => {
+                if (!fechaInput.value) fechaInput.type = 'date';
+            });
+            fechaInput.addEventListener('blur', () => {
+                if (!fechaInput.value) fechaInput.type = 'text';
+            });
+        }
+    })();
+}
+    
+    async function registerUser() { const name = document.getElementById('regName').value.trim(); const email = document.getElementById('regEmail').value.trim(); const fecha = document.getElementById('regFecha').value; const password = document.getElementById('regPass').value; const confirm = document.getElementById('regConfirmPass').value; const iglesiaId = document.getElementById('regIglesia').value; if (!name || !email || !fecha || !password || !iglesiaId) { showToast("Completa todos los campos"); return; } if (password !== confirm) { showToast("Las contraseñas no coinciden"); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password }); if (error) throw error; if (data.user) { await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, email: email, fecha_nacimiento: fecha, rol: 'user' }]); await supabaseClient.from('usuarios_iglesia').insert([{ user_id: data.user.id, iglesia_id: iglesiaId, departamento_id: null, es_admin_iglesia: false, es_admin_departamento: false, rol_musical: null }]); showToast("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión."); renderLogin(); } } catch (err) { if (err.message.includes("User already registered")) showToast("Este correo ya está registrado."); else showToast("Error en el registro: " + err.message); } }
 
  function renderLogin() {
     document.getElementById('appRoot').innerHTML = `
