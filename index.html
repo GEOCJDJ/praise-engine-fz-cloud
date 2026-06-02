@@ -8272,33 +8272,65 @@ async function renderPlanner() {
 }
 async function cargarEventosPlanner() {
     console.log("🔄 Cargando eventos...");
+    document.getElementById('mainContent').innerHTML = '<div class="text-center p-8"><i class="fas fa-spinner fa-pulse fa-2x"></i><br>Cargando planner...</div>';
+    
+    // 1. Cargar todos los eventos
     const { data: eventos, error: eventError } = await supabaseClient
         .from('cronograma_eventos')
         .select('*')
         .order('fecha', { ascending: true });
+    
     if (eventError) {
         console.error("❌ Error cargando eventos:", eventError);
         showToast('Error al cargar eventos: ' + eventError.message, 'error');
         plannerEventos = [];
         return;
     }
-    console.log(`📅 Eventos encontrados: ${eventos?.length || 0}`, eventos);
-
+    
+    if (!eventos || eventos.length === 0) {
+        plannerEventos = [];
+        return;
+    }
+    
+    // 2. Obtener TODAS las canciones de todos los eventos de una sola vez
+    const eventIds = eventos.map(e => e.id);
+    const { data: todasCanciones, error: cancionesError } = await supabaseClient
+        .from('cronograma_canciones')
+        .select('*')
+        .in('evento_id', eventIds)
+        .order('orden', { ascending: true });
+    
+    if (cancionesError) {
+        console.error("❌ Error cargando canciones:", cancionesError);
+    }
+    
+    // 3. Agrupar canciones por evento_id en un Map
+    const cancionesPorEvento = new Map();
+    if (todasCanciones) {
+        for (const cancion of todasCanciones) {
+            if (!cancionesPorEvento.has(cancion.evento_id)) {
+                cancionesPorEvento.set(cancion.evento_id, []);
+            }
+            cancionesPorEvento.get(cancion.evento_id).push(cancion);
+        }
+    }
+    
+    // 4. Procesar cada evento (solo operaciones en memoria, sin consultas adicionales)
     for (let ev of eventos) {
-        // Convertir fecha del evento (YYYY-MM-DD) a dd/mm/aaaa
         const [year, month, day] = ev.fecha.split('-');
         const fechaStr = `${day}/${month}/${year}`;
         
-        // Cargar lista asociada
+        // Buscar lista asociada (local)
         const listaAsociada = lists.find(l => l.date === fechaStr);
         ev.listaAsociada = listaAsociada || null;
-
-        // Cargar canciones (igual que antes)
+        
+        // Asignar canciones
         if (listaAsociada && listaAsociada.items) {
+            // Construir desde lista (local)
             ev.canciones = listaAsociada.items.map((item, idx) => {
                 const song = songs.find(s => s.id === (item.songId || item.song_id));
                 if (!song) return null;
-                const existing = ev.cancionesGuardadas?.find(c => c.cancion_id === song.id);
+                const existing = cancionesPorEvento.get(ev.id)?.find(c => c.cancion_id === song.id);
                 return {
                     id: existing?.id || generateUniqueId(),
                     evento_id: ev.id,
@@ -8313,31 +8345,22 @@ async function cargarEventosPlanner() {
                 };
             }).filter(c => c !== null);
         } else {
-            const { data: cancionesGuardadas } = await supabaseClient
-                .from('cronograma_canciones')
-                .select('*')
-                .eq('evento_id', ev.id)
-                .order('orden', { ascending: true });
-            ev.canciones = cancionesGuardadas || [];
-            ev.cancionesGuardadas = cancionesGuardadas;
+            // Usar canciones ya cargadas desde la BD
+            ev.canciones = cancionesPorEvento.get(ev.id) || [];
         }
         
-        // ========== NUEVO: Asegurar que formaciones sea un array ==========
-        if (ev.formaciones) {
-            // Si ya es un array, lo dejamos; si es string, lo parseamos
-            if (typeof ev.formaciones === 'string') {
-                try {
-                    ev.formaciones = JSON.parse(ev.formaciones);
-                } catch(e) {
-                    console.warn("Error parseando formaciones para evento", ev.id, e);
-                    ev.formaciones = [];
-                }
+        // Parsear formaciones (si es string)
+        if (ev.formaciones && typeof ev.formaciones === 'string') {
+            try {
+                ev.formaciones = JSON.parse(ev.formaciones);
+            } catch(e) {
+                ev.formaciones = [];
             }
-        } else {
-            ev.formaciones = []; // inicializar vacío si no existe
+        } else if (!ev.formaciones) {
+            ev.formaciones = [];
         }
     }
-
+    
     plannerEventos = eventos;
     if (plannerEventos.length > 0 && !plannerSemanaSeleccionada) {
         plannerSemanaSeleccionada = plannerEventos[0];
