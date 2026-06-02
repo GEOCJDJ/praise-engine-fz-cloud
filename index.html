@@ -1127,6 +1127,155 @@ input[type="date"]:invalid {
 input[type="date"]:valid {
     color: var(--text-main);
 }
+
+/* ===== NUEVOS ESTILOS PARA MÓDULO DE CUMPLEAÑOS ===== */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+.gradient-text {
+    background: linear-gradient(90deg, #FFD700, #FF8C00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 800;
+}
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+.premium-birthday-card {
+    background: linear-gradient(145deg, #1a1c29 0%, #0f1016 100%);
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 24px;
+    padding: 40px;
+    position: relative;
+    transform: translateY(50px);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+body.dark .premium-birthday-card {
+    background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+}
+body.light .premium-birthday-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+    border-color: rgba(200,151,42,0.3);
+}
+.modal-overlay.active .premium-birthday-card {
+    transform: translateY(0);
+}
+.close-modal-btn {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    transition: 0.2s;
+}
+.close-modal-btn:hover {
+    color: #ef4444;
+}
+.birthday-hero {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.lg-avatar {
+    width: 100px;
+    height: 100px;
+    border: 4px solid #FFD700;
+    margin-bottom: 20px;
+    object-fit: cover;
+}
+.ai-generated-message {
+    font-size: 1.1rem;
+    font-style: italic;
+    background: rgba(255,215,0,0.1);
+    padding: 1rem;
+    border-radius: 1rem;
+    margin-top: 1rem;
+}
+.collaborative-wall {
+    margin-top: 2rem;
+}
+.messages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+.message-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 0.9rem;
+    border-left: 4px solid #FFD700;
+    box-shadow: var(--shadow);
+    transition: 0.2s;
+}
+.message-card:hover {
+    transform: translateY(-2px);
+}
+.birthday-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.birthday-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: var(--surface);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    border: 1px solid var(--border);
+    transition: 0.2s;
+}
+.birthday-item:hover {
+    border-color: #FFD700;
+    transform: scale(1.02);
+}
+.birthday-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.premium-widget {
+    background: var(--surface);
+    border-radius: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.2rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+.widget-header h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1134,6 +1283,32 @@ input[type="date"]:valid {
     <div id="toastContainer" class="toast-container"></div>
 <body>
 <div id="appRoot"></div>
+<!-- MODAL DE SORPRESA PARA CUMPLEAÑOS -->
+<div id="birthday-modal" class="modal-overlay">
+    <div class="premium-birthday-card">
+        <button class="close-modal-btn" onclick="closeBirthdayModal()">×</button>
+        <div class="birthday-hero">
+            <img id="bday-avatar" class="profile-avatar-modern lg-avatar" src="" alt="Avatar">
+            <h1 class="gradient-text">¡Feliz Cumpleaños, <span id="bday-user-name">Usuario</span>! 🎂</h1>
+            <p class="ai-generated-message" id="bday-ai-message">
+                <!-- Mensaje personalizado -->
+            </p>
+        </div>
+        <div class="collaborative-wall">
+            <h3>🎁 Mensajes de tu equipo:</h3>
+            <div class="messages-grid" id="bday-messages-wall">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <div id="add-message-section" style="margin-top: 1rem;">
+                <textarea id="new-birthday-message" class="form-control" rows="2" placeholder="Escribe tu mensaje de felicitación..."></textarea>
+                <button class="btn btn-primary mt-2" onclick="addBirthdayMessageToCurrent()">💬 Enviar mi mensaje</button>
+            </div>
+        </div>
+        <div class="modal-footer" style="text-align: center; margin-top: 1.5rem;">
+            <button class="btn btn-primary" onclick="closeBirthdayModal()">🎉 Cerrar y seguir celebrando</button>
+        </div>
+    </div>
+</div>    
 
 <div id="cifraClubModal" class="cifra-modal">
     <div class="cifra-header">
@@ -2726,7 +2901,15 @@ const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
         (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user fa-3x"></i>`)
     }
 </div>
-    
+    <!-- Widget de cumpleañeros del mes -->
+<div class="premium-widget">
+    <div class="widget-header">
+        <h3><i class="fas fa-birthday-cake"></i> 🎂 Cumpleañeros de este mes</h3>
+    </div>
+    <div id="month-birthdays-container" class="birthday-grid">
+        <p class="text-muted">Cargando...</p>
+    </div>
+</div>
     <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white;"><h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3><p style="font-style:italic;">“${versiculo.texto}”</p><p style="text-align:right;">— ${versiculo.ref}</p></div></div>
     <div class="card" style="background:linear-gradient(135deg,#F59E0B,#FCD34D);color:white;"><h3><i class="fas fa-calendar-alt"></i> 📆 Próximos turnos</h3>${proximosTurnos.length === 0 ? '<p>Sin turnos próximos.</p>' : `<ul>${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`}</div>
    
@@ -2748,6 +2931,8 @@ const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
     
     <div class="card quick-access-card" onclick="navigateTo('resources')"><i class="fas fa-tools" style="color:#10B981;"></i><h3>Recursos</h3></div></div></div>`;
     document.getElementById('mainContent').innerHTML = html; document.getElementById('actionHeader').innerHTML = '';
+    
+loadMonthBirthdays();
 }
 
 // ========== CANCIONERO ==========
@@ -6539,24 +6724,24 @@ async function renderUserProfile() {
             
             <!-- Campos en grid responsivo -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div>
-                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Nombre completo</label>
-                    <input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre || '')}" placeholder="Tu nombre">
-                </div>
-                <div>
-                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Teléfono</label>
-                    <input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}" placeholder="Ej: 0991234567">
-                </div>
-                <div>
-                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Fecha de nacimiento</label>
-                    <input id="editFecha" type="date" class="form-control" value="${currentProfile.fecha_nacimiento || ''}">
-                </div>
-                <div>
-                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Dirección</label>
-                    <input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}" placeholder="Ciudad, sector...">
-                </div>
-            </div>
-            
+    <div>
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Nombre completo</label>
+        <input id="editNombre" class="form-control" value="${escapeHtml(currentProfile.nombre || '')}" placeholder="Tu nombre">
+    </div>
+    <div>
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Teléfono</label>
+        <input id="editTelefono" class="form-control" value="${escapeHtml(currentProfile.telefono || '')}" placeholder="Ej: 0991234567">
+    </div>
+    <div>
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">📅 Fecha de nacimiento</label>
+        <input type="text" id="editBirthDate" class="form-control" value="${currentProfile?.birth_date || ''}" placeholder="dd/mm/aaaa">
+    </div>
+    <div>
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">Dirección</label>
+        <input id="editDireccion" class="form-control" value="${escapeHtml(currentProfile.direccion || '')}" placeholder="Ciudad, sector...">
+    </div>
+</div>
+
             <!-- Selector de tema con círculos de color -->
             <div style="margin-top: 1rem;">
                 <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">🎨 Tema de color</label>
@@ -6620,6 +6805,9 @@ async function saveUserProfileWithPhoto() {
     const direccion = document.getElementById('editDireccion').value.trim();
     const tema = document.getElementById('editTema').value;
     const fotoFile = document.getElementById('editFotoFile').files[0];
+    
+    // 🔥 NUEVO: Obtener la fecha de nacimiento para el módulo de cumpleaños
+    const birth_date = document.getElementById('editBirthDate').value;
 
     let foto_url = currentProfile.foto_url;
 
@@ -6652,7 +6840,8 @@ async function saveUserProfileWithPhoto() {
             fecha_nacimiento: fecha,
             direccion,
             foto_url,
-            tema
+            tema,
+            birth_date   // ✅ Campo para la fecha de cumpleaños
         })
         .eq('id', currentUser.id);
 
@@ -6671,7 +6860,6 @@ async function saveUserProfileWithPhoto() {
     await loadUserData();       // Recargar datos de usuario (por si cambió algo)
     renderUserProfile();        // Refrescar vista
 }
-    
     
 // ========== ADMINISTRACIÓN CON SELECTOR DE IGLESIAS Y DEPARTAMENTO JERÁRQUICO ==========
 function renderAdmin() {
@@ -11343,7 +11531,142 @@ function getAvatarUrl(profile) {
     return 'https://api.dicebear.com/7.x/identicon/svg?seed=' + (profile?.id || 'default');
 }
 
+// ========== NUEVAS FUNCIONES PARA MÓDULO DE CUMPLEAÑOS ==========
+async function checkAndShowBirthday() {
+    if (!currentUser) return;
+    // Obtener perfil completo con birth_date
+    const { data: profile, error } = await supabaseClient
+        .from('perfiles')
+        .select('id, nombre, avatar_url, birth_date')
+        .eq('id', currentUser.id)
+        .single();
+    if (error || !profile || !profile.birth_date) return;
+    
+    const hoy = new Date();
+    const birth = new Date(profile.birth_date);
+    const esCumple = birth.getDate() === hoy.getDate() && birth.getMonth() === hoy.getMonth();
+    if (!esCumple) return;
+    
+    // Verificar si ya se mostró hoy (para no repetir al recargar)
+    const ultimo = localStorage.getItem(`birthday_shown_${currentUser.id}`);
+    const hoyStr = hoy.toISOString().slice(0,10);
+    if (ultimo === hoyStr) return;
+    localStorage.setItem(`birthday_shown_${currentUser.id}`, hoyStr);
+    
+    // Cargar mensajes del muro
+    const { data: messages } = await supabaseClient
+        .from('birthday_messages')
+        .select('*, sender:perfiles!sender_id(nombre)')
+        .eq('receiver_id', currentUser.id)
+        .order('created_at', { ascending: false });
+    
+    const formattedMessages = (messages || []).map(m => ({
+        sender: m.sender?.nombre || 'Alguien',
+        text: m.message_text
+    }));
+    
+    // Mensaje inspirador personalizado (puedes conectar a IA después)
+    const aiMessage = `🎵 Que este nuevo año de vida esté lleno de acordes de alegría, armonía y bendiciones. Tu servicio en ${currentProfile?.rol_musical || 'el ministerio'} es un regalo para todos. ¡Disfruta tu día especial! 🎂✨`;
+    
+    triggerBirthdayExperience({
+        name: profile.nombre,
+        avatarUrl: profile.avatar_url || getAvatarUrl(profile),
+        aiMessage: aiMessage
+    }, formattedMessages);
+}
 
+function triggerBirthdayExperience(userData, messages) {
+    document.getElementById('bday-user-name').innerText = userData.name;
+    document.getElementById('bday-ai-message').innerText = userData.aiMessage;
+    const avatarImg = document.getElementById('bday-avatar');
+    if (userData.avatarUrl) avatarImg.src = userData.avatarUrl;
+    else avatarImg.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=' + userData.name;
+    
+    const wall = document.getElementById('bday-messages-wall');
+    wall.innerHTML = '';
+    if (messages.length === 0) {
+        wall.innerHTML = '<div class="message-card">✨ Aún no hay mensajes. ¡Sé el primero en felicitar a este siervo de Dios!</div>';
+    } else {
+        messages.forEach(msg => {
+            const card = document.createElement('div');
+            card.className = 'message-card';
+            card.innerHTML = `<strong>${escapeHtml(msg.sender)}</strong><br>“${escapeHtml(msg.text)}”`;
+            wall.appendChild(card);
+        });
+    }
+    
+    const modal = document.getElementById('birthday-modal');
+    modal.classList.add('active');
+    // Confeti
+    const duration = 3000;
+    const end = Date.now() + duration;
+    (function frame() {
+        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#FFD700', '#FF8C00', '#FFFFFF'] });
+        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#FFD700', '#FF8C00', '#FFFFFF'] });
+        if (Date.now() < end) requestAnimationFrame(frame);
+    }());
+}
+
+window.closeBirthdayModal = function() {
+    const modal = document.getElementById('birthday-modal');
+    modal.classList.remove('active');
+};
+
+window.addBirthdayMessageToCurrent = async function() {
+    const textarea = document.getElementById('new-birthday-message');
+    const mensaje = textarea.value.trim();
+    if (!mensaje) return showToast('Escribe un mensaje antes de enviar', 'warning');
+    const modal = document.getElementById('birthday-modal');
+    const receiverId = currentUser?.id; // quien recibe es el cumpleañero
+    if (!receiverId) return;
+    const { error } = await supabaseClient.from('birthday_messages').insert({
+        receiver_id: receiverId,
+        sender_id: currentUser.id,
+        message_text: mensaje
+    });
+    if (error) {
+        showToast('Error al enviar mensaje: ' + error.message, 'error');
+        return;
+    }
+    showToast('✅ Mensaje enviado con cariño', 'success');
+    textarea.value = '';
+    // Recargar mensajes
+    const { data: messages } = await supabaseClient
+        .from('birthday_messages')
+        .select('*, sender:perfiles!sender_id(nombre)')
+        .eq('receiver_id', receiverId)
+        .order('created_at', { ascending: false });
+    const formatted = (messages || []).map(m => ({ sender: m.sender?.nombre || 'Alguien', text: m.message_text }));
+    const wall = document.getElementById('bday-messages-wall');
+    wall.innerHTML = formatted.map(msg => `<div class="message-card"><strong>${escapeHtml(msg.sender)}</strong><br>“${escapeHtml(msg.text)}”</div>`).join('');
+};
+
+async function loadMonthBirthdays() {
+    const container = document.getElementById('month-birthdays-container');
+    if (!container) return;
+    // Llamar a la función SQL creada en Supabase
+    const { data, error } = await supabaseClient.rpc('get_current_month_birthdays');
+    if (error) {
+        console.error('Error cargando cumpleañeros:', error);
+        container.innerHTML = '<p class="text-muted">No se pudo cargar los cumpleaños.</p>';
+        return;
+    }
+    if (!data || data.length === 0) {
+        container.innerHTML = '<p class="text-muted">🎂 No hay cumpleañeros este mes. ¡Sé el primero en registrar tu fecha!</p>';
+        return;
+    }
+    container.innerHTML = data.map(b => `
+        <div class="birthday-item">
+            <img src="${b.avatar_url || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + b.user_id}" class="birthday-avatar" alt="avatar">
+            <div>
+                <strong>${escapeHtml(b.full_name)}</strong>
+                <span class="text-muted" style="font-size: 0.7rem;"> - Día ${b.day_of_month}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+    
   // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA) ====================
 let appInicializada = false; // El semáforo que evita que la app choque consigo misma
 
@@ -11381,7 +11704,8 @@ let appInicializada = false; // El semáforo que evita que la app choque consigo
         await loadProfile();
         await loadUserIglesia();
         await loadUserData();
-        renderApp();
+renderApp();
+setTimeout(() => checkAndShowBirthday(), 1000);
     };
 
     // 3. Escuchar cambios de Google, Inicio de sesión o Cierre de sesión
