@@ -2386,8 +2386,58 @@ window.togglePasswordVisibility = (inputId, btn) => {
     }
 };
     
-    async function registerUser() { const name = document.getElementById('regName').value.trim(); const email = document.getElementById('regEmail').value.trim(); const fecha = document.getElementById('regFecha').value; const password = document.getElementById('regPass').value; const confirm = document.getElementById('regConfirmPass').value; const iglesiaId = document.getElementById('regIglesia').value; if (!name || !email || !fecha || !password || !iglesiaId) { showToast("Completa todos los campos"); return; } if (password !== confirm) { showToast("Las contraseñas no coinciden"); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password }); if (error) throw error; if (data.user) { await supabaseClient.from('perfiles').upsert([{ id: data.user.id, nombre: name, email: email, fecha_nacimiento: fecha, rol: 'user' }]); await supabaseClient.from('usuarios_iglesia').insert([{ user_id: data.user.id, iglesia_id: iglesiaId, departamento_id: null, es_admin_iglesia: false, es_admin_departamento: false, rol_musical: null }]); showToast("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión."); renderLogin(); } } catch (err) { if (err.message.includes("User already registered")) showToast("Este correo ya está registrado."); else showToast("Error en el registro: " + err.message); } }
+   async function registerUser() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const fecha = document.getElementById('regFecha').value;
+    const password = document.getElementById('regPass').value;
+    const confirm = document.getElementById('regConfirmPass').value;
+    const iglesiaId = document.getElementById('regIglesia').value;
 
+    if (!name || !email || !fecha || !password || !iglesiaId) {
+        showToast("Completa todos los campos");
+        return;
+    }
+    if (password !== confirm) {
+        showToast("Las contraseñas no coinciden");
+        return;
+    }
+
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) throw error;
+
+        if (data.user) {
+            await supabaseClient.from('perfiles').upsert([{
+                id: data.user.id,
+                nombre: name,
+                email: email,
+                fecha_nacimiento: fecha,
+                birth_date: fecha,   // ← NUEVO: para el módulo de cumpleaños
+                rol: 'user'
+            }]);
+
+            await supabaseClient.from('usuarios_iglesia').insert([{
+                user_id: data.user.id,
+                iglesia_id: iglesiaId,
+                departamento_id: null,
+                es_admin_iglesia: false,
+                es_admin_departamento: false,
+                rol_musical: null
+            }]);
+
+            showToast("Registro exitoso. Revisa tu correo para confirmar. Ahora puedes iniciar sesión.");
+            renderLogin();
+        }
+    } catch (err) {
+        if (err.message.includes("User already registered")) {
+            showToast("Este correo ya está registrado.");
+        } else {
+            showToast("Error en el registro: " + err.message);
+        }
+    }
+}
+    
  function renderLogin() {
     document.getElementById('appRoot').innerHTML = `
         <div class="login-modern-wrapper">
@@ -6799,23 +6849,43 @@ async function renderUserProfile() {
 
     
 async function saveUserProfileWithPhoto() {
-    const nombre = document.getElementById('editNombre').value.trim();
-    const telefono = document.getElementById('editTelefono').value.trim();
-    const fecha = document.getElementById('editFecha').value;
-    const direccion = document.getElementById('editDireccion').value.trim();
-    const tema = document.getElementById('editTema').value;
-    const fotoFile = document.getElementById('editFotoFile').files[0];
+    console.log("🔵 Iniciando guardado de perfil...");
     
-    // 🔥 NUEVO: Obtener la fecha de nacimiento para el módulo de cumpleaños
-    const birth_date = document.getElementById('editBirthDate').value;
-
-    let foto_url = currentProfile.foto_url;
-
+    // Obtener valores del formulario
+    const nombre = document.getElementById('editNombre')?.value.trim();
+    const telefono = document.getElementById('editTelefono')?.value.trim();
+    const direccion = document.getElementById('editDireccion')?.value.trim();
+    const tema = document.getElementById('editTema')?.value;
+    const fotoFile = document.getElementById('editFotoFile')?.files[0];
+    
+    // ⚠️ IMPORTANTE: Usamos SOLO editBirthDate, NO editFecha
+    const birth_date_raw = document.getElementById('editBirthDate')?.value;
+    
+    // Validar campos obligatorios
+    if (!nombre) {
+        showToast("El nombre es obligatorio", "error");
+        return;
+    }
+    
+    // Convertir fecha de dd/mm/aaaa a YYYY-MM-DD para la base de datos
+    let birth_date = null;
+    if (birth_date_raw) {
+        const partes = birth_date_raw.split('/');
+        if (partes.length === 3) {
+            birth_date = `${partes[2]}-${partes[1]}-${partes[0]}`;
+        } else {
+            birth_date = birth_date_raw; // si ya viene en otro formato
+        }
+    }
+    
+    console.log("📝 Datos a guardar:", { nombre, telefono, direccion, tema, birth_date });
+    
+    let foto_url = currentProfile?.foto_url || null;
+    
     // Subir nueva foto si se seleccionó
     if (fotoFile) {
-        // Validar tamaño (máximo 2MB)
         if (fotoFile.size > 2 * 1024 * 1024) {
-            showToast('La foto es demasiado grande. Máximo 2MB.');
+            showToast('La foto es demasiado grande. Máximo 2MB.', 'error');
             return;
         }
         const fileExt = fotoFile.name.split('.').pop();
@@ -6824,43 +6894,61 @@ async function saveUserProfileWithPhoto() {
             .from('avatars')
             .upload(fileName, fotoFile);
         if (uploadError) {
-            showToast('Error al subir la foto: ' + uploadError.message);
+            showToast('Error al subir la foto: ' + uploadError.message, 'error');
             return;
         }
         const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
         foto_url = urlData.publicUrl;
     }
-
-    // Actualizar perfil en Supabase
+    
+    // Construir objeto de actualización
+    const updates = {
+        nombre,
+        telefono,
+        direccion,
+        foto_url,
+        tema,
+        birth_date   // ← Campo para cumpleaños
+    };
+    
+    // Si existe el campo fecha_nacimiento (el anterior), lo puedes mantener o no
+    // Para compatibilidad, lo incluimos también
+    if (birth_date) updates.fecha_nacimiento = birth_date;
+    
+    console.log("🔄 Enviando a Supabase:", updates);
+    
+    // Actualizar perfil
     const { error } = await supabaseClient
         .from('perfiles')
-        .update({
-            nombre,
-            telefono,
-            fecha_nacimiento: fecha,
-            direccion,
-            foto_url,
-            tema,
-            birth_date   // ✅ Campo para la fecha de cumpleaños
-        })
+        .update(updates)
         .eq('id', currentUser.id);
-
+    
     if (error) {
-        showToast('Error al guardar: ' + error.message);
+        console.error("❌ Error de Supabase:", error);
+        showToast('Error al guardar: ' + error.message, 'error');
         return;
     }
-
-    // Aplicar tema visual y guardar en localStorage
+    
+    console.log("✅ Perfil actualizado correctamente");
+    
+    // Aplicar tema visual
     aplicarTema(tema);
     localStorage.setItem('user_theme', tema);
     
-    showToast('✅ Perfil actualizado correctamente');
+    showToast('✅ Perfil actualizado correctamente', 'success');
     closeModal();
-    await loadProfile();        // Recargar perfil
-    await loadUserData();       // Recargar datos de usuario (por si cambió algo)
-    renderUserProfile();        // Refrescar vista
-}
     
+    // Recargar datos del usuario
+    await loadProfile();
+    await loadUserData();
+    
+    // Refrescar la vista actual
+    if (currentTab === 'profile') {
+        renderUserProfile();
+    } else {
+        renderCurrentView();
+    }
+}
 // ========== ADMINISTRACIÓN CON SELECTOR DE IGLESIAS Y DEPARTAMENTO JERÁRQUICO ==========
 function renderAdmin() {
     if (!isAdminUser && !isIglesiaAdmin) { 
