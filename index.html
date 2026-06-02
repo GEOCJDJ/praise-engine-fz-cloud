@@ -11024,53 +11024,74 @@ function getAvatarUrl(profile) {
 }
 
 
-    // INICIALIZACIÓN DE LA APP
+  // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA) ====================
+let appInicializada = false; // El semáforo que evita que la app choque consigo misma
+
 (async () => {
+    // 1. Aplicar tema visual guardado
     const savedTheme = localStorage.getItem('user_theme');
     if (savedTheme) aplicarTema(savedTheme);
 
-    // ESCUCHAR CAMBIOS EN LA AUTENTICACIÓN (esto maneja el retorno de Google)
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            // Usuario acaba de iniciar sesión (con Google o email)
-            currentUser = session.user;
-            await loadProfile();
-            await loadUserIglesia();
-            // Si el perfil no existe en tu tabla 'perfiles', créalo automáticamente
-            if (!currentProfile) {
-                await supabaseClient.from('perfiles').insert([{
-                    id: currentUser.id,
-                    nombre: currentUser.user_metadata?.full_name || currentUser.email,
-                    email: currentUser.email
-                }]);
-                await loadProfile(); // Recargar perfil
-            }
-            await loadUserData();
-            renderApp();
-        } else if (event === 'SIGNED_OUT') {
-            currentUser = null;
-            renderLogin();
-        }
-    });
+    // 2. Función centralizada y blindada para arrancar la app
+    const iniciarSesionCompleta = async (session) => {
+        if (appInicializada) return; // Si ya arrancó, detenemos el doble choque
+        appInicializada = true;
 
-    // Verificar si ya había una sesión activa (por si recargas la página)
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
         currentUser = session.user;
+        
+        // A. Verificar si el perfil existe REALMENTE en Supabase (Crucial para Google)
+        const { data: perfilDB } = await supabaseClient
+            .from('perfiles')
+            .select('id')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+        
+        // B. Si es un usuario nuevo (Google o Email), le creamos su perfil oficial
+        if (!perfilDB) {
+            const nombreUsuario = currentUser.user_metadata?.full_name || currentUser.email;
+            await supabaseClient.from('perfiles').insert([{
+                id: currentUser.id,
+                nombre: nombreUsuario,
+                email: currentUser.email,
+                rol: 'user' // Todos inician como usuarios normales
+            }]);
+        }
+
+        // C. Cargar los datos del usuario y renderizar
         await loadProfile();
         await loadUserIglesia();
         await loadUserData();
         renderApp();
+    };
+
+    // 3. Escuchar cambios de Google, Inicio de sesión o Cierre de sesión
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            iniciarSesionCompleta(session);
+        } else if (event === 'SIGNED_OUT') {
+            appInicializada = false; // Reseteamos el semáforo
+            currentUser = null;
+            currentIglesiaId = null;
+            renderLogin();
+        }
+    });
+
+    // 4. Verificación de sesión al recargar la página
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        iniciarSesionCompleta(session);
     } else {
         renderLogin();
     }
-      // Actualizar notificaciones cada 30 segundos (solo si el usuario está logueado)
+
+    // 5. Motor de notificaciones en segundo plano
     setInterval(() => {
         if (currentUser && typeof cargarNotificaciones === 'function') {
             cargarNotificaciones();
         }
     }, 30000);
 })();
+     
     
 
 
