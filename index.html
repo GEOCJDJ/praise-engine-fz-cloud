@@ -1055,19 +1055,13 @@ let isDeptAdmin = false;
 let currentProfile = null;
 let adminSelectedIglesiaId = null;
 // Variables de control global para el Visor Musical
-let originalSongContent = "";  
-let currentTransposeOffset = 0; 
-let currentFontSize = 16;       
-let isMetronomeRunning = false;   
-let respuestasExamen = [];  
-    let cifraCurrentOffset = 0;   
-let cifraFontSize = 16;       
-    // Paginación de canciones
-let currentSongsPage = 1;
-const SONGS_PER_PAGE = 50;
-let totalSongsCount = 0;
-let isLoadingMoreSongs = false;
-let currentSearchQuery = '';      // para saber si estamos en modo búsqueda
+let originalSongContent = "";  // Almacena el texto limpio y original de la canción activa
+let currentTransposeOffset = 0; // Lleva el control acumulado de tonos (+1, -2, 0, etc.)
+let currentFontSize = 16;       // Tamaño de letra por defecto
+let isMetronomeRunning = false;   // controla si el metrónomo está activo
+let respuestasExamen = [];   // Guardará { preguntaIndex, respuesta, esCorrecta }
+    let cifraCurrentOffset = 0;   // ← agrega esta línea
+let cifraFontSize = 16;       // ← agrega esta línea
 
 const NOTE_TO_INDEX = {
     'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4,
@@ -1907,37 +1901,20 @@ async function registrarActividad(accion, detalles = '') { if (!currentUser) ret
 async function loadUserData() {
     if (!currentUser || !currentIglesiaId) return;
     try {
-        // ========== 1. CANCIONES CON PAGINACIÓN (solo primeras 50) ==========
-        const { data: s, error: songsError, count } = await supabaseClient
-            .from('canciones')
-            .select('*', { count: 'exact' })
-            .eq('iglesia_id', currentIglesiaId)
-            .order('title', { ascending: true })
-            .range(0, SONGS_PER_PAGE - 1);
-        
-        if (!songsError) {
-            songs = (s || []).map(song => ({ 
-                ...song, 
-                chordsUrl: song.chords_url, 
-                chordsData: song.chords_data,
-                capo: song.capo || ''
-            }));
-            totalSongsCount = count || 0;
-            currentSongsPage = 1;
-        } else {
-            songs = [];
-            totalSongsCount = 0;
-        }
+        const { data: s } = await supabaseClient.from('canciones').select('*').eq('iglesia_id', currentIglesiaId);
+        songs = (s || []).map(song => ({ 
+            ...song, 
+            chordsUrl: song.chords_url, 
+            chordsData: song.chords_data,
+            capo: song.capo || ''   // ← CORREGIDO
+        }));
 
-        // ========== 2. DEPARTAMENTOS ==========
         const { data: deptos } = await supabaseClient.from('departamentos').select('*').eq('iglesia_id', currentIglesiaId);
         departamentos = deptos || [];
         
-        // ========== 3. MIEMBROS ==========
         const { data: miembros } = await supabaseClient.from('usuarios_iglesia').select('*, perfiles(nombre, email, foto_url)').eq('iglesia_id', currentIglesiaId);
         usuariosIglesia = miembros || [];
         
-        // ========== 4. LISTAS (con sus items) ==========
         const { data: l } = await supabaseClient.from('listas').select('*').eq('iglesia_id', currentIglesiaId);
         lists = l || [];
         for (let list of lists) {
@@ -1945,75 +1922,31 @@ async function loadUserData() {
             list.items = items || [];
         }
         
-        // ========== 5. ASISTENCIA ==========
         const { data: a } = await supabaseClient.from('asistencia').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId);
         attendance = a || [];
         
-        // ========== 6. TURNOS ==========
         const { data: sh } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId);
         shifts = sh || [];
         
-        // ========== 7. CURSOS ==========
         const deptIds = departamentos.map(d => d.id).join(',') || 'null';
         const { data: c } = await supabaseClient.from('cursos').select('*').or(`entidad_tipo.eq.iglesia,and(entidad_tipo.eq.departamento,entidad_id.in.(${deptIds})`);
         cursos = c || [];
         
-        // ========== 8. MÓDULOS ==========
         const { data: m } = await supabaseClient.from('modulos').select('*');
         modulosList = m || [];
         
-        // ========== 9. EXÁMENES ==========
         const { data: e } = await supabaseClient.from('examenes').select('*');
         examenes = e || [];
         
-        // ========== 10. PREGUNTAS ==========
         const { data: p } = await supabaseClient.from('preguntas').select('*');
         preguntas = p || [];
-        
-        // ========== 11. PRECARGAR CANCIONES QUE APARECEN EN LISTAS Y FAVORITOS ==========
-        const songIdsNeeded = new Set();
-        
-        // Añadir canciones de listas
-        lists.forEach(list => {
-            list.items?.forEach(item => {
-                const songId = item.songId || item.song_id;
-                if (songId) songIdsNeeded.add(songId);
-            });
-        });
-        
-        // Añadir canciones favoritas del usuario actual
-        if (currentUser) {
-            const { data: favoritos } = await supabaseClient.from('favoritos').select('song_id').eq('user_id', currentUser.id);
-            favoritos?.forEach(f => songIdsNeeded.add(f.song_id));
-        }
-        
-        // Eliminar las que ya están cargadas en el array songs
-        [...songIdsNeeded].forEach(id => {
-            if (songs.some(s => s.id === id)) songIdsNeeded.delete(id);
-        });
-        
-        // Cargar el resto en un solo lote
-        if (songIdsNeeded.size > 0) {
-            const { data: neededSongs } = await supabaseClient
-                .from('canciones')
-                .select('*')
-                .in('id', [...songIdsNeeded]);
-            if (neededSongs && neededSongs.length) {
-                const nuevasCanciones = neededSongs.map(song => ({ 
-                    ...song, 
-                    chordsUrl: song.chords_url, 
-                    chordsData: song.chords_data,
-                    capo: song.capo || ''
-                }));
-                songs.push(...nuevasCanciones);
-            }
-        }
         
     } catch(e) {
         console.error(e);
         showToast("Error al cargar datos. Recarga la página.");
     }
 }
+    
 // ========== GUARDADO ==========
 async function saveSong(song) {
     if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza')) {
@@ -2250,7 +2183,7 @@ function renderApp() {
 
     </header>
     <div class="container">
-        <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="handleSearchInput()">
+        <div class="search-container"><i class="fas fa-search search-icon"></i><input type="text" class="search-box" id="globalSearch" placeholder="Buscar..." oninput="renderCurrentView()"></div>
         <div id="actionHeader" style="margin-bottom:1rem;text-align:right"></div>
         <div id="mainContent"></div>
     </div>
@@ -2306,63 +2239,7 @@ setTimeout(() => {
     }
 }, 1000);
 }
-async function handleSearchInput() {
-    const query = document.getElementById('globalSearch').value.trim();
-    currentSearchQuery = query;
-    currentSongsPage = 1;
-    if (query === '') {
-        // Restablecer lista original
-        await reloadInitialSongs();
-        renderCurrentView();
-    } else {
-        await searchSongs(query);
-    }
-}
 
-async function searchSongs(query, loadMore = false) {
-    if (!loadMore) {
-        currentSongsPage = 1;
-        songs = [];
-    }
-    const page = loadMore ? currentSongsPage + 1 : 1;
-    const start = (page - 1) * SONGS_PER_PAGE;
-    const end = page * SONGS_PER_PAGE - 1;
-    
-    const { data, error, count } = await supabaseClient
-        .from('canciones')
-        .select('*', { count: 'exact' })
-        .eq('iglesia_id', currentIglesiaId)
-        .ilike('title', `%${query}%`)
-        .order('title', { ascending: true })
-        .range(start, end);
-    
-    if (!error) {
-        if (loadMore) {
-            songs = [...songs, ...(data || [])];
-        } else {
-            songs = data || [];
-        }
-        totalSongsCount = count || 0;
-        currentSongsPage = page;
-        renderSongsGrid();
-    }
-}
-
-async function reloadInitialSongs() {
-    currentSearchQuery = '';
-    const { data, error, count } = await supabaseClient
-        .from('canciones')
-        .select('*', { count: 'exact' })
-        .eq('iglesia_id', currentIglesiaId)
-        .order('title', { ascending: true })
-        .range(0, SONGS_PER_PAGE - 1);
-    if (!error) {
-        songs = data || [];
-        totalSongsCount = count || 0;
-        currentSongsPage = 1;
-    }
-}
-    
 function darkModeToggle() {
     const toggle = document.getElementById('darkModeToggle');
     if (toggle) {
@@ -2568,11 +2445,6 @@ async function renderSongsGrid() {
                 </div>
             </div>
         `;
-    }
-      if (!currentSearchQuery && songs.length < totalSongsCount) {
-        gridHtml += `<div class="text-center p-4">
-            <button class="btn btn-primary" onclick="loadMoreSongs()" id="loadMoreBtn">📥 Cargar más canciones (${songs.length}/${totalSongsCount})</button>
-        </div>`;
     }
     gridHtml += `</div>`;
     
@@ -11092,135 +10964,6 @@ function getAvatarUrl(profile) {
     if (profile?.avatar_url) return profile.avatar_url;
     if (profile?.foto_url) return profile.foto_url;
     return 'https://api.dicebear.com/7.x/identicon/svg?seed=' + (profile?.id || 'default');
-}
-// ========== FUNCIONES DE LAZY LOADING PARA CANCIONERO ==========
-
-async function loadMoreSongs() {
-    if (isLoadingMoreSongs) return;
-    if (currentSearchQuery) {
-        // Modo búsqueda
-        await searchSongs(currentSearchQuery, true);
-        return;
-    }
-    if (songs.length >= totalSongsCount) return;
-    
-    isLoadingMoreSongs = true;
-    const nextPage = currentSongsPage + 1;
-    const start = nextPage * SONGS_PER_PAGE - SONGS_PER_PAGE;
-    const end = nextPage * SONGS_PER_PAGE - 1;
-    
-    const { data: moreSongs, error } = await supabaseClient
-        .from('canciones')
-        .select('*')
-        .eq('iglesia_id', currentIglesiaId)
-        .order('title', { ascending: true })
-        .range(start, end);
-    
-    if (!error && moreSongs && moreSongs.length) {
-        const nuevas = moreSongs.map(song => ({ 
-            ...song, 
-            chordsUrl: song.chords_url, 
-            chordsData: song.chords_data,
-            capo: song.capo || ''
-        }));
-        songs = [...songs, ...nuevas];
-        currentSongsPage = nextPage;
-        renderSongsGrid();
-    }
-    isLoadingMoreSongs = false;
-}
-
-async function handleSearchInput() {
-    const query = document.getElementById('globalSearch').value.trim();
-    currentSearchQuery = query;
-    if (query === '') {
-        // Restaurar la lista paginada inicial
-        await reloadInitialSongs();
-        renderCurrentView();
-    } else {
-        await searchSongs(query, false);
-    }
-}
-
-async function searchSongs(query, loadMore = false) {
-    if (!loadMore) {
-        currentSongsPage = 1;
-        songs = [];
-    }
-    const page = loadMore ? currentSongsPage + 1 : 1;
-    const start = (page - 1) * SONGS_PER_PAGE;
-    const end = page * SONGS_PER_PAGE - 1;
-    
-    const { data, error, count } = await supabaseClient
-        .from('canciones')
-        .select('*', { count: 'exact' })
-        .eq('iglesia_id', currentIglesiaId)
-        .ilike('title', `%${query}%`)
-        .order('title', { ascending: true })
-        .range(start, end);
-    
-    if (!error) {
-        const nuevas = (data || []).map(song => ({ 
-            ...song, 
-            chordsUrl: song.chords_url, 
-            chordsData: song.chords_data,
-            capo: song.capo || ''
-        }));
-        if (loadMore) {
-            songs = [...songs, ...nuevas];
-        } else {
-            songs = nuevas;
-        }
-        totalSongsCount = count || 0;
-        currentSongsPage = page;
-        renderSongsGrid();
-    }
-}
-
-async function reloadInitialSongs() {
-    currentSearchQuery = '';
-    const { data, error, count } = await supabaseClient
-        .from('canciones')
-        .select('*', { count: 'exact' })
-        .eq('iglesia_id', currentIglesiaId)
-        .order('title', { ascending: true })
-        .range(0, SONGS_PER_PAGE - 1);
-    
-    if (!error) {
-        songs = (data || []).map(song => ({ 
-            ...song, 
-            chordsUrl: song.chords_url, 
-            chordsData: song.chords_data,
-            capo: song.capo || ''
-        }));
-        totalSongsCount = count || 0;
-        currentSongsPage = 1;
-    }
-}
-
-async function getSongById(songId) {
-    // Primero buscar en el array local
-    let song = songs.find(s => s.id === songId);
-    if (song) return song;
-    
-    // Si no está, cargar individualmente desde Supabase
-    const { data, error } = await supabaseClient
-        .from('canciones')
-        .select('*')
-        .eq('id', songId)
-        .single();
-    
-    if (!error && data) {
-        const newSong = { 
-            ...data, 
-            chordsUrl: data.chords_url, 
-            chordsData: data.chords_data,
-            capo: data.capo || ''
-        };
-        songs.push(newSong);
-        return newSong;
-    }
-    return null;
 }
     
 // INICIALIZACION---
