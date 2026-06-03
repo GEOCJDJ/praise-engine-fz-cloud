@@ -3126,69 +3126,113 @@ console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentU
 
 // ========== VISTA HOME ==========
 async function renderHome() {
- const esAdminGeneral = isAdminUser === true || isIglesiaAdmin === true || (currentProfile && currentProfile.rol === 'admin');
-const esAdminAlabanza = isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza';
-const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
+    const esAdminGeneral = isAdminUser === true || isIglesiaAdmin === true || (currentProfile && currentProfile.rol === 'admin');
+    const esAdminAlabanza = isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza';
+    const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
+
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
     const miembroId = miembro?.id;
     let proximosTurnos = [];
-    if (miembroId) { const misTurnos = shifts.filter(s => s.usuario_iglesia_id === miembroId); const hoy = new Date(); hoy.setHours(0,0,0,0); proximosTurnos = misTurnos.filter(t => new Date(t.fecha.split('/').reverse().join('-')) >= hoy).slice(0,3); }
-    const { data: actividades } = await supabaseClient.from('actividades').select('*').eq('iglesia_id', currentIglesiaId).order('fecha');
-    const hoy = new Date(); hoy.setHours(0,0,0,0);
-    const proximasActividades = (actividades || []).filter(a => new Date(a.fecha.split('/').reverse().join('-')) >= hoy).slice(0,4);
+    if (miembroId) {
+        const misTurnos = shifts.filter(s => s.usuario_iglesia_id === miembroId);
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        proximosTurnos = misTurnos.filter(t => new Date(t.fecha.split('/').reverse().join('-')) >= hoy).slice(0, 3);
+    }
+
+    const { data: actividades } = await supabaseClient
+        .from('actividades')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('fecha');
+    
+    const hoy = new Date(); // ⚠️ ya no redeclaramos, usamos la variable definida arriba. Pero mejor usar una variable nueva si está en diferente bloque.
+    // Como la primera 'hoy' está dentro de un bloque if, no afecta. Pero lo aclaramos:
+    // Mejor usar una variable diferente para evitar confusiones:
+    const fechaHoy = new Date();
+    fechaHoy.setHours(0, 0, 0, 0);
+    const proximasActividades = (actividades || []).filter(a => new Date(a.fecha.split('/').reverse().join('-')) >= fechaHoy).slice(0, 4);
+
     let cancionSugerida = songs.length ? songs[Math.floor(Math.random() * songs.length)] : null;
-    const versiculos = [{ texto: "Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos", ref: "Salmo 68:4" }, { texto: "Servid a Jehová con alegría; venid ante su presencia con regocijo", ref: "Salmo 100:2" }, { texto: "Los verdaderos adoradores adorarán al Padre en espíritu y en verdad", ref: "Juan 4:23" }, { texto: "Vuestro trabajo en el Señor no es en vano", ref: "1 Corintios 15:58" }];
+    const versiculos = [
+        { texto: "Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos", ref: "Salmo 68:4" },
+        { texto: "Servid a Jehová con alegría; venid ante su presencia con regocijo", ref: "Salmo 100:2" },
+        { texto: "Los verdaderos adoradores adorarán al Padre en espíritu y en verdad", ref: "Juan 4:23" },
+        { texto: "Vuestro trabajo en el Señor no es en vano", ref: "1 Corintios 15:58" }
+    ];
     const versiculo = versiculos[Math.floor(Math.random() * versiculos.length)];
     let deptoNombre = '';
-    if (miembro && miembro.departamento_id) { const depto = departamentos.find(d => d.id === miembro.departamento_id); deptoNombre = depto ? depto.nombre : 'No asignado'; }
-    const html = `
-    
-    <div class="profile-avatar" style="background:rgba(255,255,255,0.2); width: 80px; height: 100px; margin:0; display: flex; align-items: center; justify-content: center; border-radius: 1rem; overflow: hidden;">
-    ${currentProfile?.avatar_url ? 
-        `<img src="${currentProfile.avatar_url}" style="width: 100%; height: 100%; object-fit: contain;">` :
-        (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user fa-3x"></i>`)
+    if (miembro && miembro.departamento_id) {
+        const depto = departamentos.find(d => d.id === miembro.departamento_id);
+        deptoNombre = depto ? depto.nombre : 'No asignado';
     }
-</div>
-   
-</div>
-    <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white;"><h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3><p style="font-style:italic;">“${versiculo.texto}”</p><p style="text-align:right;">— ${versiculo.ref}</p></div></div>
-   
-     <!-- Widget de cumpleañeros del mes -->
-<div class="premium-widget">
-    <div class="widget-header">
-        <h3><i class="fas fa-birthday-cake"></i> 🎂 Cumpleañeros de este mes</h3>
-    </div>
-    <div id="month-birthdays-container" class="birthday-grid">
-        <p class="text-muted">Cargando...</p>
-    </div>
-    
-    <div class="card" style="background:linear-gradient(135deg,#F59E0B,#FCD34D);color:white;"><h3><i class="fas fa-calendar-alt"></i> 📆 Próximos turnos</h3>${proximosTurnos.length === 0 ? '<p>Sin turnos próximos.</p>' : `<ul>${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`}</div>
-   
-    
-    <div class="card" style="background:linear-gradient(135deg,#10B981,#34D399);color:white;"><h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : `<ul>${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`}</div>
 
-    <div class="card quick-access-card" onclick="navigateTo('scriptura')">
-    <i class="fas fa-bible" style="color: #C8972A;"></i>
-    <h3>Super Libro</h3>
-    <p>Lectura bíblica interactiva</p>
-</div>
+    const html = `
+        <div class="profile-avatar" style="background:rgba(255,255,255,0.2); width: 80px; height: 100px; margin:0; display: flex; align-items: center; justify-content: center; border-radius: 1rem; overflow: hidden;">
+            ${currentProfile?.avatar_url ? 
+                `<img src="${currentProfile.avatar_url}" style="width: 100%; height: 100%; object-fit: contain;">` :
+                (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user fa-3x"></i>`)
+            }
+        </div>
 
-   
- 
-   
-    <div class="grid" style="margin-top:1.5rem;"><div class="card quick-access-card" onclick="navigateTo('profile')"><i class="fas fa-user" style="color:var(--primary);"></i><h3>Mi perfil</h3></div><div class="card quick-access-card" onclick="navigateTo('myShifts')"><i class="fas fa-calendar-alt" style="color:#F59E0B;"></i><h3>Mis turnos</h3></div>
-    
-    <div class="card quick-access-card" onclick="navigateTo('resources')"><i class="fas fa-tools" style="color:#10B981;"></i><h3>Recursos</h3></div></div></div>`;
-    document.getElementById('mainContent').innerHTML = html; document.getElementById('actionHeader').innerHTML = '';
+        <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white;">
+            <h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3>
+            <p style="font-style:italic;">“${versiculo.texto}”</p>
+            <p style="text-align:right;">— ${versiculo.ref}</p>
+        </div>
 
-      <div class="card quick-access-card" onclick="window.abrirDashboardEvaluaciones()" style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: white; border: none;">
-    <i class="fas fa-chart-line" style="color: white;"></i>
-    <h3 style="color: white;">Evaluaciones G‑SUITE</h3>
-    <p style="color: rgba(255,255,255,0.9);">Ver rendimiento de Alabanza y Danza</p>
-</div>
-    
-    
-loadMonthBirthdays();
+        <!-- Widget de cumpleañeros del mes -->
+        <div class="premium-widget">
+            <div class="widget-header">
+                <h3><i class="fas fa-birthday-cake"></i> 🎂 Cumpleañeros de este mes</h3>
+            </div>
+            <div id="month-birthdays-container" class="birthday-grid">
+                <p class="text-muted">Cargando...</p>
+            </div>
+        </div>
+
+        <div class="card" style="background:linear-gradient(135deg,#F59E0B,#FCD34D);color:white;">
+            <h3><i class="fas fa-calendar-alt"></i> 📆 Próximos turnos</h3>
+            ${proximosTurnos.length === 0 ? '<p>Sin turnos próximos.</p>' : `<ul>${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`}
+        </div>
+
+        <div class="card" style="background:linear-gradient(135deg,#10B981,#34D399);color:white;">
+            <h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>
+            ${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : `<ul>${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`}
+        </div>
+
+        <div class="card quick-access-card" onclick="navigateTo('scriptura')">
+            <i class="fas fa-bible" style="color: #C8972A;"></i>
+            <h3>Super Libro</h3>
+            <p>Lectura bíblica interactiva</p>
+        </div>
+
+        <div class="grid" style="margin-top:1.5rem;">
+            <div class="card quick-access-card" onclick="navigateTo('profile')">
+                <i class="fas fa-user" style="color:var(--primary);"></i>
+                <h3>Mi perfil</h3>
+            </div>
+            <div class="card quick-access-card" onclick="navigateTo('myShifts')">
+                <i class="fas fa-calendar-alt" style="color:#F59E0B;"></i>
+                <h3>Mis turnos</h3>
+            </div>
+            <div class="card quick-access-card" onclick="navigateTo('resources')">
+                <i class="fas fa-tools" style="color:#10B981;"></i>
+                <h3>Recursos</h3>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Evaluaciones G‑SUITE (que estaba suelta) -->
+        <div class="card quick-access-card" onclick="window.abrirDashboardEvaluaciones()" style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: white; border: none;">
+            <i class="fas fa-chart-line" style="color: white;"></i>
+            <h3 style="color: white;">Evaluaciones G‑SUITE</h3>
+            <p style="color: rgba(255,255,255,0.9);">Ver rendimiento de Alabanza y Danza</p>
+        </div>
+    `;
+
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('actionHeader').innerHTML = '';
+    loadMonthBirthdays();
 }
 
 // ========== CANCIONERO ==========
