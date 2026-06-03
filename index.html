@@ -1441,7 +1441,30 @@ body.dark .card-category {
     margin-bottom: 1.5rem !important;
 }
 
-        
+ /* =========================================
+   SOLUCIÓN DEFINITIVA: ÍCONO G-PRAISE
+   ========================================= */
+
+/* Limpiamos cualquier contenido previo que esté ocultando el ícono */
+.app-header .app-title::before {
+    content: '' !important;
+    display: inline-block !important;
+    width: 28px !important;
+    height: 28px !important;
+    margin-right: 10px !important;
+    
+    /* Esta es la silueta exacta de tu logo */
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolygon points='10 8 16 12 10 16 10 8'/%3E%3Cpath d='M6 12h.01M18 12h.01'/%3E%3C/svg%3E") no-repeat center / contain;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolygon points='10 8 16 12 10 16 10 8'/%3E%3Cpath d='M6 12h.01M18 12h.01'/%3E%3C/svg%3E") no-repeat center / contain;
+    
+    /* Aplicamos el color degradado */
+    background: linear-gradient(135deg, #C8972A, #f5d061) !important;
+}
+
+/* Si tu HTML ya tiene un ícono allí y se ve mal, ocultémoslo para que el nuevo brille */
+.app-title i, .app-title img {
+    display: none !important;
+}       
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
