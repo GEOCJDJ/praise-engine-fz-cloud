@@ -1769,6 +1769,95 @@ body.dark #gpraise-aula-shield .bg-gray-200.rounded-full {
     height: 100% !important;
     border-radius: 10px !important;
 }       
+/* ==========================================================================
+   FIX TOTAL DE CONTRASTE Y MODERNIZACIÓN INTEGRAL (AULA VIRTUAL)
+   ========================================================================== */
+
+/* 1. TEXTOS PRINCIPALES ULTRA NÍTIDOS */
+#gpraise-aula-shield h3, 
+#gpraise-aula-shield h4,
+#gpraise-aula-shield .font-bold,
+#gpraise-aula-shield .font-semibold {
+    color: #0f172a !important; /* Negro profundo de alta fidelidad */
+}
+
+/* Textos secundarios y descripciones legibles */
+#gpraise-aula-shield p,
+#gpraise-aula-shield .text-sm,
+#gpraise-aula-shield .text-xs {
+    color: #334155 !important; /* Gris oscuro texturizado para lectura cómoda */
+}
+
+/* Adaptación automática para el Modo Oscuro */
+body.dark #gpraise-aula-shield h3, 
+body.dark #gpraise-aula-shield h4,
+body.dark #gpraise-aula-shield .font-bold,
+body.dark #gpraise-aula-shield .font-semibold {
+    color: #f8fafc !important; /* Blanco tiza nítido */
+}
+body.dark #gpraise-aula-shield p,
+body.dark #gpraise-aula-shield .text-sm,
+body.dark #gpraise-aula-shield .text-xs {
+    color: #cbd5e1 !important; /* Gris claro de alta legibilidad */
+}
+
+/* 2. REEMPLAZO DE FONDOS OPACOS (Adiós al efecto Windows XP del Devocional y otros) */
+#gpraise-aula-shield .bg-amber-50,
+#gpraise-aula-shield .bg-blue-50,
+#gpraise-aula-shield .bg-green-50,
+#gpraise-aula-shield .bg-purple-50,
+#gpraise-aula-shield .bg-slate-50,
+#gpraise-aula-shield .bg-gray-50,
+#gpraise-aula-shield .bg-indigo-50 {
+    background: rgba(248, 250, 252, 0.8) !important; /* Fondo sutil y limpio */
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    border-radius: 1rem !important;
+    padding: 1.25rem !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.01) !important;
+}
+
+/* Fondos internos en Modo Oscuro */
+body.dark #gpraise-aula-shield .bg-amber-50,
+body.dark #gpraise-aula-shield .bg-blue-50,
+body.dark #gpraise-aula-shield .bg-green-50,
+body.dark #gpraise-aula-shield .bg-purple-50,
+body.dark #gpraise-aula-shield .bg-slate-50,
+body.dark #gpraise-aula-shield .bg-gray-50,
+body.dark #gpraise-aula-shield .bg-indigo-50 {
+    background: rgba(30, 41, 59, 0.4) !important; /* Fondo oscuro integrado */
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 3. CORRECCIÓN DE COLORES APAGADOS EN LOS TEXTOS INTERNOS */
+#gpraise-aula-shield .text-amber-700,
+#gpraise-aula-shield .text-blue-700,
+#gpraise-aula-shield .text-green-700,
+#gpraise-aula-shield .text-purple-700,
+#gpraise-aula-shield .text-gray-700,
+#gpraise-aula-shield .text-amber-800,
+#gpraise-aula-shield .text-blue-800,
+#gpraise-aula-shield .text-indigo-700 {
+    color: #1e293b !important;
+}
+
+body.dark #gpraise-aula-shield .text-amber-700,
+body.dark #gpraise-aula-shield .text-blue-700,
+body.dark #gpraise-aula-shield .text-green-700,
+body.dark #gpraise-aula-shield .text-purple-700,
+body.dark #gpraise-aula-shield .text-gray-700,
+body.dark #gpraise-aula-shield .text-amber-800,
+body.dark #gpraise-aula-shield .text-blue-800,
+body.dark #gpraise-aula-shield .text-indigo-700 {
+    color: #e2e8f0 !important;
+}
+
+/* 4. BADGES DE ESTADO ESTILIZADOS (Ej: "Completado", "Pendiente") */
+#gpraise-aula-shield .rounded-full.px-2.py-1,
+#gpraise-aula-shield .rounded-md.px-2.py-1,
+#gpraise-aula-shield span[class*="text-xs"] {
+    font-weight: 600 !important;
+    letter-spacing: 0.3px;
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
