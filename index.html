@@ -5945,14 +5945,12 @@ async function renderMoodle() {
             }
             #gpraise-aula-shield * { box-sizing: border-box; }
             
-            /* Contenedor principal */
             .av-container {
                 max-width: 1200px;
                 margin: 0 auto;
                 padding: 1.5rem;
             }
             
-            /* Grillas */
             .av-grid-3 {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -5969,7 +5967,6 @@ async function renderMoodle() {
                 .av-grid-2 { grid-template-columns: 1fr; }
             }
             
-            /* Tarjetas de estadísticas */
             .av-stat-card {
                 background: var(--surface);
                 border: 1px solid var(--border);
@@ -6007,7 +6004,6 @@ async function renderMoodle() {
                 line-height: 1;
             }
             
-            /* Flashcard 3D */
             .av-flashcard-wrapper {
                 perspective: 1000px;
                 height: 260px;
@@ -6052,7 +6048,6 @@ async function renderMoodle() {
                 transform: rotateY(180deg);
             }
             
-            /* Leaderboard */
             .av-rank-box {
                 background: var(--surface);
                 border: 1px solid var(--border);
@@ -6092,7 +6087,6 @@ async function renderMoodle() {
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             }
             
-            /* Tarjetas de cursos premium */
             .av-course-card {
                 background: var(--surface);
                 border: 1px solid var(--border);
@@ -6164,7 +6158,6 @@ async function renderMoodle() {
                 background: #B48624;
             }
             
-            /* Pestañas */
             .av-tabs {
                 display: flex;
                 gap: 0.5rem;
@@ -6193,7 +6186,6 @@ async function renderMoodle() {
                 color: white;
             }
             
-            /* Contenido de pestañas */
             .av-tab-content {
                 display: none;
             }
@@ -6243,29 +6235,46 @@ async function renderMoodle() {
 
     // Inicializar pestañas
     document.querySelectorAll('#gpraise-aula-shield .av-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
+        tab.addEventListener('click', async () => {
             const tabId = tab.getAttribute('data-tab');
             document.querySelectorAll('#gpraise-aula-shield .av-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             document.querySelectorAll('#gpraise-aula-shield .av-tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById(`av-tab-${tabId}`).classList.add('active');
+            
             // Cargar contenido dinámico según la pestaña
             if (tabId === 'inicio') cargarInicioGemini();
             else if (tabId === 'cursos') cargarCursosGemini();
             else if (tabId === 'evaluaciones') cargarEvaluacionesGemini();
             else if (tabId === 'tareas') cargarTareasGemini();
-            else if (tabId === 'devocional') cargarDevocionalUI();
+            else if (tabId === 'devocional') {
+                // Verificar si es domingo
+                const hoy = new Date();
+                if (hoy.getDay() === 0) { // Domingo
+                    document.getElementById('av-tab-devocional').innerHTML = `
+                        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg" style="background: rgba(245,158,11,0.1); border-left-color: #f59e0b;">
+                            <h3 class="font-bold text-amber-800">📖 Evaluación del Mensaje</h3>
+                            <p class="text-sm">Hoy es domingo. Reflexiona sobre la prédica y responde las preguntas.</p>
+                            <button class="btn btn-primary mt-2" onclick="cargarEvaluacionPredica()">Responder Evaluación</button>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('av-tab-devocional').innerHTML = '<div id="devocionalContent">Cargando devocional...</div>';
+                    await cargarDevocionalDelDia();
+                }
+            }
             else if (tabId === 'retos') cargarRetosGemini();
         });
     });
 
-    // Cargar contenido inicial
+    // Cargar contenido inicial (pestaña activa = "inicio")
     cargarInicioGemini();
     cargarEvaluacionesGemini();
     cargarTareasGemini();
-    cargarDevocionalUI();
+    // No cargar devocional automáticamente, solo cuando se active la pestaña
     cargarRetosGemini();
 }
+    
 
 // ========== FUNCIONES AUXILIARES ==========
 function generarEstrellasGemini() {
