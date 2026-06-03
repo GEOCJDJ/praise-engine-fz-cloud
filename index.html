@@ -1434,11 +1434,11 @@ body.dark .card-category {
 
        
 #mainContent .grid {
-    gap: 2rem !important;  /* antes solía ser 1rem o 1.5rem */
+    gap: 1.5rem !important;  /* antes solía ser 1rem o 1.5rem */
 }
 
 #mainContent .card {
-    margin-bottom: 1.5rem !important;
+    margin-bottom: 1.75rem !important;
 }
 
  /* =========================================
@@ -1465,6 +1465,98 @@ body.dark .card-category {
 .app-title i, .app-title img {
     display: none !important;
 }       
+
+/* ==========================================================================
+   IMPLEMENTACIÓN: SKELETON LOADERS & NAVEGACIÓN STICKY EFECTO SCROLL
+   ========================================================================== */
+
+/* --- 1. SKELETON LOADERS (Para estados de carga fluidos y elegantes) --- */
+
+/* Animación de brillo metálico pasando de izquierda a derecha */
+@keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Clase base para cualquier elemento que esté cargando */
+.skeleton-loading {
+    background: linear-gradient(90deg, var(--bg-secondary, #f1f5f9) 25%, var(--border, #e2e8f0) 37%, var(--bg-secondary, #f1f5f9) 63%) !important;
+    background-size: 200% 100% !important;
+    animation: skeleton-shimmer 1.4s ease infinite !important;
+    color: transparent !important;
+    border-color: transparent !important;
+    pointer-events: none !important; /* Evita clics accidentales mientras carga */
+}
+
+/* Modificadores opcionales para usar en texto o imágenes si lo necesitas en el frontend */
+.skeleton-text {
+    height: 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    width: 100%;
+}
+.skeleton-title {
+    height: 20px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    width: 60%;
+}
+
+/* Adaptación automática del Skeleton al Modo Oscuro */
+body.dark .skeleton-loading {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 37%, #1e293b 63%) !important;
+    background-size: 200% 100% !important;
+}
+
+
+/* --- 3. NAVEGACIÓN STICKY CON EFECTO SCROLL --- */
+
+/* Aseguramos que la cabecera se mantenga fija en la parte superior de forma nativa */
+.app-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    will-change: transform, background, box-shadow;
+}
+
+/* Efecto dinámico de reducción y profundidad mediante CSS moderno.
+   Cuando el usuario baja en la app, la cabecera se adapta elegantemente */
+@supports (animation-timeline: scroll()) {
+    @keyframes shrink-header {
+        to {
+            padding-top: 0.6rem !important;
+            padding-bottom: 0.6rem !important;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.12) !important;
+            background: rgba(255, 255, 255, 0.75) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+        }
+    }
+    
+    @keyframes shrink-header-dark {
+        to {
+            padding-top: 0.6rem !important;
+            padding-bottom: 0.6rem !important;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5) !important;
+            background: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+        }
+    }
+
+    .app-header {
+        animation: shrink-header linear both;
+        animation-timeline: scroll(root);
+        animation-range: 0px 80px; /* El efecto se completa tras bajar 80px */
+    }
+
+    body.dark .app-header {
+        animation: shrink-header-dark linear both;
+        animation-timeline: scroll(root);
+        animation-range: 0px 80px;
+    }
+}        
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
