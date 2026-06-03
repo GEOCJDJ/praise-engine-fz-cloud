@@ -1858,6 +1858,204 @@ body.dark #gpraise-aula-shield .text-indigo-700 {
     font-weight: 600 !important;
     letter-spacing: 0.3px;
 }
+
+        /* ==========================================================================
+   G-PRAISE AULA VIRTUAL: REDISEÑO COMPLETO INTERACTIVO DE ALTA GAMA
+   ========================================================================== */
+
+/* 1. CONTENEDOR MAESTRO Y PESTAÑAS DE NAVEGACIÓN SUB-MÓDULO */
+#gpraise-aula-shield {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Rediseño de la barra de pestañas (Cursos, Evaluaciones, Tareas, etc.) */
+#gpraise-aula-shield .flex.border-b,
+#gpraise-aula-shield .av-tabs-container {
+    background: rgba(var(--primary-rgb, 30, 58, 138), 0.03) !important;
+    padding: 0.5rem !important;
+    border-radius: 1.25rem !important;
+    border: 1px solid rgba(0, 0, 0, 0.04) !important;
+    display: inline-flex !important;
+    width: 100% !important;
+    overflow-x: auto;
+    gap: 0.25rem;
+    margin-bottom: 2rem !important;
+    backdrop-filter: blur(8px);
+}
+
+body.dark #gpraise-aula-shield .flex.border-b {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Estilo de cada pestaña individual desmarcada */
+#gpraise-aula-shield .av-tab,
+#gpraise-aula-shield .flex.border-b button,
+#gpraise-aula-shield [onclick*="cambiarTab"] {
+    border: none !important;
+    border-radius: 0.9rem !important;
+    padding: 0.6rem 1.2rem !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    color: #64748b !important;
+    background: transparent !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Pestaña Activa (Fuerza la identidad de marca Dorada Premium) */
+#gpraise-aula-shield .av-tab.active,
+#gpraise-aula-shield .flex.border-b button[class*="border-b-2"],
+#gpraise-aula-shield .flex.border-b button:active {
+    background: #ffffff !important;
+    color: #C8972A !important; /* Dorado principal */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    border-bottom: none !important;
+}
+
+body.dark #gpraise-aula-shield .av-tab.active,
+body.dark #gpraise-aula-shield .flex.border-b button[class*="border-b-2"] {
+    background: #1e293b !important;
+    color: #f5d061 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 2. ARQUITECTURA DE TARJETAS PREMIUM (Cursos, Tareas, Retos, Devocionales) */
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border,
+#gpraise-aula-shield .bg-slate-50.p-4.rounded-lg,
+#gpraise-aula-shield .card-moodle-item {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: 1.25rem !important;
+    padding: 1.5rem !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+body.dark #gpraise-aula-shield .bg-white.p-4.rounded-lg.border,
+body.dark #gpraise-aula-shield .bg-slate-50.p-4.rounded-lg {
+    background: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Hover con sutil iluminación perimetral */
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border:hover,
+#gpraise-aula-shield .bg-slate-50.p-4.rounded-lg:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 30px -5px rgba(200, 151, 42, 0.12) !important;
+    border-color: rgba(200, 151, 42, 0.25) !important;
+}
+
+/* 3. ASIGNACIÓN DE BORDES LATERALES INTELIGENTES (Líneas de estado) */
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border:has(.fa-book),
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border:has([class*="bg-blue-100"]) {
+    border-left: 4px solid #3b82f6 !important; /* Azul para cursos/lecciones */
+}
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border:has(.fa-clock),
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border:has([class*="bg-amber-100"]),
+#gpraise-aula-shield .bg-amber-50 {
+    border-left: 4px solid #f59e0b !important; /* Ámbar/Naranja para pendientes/devocional */
+}
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border:has(.fa-check-circle),
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border:has([class*="bg-green-100"]) {
+    border-left: 4px solid #10b981 !important; /* Verde para completados/retos */
+}
+
+/* 4. BLINDAJE DE CONTRASTE ABSOLUTO PARA TEXTOS DE CONTENIDO */
+#gpraise-aula-shield h3,
+#gpraise-aula-shield h4,
+#gpraise-aula-shield .font-bold {
+    color: #0f172a !important; /* Títulos ultra oscuros */
+    font-weight: 700 !important;
+    letter-spacing: -0.3px;
+}
+#gpraise-aula-shield p,
+#gpraise-aula-shield .text-sm {
+    color: #475569 !important; /* Texto de lectura refinado */
+    line-height: 1.6 !important;
+}
+
+body.dark #gpraise-aula-shield h3,
+body.dark #gpraise-aula-shield h4,
+body.dark #gpraise-aula-shield .font-bold {
+    color: #f8fafc !important;
+}
+body.dark #gpraise-aula-shield p,
+body.dark #gpraise-aula-shield .text-sm {
+    color: #cbd5e1 !important;
+}
+
+/* Neutralizar los textos de colores antiguos heredados del HTML original */
+#gpraise-aula-shield .text-amber-700,
+#gpraise-aula-shield .text-blue-700,
+#gpraise-aula-shield .text-green-700,
+#gpraise-aula-shield .text-amber-800 {
+    color: #1e293b !important;
+    font-weight: 500 !important;
+}
+body.dark #gpraise-aula-shield .text-amber-700,
+body.dark #gpraise-aula-shield .text-blue-700,
+body.dark #gpraise-aula-shield .text-green-700 {
+    color: #e2e8f0 !important;
+}
+
+/* 5. ELIMINAR FONDOS OPACOS INTERNOS DE TAILWIND */
+#gpraise-aula-shield .bg-amber-50,
+#gpraise-aula-shield .bg-blue-50,
+#gpraise-aula-shield .bg-green-50,
+#gpraise-aula-shield .bg-purple-50 {
+    background: rgba(var(--primary-rgb, 30, 58, 138), 0.02) !important;
+    border: 1px solid rgba(0, 0, 0, 0.04) !important;
+    border-radius: 1rem !important;
+}
+body.dark #gpraise-aula-shield .bg-amber-50,
+body.dark #gpraise-aula-shield .bg-blue-50 {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 6. ICONOS FLOTANTES CON DISEÑO CIRCULAR LIMPIO */
+#gpraise-aula-shield .bg-blue-100,
+#gpraise-aula-shield .bg-green-100,
+#gpraise-aula-shield .bg-amber-100,
+#gpraise-aula-shield .bg-purple-100 {
+    background: rgba(200, 151, 42, 0.08) !important; /* Fondo sutil dorado de la app */
+    color: #C8972A !important;
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 50% !important; /* Iconos circulares modernos */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    font-size: 1.1rem !important;
+}
+
+/* 7. BOTONES DE ACCIÓN MÁS PROFESIONALES */
+#gpraise-aula-shield button.bg-blue-600,
+#gpraise-aula-shield button.bg-indigo-600,
+#gpraise-aula-shield button.bg-amber-500 {
+    background: linear-gradient(135deg, #C8972A, #e6b341) !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 600 !important;
+    border-radius: 1rem !important;
+    padding: 0.6rem 1.2rem !important;
+    box-shadow: 0 4px 14px rgba(200, 151, 42, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+
+#gpraise-aula-shield button.bg-blue-600:hover,
+#gpraise-aula-shield button.bg-indigo-600:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(200, 151, 42, 0.4) !important;
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
