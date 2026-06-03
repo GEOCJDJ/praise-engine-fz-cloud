@@ -3124,12 +3124,7 @@ console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentU
     
     function navigateTo(tab) { currentTab = tab; document.querySelectorAll('.nav-item[data-tab]').forEach(el => { if (el.dataset.tab === tab) el.classList.add('active'); else el.classList.remove('active'); }); renderCurrentView(); }
 
-// ========== VISTA HOME ==========
 async function renderHome() {
-    const esAdminGeneral = isAdminUser === true || isIglesiaAdmin === true || (currentProfile && currentProfile.rol === 'admin');
-    const esAdminAlabanza = isEquipoAdmin && equipoAdminData?.nombre === 'Alabanza';
-    const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
-
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
     const miembroId = miembro?.id;
     let proximosTurnos = [];
@@ -3146,12 +3141,9 @@ async function renderHome() {
         .eq('iglesia_id', currentIglesiaId)
         .order('fecha');
     
-    const hoy = new Date(); // ⚠️ ya no redeclaramos, usamos la variable definida arriba. Pero mejor usar una variable nueva si está en diferente bloque.
-    // Como la primera 'hoy' está dentro de un bloque if, no afecta. Pero lo aclaramos:
-    // Mejor usar una variable diferente para evitar confusiones:
-    const fechaHoy = new Date();
-    fechaHoy.setHours(0, 0, 0, 0);
-    const proximasActividades = (actividades || []).filter(a => new Date(a.fecha.split('/').reverse().join('-')) >= fechaHoy).slice(0, 4);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const proximasActividades = (actividades || []).filter(a => new Date(a.fecha.split('/').reverse().join('-')) >= hoy).slice(0, 4);
 
     let cancionSugerida = songs.length ? songs[Math.floor(Math.random() * songs.length)] : null;
     const versiculos = [
@@ -3167,18 +3159,25 @@ async function renderHome() {
         deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    const html = `
-        <div class="profile-avatar" style="background:rgba(255,255,255,0.2); width: 80px; height: 100px; margin:0; display: flex; align-items: center; justify-content: center; border-radius: 1rem; overflow: hidden;">
+    // Generar avatar HTML (común para usar dentro del versículo)
+    const avatarHtml = `
+        <div style="flex-shrink: 0; width: 70px; height: 70px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgba(255,255,255,0.5);">
             ${currentProfile?.avatar_url ? 
-                `<img src="${currentProfile.avatar_url}" style="width: 100%; height: 100%; object-fit: contain;">` :
-                (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user fa-3x"></i>`)
+                `<img src="${currentProfile.avatar_url}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user fa-2x"></i>`)
             }
         </div>
+    `;
 
-        <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white;">
-            <h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3>
-            <p style="font-style:italic;">“${versiculo.texto}”</p>
-            <p style="text-align:right;">— ${versiculo.ref}</p>
+    const html = `
+        <!-- Tarjeta del versículo con avatar integrado -->
+        <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white; padding: 1rem; display: flex; align-items: center; gap: 1rem;">
+            ${avatarHtml}
+            <div style="flex:1;">
+                <h3 style="margin:0 0 0.25rem 0;"><i class="fas fa-bible"></i> 📖 Versículo del día</h3>
+                <p style="font-style:italic; margin:0 0 0.5rem 0;">“${versiculo.texto}”</p>
+                <p style="text-align:right; margin:0;">— ${versiculo.ref}</p>
+            </div>
         </div>
 
         <!-- Widget de cumpleañeros del mes -->
@@ -3222,7 +3221,6 @@ async function renderHome() {
             </div>
         </div>
 
-        <!-- Tarjeta de Evaluaciones G‑SUITE (que estaba suelta) -->
         <div class="card quick-access-card" onclick="window.abrirDashboardEvaluaciones()" style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: white; border: none;">
             <i class="fas fa-chart-line" style="color: white;"></i>
             <h3 style="color: white;">Evaluaciones G‑SUITE</h3>
