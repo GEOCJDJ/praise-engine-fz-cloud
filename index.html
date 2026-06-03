@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <title>G-Praise® | G DIGITAL SUITE by GIO DESIGNS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C8972A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolygon points='10 8 16 12 10 16 10 8'/%3E%3Cpath d='M6 12h.01M18 12h.01'/%3E%3C/svg%3E">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -1276,6 +1278,66 @@ body.light .premium-birthday-card {
     font-weight: 700;
     margin-bottom: 0.5rem;
 }
+
+ /* ===== COLORES PERSONALIZADOS PARA ÍCONOS DEL MENÚ ===== */
+.nav-item i {
+    transition: all 0.2s ease;
+}
+
+/* Icono de la app en el header */
+.app-title i {
+    background: linear-gradient(135deg, #C8972A, #F59E0B);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Colores por módulo (modo claro) */
+.nav-item[data-tab="home"] i { color: #3b82f6; }
+.nav-item[data-tab="fzkids"] i { color: #ec4899; }
+.nav-item[data-tab="fzhost"] i { color: #f59e0b; }
+.nav-item[data-tab="agenda"] i { color: #8b5cf6; }
+.nav-item[data-tab="planner"] i { color: #a855f7; }
+.nav-item[data-tab="songs"] i { color: #10b981; }
+.nav-item[data-tab="favorites"] i { color: #ef4444; }
+.nav-item[data-tab="lists"] i { color: #f97316; }
+.nav-item[data-tab="resources"] i { color: #06b6d4; }
+.nav-item[data-tab="moodle"] i { color: #14b8a6; }
+.nav-item[data-tab="gnotes"] i { color: #d946ef; }
+.nav-item[data-tab="gdesk"] i { color: #6366f1; }
+.nav-item[data-tab="gmedia"] i { color: #ec4899; }
+.nav-item[data-tab="scriptura"] i { color: #c8972a; }
+.nav-item[data-tab="profile"] i { color: #64748b; }
+.nav-item[data-tab="admin"] i { color: #ef4444; }
+.nav-item#notificacionesBtn i { color: #f97316; }
+
+/* Modo oscuro: colores ligeramente más vivos */
+body.dark .nav-item[data-tab="home"] i { color: #60a5fa; }
+body.dark .nav-item[data-tab="fzkids"] i { color: #f472b6; }
+body.dark .nav-item[data-tab="fzhost"] i { color: #fbbf24; }
+body.dark .nav-item[data-tab="agenda"] i { color: #a78bfa; }
+body.dark .nav-item[data-tab="planner"] i { color: #c084fc; }
+body.dark .nav-item[data-tab="songs"] i { color: #34d399; }
+body.dark .nav-item[data-tab="favorites"] i { color: #f87171; }
+body.dark .nav-item[data-tab="lists"] i { color: #fb923c; }
+body.dark .nav-item[data-tab="resources"] i { color: #22d3ee; }
+body.dark .nav-item[data-tab="moodle"] i { color: #2dd4bf; }
+body.dark .nav-item[data-tab="gnotes"] i { color: #e879f9; }
+body.dark .nav-item[data-tab="gdesk"] i { color: #818cf8; }
+body.dark .nav-item[data-tab="gmedia"] i { color: #f472b6; }
+body.dark .nav-item[data-tab="scriptura"] i { color: #fbbf24; }
+body.dark .nav-item[data-tab="profile"] i { color: #94a3b8; }
+body.dark .nav-item[data-tab="admin"] i { color: #f87171; }
+body.dark .nav-item#notificacionesBtn i { color: #fb923c; }
+
+/* Ajuste para el estado activo: fondo suave y el icono mantiene su color */
+.nav-item.active {
+    background: rgba(var(--primary-rgb), 0.15);
+}
+.nav-item.active i {
+    background: transparent !important;
+    color: inherit !important;
+}       
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -2740,7 +2802,18 @@ function renderApp() {
 
     // Admin global (sin iglesia seleccionada)
     if (!currentIglesiaId && isAdminUser) {
-        document.getElementById('appRoot').innerHTML = `<header class="app-header"><div class="app-title" id="easterEggTitle"><i class="fas fa-church"></i> G-Praise®Cloud <small>Admin General</small></div><div class="nav-icons"><div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div><div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div id="actionHeader" style="margin-bottom:1rem;"></div><div id="mainContent"></div></div>
+        document.getElementById('appRoot').innerHTML = `<header class="app-header">
+
+        <div class="app-title" id="easterEggTitle">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+        <circle cx="12" cy="12" r="10"/>
+        <polygon points="10 8 16 12 10 16 10 8"/>
+        <path d="M6 12h.01M18 12h.01"/>
+    </svg>
+    G-Praise®Cloud <small>| ${currentIglesiaData?.nombre || 'Cargando...'}</small>
+</div>
+        
+        <div class="nav-icons"><div class="nav-item ${currentTab === 'admin' ? 'active' : ''}" data-tab="admin"><i class="fas fa-lock"></i><span>ADMIN</span></div><div class="user-info"><i class="fas fa-user-circle"></i> ${escapeHtml(currentProfile?.nombre || currentUser.email)} <button class="btn-icon" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>Modo Oscuro</span></div></div></header><div class="container"><div id="actionHeader" style="margin-bottom:1rem;"></div><div id="mainContent"></div></div>
         <footer class="app-footer">
             <div class="footer-content">
                 <div class="footer-logo"><i class="fas fa-church"></i> G-Praise®</div>
