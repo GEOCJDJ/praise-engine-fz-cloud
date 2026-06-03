@@ -7388,7 +7388,7 @@ async function adminUserManagement() {
         .eq('iglesia_id', currentIglesiaId);
     if (error) return showToast("Error: " + error.message);
 
-    // Obtener departamentos y equipos
+    // Obtener departamentos y equipos (para mostrar en la tabla)
     const { data: deptosActuales } = await supabaseClient
         .from('departamentos')
         .select('*')
@@ -7408,7 +7408,7 @@ async function adminUserManagement() {
         equiposPorArea[e.padre_id].push(e);
     });
 
-    // ========== RENDER TABLA PRINCIPAL ==========
+    // ========== RENDER TABLA PRINCIPAL (igual que antes) ==========
     let html = `
         <div style="max-width: 1400px; margin: 0 auto;">
             <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -7507,8 +7507,9 @@ async function adminUserManagement() {
         };
     }
 
-    // ========== FUNCIÓN PARA ABRIR MODAL DE EDICIÓN DE USUARIO ==========
+    // ========== FUNCIÓN PARA ABRIR MODAL DE EDICIÓN DE USUARIO (CON RECARGA FRESCA DE DEPARTAMENTOS) ==========
     window.abrirModalEditarUsuario = async (miembroId, userId) => {
+        // Obtener datos del miembro
         const { data: miembro, error: errMiembro } = await supabaseClient
             .from('usuarios_iglesia')
             .select('*, perfiles(nombre, email, rol)')
@@ -7519,17 +7520,47 @@ async function adminUserManagement() {
             return;
         }
         const perfil = miembro.perfiles;
-        const deptoActual = departamentosActuales.find(d => d.id === miembro.departamento_id);
+        
+        // 🔄 RECARGAR DEPARTAMENTOS FRESCOS DESDE SUPABASE (¡clave para que aparezcan!)
+        const { data: deptosFrescos } = await supabaseClient
+            .from('departamentos')
+            .select('*')
+            .eq('iglesia_id', currentIglesiaId);
+        const todosDeptos = deptosFrescos || [];
+        
+        // Clasificar áreas (padre_id null y no GENERAL) y equipos (padre_id no null)
+        const areasFrescas = todosDeptos.filter(d => d.padre_id === null && d.nombre !== 'GENERAL');
+        const equiposFrescos = todosDeptos.filter(d => d.padre_id !== null && d.nombre !== 'GENERAL');
+        
+        // Agrupar equipos por área
+        const equiposPorAreaFrescos = {};
+        equiposFrescos.forEach(e => {
+            if (!equiposPorAreaFrescos[e.padre_id]) equiposPorAreaFrescos[e.padre_id] = [];
+            equiposPorAreaFrescos[e.padre_id].push(e);
+            equiposPorAreaFrescos[e.padre_id].sort((a,b) => a.nombre.localeCompare(b.nombre));
+        });
+        
+        const deptoActual = todosDeptos.find(d => d.id === miembro.departamento_id);
         const areaActual = deptoActual?.padre_id || '';
         const equipoActual = miembro.departamento_id || '';
 
-        // Opciones de áreas (solo las que tienen equipos o se quieran mostrar)
-        const areasHtml = `<option value="">Sin área</option>` + areas.map(a => `<option value="${a.id}" ${areaActual === a.id ? 'selected' : ''}>${escapeHtml(a.nombre)}</option>`).join('');
+        // Generar HTML del selector de áreas
+        let areasHtml = `<option value="">Sin área</option>`;
+        areasFrescas.forEach(a => {
+            areasHtml += `<option value="${a.id}" ${areaActual === a.id ? 'selected' : ''}>${escapeHtml(a.nombre)}</option>`;
+        });
         
-        // Función para generar opciones de equipos según área
+        // Función para generar opciones de equipos según área seleccionada
         const generarEquiposHtml = (areaId, selectedEquipoId = null) => {
-            const equiposLista = equiposPorArea[areaId] || [];
-            return '<option value="">Selecciona un equipo</option>' + equiposLista.map(eq => `<option value="${eq.id}" ${selectedEquipoId === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('');
+            const equiposLista = equiposPorAreaFrescos[areaId] || [];
+            if (equiposLista.length === 0) {
+                return '<option value="">⚠️ No hay equipos en esta área</option>';
+            }
+            let opts = '<option value="">Selecciona un equipo</option>';
+            equiposLista.forEach(eq => {
+                opts += `<option value="${eq.id}" ${selectedEquipoId === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`;
+            });
+            return opts;
         };
         
         const equiposHtml = generarEquiposHtml(areaActual, equipoActual);
@@ -7593,7 +7624,7 @@ async function adminUserManagement() {
                     <label style="font-size:0.7rem;">Equipo que administra (si es Admin de Equipo)</label>
                     <select id="editEquipoAdmin_${miembroId}" class="form-control">
                         <option value="">Ninguno</option>
-                        ${equipos.map(eq => `<option value="${eq.id}" ${miembro.equipo_id === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('')}
+                        ${equiposFrescos.map(eq => `<option value="${eq.id}" ${miembro.equipo_id === eq.id ? 'selected' : ''}>${escapeHtml(eq.nombre)}</option>`).join('')}
                     </select>
                 </div>
                 ${iglesiasSelectHtml}
@@ -7605,14 +7636,20 @@ async function adminUserManagement() {
         `;
         showModal(modalContent);
 
-        // Función para actualizar equipos según área seleccionada
+        // Función para actualizar equipos según área seleccionada (usa los datos frescos)
         window.actualizarEquiposEnModal = (id, areaId) => {
             const equipoSelect = document.getElementById(`editEquipo_${id}`);
+            if (!equipoSelect) return;
             if (!areaId) {
                 equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>';
             } else {
-                const equiposLista = equiposPorArea[areaId] || [];
-                equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + equiposLista.map(eq => `<option value="${eq.id}">${escapeHtml(eq.nombre)}</option>`).join('');
+                const equiposLista = equiposPorAreaFrescos[areaId] || [];
+                if (equiposLista.length === 0) {
+                    equipoSelect.innerHTML = '<option value="">⚠️ No hay equipos en esta área</option>';
+                } else {
+                    equipoSelect.innerHTML = '<option value="">Selecciona un equipo</option>' + 
+                        equiposLista.map(eq => `<option value="${eq.id}">${escapeHtml(eq.nombre)}</option>`).join('');
+                }
             }
             window.toggleRolMusicalEnModal(id);
         };
@@ -7620,15 +7657,16 @@ async function adminUserManagement() {
         // Función para mostrar/ocultar rol musical según el equipo seleccionado
         window.toggleRolMusicalEnModal = (id) => {
             const equipoSelect = document.getElementById(`editEquipo_${id}`);
-            const equipoId = equipoSelect.value;
+            const equipoId = equipoSelect?.value;
             const contenedor = document.getElementById(`rolMusicalContainer_${id}`);
+            if (!contenedor) return;
             if (!equipoId) {
                 contenedor.innerHTML = '';
                 return;
             }
-            const equipoObj = equipos.find(e => e.id === equipoId);
+            const equipoObj = equiposFrescos.find(e => e.id === equipoId);
             const nombreEquipo = equipoObj ? equipoObj.nombre.toLowerCase() : '';
-            const esEquipoAlabanza = nombreEquipo.includes('alabanza') || nombreEquipo.includes('música') || nombreEquipo.includes('artes');
+            const esEquipoAlabanza = nombreEquipo.includes('alabanza') || nombreEquipo.includes('música') || nombreEquipo.includes('artes') || nombreEquipo.includes('banda');
             if (esEquipoAlabanza) {
                 contenedor.innerHTML = `
                     <div>
@@ -7639,6 +7677,11 @@ async function adminUserManagement() {
                         </select>
                     </div>
                 `;
+                // Si el usuario ya tenía un rol musical, asignarlo
+                if (miembro && miembro.rol_musical) {
+                    const selectRol = document.getElementById(`editRolMusical_${id}`);
+                    if (selectRol) selectRol.value = miembro.rol_musical;
+                }
             } else {
                 contenedor.innerHTML = '';
             }
@@ -7648,7 +7691,7 @@ async function adminUserManagement() {
         window.toggleRolMusicalEnModal(miembroId);
     };
 
-    // ========== FUNCIÓN PARA GUARDAR EDICIÓN DE USUARIO ==========
+    // ========== FUNCIÓN PARA GUARDAR EDICIÓN DE USUARIO (sin cambios) ==========
     window.guardarEdicionUsuario = async (miembroId, userId) => {
         const nombre = document.getElementById(`editNombre_${miembroId}`).value.trim();
         const rolApp = document.getElementById(`editRol_${miembroId}`).value;
