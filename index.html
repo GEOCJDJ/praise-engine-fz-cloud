@@ -3146,13 +3146,63 @@ async function renderHome() {
     const proximasActividades = (actividades || []).filter(a => new Date(a.fecha.split('/').reverse().join('-')) >= hoy).slice(0, 4);
 
     let cancionSugerida = songs.length ? songs[Math.floor(Math.random() * songs.length)] : null;
-    const versiculos = [
+   const versiculosLista = [
         { texto: "Cantad a Dios, cantad salmos a su nombre; exaltad al que cabalga sobre los cielos", ref: "Salmo 68:4" },
         { texto: "Servid a Jehová con alegría; venid ante su presencia con regocijo", ref: "Salmo 100:2" },
         { texto: "Los verdaderos adoradores adorarán al Padre en espíritu y en verdad", ref: "Juan 4:23" },
-        { texto: "Vuestro trabajo en el Señor no es en vano", ref: "1 Corintios 15:58" }
+        { texto: "Vuestro trabajo en el Señor no es en vano", ref: "1 Corintios 15:58" },
+        { texto: "Alabadle con pandero y danza; alabadle con cuerdas y flautas", ref: "Salmo 150:4" },
+        { texto: "Cantadle cánticos nuevos; hacedlo con júbilo, con arte y con aclamación", ref: "Salmo 33:3" },
+        { texto: "Toda la tierra te adore, y te cante salmos; cante salmos a tu nombre", ref: "Salmo 66:4" },
+        { texto: "Dad gracias a Jehová, invocad su nombre; haced conocidas sus obras entre los pueblos", ref: "1 Crónicas 16:8" },
+        { texto: "El que canta con su espíritu, ora con su entendimiento también", ref: "1 Corintios 14:15" },
+        { texto: "Porque de él, y por él, y para él, son todas las cosas", ref: "Romanos 11:36" },
+        { texto: "En todo dad gracias, porque esta es la voluntad de Dios para vosotros", ref: "1 Tesalonicenses 5:18" },
+        { texto: "Toda buena dádiva y todo don perfecto desciende de lo alto", ref: "Santiago 1:17" },
+        { texto: "Alabad a Dios en su santuario; alabadle en la extensión de su poder", ref: "Salmo 150:1" },
+        { texto: "Cantad a Jehová cántico nuevo, porque ha hecho maravillas", ref: "Salmo 98:1" },
+        { texto: "Me alegraré y me regocijaré en ti; cantaré a tu nombre, oh Altísimo", ref: "Salmo 9:2" },
+        { texto: "Jehová es mi fortaleza y mi escudo; en él confió mi corazón", ref: "Salmo 28:7" },
+        { texto: "Clama a mí, y yo te responderé, y te enseñaré cosas grandes y ocultas", ref: "Jeremías 33:3" },
+        { texto: "El fruto del Espíritu es amor, gozo, paz, paciencia, benignidad, bondad, fe", ref: "Gálatas 5:22" },
+        { texto: "Por gracia sois salvos por medio de la fe; y esto no de vosotros, pues es don de Dios", ref: "Efesios 2:8" },
+        { texto: "Todo lo puedo en Cristo que me fortalece", ref: "Filipenses 4:13" },
+        { texto: "Porque donde están dos o tres congregados en mi nombre, allí estoy yo en medio de ellos", ref: "Mateo 18:20" },
+        { texto: "Buscad a Jehová mientras puede ser hallado, llamadle mientras está cercano", ref: "Isaías 55:6" },
+        { texto: "Someteos unos a otros en el temor de Dios", ref: "Efesios 5:21" },
+        { texto: "La paz de Dios gobierne en vuestros corazones, a la que también fuisteis llamados", ref: "Colosenses 3:15" },
+        { texto: "Sécase la hierba, marchítase la flor; mas la palabra del Dios nuestro permanece para siempre", ref: "Isaías 40:8" },
+        { texto: "Amémonos unos a otros, porque el amor es de Dios", ref: "1 Juan 4:7" },
+        { texto: "Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas", ref: "Mateo 6:33" },
+        { texto: "Venid a mí todos los que estáis trabajados y cargados, y yo os haré descansar", ref: "Mateo 11:28" },
+        { texto: "Yo soy el camino, la verdad y la vida; nadie viene al Padre sino por mí", ref: "Juan 14:6" },
+        { texto: "Si Dios es por nosotros, ¿quién contra nosotros?", ref: "Romanos 8:31" },
+        { texto: "El Señor es mi pastor; nada me faltará", ref: "Salmo 23:1" },
+        { texto: "Porque no nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio", ref: "2 Timoteo 1:7" },
+        { texto: "El que comenzó en vosotros la buena obra, la perfeccionará hasta el día de Jesucristo", ref: "Filipenses 1:6" },
+        { texto: "Acércate a Dios, y él se acercará a ti", ref: "Santiago 4:8" },
+        { texto: "Todo aquel que invocare el nombre del Señor, será salvo", ref: "Romanos 10:13" },
+        { texto: "El gozo de Jehová es vuestra fuerza", ref: "Nehemías 8:10" },
+        { texto: "¿Quién subirá al monte de Jehová? El limpio de manos y puro de corazón", ref: "Salmo 24:3-4" },
+        { texto: "Enséñame a hacer tu voluntad, porque tú eres mi Dios", ref: "Salmo 143:10" },
+        { texto: "Sé fuerte y valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo", ref: "Josué 1:9" },
+        { texto: "La palabra de Dios es viva y eficaz, y más cortante que toda espada de dos filos", ref: "Hebreos 4:12" },
+        { texto: "El amor de Cristo nos constriñe, creyendo que uno murió por todos", ref: "2 Corintios 5:14" },
+        { texto: "Porque somos hechura suya, creados en Cristo Jesús para buenas obras", ref: "Efesios 2:10" },
+        { texto: "Bendice, alma mía, a Jehová, y no olvides ninguno de sus beneficios", ref: "Salmo 103:2" },
+        { texto: "Es Dios quien obra en vosotros tanto el querer como el hacer, por su buena voluntad", ref: "Filipenses 2:13" },
+        { texto: "Vosotros sois la sal de la tierra; vosotros sois la luz del mundo", ref: "Mateo 5:13-14" },
+        { texto: "Todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres", ref: "Colosenses 3:23" },
+        { texto: "La justicia del justo será sobre él, y la maldad del impío será sobre él", ref: "Ezequiel 18:20" },
+        { texto: "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito", ref: "Juan 3:16" },
+        { texto: "El que no amó, no conoce a Dios; porque Dios es amor", ref: "1 Juan 4:8" },
+        { texto: "A Jehová vuestro Dios temeréis, y a él serviréis, y a él seguiréis", ref: "Deuteronomio 13:4" }
     ];
-    const versiculo = versiculos[Math.floor(Math.random() * versiculos.length)];
+    const ahora = new Date();
+    const inicioAño = new Date(ahora.getFullYear(), 0, 0);
+    const diaDelAño = Math.floor((ahora - inicioAño) / (1000 * 60 * 60 * 24));
+    const indiceVersiculo = diaDelAño % versiculosLista.length;
+    const versiculo = versiculosLista[indiceVersiculo];
     let deptoNombre = '';
     if (miembro && miembro.departamento_id) {
         const depto = departamentos.find(d => d.id === miembro.departamento_id);
@@ -3169,7 +3219,7 @@ async function renderHome() {
         </div>
     `;
 
-    const html = `
+  const html = `
         <!-- Tarjeta del versículo con avatar integrado -->
         <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white; padding: 1rem; display: flex; align-items: center; gap: 1rem;">
             ${avatarHtml}
@@ -3179,6 +3229,7 @@ async function renderHome() {
                 <p style="text-align:right; margin:0;">— ${versiculo.ref}</p>
             </div>
         </div>
+
 
         <!-- Widget de cumpleañeros del mes -->
         <div class="premium-widget">
