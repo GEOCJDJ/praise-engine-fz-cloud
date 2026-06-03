@@ -6530,6 +6530,224 @@ async function cargarDevocionalGemini() {
     devocionalGemini = data || null;
 }
 
+// ==================== DEVOCIONALES CON RACHA (STREAK) ====================
+
+// Obtener el progreso actual del usuario (desde Supabase)
+async function obtenerProgresoDevocional() {
+    if (!currentUser) return null;
+    const { data, error } = await supabaseClient
+        .from('perfiles_usuarios')
+        .select('racha_devocional, ultimo_devocional_fecha, ultimo_devocional_dia')
+        .eq('id', currentUser.id)
+        .single();
+    if (error && error.code !== 'PGRST116') {
+        console.error(error);
+        return null;
+    }
+    if (!data) {
+        // Crear registro si no existe
+        await supabaseClient.from('perfiles_usuarios').insert({
+            id: currentUser.id,
+            racha_devocional: 0,
+            ultimo_devocional_fecha: null,
+            ultimo_devocional_dia: 0
+        });
+        return { racha_devocional: 0, ultimo_devocional_fecha: null, ultimo_devocional_dia: 0 };
+    }
+    return data;
+}
+
+// Calcular el día secuencial que le corresponde al usuario (excluyendo domingos)
+async function obtenerDiaDevocionalActual() {
+    const progreso = await obtenerProgresoDevocional();
+    if (!progreso) return 1;
+    
+    // Si es la primera vez o no ha registrado ningún día, empieza desde 1
+    const ultimoDiaCompletado = progreso.ultimo_devocional_dia || 0;
+    const ultimaFecha = progreso.ultimo_devocional_fecha ? new Date(progreso.ultimo_devocional_fecha) : null;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    // Si nunca ha completado ninguno, día 1
+    if (ultimoDiaCompletado === 0) return 1;
+    
+    // Si ya completó hoy, devolver el mismo día (ya leído)
+    if (ultimaFecha && ultimaFecha.getTime() === hoy.getTime()) {
+        return ultimoDiaCompletado;
+    }
+    
+    // Determinar cuántos días hábiles han pasado desde su última lectura
+    // Contamos solo lunes a sábado
+    let diasHabiles = 0;
+    let fechaTemp = new Date(ultimaFecha);
+    fechaTemp.setDate(fechaTemp.getDate() + 1);
+    while (fechaTemp <= hoy) {
+        if (fechaTemp.getDay() !== 0) { // 0 = domingo
+            diasHabiles++;
+        }
+        fechaTemp.setDate(fechaTemp.getDate() + 1);
+    }
+    
+    let nuevoDia = ultimoDiaCompletado + diasHabiles;
+    // Máximo 72 días
+    if (nuevoDia > 72) nuevoDia = 72;
+    return nuevoDia;
+}
+
+// Cargar el devocional del día actual (según el progreso)
+async function cargarDevocionalDelDia() {
+    const dia = await obtenerDiaDevocionalActual();
+    if (dia > 72) {
+        document.getElementById('devocionalContent').innerHTML = `
+            <div class="text-center p-8">
+                <i class="fas fa-trophy" style="font-size: 3rem; color: #f59e0b;"></i>
+                <h3>¡Completaste los 72 devocionales!</h3>
+                <p>Has culminado este plan de 3 meses. ¡Eres un ejemplo de fidelidad!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const { data: devocional, error } = await supabaseClient
+        .from('devocionales_diarios')
+        .select('*')
+        .eq('dia', dia)
+        .single();
+    
+    if (error || !devocional) {
+        console.error(error);
+        document.getElementById('devocionalContent').innerHTML = '<p>Error al cargar el devocional. Contacta al administrador.</p>';
+        return;
+    }
+    
+    // Renderizar el contenido (usando el mismo formato que ya tienes en tu UI)
+    const html = `
+        <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-5 border border-slate-800 shadow-md mb-4">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-amber-500 font-bold text-xs uppercase tracking-wider">Día ${devocional.dia} · Semana ${devocional.semana}</span>
+                    <h2 class="text-xl font-bold mt-1">${escapeHtml(devocional.titulo)}</h2>
+                    <p class="text-sm text-slate-300">${devocional.pasaje_biblico}</p>
+                </div>
+                <span class="bg-amber-500/20 text-amber-400 px-2 py-1 rounded text-xs">+${devocional.xp_recompensa} XP</span>
+            </div>
+        </div>
+        <div class="bg-white border rounded-xl p-4 shadow-sm">
+            <div class="mb-4">
+                <p class="text-sm italic text-slate-600 border-l-4 border-amber-500 pl-3">“${escapeHtml(devocional.texto_biblico)}”</p>
+            </div>
+            <div class="mb-4">
+                <h4 class="font-bold text-slate-800">📖 Reflexión</h4>
+                <p class="text-sm text-slate-700">${escapeHtml(devocional.reflexion)}</p>
+            </div>
+            <div class="mb-4">
+                <h4 class="font-bold text-slate-800">✅ Reto práctico</h4>
+                <p class="text-sm text-slate-700">${escapeHtml(devocional.reto_practico)}</p>
+            </div>
+            <div class="mb-4">
+                <h4 class="font-bold text-slate-800">🙏 Oración</h4>
+                <p class="text-sm text-slate-700 italic">${escapeHtml(devocional.oracion)}</p>
+            </div>
+            <div class="flex justify-between items-center mt-4">
+                <div class="text-xs text-slate-500" id="rachaDisplay">🔥 Cargando racha...</div>
+                <button id="btnMarcarLeido" class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded-md hover:bg-blue-950 transition">
+                    <i class="fas fa-check-circle"></i> Marcar como leído y ganar XP
+                </button>
+            </div>
+        </div>
+    `;
+    document.getElementById('devocionalContent').innerHTML = html;
+    
+    // Actualizar visual de racha
+    const progreso = await obtenerProgresoDevocional();
+    const rachaElem = document.getElementById('rachaDisplay');
+    if (rachaElem) {
+        rachaElem.innerHTML = `🔥 Racha actual: ${progreso?.racha_devocional || 0} días consecutivos`;
+    }
+    
+    // Evento del botón
+    document.getElementById('btnMarcarLeido')?.addEventListener('click', async () => {
+        await marcarDevocionalComoLeido(devocional);
+        // Recargar para mostrar el siguiente día (si hay)
+        await cargarDevocionalDelDia();
+        // También actualizar el panel de inicio si es necesario
+        if (typeof cargarInicioGemini === 'function') cargarInicioGemini();
+    });
+}
+
+// Marcar como leído, actualizar racha y sumar XP
+async function marcarDevocionalComoLeido(devocional) {
+    if (!currentUser) return;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const hoyStr = hoy.toISOString().split('T')[0];
+    
+    // Obtener progreso actual
+    let { data: progreso, error } = await supabaseClient
+        .from('perfiles_usuarios')
+        .select('racha_devocional, ultimo_devocional_fecha, ultimo_devocional_dia, xp_total')
+        .eq('id', currentUser.id)
+        .single();
+    
+    if (error && error.code !== 'PGRST116') {
+        showToast('Error al leer progreso', 'error');
+        return;
+    }
+    
+    if (!progreso) {
+        // Crear registro nuevo
+        await supabaseClient.from('perfiles_usuarios').insert({
+            id: currentUser.id,
+            racha_devocional: 1,
+            ultimo_devocional_fecha: hoyStr,
+            ultimo_devocional_dia: devocional.dia,
+            xp_total: devocional.xp_recompensa
+        });
+        showToast(`¡+${devocional.xp_recompensa} XP! Racha: 1 día 🔥`, 'success');
+        if (typeof agregarXPGemini === 'function') await agregarXPGemini(devocional.xp_recompensa);
+        return;
+    }
+    
+    // Validar si ya lo marcó hoy
+    if (progreso.ultimo_devocional_fecha === hoyStr) {
+        showToast('Ya completaste el devocional de hoy. ¡Vuelve mañana!', 'warning');
+        return;
+    }
+    
+    // Calcular nueva racha
+    let nuevaRacha = 1;
+    if (progreso.ultimo_devocional_fecha) {
+        const ultimaFecha = new Date(progreso.ultimo_devocional_fecha);
+        const diffDias = Math.floor((hoy - ultimaFecha) / (1000 * 60 * 60 * 24));
+        if (diffDias === 1) {
+            nuevaRacha = (progreso.racha_devocional || 0) + 1;
+        }
+    }
+    
+    // Actualizar
+    const { error: updateError } = await supabaseClient
+        .from('perfiles_usuarios')
+        .update({
+            racha_devocional: nuevaRacha,
+            ultimo_devocional_fecha: hoyStr,
+            ultimo_devocional_dia: devocional.dia,
+            xp_total: (progreso.xp_total || 0) + devocional.xp_recompensa
+        })
+        .eq('id', currentUser.id);
+    
+    if (updateError) {
+        showToast('Error al guardar: ' + updateError.message, 'error');
+        return;
+    }
+    
+    showToast(`🎉 ¡Completaste "${devocional.titulo}"! +${devocional.xp_recompensa} XP | Racha: ${nuevaRacha} días`, 'success');
+    if (typeof agregarXPGemini === 'function') await agregarXPGemini(devocional.xp_recompensa);
+    
+    // Refrescar la UI de devocional (para que muestre el siguiente)
+    await cargarDevocionalDelDia();
+}
+    
+
 async function cargarContadoresGemini() {
     const { count: tareas } = await supabaseClient.from('tareas_aula').select('*', { count: 'exact', head: true }).eq('iglesia_id', currentIglesiaId);
     window.tareasCount = tareas || 0;
