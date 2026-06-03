@@ -3149,7 +3149,11 @@ const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
         (currentProfile?.foto_url ? `<img src="${currentProfile.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user fa-3x"></i>`)
     }
 </div>
-    <!-- Widget de cumpleañeros del mes -->
+   
+</div>
+    <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white;"><h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3><p style="font-style:italic;">“${versiculo.texto}”</p><p style="text-align:right;">— ${versiculo.ref}</p></div></div>
+   
+     <!-- Widget de cumpleañeros del mes -->
 <div class="premium-widget">
     <div class="widget-header">
         <h3><i class="fas fa-birthday-cake"></i> 🎂 Cumpleañeros de este mes</h3>
@@ -3157,28 +3161,32 @@ const esAdminDanza = isEquipoAdmin && equipoAdminData?.nombre === 'Danza';
     <div id="month-birthdays-container" class="birthday-grid">
         <p class="text-muted">Cargando...</p>
     </div>
-</div>
-    <div class="card" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white;"><h3><i class="fas fa-bible"></i> 📖 Versículo del día</h3><p style="font-style:italic;">“${versiculo.texto}”</p><p style="text-align:right;">— ${versiculo.ref}</p></div></div>
+    
     <div class="card" style="background:linear-gradient(135deg,#F59E0B,#FCD34D);color:white;"><h3><i class="fas fa-calendar-alt"></i> 📆 Próximos turnos</h3>${proximosTurnos.length === 0 ? '<p>Sin turnos próximos.</p>' : `<ul>${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`}</div>
    
     
     <div class="card" style="background:linear-gradient(135deg,#10B981,#34D399);color:white;"><h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : `<ul>${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`}</div>
-   
-   <div class="card quick-access-card" onclick="window.abrirDashboardEvaluaciones()" style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: white; border: none;">
-    <i class="fas fa-chart-line" style="color: white;"></i>
-    <h3 style="color: white;">Evaluaciones G‑SUITE</h3>
-    <p style="color: rgba(255,255,255,0.9);">Ver rendimiento de Alabanza y Danza</p>
-</div>
-    
+
     <div class="card quick-access-card" onclick="navigateTo('scriptura')">
     <i class="fas fa-bible" style="color: #C8972A;"></i>
     <h3>Super Libro</h3>
     <p>Lectura bíblica interactiva</p>
 </div>
+
+   
+ 
+   
     <div class="grid" style="margin-top:1.5rem;"><div class="card quick-access-card" onclick="navigateTo('profile')"><i class="fas fa-user" style="color:var(--primary);"></i><h3>Mi perfil</h3></div><div class="card quick-access-card" onclick="navigateTo('myShifts')"><i class="fas fa-calendar-alt" style="color:#F59E0B;"></i><h3>Mis turnos</h3></div>
     
     <div class="card quick-access-card" onclick="navigateTo('resources')"><i class="fas fa-tools" style="color:#10B981;"></i><h3>Recursos</h3></div></div></div>`;
     document.getElementById('mainContent').innerHTML = html; document.getElementById('actionHeader').innerHTML = '';
+
+      <div class="card quick-access-card" onclick="window.abrirDashboardEvaluaciones()" style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: white; border: none;">
+    <i class="fas fa-chart-line" style="color: white;"></i>
+    <h3 style="color: white;">Evaluaciones G‑SUITE</h3>
+    <p style="color: rgba(255,255,255,0.9);">Ver rendimiento de Alabanza y Danza</p>
+</div>
+    
     
 loadMonthBirthdays();
 }
@@ -7145,8 +7153,7 @@ async function saveUserProfileWithPhoto() {
         birth_date   // ← Campo para cumpleaños
     };
     
-    // Si existe el campo fecha_nacimiento (el anterior), lo puedes mantener o no
-    // Para compatibilidad, lo incluimos también
+
     if (birth_date) updates.fecha_nacimiento = birth_date;
     
     console.log("🔄 Enviando a Supabase:", updates);
