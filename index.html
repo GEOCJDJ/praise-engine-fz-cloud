@@ -2729,7 +2729,7 @@ function formatearFechaEvento(fechaStr) {
     const fechaObj = new Date(Date.UTC(year, month-1, day));
     return fechaObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }    
-// ========== RENDER PRINCIPAL ==========
+
 // ========== RENDER PRINCIPAL ==========
 function renderApp() {
     if (!currentUser) { renderLogin(); return; }
@@ -2850,20 +2850,8 @@ function renderApp() {
     if (currentTab === 'profile') {
         setTimeout(() => renderUserProfile(), 500);
     }
-    // Precarga del planner al pasar el mouse sobre el botón
-setTimeout(() => {
-    const plannerNav = document.querySelector('.nav-item[data-tab="planner"]');
-    if (plannerNav && !window.plannerPrecargado) {
-        plannerNav.addEventListener('mouseenter', () => {
-            if (!window.plannerPrecargado && !plannerEventos.length) {
-                window.plannerPrecargado = true;
-                // Llamamos suavemente a cargarEventosPlanner sin await
-                cargarEventosPlanner().catch(console.error);
-            }
-        });
-    }
-}, 1000);
-}
+      }
+
 
 function darkModeToggle() {
     const toggle = document.getElementById('darkModeToggle');
@@ -9045,7 +9033,7 @@ async function renderPlanner() {
 }
 async function cargarEventosPlanner() {
     console.log("🔄 Cargando eventos...");
-    document.getElementById('mainContent').innerHTML = '<div class="text-center p-8"><i class="fas fa-spinner fa-pulse fa-2x"></i><br>Cargando planner...</div>';
+    //document.getElementById('mainContent').innerHTML = '<div class="text-center p-8"><i class="fas fa-spinner fa-pulse fa-2x"></i><br>Cargando planner...</div>';
     
     // 1. Cargar todos los eventos
     const { data: eventos, error: eventError } = await supabaseClient
