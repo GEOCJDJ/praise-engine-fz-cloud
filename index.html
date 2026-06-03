@@ -1661,7 +1661,114 @@ body.dark #gpraise-aula-shield .border.rounded-lg.p-3.bg-slate-50 {
     transform: translateY(-4px) !important;
     box-shadow: 0 15px 35px -10px rgba(var(--primary-rgb), 0.15) !important;
     border-color: rgba(var(--primary-rgb), 0.25) !important;
-}        
+}    
+
+ /* ==========================================================================
+   ADIÓS WINDOWS XP: MODERNIZACIÓN DE SUB-MÓDULOS (AULA VIRTUAL)
+   ========================================================================== */
+
+/* 1. CONTENEDORES Y REJILLAS PRINCIPALES */
+#gpraise-aula-shield .grid {
+    gap: 1.5rem !important; /* Más espacio respirable entre tarjetas */
+}
+
+/* 2. DISEÑO PREMIUM PARA LAS TARJETAS (Cursos, Tareas, Evaluaciones, etc.) */
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border,
+#gpraise-aula-shield .bg-slate-50.p-4.rounded-lg,
+#gpraise-aula-shield .av-item-card {
+    background: var(--surface, #ffffff) !important;
+    border: 1px solid rgba(var(--primary-rgb, 200, 151, 42), 0.08) !important;
+    border-radius: 1.5rem !important; /* Esquinas orgánicas y modernas */
+    padding: 1.5rem !important;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06) !important;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Modo oscuro automático para las tarjetas */
+body.dark #gpraise-aula-shield .bg-white.p-4.rounded-lg.border,
+body.dark #gpraise-aula-shield .bg-slate-50.p-4.rounded-lg {
+    background: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 3. MICRO-INTERACCIONES AL PASAR EL MOUSE (Hover) */
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border:hover,
+#gpraise-aula-shield .bg-slate-50.p-4.rounded-lg:hover,
+#gpraise-aula-shield .av-item-card:hover {
+    transform: translateY(-6px) scale(1.01) !important;
+    box-shadow: 0 20px 40px -15px rgba(var(--primary-rgb, 200, 151, 42), 0.15) !important;
+    border-color: rgba(var(--primary-rgb, 200, 151, 42), 0.3) !important;
+}
+
+/* 4. MEJORA DE ICONOS Y EMOJIS (Efecto burbuja flotante) */
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border text,
+#gpraise-aula-shield .bg-white.p-4.rounded-lg.border span,
+#gpraise-aula-shield .av-item-card i {
+    font-size: 1.25rem;
+}
+
+/* Buscaremos darle un fondo suave a los iconos decorativos dentro de cada bloque */
+#gpraise-aula-shield .bg-blue-100, 
+#gpraise-aula-shield .bg-green-100, 
+#gpraise-aula-shield .bg-purple-100, 
+#gpraise-aula-shield .bg-amber-100,
+#gpraise-aula-shield .bg-red-100 {
+    background: rgba(var(--primary-rgb, 200, 151, 42), 0.08) !important;
+    color: var(--primary, #C8972A) !important;
+    border-radius: 1rem !important;
+    padding: 0.75rem !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+}
+
+/* 5. BOTONES INTERNOS DE ACCIÓN (Ej: "Iniciar", "Ver", "Responder") */
+#gpraise-aula-shield button,
+#gpraise-aula-shield .av-btn-action {
+    border-radius: 1rem !important;
+    padding: 0.6rem 1.2rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.2px;
+    transition: all 0.2s ease !important;
+}
+
+#gpraise-aula-shield button.bg-blue-600,
+#gpraise-aula-shield button.bg-indigo-600,
+#gpraise-aula-shield button[class*="bg-primary"] {
+    background: linear-gradient(135deg, var(--primary, #C8972A), var(--primary-light, #f5d061)) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 4px 15px -3px rgba(var(--primary-rgb, 200, 151, 42), 0.3) !important;
+}
+
+#gpraise-aula-shield button.bg-blue-600:hover,
+#gpraise-aula-shield button.bg-indigo-600:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px -3px rgba(var(--primary-rgb, 200, 151, 42), 0.5) !important;
+    opacity: 0.95;
+}
+
+/* 6. BARRAS DE PROGRESO DE CADA CURSO (Más estilizadas) */
+#gpraise-aula-shield .bg-gray-200.rounded-full {
+    background: rgba(0, 0, 0, 0.05) !important;
+    height: 8px !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+}
+body.dark #gpraise-aula-shield .bg-gray-200.rounded-full {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+#gpraise-aula-shield .bg-blue-600.rounded-full,
+#gpraise-aula-shield .bg-green-500.rounded-full {
+    background: linear-gradient(90deg, var(--primary, #C8972A), var(--primary-light, #f5d061)) !important;
+    height: 100% !important;
+    border-radius: 10px !important;
+}       
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
