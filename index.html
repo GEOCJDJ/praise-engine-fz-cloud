@@ -6625,81 +6625,84 @@ async function cargarDevocionalDelDia() {
 
     try {
         const dia = await obtenerDiaDevocionalActual();
-        console.log('Día devocional calculado:', dia);
+        console.log('📆 Día devocional calculado:', dia);
 
         if (dia > 72) {
             container.innerHTML = `
-                <div class="text-center p-8">
+                <div style="background: white; border-radius: 1rem; padding: 2rem; text-align: center; color: #1e293b;">
                     <i class="fas fa-trophy" style="font-size: 3rem; color: #f59e0b;"></i>
-                    <h3>¡Completaste los 72 devocionales!</h3>
-                    <p>Has culminado este plan de 3 meses. ¡Eres un ejemplo de fidelidad!</p>
+                    <h3 style="font-size: 1.5rem; font-weight: bold; margin-top: 1rem;">¡Completaste los 72 devocionales!</h3>
+                    <p style="margin-top: 0.5rem;">Has culminado este plan de 3 meses. ¡Eres un ejemplo de fidelidad!</p>
                 </div>
             `;
             return;
         }
 
-      const { data: devocional, error } = await supabaseClient
-    .from('devocionales_diarios')
-    .select('*')
-    .eq('dia', dia)
-    .maybeSingle();   // ← Esto es la clave
+        const { data: devocional, error } = await supabaseClient
+            .from('devocionales_diarios')
+            .select('*')
+            .eq('dia', dia)
+            .maybeSingle();
 
-if (error) {
-    console.error("❌ Error de Supabase:", error);
-    container.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
-    return;
-}
+        if (error) {
+            console.error('❌ Error SQL:', error);
+            container.innerHTML = `<p style="color: red;">Error al cargar el devocional: ${error.message}</p>`;
+            return;
+        }
 
-if (!devocional) {
-    console.warn(`⚠️ No existe devocional para el día ${dia}`);
-    container.innerHTML = `<p class="text-red-500">No hay contenido para el día ${dia}. Contacta al administrador.</p>`;
-    return;
-}
+        if (!devocional) {
+            container.innerHTML = `<p style="color: red;">No hay contenido para el día ${dia}. Contacta al administrador.</p>`;
+            return;
+        }
 
-        // Renderizar el contenido
+        // Obtener la racha actual
+        const progreso = await obtenerProgresoDevocional();
+        const rachaActual = progreso?.racha_devocional || 0;
+
+        // HTML con estilos inline (sin dependencias de Tailwind o clases externas)
         const html = `
-            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-5 border border-slate-800 shadow-md mb-4">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="text-amber-500 font-bold text-xs uppercase tracking-wider">Día ${devocional.dia} · Semana ${devocional.semana}</span>
-                        <h2 class="text-xl font-bold mt-1">${escapeHtml(devocional.titulo)}</h2>
-                        <p class="text-sm text-slate-300">${devocional.pasaje_biblico}</p>
+            <div style="background: #ffffff; border-radius: 1rem; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 1rem; border: 1px solid #e2e8f0;">
+                <!-- Cabecera con gradiente -->
+                <div style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 1.5rem; color: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <span style="background: #f59e0b20; color: #fbbf24; font-size: 0.75rem; font-weight: bold; padding: 0.25rem 0.75rem; border-radius: 9999px; text-transform: uppercase;">Día ${devocional.dia} · Semana ${devocional.semana}</span>
+                            <h2 style="font-size: 1.5rem; font-weight: bold; margin-top: 0.5rem;">${escapeHtml(devocional.titulo)}</h2>
+                            <p style="color: #cbd5e1; margin-top: 0.25rem;">${escapeHtml(devocional.pasaje_biblico)}</p>
+                        </div>
+                        <span style="background: #f59e0b20; color: #fbbf24; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: bold;">+${devocional.xp_recompensa} XP</span>
                     </div>
-                    <span class="bg-amber-500/20 text-amber-400 px-2 py-1 rounded text-xs">+${devocional.xp_recompensa} XP</span>
                 </div>
-            </div>
-            <div class="bg-white border rounded-xl p-4 shadow-sm">
-                <div class="mb-4">
-                    <p class="text-sm italic text-slate-600 border-l-4 border-amber-500 pl-3">“${escapeHtml(devocional.texto_biblico)}”</p>
-                </div>
-                <div class="mb-4">
-                    <h4 class="font-bold text-slate-800">📖 Reflexión</h4>
-                    <p class="text-sm text-slate-700">${escapeHtml(devocional.reflexion)}</p>
-                </div>
-                <div class="mb-4">
-                    <h4 class="font-bold text-slate-800">✅ Reto práctico</h4>
-                    <p class="text-sm text-slate-700">${escapeHtml(devocional.reto_practico)}</p>
-                </div>
-                <div class="mb-4">
-                    <h4 class="font-bold text-slate-800">🙏 Oración</h4>
-                    <p class="text-sm text-slate-700 italic">${escapeHtml(devocional.oracion)}</p>
-                </div>
-                <div class="flex justify-between items-center mt-4">
-                    <div class="text-xs text-slate-500" id="rachaDisplay">🔥 Cargando racha...</div>
-                    <button id="btnMarcarLeido" class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded-md hover:bg-blue-950 transition">
-                        <i class="fas fa-check-circle"></i> Marcar como leído y ganar XP
-                    </button>
+                
+                <!-- Cuerpo con texto oscuro sobre fondo blanco -->
+                <div style="padding: 1.5rem; color: #1e293b;">
+                    <div style="margin-bottom: 1.5rem;">
+                        <p style="font-style: italic; border-left: 4px solid #f59e0b; padding-left: 1rem; color: #334155;">“${escapeHtml(devocional.texto_biblico)}”</p>
+                    </div>
+                    <div style="margin-bottom: 1.25rem;">
+                        <h4 style="font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;"><span>📖</span> Reflexión</h4>
+                        <p style="color: #334155;">${escapeHtml(devocional.reflexion)}</p>
+                    </div>
+                    <div style="margin-bottom: 1.25rem;">
+                        <h4 style="font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;"><span>✅</span> Reto práctico</h4>
+                        <p style="color: #334155;">${escapeHtml(devocional.reto_practico)}</p>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <h4 style="font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;"><span>🙏</span> Oración</h4>
+                        <p style="color: #334155; font-style: italic;">${escapeHtml(devocional.oracion)}</p>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 1rem; margin-top: 0.5rem;">
+                        <div style="font-size: 0.875rem; color: #64748b;">
+                            🔥 Racha actual: <strong style="color: #f59e0b;">${rachaActual} días consecutivos</strong>
+                        </div>
+                        <button id="btnMarcarLeido" style="background: #1e3a8a; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: background 0.2s;">
+                            <i class="fas fa-check-circle"></i> Marcar como leído y ganar XP
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
         container.innerHTML = html;
-
-        // Actualizar visual de racha
-        const progreso = await obtenerProgresoDevocional();
-        const rachaElem = document.getElementById('rachaDisplay');
-        if (rachaElem) {
-            rachaElem.innerHTML = `🔥 Racha actual: ${progreso?.racha_devocional || 0} días consecutivos`;
-        }
 
         // Evento del botón
         document.getElementById('btnMarcarLeido')?.addEventListener('click', async () => {
@@ -6709,8 +6712,8 @@ if (!devocional) {
         });
 
     } catch (err) {
-        console.error('Excepción en cargarDevocionalDelDia:', err);
-        container.innerHTML = '<p class="text-red-500">Error inesperado al cargar el devocional. Revisa la consola.</p>';
+        console.error('❌ Excepción en cargarDevocionalDelDia:', err);
+        container.innerHTML = '<p style="color: red;">Error inesperado al cargar el devocional. Revisa la consola.</p>';
     }
 }
 
