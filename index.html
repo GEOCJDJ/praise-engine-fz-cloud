@@ -7393,19 +7393,32 @@ async function adminUserManagement() {
         .from('departamentos')
         .select('*')
         .eq('iglesia_id', currentIglesiaId);
-    const departamentosActuales = deptosActuales || [];
+    const todosDeptos = deptosActuales || [];
     
-    // Equipos = departamentos que tienen padre_id (no son áreas, no son GENERAL)
-    const equipos = departamentosActuales.filter(d => d.padre_id !== null && d.nombre !== 'GENERAL');
+    // Encontrar el id de GENERAL (si existe)
+    const generalId = todosDeptos.find(d => d.nombre === 'GENERAL')?.id;
+    
+    // ÁREAS: departamentos con padre_id = null O padre_id = id de GENERAL (y que no sean GENERAL)
+    const areas = todosDeptos.filter(d => 
+        (d.padre_id === null || d.padre_id === generalId) && 
+        d.nombre !== 'GENERAL'
+    );
+    areas.sort((a,b) => a.nombre.localeCompare(b.nombre));
+    
+    // EQUIPOS: departamentos con padre_id != null y padre_id != id de GENERAL (y que no sean GENERAL)
+    const equipos = todosDeptos.filter(d => 
+        d.padre_id !== null && 
+        d.padre_id !== generalId && 
+        d.nombre !== 'GENERAL'
+    );
     equipos.sort((a,b) => a.nombre.localeCompare(b.nombre));
     
-    // Áreas = departamentos con padre_id = null y que no se llamen GENERAL (para el modal de edición)
-    const areas = departamentosActuales.filter(d => d.padre_id === null && d.nombre !== 'GENERAL');
     // Equipos por área (para el modal)
     const equiposPorArea = {};
     equipos.forEach(e => {
         if (!equiposPorArea[e.padre_id]) equiposPorArea[e.padre_id] = [];
         equiposPorArea[e.padre_id].push(e);
+        equiposPorArea[e.padre_id].sort((a,b) => a.nombre.localeCompare(b.nombre));
     });
 
     // ========== RENDER TABLA PRINCIPAL (igual que antes) ==========
@@ -7507,7 +7520,7 @@ async function adminUserManagement() {
         };
     }
 
-    // ========== FUNCIÓN PARA ABRIR MODAL DE EDICIÓN DE USUARIO (CON RECARGA FRESCA DE DEPARTAMENTOS) ==========
+    // ========== FUNCIÓN PARA ABRIR MODAL DE EDICIÓN DE USUARIO (CON RECARGA FRESCA) ==========
     window.abrirModalEditarUsuario = async (miembroId, userId) => {
         // Obtener datos del miembro
         const { data: miembro, error: errMiembro } = await supabaseClient
@@ -7521,18 +7534,27 @@ async function adminUserManagement() {
         }
         const perfil = miembro.perfiles;
         
-        // 🔄 RECARGAR DEPARTAMENTOS FRESCOS DESDE SUPABASE (¡clave para que aparezcan!)
+        // 🔄 RECARGAR DEPARTAMENTOS FRESCOS
         const { data: deptosFrescos } = await supabaseClient
             .from('departamentos')
             .select('*')
             .eq('iglesia_id', currentIglesiaId);
-        const todosDeptos = deptosFrescos || [];
+        const todosDeptosFrescos = deptosFrescos || [];
         
-        // Clasificar áreas (padre_id null y no GENERAL) y equipos (padre_id no null)
-        const areasFrescas = todosDeptos.filter(d => d.padre_id === null && d.nombre !== 'GENERAL');
-        const equiposFrescos = todosDeptos.filter(d => d.padre_id !== null && d.nombre !== 'GENERAL');
+        const generalIdFresco = todosDeptosFrescos.find(d => d.nombre === 'GENERAL')?.id;
         
-        // Agrupar equipos por área
+        // ÁREAS: padre_id = null O padre_id = id de GENERAL (y no GENERAL)
+        const areasFrescas = todosDeptosFrescos.filter(d => 
+            (d.padre_id === null || d.padre_id === generalIdFresco) && 
+            d.nombre !== 'GENERAL'
+        );
+        // EQUIPOS: padre_id != null y padre_id != id de GENERAL (y no GENERAL)
+        const equiposFrescos = todosDeptosFrescos.filter(d => 
+            d.padre_id !== null && 
+            d.padre_id !== generalIdFresco && 
+            d.nombre !== 'GENERAL'
+        );
+        
         const equiposPorAreaFrescos = {};
         equiposFrescos.forEach(e => {
             if (!equiposPorAreaFrescos[e.padre_id]) equiposPorAreaFrescos[e.padre_id] = [];
@@ -7540,8 +7562,8 @@ async function adminUserManagement() {
             equiposPorAreaFrescos[e.padre_id].sort((a,b) => a.nombre.localeCompare(b.nombre));
         });
         
-        const deptoActual = todosDeptos.find(d => d.id === miembro.departamento_id);
-        const areaActual = deptoActual?.padre_id || '';
+        const deptoActual = todosDeptosFrescos.find(d => d.id === miembro.departamento_id);
+        const areaActual = deptoActual?.padre_id === generalIdFresco ? deptoActual?.id : deptoActual?.padre_id || '';
         const equipoActual = miembro.departamento_id || '';
 
         // Generar HTML del selector de áreas
@@ -7550,7 +7572,6 @@ async function adminUserManagement() {
             areasHtml += `<option value="${a.id}" ${areaActual === a.id ? 'selected' : ''}>${escapeHtml(a.nombre)}</option>`;
         });
         
-        // Función para generar opciones de equipos según área seleccionada
         const generarEquiposHtml = (areaId, selectedEquipoId = null) => {
             const equiposLista = equiposPorAreaFrescos[areaId] || [];
             if (equiposLista.length === 0) {
@@ -7611,9 +7632,7 @@ async function adminUserManagement() {
                             ${equiposHtml}
                         </select>
                     </div>
-                    <div id="rolMusicalContainer_${miembroId}">
-                        <!-- Aquí se mostrará el rol musical solo si el equipo es de Alabanza -->
-                    </div>
+                    <div id="rolMusicalContainer_${miembroId}"></div>
                 </div>
                 <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
                     <label><input type="checkbox" id="editAdminIglesia_${miembroId}" ${miembro.es_admin_iglesia ? 'checked' : ''}> Admin de Iglesia</label>
@@ -7636,7 +7655,7 @@ async function adminUserManagement() {
         `;
         showModal(modalContent);
 
-        // Función para actualizar equipos según área seleccionada (usa los datos frescos)
+        // Función para actualizar equipos según área seleccionada
         window.actualizarEquiposEnModal = (id, areaId) => {
             const equipoSelect = document.getElementById(`editEquipo_${id}`);
             if (!equipoSelect) return;
@@ -7677,7 +7696,6 @@ async function adminUserManagement() {
                         </select>
                     </div>
                 `;
-                // Si el usuario ya tenía un rol musical, asignarlo
                 if (miembro && miembro.rol_musical) {
                     const selectRol = document.getElementById(`editRolMusical_${id}`);
                     if (selectRol) selectRol.value = miembro.rol_musical;
@@ -7687,8 +7705,11 @@ async function adminUserManagement() {
             }
         };
 
-        // Inicializar el estado del rol musical
         window.toggleRolMusicalEnModal(miembroId);
+        
+        // Para depuración, guardar áreas en window
+        window.ultimasAreas = areasFrescas;
+        console.log("Áreas cargadas en modal:", areasFrescas);
     };
 
     // ========== FUNCIÓN PARA GUARDAR EDICIÓN DE USUARIO (sin cambios) ==========
@@ -7703,10 +7724,8 @@ async function adminUserManagement() {
         const equipoAdminId = document.getElementById(`editEquipoAdmin_${miembroId}`).value || null;
         const nuevaIglesiaId = document.getElementById(`editIglesia_${miembroId}`)?.value || null;
 
-        // Actualizar perfil siempre
         await supabaseClient.from('perfiles').update({ nombre, rol: rolApp }).eq('id', userId);
 
-        // Si el admin global cambió la iglesia, mover al usuario a esa iglesia
         if (isAdminUser && nuevaIglesiaId && nuevaIglesiaId !== currentIglesiaId) {
             const { data: existe } = await supabaseClient
                 .from('usuarios_iglesia')
@@ -7742,7 +7761,6 @@ async function adminUserManagement() {
             return;
         }
 
-        // Si no cambió de iglesia, actualizar normalmente
         const { error } = await supabaseClient.from('usuarios_iglesia').update({
             departamento_id: equipoId,
             rol_musical: rolMusical,
@@ -7757,10 +7775,10 @@ async function adminUserManagement() {
             showToast("Usuario actualizado correctamente", "success");
             closeModal();
             await loadUserData();
-            adminUserManagement(); // refrescar tabla
+            adminUserManagement();
         }
     };
-}   // <--- FIN DE LA FUNCIÓN adminUserManagement
+}
 
 // Asegurar que la función sea global
 window.adminUserManagement = adminUserManagement;
