@@ -2056,6 +2056,34 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
     transform: translateY(-2px) !important;
     box-shadow: 0 6px 20px rgba(200, 151, 42, 0.4) !important;
 }
+
+/* Estilos para módulo contable */
+.text-income { color: #10b981 !important; font-weight: 600; }
+.text-expense { color: #ef4444 !important; font-weight: 600; }
+.modern-table th { background: rgba(var(--primary-rgb), 0.05); padding: 0.75rem; }
+.modern-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+
+/* Impresión */
+@media print {
+    .no-print, .filter-bar, .btn, .action-buttons, .dark-mode-toggle, .user-info, .nav-icons, .app-header, .app-footer {
+        display: none !important;
+    }
+    .accounting-container {
+        padding: 0 !important;
+        background: white !important;
+    }
+    .card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        background: white !important;
+        color: black !important;
+    }
+    .text-income { color: #2c5e2e !important; }
+    .text-expense { color: #a12c2c !important; }
+    #financeChart {
+        max-height: 200px;
+    }
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -3564,6 +3592,7 @@ function renderApp() {
     <div class="nav-icons">
     <div class="nav-item ${currentTab === 'home' ? 'active' : ''}" data-tab="home"><i class="fas fa-home"></i><span>INICIO</span></div>
     <div class="nav-item ${currentTab === 'fzkids' ? 'active' : ''}" data-tab="fzkids" style="display: ${puedeVerFzkids() ? 'flex' : 'none'};"><i class="fas fa-child"></i><span>FZKIDS</span></div>
+    
     <div class="nav-item ${currentTab === 'fzhost' ? 'active' : ''}" data-tab="fzhost" style="display: ${puedeVerFzHost() ? 'flex' : 'none'};"><i class="fas fa-handshake"></i><span>FZ HOST</span></div>
    
     <div class="nav-item ${currentTab === 'agenda' ? 'active' : ''}" data-tab="agenda" style="display: ${puedeVerAgenda() ? 'flex' : 'none'};">
@@ -3576,6 +3605,7 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
     <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerListas() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
     <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
+    <div class="nav-item ${currentTab === 'contabilidad' ? 'active' : ''}" data-tab="contabilidad" style="display: ${(isAdminUser || isIglesiaAdmin) ? 'flex' : 'none'};"><i class="fas fa-chart-line"></i><span>CONTABILIDAD</span></div>
     <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
     <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes" style="display: ${puedeVerGnotes() ? 'flex' : 'none'};"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
        
@@ -3729,6 +3759,7 @@ console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentU
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
+    else if (currentTab === 'contabilidad') await renderContabilidad();
     else if (currentTab === 'moodle') await renderMoodle();
     else if (currentTab === 'gnotes') await renderGnotes();
     else if (currentTab === 'scriptura') await renderScriptura();
@@ -13022,7 +13053,349 @@ async function loadMonthBirthdays() {
         </div>
     `).join('');
 }
+// ==================== MÓDULO CONTABLE ESCUELA BÍBLICA ====================
 
+let currentFinanceChart = null;
+
+async function renderContabilidad() {
+    if (!currentUser) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger">Debes iniciar sesión para acceder a contabilidad.</div>';
+        return;
+    }
+    if (!currentIglesiaId) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger">Selecciona una iglesia primero.</div>';
+        return;
+    }
+
+    // Cargar datos iniciales: clases, estudiantes, categorías
+    await cargarClasesYBiblicas();
+    await cargarCategoriasFinancieras();
+
+    const html = `
+    <div class="accounting-container" style="padding: 1rem;">
+        <!-- BARRA DE FILTROS Y ACCIONES -->
+        <div class="filter-bar" style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: var(--surface); border-radius: 1rem; padding: 1rem; border: 1px solid var(--border);">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div class="filter-group">
+                    <label style="font-size:0.75rem;">Clase:</label>
+                    <select id="class-filter" class="form-control" style="width: auto; min-width: 150px;" onchange="cargarDatosContables()">
+                        <option value="all">Todas las Clases</option>
+                        ${window.bibleClasses?.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') || ''}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label style="font-size:0.75rem;">Período:</label>
+                    <select id="period-filter" class="form-control" style="width: auto;" onchange="cargarDatosContables()">
+                        <option value="monthly">Este Mes</option>
+                        <option value="quarterly">Trimestral</option>
+                        <option value="semi-annual">Semestral</option>
+                        <option value="annual">Anual</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-primary" onclick="mostrarFormularioTransaccion()"><i class="fas fa-plus"></i> Registrar Movimiento</button>
+                <button class="btn btn-ghost" onclick="exportFinanceReport()"><i class="fas fa-share-alt"></i> Compartir</button>
+                <button class="btn btn-ghost" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="card" style="border-left: 4px solid #10b981;">
+                <h3 style="font-size: 0.8rem; color: var(--text-muted);">Total Ingresos</h3>
+                <p class="kpi-value" id="total-income" style="font-size: 1.5rem; font-weight: 800; color: #10b981;">$0.00</p>
+            </div>
+            <div class="card" style="border-left: 4px solid #ef4444;">
+                <h3 style="font-size: 0.8rem; color: var(--text-muted);">Total Gastos</h3>
+                <p class="kpi-value" id="total-expenses" style="font-size: 1.5rem; font-weight: 800; color: #ef4444;">$0.00</p>
+            </div>
+            <div class="card" style="border-left: 4px solid #f59e0b;">
+                <h3 style="font-size: 0.8rem; color: var(--text-muted);">Balance Neto</h3>
+                <p class="kpi-value" id="net-balance" style="font-size: 1.5rem; font-weight: 800;">$0.00</p>
+            </div>
+            <div class="card" style="border-left: 4px solid #3b82f6;">
+                <h3 style="font-size: 0.8rem; color: var(--text-muted);">Alumnos Activos</h3>
+                <p class="kpi-value" id="active-students" style="font-size: 1.5rem; font-weight: 800;">0</p>
+            </div>
+        </div>
+
+        <!-- Gráfico y Tabla -->
+        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem;">
+            <div class="card" style="padding: 1rem;">
+                <h3 style="margin-bottom: 1rem;">Distribución por Categoría</h3>
+                <canvas id="financeChart" style="max-height: 250px;"></canvas>
+            </div>
+            <div class="card" style="padding: 1rem; overflow-x: auto;">
+                <h3 style="margin-bottom: 1rem;">Últimos Movimientos</h3>
+                <table class="modern-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr><th>Fecha</th><th>Clase</th><th>Concepto</th><th>Categoría</th><th>Monto</th></tr>
+                    </thead>
+                    <tbody id="transactions-table-body">
+                        <tr><td colspan="5" class="text-center">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    `;
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('actionHeader').innerHTML = '';
+
+    // Cargar datos iniciales
+    await cargarDatosContables();
+}
+
+// ========== FUNCIONES AUXILIARES ==========
+
+async function cargarClasesYBiblicas() {
+    const { data, error } = await supabaseClient
+        .from('bible_classes')
+        .select('*')
+        .order('name');
+    if (!error) window.bibleClasses = data;
+    else console.error(error);
+    
+    // Cargar estudiantes para cada clase (se usará en formulario)
+    const { data: students } = await supabaseClient
+        .from('bible_students')
+        .select('*, bible_classes(name)')
+        .eq('status', 'active');
+    window.bibleStudents = students || [];
+    
+    // Actualizar contador de alumnos activos
+    document.getElementById('active-students').innerText = window.bibleStudents.length || 0;
+}
+
+async function cargarCategoriasFinancieras() {
+    const { data, error } = await supabaseClient
+        .from('finances_categories')
+        .select('*');
+    if (!error) window.financeCategories = data;
+    else console.error(error);
+}
+
+async function cargarDatosContables() {
+    const classId = document.getElementById('class-filter').value;
+    const period = document.getElementById('period-filter').value;
+    const range = obtenerRangoFechas(period);
+
+    let query = supabaseClient
+        .from('financial_transactions')
+        .select(`
+            amount, type, description, transaction_date,
+            bible_classes(name),
+            finances_categories(name),
+            bible_students(full_name)
+        `)
+        .gte('transaction_date', range.start)
+        .lte('transaction_date', range.end);
+
+    if (classId !== 'all') {
+        query = query.eq('class_id', classId);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+        console.error(error);
+        showToast('Error al cargar transacciones', 'error');
+        return;
+    }
+
+    // Calcular totales y llenar tabla
+    let income = 0, expenses = 0;
+    const tbody = document.getElementById('transactions-table-body');
+    tbody.innerHTML = '';
+    const categoryMap = new Map(); // para gráfico
+
+    (data || []).forEach(t => {
+        if (t.type === 'income') income += parseFloat(t.amount);
+        else expenses += parseFloat(t.amount);
+
+        const catName = t.finances_categories?.name || 'Otro';
+        const current = categoryMap.get(catName) || 0;
+        categoryMap.set(catName, current + parseFloat(t.amount));
+
+        const row = `<tr>
+            <td>${t.transaction_date}</td>
+            <td>${t.bible_classes?.name || 'N/A'}</td>
+            <td>${t.bible_students?.full_name || t.description || 'General'}</td>
+            <td>${catName}</td>
+            <td class="${t.type === 'income' ? 'text-income' : 'text-expense'}">${t.type === 'income' ? '+' : '-'}$${parseFloat(t.amount).toFixed(2)}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+    if (data?.length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay movimientos en este período.</td></tr>';
+
+    document.getElementById('total-income').innerText = `$${income.toFixed(2)}`;
+    document.getElementById('total-expenses').innerText = `$${expenses.toFixed(2)}`;
+    const net = income - expenses;
+    const netEl = document.getElementById('net-balance');
+    netEl.innerText = `$${net.toFixed(2)}`;
+    netEl.style.color = net >= 0 ? '#10b981' : '#ef4444';
+
+    // Renderizar gráfico
+    renderFinanceChart(categoryMap);
+}
+
+function obtenerRangoFechas(period) {
+    const hoy = new Date();
+    let start = new Date();
+    switch (period) {
+        case 'monthly':
+            start.setDate(1);
+            break;
+        case 'quarterly':
+            start.setMonth(start.getMonth() - 3);
+            break;
+        case 'semi-annual':
+            start.setMonth(start.getMonth() - 6);
+            break;
+        case 'annual':
+            start.setFullYear(start.getFullYear() - 1);
+            break;
+        default: start.setDate(1);
+    }
+    return {
+        start: start.toISOString().split('T')[0],
+        end: hoy.toISOString().split('T')[0]
+    };
+}
+
+function renderFinanceChart(categoryMap) {
+    const ctx = document.getElementById('financeChart')?.getContext('2d');
+    if (!ctx) return;
+    if (currentFinanceChart) currentFinanceChart.destroy();
+
+    const labels = Array.from(categoryMap.keys());
+    const values = Array.from(categoryMap.values());
+    currentFinanceChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-main') } } }
+        }
+    });
+}
+
+function mostrarFormularioTransaccion() {
+    // Cargar selects dinámicamente con clases, estudiantes y categorías
+    const clasesHtml = (window.bibleClasses || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    const estudiantesHtml = (window.bibleStudents || []).map(s => `<option value="${s.id}">${escapeHtml(s.full_name)} (${s.bible_classes?.name})</option>`).join('');
+    const categoriasIncome = (window.financeCategories || []).filter(c => c.type === 'income').map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    const categoriasExpense = (window.financeCategories || []).filter(c => c.type === 'expense').map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+
+    const modalContent = `
+        <div style="max-width: 550px; margin: 0 auto;">
+            <h3><i class="fas fa-book"></i> Nuevo Movimiento Contable</h3>
+            <div class="form-group">
+                <label>Tipo *</label>
+                <select id="transTipo" class="form-control" onchange="toggleCategoriasTransaccion()">
+                    <option value="income">Ingreso</option>
+                    <option value="expense">Gasto</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Clase *</label>
+                <select id="transClase" class="form-control">${clasesHtml}</select>
+            </div>
+            <div class="form-group">
+                <label>Estudiante (opcional)</label>
+                <select id="transEstudiante" class="form-control"><option value="">-- Ninguno --</option>${estudiantesHtml}</select>
+            </div>
+            <div class="form-group" id="categoriasContainer">
+                <label>Categoría *</label>
+                <select id="transCategoria" class="form-control">${categoriasIncome}</select>
+            </div>
+            <div class="form-group">
+                <label>Monto *</label>
+                <input type="number" id="transMonto" class="form-control" step="0.01" min="0.01">
+            </div>
+            <div class="form-group">
+                <label>Fecha *</label>
+                <input type="text" id="transFecha" class="form-control" placeholder="dd/mm/aaaa">
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="transDesc" rows="2" class="form-control"></textarea>
+            </div>
+            <div style="text-align: right;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarTransaccion()">Guardar</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+    flatpickr("#transFecha", { dateFormat: "d/m/Y", locale: "es", defaultDate: "today" });
+    window.toggleCategoriasTransaccion = () => {
+        const tipo = document.getElementById('transTipo').value;
+        const container = document.getElementById('categoriasContainer');
+        const categorias = tipo === 'income' ? (window.financeCategories || []).filter(c => c.type === 'income') : (window.financeCategories || []).filter(c => c.type === 'expense');
+        const selectHtml = `<label>Categoría *</label><select id="transCategoria" class="form-control">${categorias.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>`;
+        container.innerHTML = selectHtml;
+    };
+}
+
+async function guardarTransaccion() {
+    const tipo = document.getElementById('transTipo').value;
+    const classId = document.getElementById('transClase').value;
+    const studentId = document.getElementById('transEstudiante').value || null;
+    const categoryId = document.getElementById('transCategoria').value;
+    const monto = parseFloat(document.getElementById('transMonto').value);
+    const fechaRaw = document.getElementById('transFecha').value;
+    const descripcion = document.getElementById('transDesc').value.trim();
+
+    if (!classId || !categoryId || isNaN(monto) || !fechaRaw) {
+        showToast('Completa los campos obligatorios', 'error');
+        return;
+    }
+    const [dia, mes, anio] = fechaRaw.split('/');
+    const transactionDate = `${anio}-${mes}-${dia}`;
+
+    const { error } = await supabaseClient.from('financial_transactions').insert({
+        class_id: classId,
+        student_id: studentId,
+        category_id: categoryId,
+        type: tipo,
+        amount: monto,
+        description: descripcion,
+        transaction_date: transactionDate
+    });
+    if (error) {
+        showToast('Error: ' + error.message, 'error');
+    } else {
+        showToast('Movimiento registrado correctamente', 'success');
+        closeModal();
+        await cargarDatosContables();
+    }
+}
+
+function exportFinanceReport() {
+    const income = document.getElementById('total-income').innerText;
+    const expenses = document.getElementById('total-expenses').innerText;
+    const net = document.getElementById('net-balance').innerText;
+    const periodSelect = document.getElementById('period-filter');
+    const periodText = periodSelect.options[periodSelect.selectedIndex]?.text || 'Seleccionado';
+    const shareText = `📊 *Reporte Financiero - Escuela Bíblica* 📊\nPeríodo: ${periodText}\n💰 Ingresos: ${income}\n💸 Gastos: ${expenses}\n⚖️ Balance Neto: ${net}`;
+    
+    if (navigator.share) {
+        navigator.share({ title: 'Reporte G-Praise', text: shareText }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(shareText);
+        showToast('Resumen copiado al portapapeles', 'success');
+    }
+}
+    
     
   // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA) ====================
 let appInicializada = false; // El semáforo que evita que la app choque consigo misma
