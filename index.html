@@ -3483,7 +3483,7 @@ function puedeVerFzkids() {
     return deptoPadre && deptoPadre.nombre === 'Servicio';
 }
 
-    
+
 function puedeVerFzHost() {
     if (isAdminUser || isIglesiaAdmin) return true;
     if (isEquipoAdmin && equipoAdminData) {
@@ -13072,6 +13072,43 @@ async function loadMonthBirthdays() {
 
 let currentFinanceChart = null;
 
+// ========== PERMISOS ==========
+function puedeEditarContabilidad() {
+    // Superadmin global
+    if (isAdminUser) return true;
+    // Administrador de la iglesia
+    if (isIglesiaAdmin) return true;
+    // Administrador del equipo "Escuela Bíblica"
+    if (isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Escuela Bíblica') return true;
+    return false;
+}
+
+// ========== CARGA DE DATOS AUXILIARES ==========
+async function cargarClasesYBiblicas() {
+    const { data, error } = await supabaseClient
+        .from('bible_classes')
+        .select('*')
+        .order('name');
+    if (!error) window.bibleClasses = data;
+    else console.error(error);
+    
+    const { data: students } = await supabaseClient
+        .from('bible_students')
+        .select('*, bible_classes(name)')
+        .eq('status', 'active');
+    window.bibleStudents = students || [];
+    // NOTA: ya NO actualizamos #active-students aquí (se hará después de pintar el DOM)
+}
+
+async function cargarCategoriasFinancieras() {
+    const { data, error } = await supabaseClient
+        .from('finances_categories')
+        .select('*');
+    if (!error) window.financeCategories = data;
+    else console.error(error);
+}
+
+// ========== RENDER PRINCIPAL ==========
 async function renderContabilidad() {
     if (!currentUser) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger">Debes iniciar sesión para acceder a contabilidad.</div>';
@@ -13088,14 +13125,16 @@ async function renderContabilidad() {
     try {
         const { error: testError } = await supabaseClient.from('bible_classes').select('id').limit(1);
         if (testError && testError.message.includes('relation')) {
-            document.getElementById('mainContent').innerHTML = `<div class="alert alert-warning p-4 text-center">...<p>Las tablas contables aún no están creadas.</p></div>`;
+            document.getElementById('mainContent').innerHTML = `<div class="alert alert-warning p-4 text-center"><i class="fas fa-database" style="font-size: 2rem;"></i><h3>Módulo no configurado</h3><p>Las tablas contables aún no están creadas. Contacta al administrador.</p></div>`;
             return;
         }
 
         await cargarClasesYBiblicas();
         await cargarCategoriasFinancieras();
 
-        // HTML completo (igual al que ya tenías)
+        const puedeEditar = puedeEditarContabilidad();
+        const colspan = puedeEditar ? 6 : 5; // Para el mensaje de "sin datos"
+
         const html = `
         <div class="accounting-container" style="max-width: 1200px; margin: 0 auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
@@ -13153,8 +13192,19 @@ async function renderContabilidad() {
                     <h3>Últimos Movimientos</h3>
                     <div style="overflow-x: auto;">
                         <table class="modern-table" style="width: 100%; border-collapse: collapse;">
-                            <thead><tr><th>Fecha</th><th>Clase</th><th>Detalle</th><th>Categoría</th><th>Monto</th></tr></thead>
-                            <tbody id="transactions-table-body"><tr><td colspan="5" class="text-center">Cargando...</td></tr></tbody>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Clase</th>
+                                    <th>Detalle</th>
+                                    <th>Categoría</th>
+                                    <th>Monto</th>
+                                    ${puedeEditar ? '<th>Acciones</th>' : ''}
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table-body">
+                                <tr><td colspan="${colspan}" class="text-center">Cargando...</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -13167,7 +13217,7 @@ async function renderContabilidad() {
 
         document.getElementById('mainContent').innerHTML = html;
 
-        // ✅ Actualizar contador de alumnos después de que el DOM está listo
+        // Actualizar contador de alumnos después de que el DOM está listo
         const activeSpan = document.getElementById('active-students');
         if (activeSpan) activeSpan.innerText = (window.bibleStudents?.length || 0).toString();
 
@@ -13186,46 +13236,25 @@ async function renderContabilidad() {
     }
 }
 
-// ========== FUNCIONES AUXILIARES ==========
-
-async function cargarClasesYBiblicas() {
-    const { data, error } = await supabaseClient
-        .from('bible_classes')
-        .select('*')
-        .order('name');
-    if (!error) window.bibleClasses = data;
-    else console.error(error);
-    
-    // Cargar estudiantes para cada clase (se usará en formulario)
-    const { data: students } = await supabaseClient
-        .from('bible_students')
-        .select('*, bible_classes(name)')
-        .eq('status', 'active');
-    window.bibleStudents = students || [];
-    
-    // Actualizar contador de alumnos activos
-    //document.getElementById('active-students').innerText = window.bibleStudents.length || 0;
-}
-
-async function cargarCategoriasFinancieras() {
-    const { data, error } = await supabaseClient
-        .from('finances_categories')
-        .select('*');
-    if (!error) window.financeCategories = data;
-    else console.error(error);
-}
-
+// ========== CARGA Y RENDERIZADO DE DATOS ==========
 async function cargarDatosContables() {
+    const classFilter = document.getElementById('class-filter');
+    const periodFilter = document.getElementById('period-filter');
+    const tbody = document.getElementById('transactions-table-body');
+    
+    if (!classFilter || !periodFilter || !tbody) {
+        console.warn("Elementos del DOM no listos aún");
+        return;
+    }
 
-    
-    
-    const classId = document.getElementById('class-filter').value;
-    const period = document.getElementById('period-filter').value;
+    const classId = classFilter.value;
+    const period = periodFilter.value;
     const range = obtenerRangoFechas(period);
 
     let query = supabaseClient
         .from('financial_transactions')
         .select(`
+            id,
             amount, type, description, transaction_date,
             bible_classes(name),
             finances_categories(name),
@@ -13245,11 +13274,10 @@ async function cargarDatosContables() {
         return;
     }
 
-    // Calcular totales y llenar tabla
     let income = 0, expenses = 0;
-    const tbody = document.getElementById('transactions-table-body');
     tbody.innerHTML = '';
-    const categoryMap = new Map(); // para gráfico
+    const categoryMap = new Map();
+    const puedeEditar = puedeEditarContabilidad();
 
     (data || []).forEach(t => {
         if (t.type === 'income') income += parseFloat(t.amount);
@@ -13259,16 +13287,33 @@ async function cargarDatosContables() {
         const current = categoryMap.get(catName) || 0;
         categoryMap.set(catName, current + parseFloat(t.amount));
 
-        const row = `<tr>
+        let row = `<tr>
             <td>${t.transaction_date}</td>
             <td>${t.bible_classes?.name || 'N/A'}</td>
             <td>${t.bible_students?.full_name || t.description || 'General'}</td>
             <td>${catName}</td>
-            <td class="${t.type === 'income' ? 'text-income' : 'text-expense'}">${t.type === 'income' ? '+' : '-'}$${parseFloat(t.amount).toFixed(2)}</td>
-        </tr>`;
+            <td class="${t.type === 'income' ? 'text-income' : 'text-expense'}">
+                ${t.type === 'income' ? '+' : '-'}$${parseFloat(t.amount).toFixed(2)}
+            </td>`;
+
+        if (puedeEditar) {
+            row += `<td style="text-align: center;">
+                        <button class="btn-icon" onclick="editarTransaccion('${t.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon" onclick="eliminarTransaccion('${t.id}')" title="Eliminar" style="color: #ef4444;">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>`;
+        }
+        row += `</tr>`;
         tbody.innerHTML += row;
     });
-    if (data?.length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay movimientos en este período.</td></tr>';
+
+    const colspan = puedeEditar ? 6 : 5;
+    if (data?.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center">No hay movimientos en este período.</td></tr>`;
+    }
 
     document.getElementById('total-income').innerText = `$${income.toFixed(2)}`;
     document.getElementById('total-expenses').innerText = `$${expenses.toFixed(2)}`;
@@ -13277,34 +13322,10 @@ async function cargarDatosContables() {
     netEl.innerText = `$${net.toFixed(2)}`;
     netEl.style.color = net >= 0 ? '#10b981' : '#ef4444';
 
-    // Renderizar gráfico
     renderFinanceChart(categoryMap);
 }
 
-function obtenerRangoFechas(period) {
-    const hoy = new Date();
-    let start = new Date();
-    switch (period) {
-        case 'monthly':
-            start.setDate(1);
-            break;
-        case 'quarterly':
-            start.setMonth(start.getMonth() - 3);
-            break;
-        case 'semi-annual':
-            start.setMonth(start.getMonth() - 6);
-            break;
-        case 'annual':
-            start.setFullYear(start.getFullYear() - 1);
-            break;
-        default: start.setDate(1);
-    }
-    return {
-        start: start.toISOString().split('T')[0],
-        end: hoy.toISOString().split('T')[0]
-    };
-}
-
+// ========== GRÁFICO ==========
 function renderFinanceChart(categoryMap) {
     const ctx = document.getElementById('financeChart')?.getContext('2d');
     if (!ctx) return;
@@ -13330,8 +13351,8 @@ function renderFinanceChart(categoryMap) {
     });
 }
 
+// ========== FORMULARIOS (CREAR / EDITAR / ELIMINAR) ==========
 function mostrarFormularioTransaccion() {
-    // Cargar selects dinámicamente con clases, estudiantes y categorías
     const clasesHtml = (window.bibleClasses || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
     const estudiantesHtml = (window.bibleStudents || []).map(s => `<option value="${s.id}">${escapeHtml(s.full_name)} (${s.bible_classes?.name})</option>`).join('');
     const categoriasIncome = (window.financeCategories || []).filter(c => c.type === 'income').map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
@@ -13382,7 +13403,9 @@ function mostrarFormularioTransaccion() {
     window.toggleCategoriasTransaccion = () => {
         const tipo = document.getElementById('transTipo').value;
         const container = document.getElementById('categoriasContainer');
-        const categorias = tipo === 'income' ? (window.financeCategories || []).filter(c => c.type === 'income') : (window.financeCategories || []).filter(c => c.type === 'expense');
+        const categorias = tipo === 'income' 
+            ? (window.financeCategories || []).filter(c => c.type === 'income')
+            : (window.financeCategories || []).filter(c => c.type === 'expense');
         const selectHtml = `<label>Categoría *</label><select id="transCategoria" class="form-control">${categorias.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>`;
         container.innerHTML = selectHtml;
     };
@@ -13420,6 +13443,179 @@ async function guardarTransaccion() {
         closeModal();
         await cargarDatosContables();
     }
+}
+
+// ========== EDITAR ==========
+function formatFechaParaInput(fechaISO) {
+    if (!fechaISO) return '';
+    const partes = fechaISO.split('-');
+    if (partes.length !== 3) return fechaISO;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+async function editarTransaccion(id) {
+    if (!puedeEditarContabilidad()) {
+        showToast('No tienes permiso para editar', 'error');
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from('financial_transactions')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error || !data) {
+        showToast('Error al cargar la transacción', 'error');
+        return;
+    }
+
+    const clases = window.bibleClasses || [];
+    const estudiantes = window.bibleStudents || [];
+    const categoriasIncome = (window.financeCategories || []).filter(c => c.type === 'income');
+    const categoriasExpense = (window.financeCategories || []).filter(c => c.type === 'expense');
+
+    const clasesHtml = clases.map(c => `<option value="${c.id}" ${c.id === data.class_id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
+    const estudiantesHtml = `<option value="">-- Ninguno --</option>` + 
+        estudiantes.map(s => `<option value="${s.id}" ${s.id === data.student_id ? 'selected' : ''}>${escapeHtml(s.full_name)} (${s.bible_classes?.name})</option>`).join('');
+    
+    const tipoActual = data.type;
+    const categoriasActuales = tipoActual === 'income' ? categoriasIncome : categoriasExpense;
+    const categoriasHtml = categoriasActuales.map(c => `<option value="${c.id}" ${c.id === data.category_id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
+
+    const modalContent = `
+        <div style="max-width: 550px; margin: 0 auto;">
+            <h3><i class="fas fa-edit"></i> Editar Movimiento</h3>
+            <div class="form-group">
+                <label>Tipo *</label>
+                <select id="editTipo" class="form-control" onchange="toggleCategoriasEdicion()">
+                    <option value="income" ${tipoActual === 'income' ? 'selected' : ''}>Ingreso</option>
+                    <option value="expense" ${tipoActual === 'expense' ? 'selected' : ''}>Gasto</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Clase *</label>
+                <select id="editClase" class="form-control">${clasesHtml}</select>
+            </div>
+            <div class="form-group">
+                <label>Estudiante (opcional)</label>
+                <select id="editEstudiante" class="form-control">${estudiantesHtml}</select>
+            </div>
+            <div class="form-group" id="editCategoriasContainer">
+                <label>Categoría *</label>
+                <select id="editCategoria" class="form-control">${categoriasHtml}</select>
+            </div>
+            <div class="form-group">
+                <label>Monto *</label>
+                <input type="number" id="editMonto" class="form-control" step="0.01" min="0.01" value="${data.amount}">
+            </div>
+            <div class="form-group">
+                <label>Fecha *</label>
+                <input type="text" id="editFecha" class="form-control" placeholder="dd/mm/aaaa" value="${formatFechaParaInput(data.transaction_date)}">
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="editDesc" rows="2" class="form-control">${escapeHtml(data.description || '')}</textarea>
+            </div>
+            <div style="text-align: right;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarEdicionTransaccion('${id}')">Guardar Cambios</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+    flatpickr("#editFecha", { dateFormat: "d/m/Y", locale: "es" });
+
+    window.toggleCategoriasEdicion = () => {
+        const tipo = document.getElementById('editTipo').value;
+        const container = document.getElementById('editCategoriasContainer');
+        const categorias = tipo === 'income' 
+            ? (window.financeCategories || []).filter(c => c.type === 'income')
+            : (window.financeCategories || []).filter(c => c.type === 'expense');
+        const selectHtml = `<label>Categoría *</label><select id="editCategoria" class="form-control">${categorias.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>`;
+        container.innerHTML = selectHtml;
+    };
+}
+
+async function guardarEdicionTransaccion(id) {
+    const tipo = document.getElementById('editTipo').value;
+    const classId = document.getElementById('editClase').value;
+    const studentId = document.getElementById('editEstudiante').value || null;
+    const categoryId = document.getElementById('editCategoria').value;
+    const monto = parseFloat(document.getElementById('editMonto').value);
+    const fechaRaw = document.getElementById('editFecha').value;
+    const descripcion = document.getElementById('editDesc').value.trim();
+
+    if (!classId || !categoryId || isNaN(monto) || !fechaRaw) {
+        showToast('Completa los campos obligatorios', 'error');
+        return;
+    }
+    const [dia, mes, anio] = fechaRaw.split('/');
+    const transactionDate = `${anio}-${mes}-${dia}`;
+
+    const { error } = await supabaseClient
+        .from('financial_transactions')
+        .update({
+            type: tipo,
+            class_id: classId,
+            student_id: studentId,
+            category_id: categoryId,
+            amount: monto,
+            description: descripcion,
+            transaction_date: transactionDate
+        })
+        .eq('id', id);
+
+    if (error) {
+        showToast('Error al actualizar: ' + error.message, 'error');
+    } else {
+        showToast('Movimiento actualizado correctamente', 'success');
+        closeModal();
+        await cargarDatosContables();
+    }
+}
+
+async function eliminarTransaccion(id) {
+    if (!puedeEditarContabilidad()) {
+        showToast('No tienes permiso para eliminar', 'error');
+        return;
+    }
+    if (!confirm('¿Eliminar este movimiento permanentemente? Esta acción no se puede deshacer.')) return;
+    const { error } = await supabaseClient
+        .from('financial_transactions')
+        .delete()
+        .eq('id', id);
+    if (error) {
+        showToast('Error al eliminar: ' + error.message, 'error');
+    } else {
+        showToast('Movimiento eliminado', 'success');
+        await cargarDatosContables();
+    }
+}
+
+// ========== UTILIDADES ==========
+function obtenerRangoFechas(period) {
+    const hoy = new Date();
+    let start = new Date();
+    switch (period) {
+        case 'monthly':
+            start.setDate(1);
+            break;
+        case 'quarterly':
+            start.setMonth(start.getMonth() - 3);
+            break;
+        case 'semi-annual':
+            start.setMonth(start.getMonth() - 6);
+            break;
+        case 'annual':
+            start.setFullYear(start.getFullYear() - 1);
+            break;
+        default: start.setDate(1);
+    }
+    return {
+        start: start.toISOString().split('T')[0],
+        end: hoy.toISOString().split('T')[0]
+    };
 }
 
 function exportFinanceReport() {
