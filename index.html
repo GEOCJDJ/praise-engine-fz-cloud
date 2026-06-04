@@ -14205,16 +14205,25 @@ async function crearCategoriasPorDefecto() {
     ];
     
     for (const cat of categorias) {
-        await supabaseClient
+        // Verificar si ya existe
+        const { data: existe } = await supabaseClient
             .from('finanzas_categorias_por_equipo')
-            .insert({
-                iglesia_id: currentIglesiaId,
-                equipo_tipo: currentEquipoTipo,
-                nombre: cat.nombre,
-                tipo: cat.tipo
-            })
-            .onConflict('iglesia_id, equipo_tipo, nombre')
-            .ignore();
+            .select('id')
+            .eq('iglesia_id', currentIglesiaId)
+            .eq('equipo_tipo', currentEquipoTipo)
+            .eq('nombre', cat.nombre)
+            .maybeSingle();
+        
+        if (!existe) {
+            await supabaseClient
+                .from('finanzas_categorias_por_equipo')
+                .insert({
+                    iglesia_id: currentIglesiaId,
+                    equipo_tipo: currentEquipoTipo,
+                    nombre: cat.nombre,
+                    tipo: cat.tipo
+                });
+        }
     }
 }
 
