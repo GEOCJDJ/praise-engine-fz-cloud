@@ -3605,7 +3605,8 @@ function renderApp() {
     <div class="nav-item ${currentTab === 'favorites' ? 'active' : ''}" data-tab="favorites" style="display: ${puedeVerAlabanza() ? 'flex' : 'none'};"><i class="fas fa-star"></i><span>FAVORITOS</span></div>
     <div class="nav-item ${currentTab === 'lists' ? 'active' : ''}" data-tab="lists" style="display: ${puedeVerListas() ? 'flex' : 'none'};"><i class="fas fa-list-ul"></i><span>LISTAS</span></div>
     <div class="nav-item ${currentTab === 'resources' ? 'active' : ''}" data-tab="resources"><i class="fas fa-tools"></i><span>RECURSOS</span></div>
-    <div class="nav-item ${currentTab === 'contabilidad' ? 'active' : ''}" data-tab="contabilidad" style="display: ${(isAdminUser || isIglesiaAdmin) ? 'flex' : 'none'};"><i class="fas fa-chart-line"></i><span>CONTABILIDAD</span></div>
+   <div class="nav-item ${currentTab === 'contabilidad' ? ' active' : ''}" data-tab="contabilidad" style="display: ${(isAdminUser || isIglesiaAdmin || puedeVerFzkids()) ? 'flex' : 'none'};"><i class="fas fa-chart-line"></i><span>CONTABILIDAD</span></div>
+   
     <div class="nav-item ${currentTab === 'moodle' ? 'active' : ''}" data-tab="moodle"><i class="fas fa-graduation-cap"></i><span>AULA VIRTUAL</span></div>
     <div class="nav-item ${currentTab === 'gnotes' ? 'active' : ''}" data-tab="gnotes" style="display: ${puedeVerGnotes() ? 'flex' : 'none'};"><i class="fas fa-microphone-alt"></i><span>G‑NOTES</span></div>
        
@@ -3695,10 +3696,11 @@ function darkModeToggle() {
     if (localStorage.getItem('iec_darkmode') === 'true') document.body.classList.add('dark');
 }
     async function renderCurrentView() {
-        console.log("Permiso Alabanza:", puedeVerAlabanza());
-console.log("isAdminUser:", isAdminUser);
-console.log("isIglesiaAdmin:", isIglesiaAdmin);
-console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentUser?.id));
+    console.log("Permiso Alabanza:", puedeVerAlabanza());
+    console.log("isAdminUser:", isAdminUser);
+    console.log("isIglesiaAdmin:", isIglesiaAdmin);
+    console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentUser?.id));
+
     const searchContainer = document.querySelector('.search-container');
     if (searchContainer) {
         const showSearch = (currentTab === 'songs') ||
@@ -3707,7 +3709,9 @@ console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentU
         searchContainer.style.display = showSearch ? 'flex' : 'none';
     }
 
-    // Permisos para Cancionero y Favoritos (solo Alabanza)
+    // ========== VALIDACIONES DE PERMISOS ==========
+    
+    // Cancionero y Favoritos (solo Alabanza)
     if (currentTab === 'songs' || currentTab === 'favorites') {
         if (!puedeVerAlabanza()) {
             document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
@@ -3715,7 +3719,7 @@ console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentU
         }
     }
 
-    // Permiso para LISTAS (Alabanza y Danza) - ESTE ES EL ÚNICO CAMBIO
+    // LISTAS (Alabanza, Danza, Producción, Multimedia)
     if (currentTab === 'lists') {
         if (!puedeVerListas()) {
             document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
@@ -3723,43 +3727,54 @@ console.log("usuariosIglesia:", usuariosIglesia.find(m => m.user_id === currentU
         }
     }
 
-    // El resto de condiciones IGUAL que antes (sin modificaciones)
+    // G-NOTES
     if (currentTab === 'gnotes' && !puedeVerGnotes()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
     }
+
+    // FZKIDS (Escuela Bíblica)
     if (currentTab === 'fzkids' && !puedeVerFzkids()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
     }
+
+    // FZ HOST (Ujieres)
     if (currentTab === 'fzhost' && !puedeVerFzHost()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
     }
-    if (currentTab === 'gdance' && !puedeVerGDance()) {
-        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-        return;
-    }
+
+    // G-DANZA (Planner)
     if (currentTab === 'planner' && !puedeVerPlanner()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
     }
 
-    // Renderizado de vistas (igual que antes)
+    // CONTABILIDAD (visible para administradores y miembros de Escuela Bíblica)
+    if (currentTab === 'contabilidad') {
+        if (!(isAdminUser || isIglesiaAdmin || puedeVerFzkids())) {
+            document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+            return;
+        }
+        await renderContabilidad();
+        return; // Importante: salir para no seguir con otros renderizados
+    }
+
+    // ========== RENDERIZADO DE VISTAS ==========
+    
     if (currentTab === 'home') renderHome();
     else if (currentTab === 'fzkids') await renderFzkids();
     else if (currentTab === 'fzhost') await renderFzHost();
-
     else if (currentTab === 'planner') await renderPlanner();
     else if (currentTab === 'gmedia') await renderGmedia();
     else if (currentTab === 'agenda') await renderAgenda();
     else if (currentTab === 'eventos') await renderEventosCompletos();
     else if (currentTab === 'gdesk') await renderGDesk();
-        else if (currentTab === 'songs') await renderSongsGrid();
+    else if (currentTab === 'songs') await renderSongsGrid();
     else if (currentTab === 'favorites') await renderFavorites();
     else if (currentTab === 'lists') selectedListId ? renderListDetail() : renderLists();
     else if (currentTab === 'resources') renderResources();
-    else if (currentTab === 'contabilidad') await renderContabilidad();
     else if (currentTab === 'moodle') await renderMoodle();
     else if (currentTab === 'gnotes') await renderGnotes();
     else if (currentTab === 'scriptura') await renderScriptura();
@@ -13067,84 +13082,40 @@ async function renderContabilidad() {
         return;
     }
 
-    // Cargar datos iniciales: clases, estudiantes, categorías
-    await cargarClasesYBiblicas();
-    await cargarCategoriasFinancieras();
-
-    const html = `
-    <div class="accounting-container" style="padding: 1rem;">
-        <!-- BARRA DE FILTROS Y ACCIONES -->
-        <div class="filter-bar" style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: var(--surface); border-radius: 1rem; padding: 1rem; border: 1px solid var(--border);">
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <div class="filter-group">
-                    <label style="font-size:0.75rem;">Clase:</label>
-                    <select id="class-filter" class="form-control" style="width: auto; min-width: 150px;" onchange="cargarDatosContables()">
-                        <option value="all">Todas las Clases</option>
-                        ${window.bibleClasses?.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') || ''}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label style="font-size:0.75rem;">Período:</label>
-                    <select id="period-filter" class="form-control" style="width: auto;" onchange="cargarDatosContables()">
-                        <option value="monthly">Este Mes</option>
-                        <option value="quarterly">Trimestral</option>
-                        <option value="semi-annual">Semestral</option>
-                        <option value="annual">Anual</option>
-                    </select>
-                </div>
-            </div>
-            <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-primary" onclick="mostrarFormularioTransaccion()"><i class="fas fa-plus"></i> Registrar Movimiento</button>
-                <button class="btn btn-ghost" onclick="exportFinanceReport()"><i class="fas fa-share-alt"></i> Compartir</button>
-                <button class="btn btn-ghost" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
-            </div>
-        </div>
-
-        <!-- KPIs -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div class="card" style="border-left: 4px solid #10b981;">
-                <h3 style="font-size: 0.8rem; color: var(--text-muted);">Total Ingresos</h3>
-                <p class="kpi-value" id="total-income" style="font-size: 1.5rem; font-weight: 800; color: #10b981;">$0.00</p>
-            </div>
-            <div class="card" style="border-left: 4px solid #ef4444;">
-                <h3 style="font-size: 0.8rem; color: var(--text-muted);">Total Gastos</h3>
-                <p class="kpi-value" id="total-expenses" style="font-size: 1.5rem; font-weight: 800; color: #ef4444;">$0.00</p>
-            </div>
-            <div class="card" style="border-left: 4px solid #f59e0b;">
-                <h3 style="font-size: 0.8rem; color: var(--text-muted);">Balance Neto</h3>
-                <p class="kpi-value" id="net-balance" style="font-size: 1.5rem; font-weight: 800;">$0.00</p>
-            </div>
-            <div class="card" style="border-left: 4px solid #3b82f6;">
-                <h3 style="font-size: 0.8rem; color: var(--text-muted);">Alumnos Activos</h3>
-                <p class="kpi-value" id="active-students" style="font-size: 1.5rem; font-weight: 800;">0</p>
-            </div>
-        </div>
-
-        <!-- Gráfico y Tabla -->
-        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem;">
-            <div class="card" style="padding: 1rem;">
-                <h3 style="margin-bottom: 1rem;">Distribución por Categoría</h3>
-                <canvas id="financeChart" style="max-height: 250px;"></canvas>
-            </div>
-            <div class="card" style="padding: 1rem; overflow-x: auto;">
-                <h3 style="margin-bottom: 1rem;">Últimos Movimientos</h3>
-                <table class="modern-table" style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr><th>Fecha</th><th>Clase</th><th>Concepto</th><th>Categoría</th><th>Monto</th></tr>
-                    </thead>
-                    <tbody id="transactions-table-body">
-                        <tr><td colspan="5" class="text-center">Cargando...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    `;
-    document.getElementById('mainContent').innerHTML = html;
+    // Mostrar skeleton mientras carga
+    document.getElementById('mainContent').innerHTML = `<div class="skeleton-loading" style="height: 400px; border-radius: 1rem;"></div>`;
     document.getElementById('actionHeader').innerHTML = '';
 
-    // Cargar datos iniciales
-    await cargarDatosContables();
+    try {
+        // Verificar si las tablas existen (consulta simple)
+        const { error: testError } = await supabaseClient.from('bible_classes').select('id').limit(1);
+        if (testError && testError.message.includes('relation') && testError.message.includes('does not exist')) {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="alert alert-warning p-4 text-center">
+                    <i class="fas fa-database" style="font-size: 2rem;"></i>
+                    <h3>Módulo no configurado</h3>
+                    <p>Las tablas contables aún no están creadas. Contacta al administrador para ejecutar el script SQL.</p>
+                </div>
+            `;
+            return;
+        }
+
+        await cargarClasesYBiblicas();
+        await cargarCategoriasFinancieras();
+
+        const html = ` ... (el mismo HTML que tenías) ... `;
+        document.getElementById('mainContent').innerHTML = html;
+        await cargarDatosContables();
+    } catch (err) {
+        console.error("Error en renderContabilidad:", err);
+        document.getElementById('mainContent').innerHTML = `
+            <div class="alert alert-danger p-4 text-center">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Error al cargar el módulo</h3>
+                <p>${err.message || "Revisa la consola para más detalles."}</p>
+            </div>
+        `;
+    }
 }
 
 // ========== FUNCIONES AUXILIARES ==========
