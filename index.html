@@ -9697,7 +9697,7 @@ async function renderFzkids() {
     
     // Cargar clases y estudiantes
     await cargarClasesFzkids();
-    
+    await mostrarInterfazFzkidsCombinada(); 
     // Si hay clases y no hay una seleccionada, seleccionar la primera
     if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
         currentFzkidsClaseId = fzkidsClases[0].id;
@@ -9715,7 +9715,9 @@ async function renderFzkids() {
     mostrarInterfazFzkidsCombinada();
 }
 
-function mostrarInterfazFzkidsCombinada() {
+async function mostrarInterfazFzkidsCombinada() {
+    await cargarClasesFzkids();
+    console.log("🔍 fzkidsClases en mostrarInterfaz (después de recargar):", fzkidsClases);
     const container = document.getElementById('mainContent');
     const puedeEditar = puedeEditarFzkids();
     const claseSeleccionada = fzkidsClases.find(c => c.id === currentFzkidsClaseId);
@@ -10030,7 +10032,15 @@ window.guardarAsistenciaIndividual = async (estudianteId, estado) => {
         actualizarContadoresAsistencia();
     }
 };
-
+async function recargarClasesFzkids() {
+    await cargarClasesFzkids();
+    if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
+        currentFzkidsClaseId = fzkidsClases[0].id;
+        await cargarEstudiantesPorClase(currentFzkidsClaseId);
+    }
+    await mostrarInterfazFzkidsCombinada();  // Esperar a que termine
+}
+    
 function actualizarContadoresAsistencia() {
     let presentes = 0, ausentes = 0, atrasados = 0;
     fzkidsEstudiantes.forEach(e => {
