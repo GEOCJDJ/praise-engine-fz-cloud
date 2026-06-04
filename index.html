@@ -13216,13 +13216,7 @@ async function cargarCategoriasFinancieras() {
 }
 
 async function cargarDatosContables() {
-const classFilter = document.getElementById('class-filter');
-    const periodFilter = document.getElementById('period-filter');
-    const tbody = document.getElementById('transactions-table-body');
-    if (!classFilter || !periodFilter || !tbody) {
-        console.warn("Elementos del DOM no listos aún");
-        return;
-    }
+
     
     
     const classId = document.getElementById('class-filter').value;
