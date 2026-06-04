@@ -9712,9 +9712,11 @@ async function renderFzkids() {
     mostrarInterfazFzkidsCombinada();
 }
 
-async function mostrarInterfazFzkidsCombinada() {
-    await cargarClasesFzkids();
-    console.log("🔍 fzkidsClases en mostrarInterfaz (después de recargar):", fzkidsClases);
+function mostrarInterfazFzkidsCombinada() {
+   
+    console.log("🔍 fzkidsClases en mostrarInterfaz:", fzkidsClases);
+   
+
     const container = document.getElementById('mainContent');
     const puedeEditar = puedeEditarFzkids();
     const claseSeleccionada = fzkidsClases.find(c => c.id === currentFzkidsClaseId);
@@ -9812,6 +9814,7 @@ async function mostrarInterfazFzkidsCombinada() {
                     <div style="display: flex; gap: 0.5rem;">
                         <button onclick="abrirModalClaseFzkids()" class="btn btn-primary" style="background: #10b981;"><i class="fas fa-plus"></i> Nueva Clase</button>
                         <button onclick="abrirModalEstudianteFzkids()" class="btn btn-primary"><i class="fas fa-user-plus"></i> Nuevo Estudiante</button>
+                        <button onclick="recargarClasesFzkids()" class="btn btn-ghost" style="background:#3b82f6; color:white;"><i class="fas fa-sync-alt"></i> Refrescar Clases</button>
                     </div>
                 ` : ''}
             </div>
@@ -10029,6 +10032,7 @@ window.guardarAsistenciaIndividual = async (estudianteId, estado) => {
         actualizarContadoresAsistencia();
     }
 };
+    
 async function recargarClasesFzkids() {
     await cargarClasesFzkids();
     if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
