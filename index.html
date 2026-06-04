@@ -9695,28 +9695,27 @@ async function renderFzkids() {
 
     document.getElementById('mainContent').innerHTML = `<div class="skeleton-loading" style="height: 400px; border-radius: 1rem;"></div>`;
     
+    // Cargar clases y estudiantes
     await cargarClasesFzkids();
-    console.log("✅ Clases cargadas en renderFzkids:", fzkidsClases);
     
+    // Si hay clases y no hay una seleccionada, seleccionar la primera
     if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
         currentFzkidsClaseId = fzkidsClases[0].id;
         await cargarEstudiantesPorClase(currentFzkidsClaseId);
-        console.log("✅ Clase seleccionada:", currentFzkidsClaseId);
     }
     
+    // Cargar asistencia detalle si hay clase seleccionada
     if (currentFzkidsClaseId && currentFzkidsFecha) {
         fzkidsAsistenciaDetalle = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
     }
     
+    // Cargar lección del próximo domingo (funcionalidad existente)
     await cargarLeccionProximoDomingo();
+    
     mostrarInterfazFzkidsCombinada();
 }
-    
-function mostrarInterfazFzkidsCombinada() {
-   
-    console.log("🔍 fzkidsClases en mostrarInterfaz:", fzkidsClases);
-   
 
+function mostrarInterfazFzkidsCombinada() {
     const container = document.getElementById('mainContent');
     const puedeEditar = puedeEditarFzkids();
     const claseSeleccionada = fzkidsClases.find(c => c.id === currentFzkidsClaseId);
@@ -9814,7 +9813,6 @@ function mostrarInterfazFzkidsCombinada() {
                     <div style="display: flex; gap: 0.5rem;">
                         <button onclick="abrirModalClaseFzkids()" class="btn btn-primary" style="background: #10b981;"><i class="fas fa-plus"></i> Nueva Clase</button>
                         <button onclick="abrirModalEstudianteFzkids()" class="btn btn-primary"><i class="fas fa-user-plus"></i> Nuevo Estudiante</button>
-                        <button onclick="recargarClasesFzkids()" class="btn btn-ghost" style="background:#3b82f6; color:white;"><i class="fas fa-sync-alt"></i> Refrescar Clases</button>
                     </div>
                 ` : ''}
             </div>
@@ -10033,15 +10031,6 @@ window.guardarAsistenciaIndividual = async (estudianteId, estado) => {
     }
 };
 
-async function recargarClasesFzkids() {
-    await cargarClasesFzkids();
-    if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
-        currentFzkidsClaseId = fzkidsClases[0].id;
-        await cargarEstudiantesPorClase(currentFzkidsClaseId);
-    }
-    mostrarInterfazFzkidsCombinada();
-}    
-    
 function actualizarContadoresAsistencia() {
     let presentes = 0, ausentes = 0, atrasados = 0;
     fzkidsEstudiantes.forEach(e => {
