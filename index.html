@@ -9816,6 +9816,7 @@ function mostrarInterfazFzkidsCombinada() {
                     <div style="display: flex; gap: 0.5rem;">
                         <button onclick="abrirModalClaseFzkids()" class="btn btn-primary" style="background: #10b981;"><i class="fas fa-plus"></i> Nueva Clase</button>
                         <button onclick="abrirModalEstudianteFzkids()" class="btn btn-primary"><i class="fas fa-user-plus"></i> Nuevo Estudiante</button>
+                        <button onclick="recargarClasesFzkids()" class="btn btn-ghost" style="background:#3b82f6; color:white;"><i class="fas fa-sync-alt"></i> Refrescar Clases</button>
                     </div>
                 ` : ''}
             </div>
@@ -10034,6 +10035,15 @@ window.guardarAsistenciaIndividual = async (estudianteId, estado) => {
     }
 };
 
+async function recargarClasesFzkids() {
+    await cargarClasesFzkids();
+    if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
+        currentFzkidsClaseId = fzkidsClases[0].id;
+        await cargarEstudiantesPorClase(currentFzkidsClaseId);
+    }
+    mostrarInterfazFzkidsCombinada();
+}    
+    
 function actualizarContadoresAsistencia() {
     let presentes = 0, ausentes = 0, atrasados = 0;
     fzkidsEstudiantes.forEach(e => {
