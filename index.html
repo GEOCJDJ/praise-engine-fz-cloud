@@ -13494,44 +13494,91 @@ async function loadMonthBirthdays() {
         </div>
     `).join('');
 }
-// ==================== MÓDULO CONTABLE ESCUELA BÍBLICA ====================
+
+// ==================== MÓDULO CONTABLE UNIFICADO ====================
 
 let currentFinanceChart = null;
+let currentEquipoTipo = 'fzkids'; // 'fzkids', 'alabanza', 'danza'
 
 // ========== PERMISOS ==========
 function puedeEditarContabilidad() {
-    // Superadmin global
     if (isAdminUser) return true;
-    // Administrador de la iglesia
     if (isIglesiaAdmin) return true;
-    // Administrador del equipo "Escuela Bíblica"
-    if (isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Escuela Bíblica') return true;
+    // Para FZKIDS: administrador de Escuela Bíblica
+    if (currentEquipoTipo === 'fzkids' && isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Escuela Bíblica') return true;
+    // Para Alabanza (futuro)
+    if (currentEquipoTipo === 'alabanza' && isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Alabanza') return true;
+    // Para Danza (futuro)
+    if (currentEquipoTipo === 'danza' && isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Danza') return true;
     return false;
 }
 
-// ========== CARGA DE DATOS AUXILIARES ==========
-async function cargarClasesYBiblicas() {
+// ========== CARGA DE DATOS ==========
+async function cargarClasesFzkids() {
     const { data, error } = await supabaseClient
-        .from('bible_classes')
+        .from('fzkids_clases')
         .select('*')
-        .order('name');
-    if (!error) window.bibleClasses = data;
-    else console.error(error);
-    
-    const { data: students } = await supabaseClient
-        .from('bible_students')
-        .select('*, bible_classes(name)')
-        .eq('status', 'active');
-    window.bibleStudents = students || [];
-    // NOTA: ya NO actualizamos #active-students aquí (se hará después de pintar el DOM)
+        .eq('iglesia_id', currentIglesiaId)
+        .order('orden', { ascending: true });
+    if (error) {
+        console.error('Error cargando clases:', error);
+        return [];
+    }
+    return data || [];
+}
+
+async function cargarEstudiantesPorClase(claseId) {
+    if (!claseId) return [];
+    const { data, error } = await supabaseClient
+        .from('fzkids_estudiantes')
+        .select('*')
+        .eq('clase_id', claseId)
+        .eq('activo', true)
+        .order('nombre', { ascending: true });
+    if (error) {
+        console.error('Error cargando estudiantes:', error);
+        return [];
+    }
+    return data || [];
 }
 
 async function cargarCategoriasFinancieras() {
     const { data, error } = await supabaseClient
-        .from('finances_categories')
-        .select('*');
-    if (!error) window.financeCategories = data;
-    else console.error(error);
+        .from('finanzas_categorias_por_equipo')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .eq('equipo_tipo', currentEquipoTipo);
+    if (error) {
+        console.error('Error cargando categorías:', error);
+        return [];
+    }
+    return data || [];
+}
+
+async function cargarFondoEquipo() {
+    const { data, error } = await supabaseClient
+        .from('fondos_equipos')
+        .select('saldo_actual')
+        .eq('iglesia_id', currentIglesiaId)
+        .eq('equipo_tipo', currentEquipoTipo)
+        .single();
+    if (error && error.code !== 'PGRST116') {
+        console.error('Error cargando fondo:', error);
+        return 0;
+    }
+    return data?.saldo_actual || 0;
+}
+
+async function actualizarFondoEquipo(saldo) {
+    await supabaseClient
+        .from('fondos_equipos')
+        .upsert({
+            iglesia_id: currentIglesiaId,
+            equipo_tipo: currentEquipoTipo,
+            nombre_equipo: currentEquipoTipo === 'fzkids' ? 'Escuela Bíblica' : currentEquipoTipo,
+            saldo_actual: saldo,
+            updated_at: new Date()
+        }, { onConflict: 'iglesia_id, equipo_tipo' });
 }
 
 // ========== RENDER PRINCIPAL ==========
@@ -13549,34 +13596,41 @@ async function renderContabilidad() {
     document.getElementById('actionHeader').innerHTML = '';
 
     try {
-        const { error: testError } = await supabaseClient.from('bible_classes').select('id').limit(1);
-        if (testError && testError.message.includes('relation')) {
-            document.getElementById('mainContent').innerHTML = `<div class="alert alert-warning p-4 text-center"><i class="fas fa-database" style="font-size: 2rem;"></i><h3>Módulo no configurado</h3><p>Las tablas contables aún no están creadas. Contacta al administrador.</p></div>`;
-            return;
+        const fzkidsClases = await cargarClasesFzkids();
+        const categorias = await cargarCategoriasFinancieras();
+        const saldoActual = await cargarFondoEquipo();
+        const puedeEditar = puedeEditarContabilidad();
+
+        // Si no hay categorías, crearlas
+        if (categorias.length === 0) {
+            await crearCategoriasPorDefecto();
         }
 
-        await cargarClasesYBiblicas();
-        await cargarCategoriasFinancieras();
-
-        const puedeEditar = puedeEditarContabilidad();
-        const colspan = puedeEditar ? 6 : 5; // Para el mensaje de "sin datos"
-
+        const clasesOptions = fzkidsClases.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
+        
         const html = `
         <div class="accounting-container" style="max-width: 1200px; margin: 0 auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                <div>
-                    <h1 style="font-size: 1.5rem; font-weight: 800; margin: 0;"><i class="fas fa-church"></i> Contabilidad Escuela Bíblica</h1>
-                    <p style="color: var(--text-muted); margin: 0;">Clases y finanzas</p>
+            <!-- Cabecera -->
+            <div style="background: linear-gradient(135deg, #0f172a, #3b82f6); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <h1 style="font-size: 1.8rem; font-weight: 900; margin: 0;"><i class="fas fa-church"></i> Contabilidad FZKIDS</h1>
+                        <p style="margin: 0; opacity: 0.9;">Fondos de Escuela Bíblica</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 1.5rem; border-radius: 1rem; text-align: center;">
+                        <div style="font-size: 0.7rem; text-transform: uppercase;">Fondo disponible</div>
+                        <div style="font-size: 1.5rem; font-weight: 800;" id="saldoActualDisplay">$${saldoActual.toFixed(2)}</div>
+                    </div>
                 </div>
-                <button class="btn btn-primary" onclick="mostrarFormularioTransaccion()"><i class="fas fa-plus-circle"></i> Nuevo Movimiento</button>
             </div>
 
+            <!-- Filtros -->
             <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                <div style="flex:1;">
+                <div style="flex:2;">
                     <label>Clase</label>
                     <select id="class-filter" class="form-control" onchange="cargarDatosContables()">
                         <option value="all">Todas las clases</option>
-                        ${(window.bibleClasses || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                        ${clasesOptions}
                     </select>
                 </div>
                 <div style="flex:1;">
@@ -13588,27 +13642,32 @@ async function renderContabilidad() {
                         <option value="annual">Anual</option>
                     </select>
                 </div>
+                ${puedeEditar ? `
+                <div style="flex:1; display: flex; align-items: flex-end;">
+                    <button class="btn btn-primary" onclick="mostrarFormularioTransaccion()" style="width: 100%;">
+                        <i class="fas fa-plus-circle"></i> Nuevo Movimiento
+                    </button>
+                </div>
+                ` : ''}
             </div>
 
+            <!-- KPIs -->
             <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 20px;">
                 <div class="stat-card-modern">
-                    <div><i class="fas fa-user-graduate"></i> Alumnos Activos</div>
-                    <div class="stat-number-modern" id="active-students">--</div>
-                </div>
-                <div class="stat-card-modern">
-                    <div><i class="fas fa-arrow-up"></i> Ingresos</div>
+                    <div><i class="fas fa-arrow-up"></i> Ingresos del período</div>
                     <div class="stat-number-modern text-income" id="total-income">$0</div>
                 </div>
                 <div class="stat-card-modern">
-                    <div><i class="fas fa-arrow-down"></i> Gastos</div>
+                    <div><i class="fas fa-arrow-down"></i> Gastos del período</div>
                     <div class="stat-number-modern text-expense" id="total-expenses">$0</div>
                 </div>
                 <div class="stat-card-modern">
-                    <div><i class="fas fa-scale-balanced"></i> Balance Neto</div>
+                    <div><i class="fas fa-scale-balanced"></i> Balance del período</div>
                     <div class="stat-number-modern" id="net-balance">$0</div>
                 </div>
             </div>
 
+            <!-- Gráfico y Tabla -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div class="card">
                     <h3>Distribución por Categoría</h3>
@@ -13616,25 +13675,26 @@ async function renderContabilidad() {
                 </div>
                 <div class="card">
                     <h3>Últimos Movimientos</h3>
-                    <div style="overflow-x: auto;">
+                    <div style="overflow-x: auto; max-height: 350px; overflow-y: auto;">
                         <table class="modern-table" style="width: 100%; border-collapse: collapse;">
-                            <thead>
+                            <thead style="position: sticky; top: 0; background: var(--surface);">
                                 <tr>
                                     <th>Fecha</th>
                                     <th>Clase</th>
-                                    <th>Detalle</th>
+                                    <th>Concepto</th>
                                     <th>Categoría</th>
                                     <th>Monto</th>
                                     ${puedeEditar ? '<th>Acciones</th>' : ''}
                                 </tr>
                             </thead>
                             <tbody id="transactions-table-body">
-                                <tr><td colspan="${colspan}" class="text-center">Cargando...</td></tr>
+                                <tr><td colspan="${puedeEditar ? 6 : 5}" class="text-center">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
+
             <div style="text-align: right;">
                 <button class="btn btn-ghost" onclick="exportFinanceReport()"><i class="fas fa-download"></i> Exportar Resumen</button>
             </div>
@@ -13642,12 +13702,6 @@ async function renderContabilidad() {
         `;
 
         document.getElementById('mainContent').innerHTML = html;
-
-        // Actualizar contador de alumnos después de que el DOM está listo
-        const activeSpan = document.getElementById('active-students');
-        if (activeSpan) activeSpan.innerText = (window.bibleStudents?.length || 0).toString();
-
-        // Cargar transacciones y gráfico
         await cargarDatosContables();
 
     } catch (err) {
@@ -13662,7 +13716,7 @@ async function renderContabilidad() {
     }
 }
 
-// ========== CARGA Y RENDERIZADO DE DATOS ==========
+// ========== CARGAR DATOS DE TRANSACCIONES ==========
 async function cargarDatosContables() {
     const classFilter = document.getElementById('class-filter');
     const periodFilter = document.getElementById('period-filter');
@@ -13676,21 +13730,27 @@ async function cargarDatosContables() {
     const classId = classFilter.value;
     const period = periodFilter.value;
     const range = obtenerRangoFechas(period);
+    const puedeEditar = puedeEditarContabilidad();
 
     let query = supabaseClient
-        .from('financial_transactions')
+        .from('transacciones_equipos')
         .select(`
             id,
-            amount, type, description, transaction_date,
-            bible_classes(name),
-            finances_categories(name),
-            bible_students(full_name)
+            amount, tipo, description, fecha,
+            clase_id,
+            estudiante_id,
+            categoria_id,
+            finanzas_categorias_por_equipo!inner(nombre, tipo as cat_tipo),
+            fzkids_clases!left(nombre as clase_nombre),
+            fzkids_estudiantes!left(nombre as estudiante_nombre, apellido)
         `)
-        .gte('transaction_date', range.start)
-        .lte('transaction_date', range.end);
+        .eq('equipo_tipo', currentEquipoTipo)
+        .eq('iglesia_id', currentIglesiaId)
+        .gte('fecha', range.start)
+        .lte('fecha', range.end);
 
     if (classId !== 'all') {
-        query = query.eq('class_id', classId);
+        query = query.eq('clase_id', classId);
     }
 
     const { data, error } = await query;
@@ -13703,23 +13763,25 @@ async function cargarDatosContables() {
     let income = 0, expenses = 0;
     tbody.innerHTML = '';
     const categoryMap = new Map();
-    const puedeEditar = puedeEditarContabilidad();
 
     (data || []).forEach(t => {
-        if (t.type === 'income') income += parseFloat(t.amount);
+        if (t.tipo === 'income') income += parseFloat(t.amount);
         else expenses += parseFloat(t.amount);
 
-        const catName = t.finances_categories?.name || 'Otro';
+        const catName = t.finanzas_categorias_por_equipo?.nombre || 'Otro';
         const current = categoryMap.get(catName) || 0;
         categoryMap.set(catName, current + parseFloat(t.amount));
 
+        const claseNombre = t.fzkids_clases?.clase_nombre || 'General';
+        const estudianteNombre = t.fzkids_estudiantes ? `${t.fzkids_estudiantes.nombre} ${t.fzkids_estudiantes.apellido || ''}` : '';
+
         let row = `<tr>
-            <td>${t.transaction_date}</td>
-            <td>${t.bible_classes?.name || 'N/A'}</td>
-            <td>${t.bible_students?.full_name || t.description || 'General'}</td>
-            <td>${catName}</td>
-            <td class="${t.type === 'income' ? 'text-income' : 'text-expense'}">
-                ${t.type === 'income' ? '+' : '-'}$${parseFloat(t.amount).toFixed(2)}
+            <td>${t.fecha}</td>
+            <td>${escapeHtml(claseNombre)}${estudianteNombre ? `<br><small>${escapeHtml(estudianteNombre)}</small>` : ''}</td>
+            <td>${escapeHtml(t.description || '—')}</td>
+            <td>${escapeHtml(catName)}</td>
+            <td class="${t.tipo === 'income' ? 'text-income' : 'text-expense'}">
+                ${t.tipo === 'income' ? '+' : '-'}$${parseFloat(t.amount).toFixed(2)}
             </td>`;
 
         if (puedeEditar) {
@@ -13730,7 +13792,7 @@ async function cargarDatosContables() {
                         <button class="btn-icon" onclick="eliminarTransaccion('${t.id}')" title="Eliminar" style="color: #ef4444;">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                    </td>`;
+                     </td>`;
         }
         row += `</tr>`;
         tbody.innerHTML += row;
@@ -13748,45 +13810,27 @@ async function cargarDatosContables() {
     netEl.innerText = `$${net.toFixed(2)}`;
     netEl.style.color = net >= 0 ? '#10b981' : '#ef4444';
 
+    // Actualizar saldo del fondo
+    const saldoActual = await cargarFondoEquipo();
+    const saldoDisplay = document.getElementById('saldoActualDisplay');
+    if (saldoDisplay) saldoDisplay.innerText = `$${saldoActual.toFixed(2)}`;
+
     renderFinanceChart(categoryMap);
 }
 
-// ========== GRÁFICO ==========
-function renderFinanceChart(categoryMap) {
-    const ctx = document.getElementById('financeChart')?.getContext('2d');
-    if (!ctx) return;
-    if (currentFinanceChart) currentFinanceChart.destroy();
-
-    const labels = Array.from(categoryMap.keys());
-    const values = Array.from(categoryMap.values());
-    currentFinanceChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: values,
-                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: { legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-main') } } }
-        }
-    });
-}
-
-// ========== FORMULARIOS (CREAR / EDITAR / ELIMINAR) ==========
-function mostrarFormularioTransaccion() {
-    const clasesHtml = (window.bibleClasses || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-    const estudiantesHtml = (window.bibleStudents || []).map(s => `<option value="${s.id}">${escapeHtml(s.full_name)} (${s.bible_classes?.name})</option>`).join('');
-    const categoriasIncome = (window.financeCategories || []).filter(c => c.type === 'income').map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-    const categoriasExpense = (window.financeCategories || []).filter(c => c.type === 'expense').map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+// ========== FORMULARIOS ==========
+async function mostrarFormularioTransaccion() {
+    const clases = await cargarClasesFzkids();
+    const categorias = await cargarCategoriasFinancieras();
+    const estudiantes = [];
+    
+    const clasesOptions = clases.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
+    const categoriasIncome = categorias.filter(c => c.tipo === 'income').map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
+    const categoriasExpense = categorias.filter(c => c.tipo === 'expense').map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
 
     const modalContent = `
         <div style="max-width: 550px; margin: 0 auto;">
-            <h3><i class="fas fa-book"></i> Nuevo Movimiento Contable</h3>
+            <h3><i class="fas fa-book"></i> Nuevo Movimiento</h3>
             <div class="form-group">
                 <label>Tipo *</label>
                 <select id="transTipo" class="form-control" onchange="toggleCategoriasTransaccion()">
@@ -13796,11 +13840,16 @@ function mostrarFormularioTransaccion() {
             </div>
             <div class="form-group">
                 <label>Clase *</label>
-                <select id="transClase" class="form-control">${clasesHtml}</select>
+                <select id="transClase" class="form-control" onchange="cargarEstudiantesParaSelect(this.value)">
+                    <option value="">Seleccionar clase</option>
+                    ${clasesOptions}
+                </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="estudianteContainer" style="display: none;">
                 <label>Estudiante (opcional)</label>
-                <select id="transEstudiante" class="form-control"><option value="">-- Ninguno --</option>${estudiantesHtml}</select>
+                <select id="transEstudiante" class="form-control">
+                    <option value="">-- Ninguno --</option>
+                </select>
             </div>
             <div class="form-group" id="categoriasContainer">
                 <label>Categoría *</label>
@@ -13815,8 +13864,8 @@ function mostrarFormularioTransaccion() {
                 <input type="text" id="transFecha" class="form-control" placeholder="dd/mm/aaaa">
             </div>
             <div class="form-group">
-                <label>Descripción (opcional)</label>
-                <textarea id="transDesc" rows="2" class="form-control"></textarea>
+                <label>Descripción / Concepto</label>
+                <textarea id="transDesc" rows="2" class="form-control" placeholder="Ej: Ofrenda dominical, Compra de materiales..."></textarea>
             </div>
             <div style="text-align: right;">
                 <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
@@ -13826,59 +13875,81 @@ function mostrarFormularioTransaccion() {
     `;
     showModal(modalContent);
     flatpickr("#transFecha", { dateFormat: "d/m/Y", locale: "es", defaultDate: "today" });
+    
+    window.cargarEstudiantesParaSelect = async (claseId) => {
+        const container = document.getElementById('estudianteContainer');
+        const select = document.getElementById('transEstudiante');
+        if (!claseId) {
+            container.style.display = 'none';
+            return;
+        }
+        const estudiantes = await cargarEstudiantesPorClase(claseId);
+        if (estudiantes.length > 0) {
+            container.style.display = 'block';
+            select.innerHTML = '<option value="">-- Ninguno --</option>' + 
+                estudiantes.map(e => `<option value="${e.id}">${escapeHtml(e.nombre)} ${e.apellido || ''}</option>`).join('');
+        } else {
+            container.style.display = 'none';
+        }
+    };
+    
     window.toggleCategoriasTransaccion = () => {
         const tipo = document.getElementById('transTipo').value;
         const container = document.getElementById('categoriasContainer');
         const categorias = tipo === 'income' 
-            ? (window.financeCategories || []).filter(c => c.type === 'income')
-            : (window.financeCategories || []).filter(c => c.type === 'expense');
-        const selectHtml = `<label>Categoría *</label><select id="transCategoria" class="form-control">${categorias.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>`;
+            ? categorias.filter(c => c.tipo === 'income')
+            : categorias.filter(c => c.tipo === 'expense');
+        const selectHtml = `<label>Categoría *</label><select id="transCategoria" class="form-control">${categorias.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}</select>`;
         container.innerHTML = selectHtml;
     };
 }
 
 async function guardarTransaccion() {
     const tipo = document.getElementById('transTipo').value;
-    const classId = document.getElementById('transClase').value;
-    const studentId = document.getElementById('transEstudiante').value || null;
+    const claseId = document.getElementById('transClase').value;
+    const estudianteId = document.getElementById('transEstudiante')?.value || null;
     const categoryId = document.getElementById('transCategoria').value;
     const monto = parseFloat(document.getElementById('transMonto').value);
     const fechaRaw = document.getElementById('transFecha').value;
     const descripcion = document.getElementById('transDesc').value.trim();
 
-    if (!classId || !categoryId || isNaN(monto) || !fechaRaw) {
+    if (!claseId || !categoryId || isNaN(monto) || !fechaRaw) {
         showToast('Completa los campos obligatorios', 'error');
         return;
     }
     const [dia, mes, anio] = fechaRaw.split('/');
     const transactionDate = `${anio}-${mes}-${dia}`;
 
-    const { error } = await supabaseClient.from('financial_transactions').insert({
-        class_id: classId,
-        student_id: studentId,
-        category_id: categoryId,
-        type: tipo,
+    // Insertar transacción
+    const { error } = await supabaseClient.from('transacciones_equipos').insert({
+        iglesia_id: currentIglesiaId,
+        equipo_tipo: currentEquipoTipo,
+        clase_id: claseId,
+        estudiante_id: estudianteId,
+        categoria_id: categoryId,
+        tipo: tipo,
         amount: monto,
         description: descripcion,
-        transaction_date: transactionDate
+        fecha: transactionDate,
+        registrado_por: currentUser.id
     });
+    
     if (error) {
         showToast('Error: ' + error.message, 'error');
-    } else {
-        showToast('Movimiento registrado correctamente', 'success');
-        closeModal();
-        await cargarDatosContables();
+        return;
     }
+    
+    // Actualizar saldo del fondo
+    const saldoActual = await cargarFondoEquipo();
+    const nuevoSaldo = tipo === 'income' ? saldoActual + monto : saldoActual - monto;
+    await actualizarFondoEquipo(nuevoSaldo);
+    
+    showToast('Movimiento registrado correctamente', 'success');
+    closeModal();
+    await cargarDatosContables();
 }
 
-// ========== EDITAR ==========
-function formatFechaParaInput(fechaISO) {
-    if (!fechaISO) return '';
-    const partes = fechaISO.split('-');
-    if (partes.length !== 3) return fechaISO;
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
-}
-
+// ========== EDITAR Y ELIMINAR ==========
 async function editarTransaccion(id) {
     if (!puedeEditarContabilidad()) {
         showToast('No tienes permiso para editar', 'error');
@@ -13886,7 +13957,7 @@ async function editarTransaccion(id) {
     }
 
     const { data, error } = await supabaseClient
-        .from('financial_transactions')
+        .from('transacciones_equipos')
         .select('*')
         .eq('id', id)
         .single();
@@ -13896,18 +13967,16 @@ async function editarTransaccion(id) {
         return;
     }
 
-    const clases = window.bibleClasses || [];
-    const estudiantes = window.bibleStudents || [];
-    const categoriasIncome = (window.financeCategories || []).filter(c => c.type === 'income');
-    const categoriasExpense = (window.financeCategories || []).filter(c => c.type === 'expense');
-
-    const clasesHtml = clases.map(c => `<option value="${c.id}" ${c.id === data.class_id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
-    const estudiantesHtml = `<option value="">-- Ninguno --</option>` + 
-        estudiantes.map(s => `<option value="${s.id}" ${s.id === data.student_id ? 'selected' : ''}>${escapeHtml(s.full_name)} (${s.bible_classes?.name})</option>`).join('');
+    const clases = await cargarClasesFzkids();
+    const categorias = await cargarCategoriasFinancieras();
+    const estudiantes = data.clase_id ? await cargarEstudiantesPorClase(data.clase_id) : [];
     
-    const tipoActual = data.type;
-    const categoriasActuales = tipoActual === 'income' ? categoriasIncome : categoriasExpense;
-    const categoriasHtml = categoriasActuales.map(c => `<option value="${c.id}" ${c.id === data.category_id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
+    const clasesOptions = clases.map(c => `<option value="${c.id}" ${c.id === data.clase_id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('');
+    const estudiantesOptions = '<option value="">-- Ninguno --</option>' + 
+        estudiantes.map(e => `<option value="${e.id}" ${e.id === data.estudiante_id ? 'selected' : ''}>${escapeHtml(e.nombre)} ${e.apellido || ''}</option>`).join('');
+    
+    const categoriasTipo = data.tipo === 'income' ? categorias.filter(c => c.tipo === 'income') : categorias.filter(c => c.tipo === 'expense');
+    const categoriasHtml = categoriasTipo.map(c => `<option value="${c.id}" ${c.id === data.categoria_id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('');
 
     const modalContent = `
         <div style="max-width: 550px; margin: 0 auto;">
@@ -13915,17 +13984,17 @@ async function editarTransaccion(id) {
             <div class="form-group">
                 <label>Tipo *</label>
                 <select id="editTipo" class="form-control" onchange="toggleCategoriasEdicion()">
-                    <option value="income" ${tipoActual === 'income' ? 'selected' : ''}>Ingreso</option>
-                    <option value="expense" ${tipoActual === 'expense' ? 'selected' : ''}>Gasto</option>
+                    <option value="income" ${data.tipo === 'income' ? 'selected' : ''}>Ingreso</option>
+                    <option value="expense" ${data.tipo === 'expense' ? 'selected' : ''}>Gasto</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Clase *</label>
-                <select id="editClase" class="form-control">${clasesHtml}</select>
+                <select id="editClase" class="form-control" onchange="cargarEstudiantesEdicion(this.value)">${clasesOptions}</select>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="editEstudianteContainer" style="display: ${estudiantes.length > 0 ? 'block' : 'none'}">
                 <label>Estudiante (opcional)</label>
-                <select id="editEstudiante" class="form-control">${estudiantesHtml}</select>
+                <select id="editEstudiante" class="form-control">${estudiantesOptions}</select>
             </div>
             <div class="form-group" id="editCategoriasContainer">
                 <label>Categoría *</label>
@@ -13937,68 +14006,94 @@ async function editarTransaccion(id) {
             </div>
             <div class="form-group">
                 <label>Fecha *</label>
-                <input type="text" id="editFecha" class="form-control" placeholder="dd/mm/aaaa" value="${formatFechaParaInput(data.transaction_date)}">
+                <input type="text" id="editFecha" class="form-control" value="${formatFechaParaInput(data.fecha)}">
             </div>
             <div class="form-group">
-                <label>Descripción (opcional)</label>
+                <label>Descripción</label>
                 <textarea id="editDesc" rows="2" class="form-control">${escapeHtml(data.description || '')}</textarea>
             </div>
             <div style="text-align: right;">
                 <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-                <button class="btn btn-primary" onclick="guardarEdicionTransaccion('${id}')">Guardar Cambios</button>
+                <button class="btn btn-primary" onclick="guardarEdicionTransaccion('${id}', ${data.amount}, '${data.tipo}')">Guardar Cambios</button>
             </div>
         </div>
     `;
     showModal(modalContent);
     flatpickr("#editFecha", { dateFormat: "d/m/Y", locale: "es" });
-
+    
+    window.cargarEstudiantesEdicion = async (claseId) => {
+        const container = document.getElementById('editEstudianteContainer');
+        const select = document.getElementById('editEstudiante');
+        if (!claseId) {
+            container.style.display = 'none';
+            return;
+        }
+        const estudiantes = await cargarEstudiantesPorClase(claseId);
+        if (estudiantes.length > 0) {
+            container.style.display = 'block';
+            select.innerHTML = '<option value="">-- Ninguno --</option>' + 
+                estudiantes.map(e => `<option value="${e.id}">${escapeHtml(e.nombre)} ${e.apellido || ''}</option>`).join('');
+        } else {
+            container.style.display = 'none';
+        }
+    };
+    
     window.toggleCategoriasEdicion = () => {
         const tipo = document.getElementById('editTipo').value;
         const container = document.getElementById('editCategoriasContainer');
-        const categorias = tipo === 'income' 
-            ? (window.financeCategories || []).filter(c => c.type === 'income')
-            : (window.financeCategories || []).filter(c => c.type === 'expense');
-        const selectHtml = `<label>Categoría *</label><select id="editCategoria" class="form-control">${categorias.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>`;
+        const categoriasList = tipo === 'income' ? categorias.filter(c => c.tipo === 'income') : categorias.filter(c => c.tipo === 'expense');
+        const selectHtml = `<label>Categoría *</label><select id="editCategoria" class="form-control">${categoriasList.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}</select>`;
         container.innerHTML = selectHtml;
     };
 }
 
-async function guardarEdicionTransaccion(id) {
+async function guardarEdicionTransaccion(id, montoAnterior, tipoAnterior) {
     const tipo = document.getElementById('editTipo').value;
-    const classId = document.getElementById('editClase').value;
-    const studentId = document.getElementById('editEstudiante').value || null;
+    const claseId = document.getElementById('editClase').value;
+    const estudianteId = document.getElementById('editEstudiante')?.value || null;
     const categoryId = document.getElementById('editCategoria').value;
     const monto = parseFloat(document.getElementById('editMonto').value);
     const fechaRaw = document.getElementById('editFecha').value;
     const descripcion = document.getElementById('editDesc').value.trim();
 
-    if (!classId || !categoryId || isNaN(monto) || !fechaRaw) {
+    if (!claseId || !categoryId || isNaN(monto) || !fechaRaw) {
         showToast('Completa los campos obligatorios', 'error');
         return;
     }
     const [dia, mes, anio] = fechaRaw.split('/');
     const transactionDate = `${anio}-${mes}-${dia}`;
 
+    // Actualizar transacción
     const { error } = await supabaseClient
-        .from('financial_transactions')
+        .from('transacciones_equipos')
         .update({
-            type: tipo,
-            class_id: classId,
-            student_id: studentId,
-            category_id: categoryId,
+            tipo: tipo,
+            clase_id: claseId,
+            estudiante_id: estudianteId,
+            categoria_id: categoryId,
             amount: monto,
             description: descripcion,
-            transaction_date: transactionDate
+            fecha: transactionDate
         })
         .eq('id', id);
 
     if (error) {
         showToast('Error al actualizar: ' + error.message, 'error');
-    } else {
-        showToast('Movimiento actualizado correctamente', 'success');
-        closeModal();
-        await cargarDatosContables();
+        return;
     }
+    
+    // Actualizar saldo del fondo (restar efecto anterior, sumar nuevo)
+    const saldoActual = await cargarFondoEquipo();
+    let nuevoSaldo = saldoActual;
+    if (tipoAnterior === 'income') nuevoSaldo -= montoAnterior;
+    else nuevoSaldo += montoAnterior;
+    if (tipo === 'income') nuevoSaldo += monto;
+    else nuevoSaldo -= monto;
+    await actualizarFondoEquipo(nuevoSaldo);
+    
+    showToast('Movimiento actualizado', 'success');
+    closeModal();
+    await cargarDatosContables();
 }
 
 async function eliminarTransaccion(id) {
@@ -14006,17 +14101,38 @@ async function eliminarTransaccion(id) {
         showToast('No tienes permiso para eliminar', 'error');
         return;
     }
-    if (!confirm('¿Eliminar este movimiento permanentemente? Esta acción no se puede deshacer.')) return;
+    
+    // Obtener datos antes de eliminar para ajustar saldo
+    const { data, error: fetchError } = await supabaseClient
+        .from('transacciones_equipos')
+        .select('amount, tipo')
+        .eq('id', id)
+        .single();
+    
+    if (fetchError) {
+        showToast('Error al obtener transacción', 'error');
+        return;
+    }
+    
+    if (!confirm('¿Eliminar este movimiento permanentemente?')) return;
+    
     const { error } = await supabaseClient
-        .from('financial_transactions')
+        .from('transacciones_equipos')
         .delete()
         .eq('id', id);
+    
     if (error) {
         showToast('Error al eliminar: ' + error.message, 'error');
-    } else {
-        showToast('Movimiento eliminado', 'success');
-        await cargarDatosContables();
+        return;
     }
+    
+    // Ajustar saldo
+    const saldoActual = await cargarFondoEquipo();
+    const nuevoSaldo = data.tipo === 'income' ? saldoActual - data.amount : saldoActual + data.amount;
+    await actualizarFondoEquipo(nuevoSaldo);
+    
+    showToast('Movimiento eliminado', 'success');
+    await cargarDatosContables();
 }
 
 // ========== UTILIDADES ==========
@@ -14044,13 +14160,73 @@ function obtenerRangoFechas(period) {
     };
 }
 
+function formatFechaParaInput(fechaISO) {
+    if (!fechaISO) return '';
+    const partes = fechaISO.split('-');
+    if (partes.length !== 3) return fechaISO;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+function renderFinanceChart(categoryMap) {
+    const ctx = document.getElementById('financeChart')?.getContext('2d');
+    if (!ctx) return;
+    if (currentFinanceChart) currentFinanceChart.destroy();
+
+    const labels = Array.from(categoryMap.keys());
+    const values = Array.from(categoryMap.values());
+    currentFinanceChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-main') } } }
+        }
+    });
+}
+
+async function crearCategoriasPorDefecto() {
+    const categorias = [
+        { nombre: 'Ofrenda dominical', tipo: 'income' },
+        { nombre: 'Donación', tipo: 'income' },
+        { nombre: 'Evento especial', tipo: 'income' },
+        { nombre: 'Material didáctico', tipo: 'expense' },
+        { nombre: 'Refrigerio', tipo: 'expense' },
+        { nombre: 'Manualidades', tipo: 'expense' },
+        { nombre: 'Transporte', tipo: 'expense' },
+        { nombre: 'Otros gastos', tipo: 'expense' }
+    ];
+    
+    for (const cat of categorias) {
+        await supabaseClient
+            .from('finanzas_categorias_por_equipo')
+            .insert({
+                iglesia_id: currentIglesiaId,
+                equipo_tipo: currentEquipoTipo,
+                nombre: cat.nombre,
+                tipo: cat.tipo
+            })
+            .onConflict('iglesia_id, equipo_tipo, nombre')
+            .ignore();
+    }
+}
+
 function exportFinanceReport() {
     const income = document.getElementById('total-income').innerText;
     const expenses = document.getElementById('total-expenses').innerText;
     const net = document.getElementById('net-balance').innerText;
     const periodSelect = document.getElementById('period-filter');
     const periodText = periodSelect.options[periodSelect.selectedIndex]?.text || 'Seleccionado';
-    const shareText = `📊 *Reporte Financiero - Escuela Bíblica* 📊\nPeríodo: ${periodText}\n💰 Ingresos: ${income}\n💸 Gastos: ${expenses}\n⚖️ Balance Neto: ${net}`;
+    const saldo = document.getElementById('saldoActualDisplay')?.innerText || '$0';
+    
+    const shareText = `📊 *Reporte Financiero - Escuela Bíblica* 📊\nPeríodo: ${periodText}\n💰 Ingresos: ${income}\n💸 Gastos: ${expenses}\n⚖️ Balance Neto: ${net}\n🏦 Fondo disponible: ${saldo}`;
     
     if (navigator.share) {
         navigator.share({ title: 'Reporte G-Praise', text: shareText }).catch(() => {});
@@ -14058,8 +14234,7 @@ function exportFinanceReport() {
         navigator.clipboard.writeText(shareText);
         showToast('Resumen copiado al portapapeles', 'success');
     }
-}
-    
+}    
     
   // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA) ====================
 let appInicializada = false; // El semáforo que evita que la app choque consigo misma
