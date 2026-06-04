@@ -9694,54 +9694,21 @@ async function renderFzkids() {
     }
 
     document.getElementById('mainContent').innerHTML = `<div class="skeleton-loading" style="height: 400px; border-radius: 1rem;"></div>`;
-
-    // Intentar cargar clases hasta 3 veces si es necesario
-    let intentos = 0;
-    let clasesCargadas = false;
-    while (intentos < 3 && !clasesCargadas) {
-        await cargarClasesFzkids();
-        if (fzkidsClases.length > 0) {
-            clasesCargadas = true;
-        } else {
-            intentos++;
-            if (intentos < 3) await new Promise(r => setTimeout(r, 500));
-        }
-    }
-
-    console.log("Clases cargadas:", fzkidsClases);
-
-    if (fzkidsClases.length === 0) {
-        document.getElementById('mainContent').innerHTML = `
-            <div style="text-align: center; padding: 2rem;">
-                <i class="fas fa-chalkboard-user" style="font-size: 3rem; color: var(--text-muted);"></i>
-                <h3>No hay clases creadas</h3>
-                <p>Para comenzar, crea una nueva clase usando el botón "Nueva Clase".</p>
-                ${puedeEditarFzkids() ? '<button class="btn btn-primary mt-3" onclick="abrirModalClaseFzkids()">Crear Clase</button>' : ''}
-            </div>
-        `;
-        return;
-    }
-
-    // Seleccionar primera clase si no hay seleccionada
-    if (!currentFzkidsClaseId) {
+    
+    await cargarClasesFzkids();
+    console.log("✅ Clases cargadas en renderFzkids:", fzkidsClases);
+    
+    if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
         currentFzkidsClaseId = fzkidsClases[0].id;
         await cargarEstudiantesPorClase(currentFzkidsClaseId);
-    } else {
-        await cargarEstudiantesPorClase(currentFzkidsClaseId);
+        console.log("✅ Clase seleccionada:", currentFzkidsClaseId);
     }
-
+    
     if (currentFzkidsClaseId && currentFzkidsFecha) {
         fzkidsAsistenciaDetalle = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
     }
-
-    // Cargar lección, pero si falla, continuar sin ella
-    try {
-        await cargarLeccionProximoDomingo();
-    } catch (e) {
-        console.warn("Error al cargar lección del domingo, se mostrará sin ella:", e);
-        currentFzkidsLeccion = null;
-    }
-
+    
+    await cargarLeccionProximoDomingo();
     mostrarInterfazFzkidsCombinada();
 }
 
