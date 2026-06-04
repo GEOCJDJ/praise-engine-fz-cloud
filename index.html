@@ -13103,9 +13103,93 @@ async function renderContabilidad() {
         await cargarClasesYBiblicas();
         await cargarCategoriasFinancieras();
 
-        const html = ` ... (el mismo HTML que tenías) ... `;
+        // 1. Primero insertamos el HTML completo
+        const html = `
+        <div class="accounting-container" style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h1 style="font-size: 1.5rem; font-weight: 800; margin: 0;"><i class="fas fa-church"></i> Contabilidad Escuela Bíblica</h1>
+                    <p style="color: var(--text-muted); margin: 0;">Clases y finanzas</p>
+                </div>
+                <button class="btn btn-primary" onclick="mostrarFormularioTransaccion()"><i class="fas fa-plus-circle"></i> Nuevo Movimiento</button>
+            </div>
+
+            <!-- Filtros y KPIs -->
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                <div style="flex:1;">
+                    <label>Clase</label>
+                    <select id="class-filter" class="form-control" onchange="cargarDatosContables()">
+                        <option value="all">Todas las clases</option>
+                        ${(window.bibleClasses || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label>Período</label>
+                    <select id="period-filter" class="form-control" onchange="cargarDatosContables()">
+                        <option value="monthly">Mensual</option>
+                        <option value="quarterly">Trimestral</option>
+                        <option value="semi-annual">Semestral</option>
+                        <option value="annual">Anual</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 20px;">
+                <div class="stat-card-modern">
+                    <div><i class="fas fa-user-graduate"></i> Alumnos Activos</div>
+                    <div class="stat-number-modern" id="active-students">--</div>
+                </div>
+                <div class="stat-card-modern">
+                    <div><i class="fas fa-arrow-up"></i> Ingresos</div>
+                    <div class="stat-number-modern text-income" id="total-income">$0</div>
+                </div>
+                <div class="stat-card-modern">
+                    <div><i class="fas fa-arrow-down"></i> Gastos</div>
+                    <div class="stat-number-modern text-expense" id="total-expenses">$0</div>
+                </div>
+                <div class="stat-card-modern">
+                    <div><i class="fas fa-scale-balanced"></i> Balance Neto</div>
+                    <div class="stat-number-modern" id="net-balance">$0</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="card">
+                    <h3>Distribución por Categoría</h3>
+                    <canvas id="financeChart" style="max-height: 250px; width: 100%;"></canvas>
+                </div>
+                <div class="card">
+                    <h3>Últimos Movimientos</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="modern-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr><th>Fecha</th><th>Clase</th><th>Detalle</th><th>Categoría</th><th>Monto</th></tr>
+                            </thead>
+                            <tbody id="transactions-table-body">
+                                <tr><td colspan="5" class="text-center">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <button class="btn btn-ghost" onclick="exportFinanceReport()"><i class="fas fa-download"></i> Exportar Resumen</button>
+            </div>
+        </div>
+        `;
+
         document.getElementById('mainContent').innerHTML = html;
+
+        // 2. Ahora que el DOM tiene todos los elementos, actualizamos el contador de alumnos y cargamos datos
+        const activeStudentsSpan = document.getElementById('active-students');
+        if (activeStudentsSpan) {
+            activeStudentsSpan.innerText = (window.bibleStudents?.length || 0).toString();
+        }
+
+        // 3. Cargar transacciones y gráfico
         await cargarDatosContables();
+
     } catch (err) {
         console.error("Error en renderContabilidad:", err);
         document.getElementById('mainContent').innerHTML = `
