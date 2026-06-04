@@ -9577,421 +9577,847 @@ window.deleteActividad = async (id) => {
     function adminAttendance() { let html=`<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${usuariosIglesia.map(u=>`<option value="${u.id}">${escapeHtml(u.perfiles?.nombre)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); flatpickr("#attDate",{locale:"es",dateFormat:"d/m/Y",defaultDate:"today"}); const renderAttList=()=>{ const container=document.getElementById('attList'); if(container) container.innerHTML=attendance.map((a)=>{ const miembro=usuariosIglesia.find(u=>u.id===a.usuario_iglesia_id); return `<div>${a.fecha} - ${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`; }).join(''); }; window.saveAttendanceAdmin=async()=>{ const date=document.getElementById('attDate').value; const usuarioIglesiaId=document.getElementById('attMember').value; const status=document.getElementById('attStatus').value; if(!date||!usuarioIglesiaId) return showToast("Completa los campos"); const { error } = await supabaseClient.from('asistencia').insert([{ fecha:date, usuario_iglesia_id:usuarioIglesiaId, estado:status }]); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); document.getElementById('attDate').value=''; }; window.deleteAttendanceAdmin=async(id)=>{ if(confirm("¿Eliminar este registro?")){ const { error } = await supabaseClient.from('asistencia').delete().eq('id',id); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); } }; renderAttList(); }
     function adminShifts() { let currentDate=null; async function loadTurnosForDate(dateStr){ const { data, error } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(perfiles(nombre,email))').eq('fecha',dateStr); if(error){ console.error(error); return []; } return data; } async function showDateManagement(dateStr){ currentDate=dateStr; const turnos=await loadTurnosForDate(dateStr); const miembrosPorSubgrupo={}; for(let turno of turnos){ const miembro=usuariosIglesia.find(u=>u.id===turno.usuario_iglesia_id); if(!miembro) continue; const depto=departamentos.find(d=>d.id===miembro.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!miembrosPorSubgrupo[grupo]) miembrosPorSubgrupo[grupo]=[]; miembrosPorSubgrupo[grupo].push({ id:turno.id, nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } let html=`<h3>📅 Turnos del ${dateStr}</h3><div style="margin-bottom:1rem;">`; for(let [grupo,lista] of Object.entries(miembrosPorSubgrupo)){ if(lista.length===0) continue; html+=`<div class="card" style="margin-bottom:1rem;padding:0.8rem;"><h4>${grupo}</h4>`; for(let item of lista){ html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;"><div><strong>${escapeHtml(item.nombre)}</strong> (${escapeHtml(item.rol||'Sin rol')})</div><button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}','${dateStr}')" style="color:red;"><i class="fas fa-trash"></i></button></div>`; } html+=`</div>`; } html+=`<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button><button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button></div>`; showModal(html); } window.showAddMemberForm=async(dateStr)=>{ const turnosExistentes=await loadTurnosForDate(dateStr); const miembrosOcupados=turnosExistentes.map(t=>t.usuario_iglesia_id); const miembrosDisponibles=usuariosIglesia.filter(u=>!miembrosOcupados.includes(u.id)); if(miembrosDisponibles.length===0){ showToast("Todos los miembros ya tienen turno asignado en esta fecha."); closeModal(); adminShifts(); return; } const porSubgrupo={}; for(let m of miembrosDisponibles){ const depto=departamentos.find(d=>d.id===m.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!porSubgrupo[grupo]) porSubgrupo[grupo]=[]; porSubgrupo[grupo].push(m); } let formHtml=`<h3>Agregar miembro al turno del ${dateStr}</h3>`; for(let [grupo, miembros] of Object.entries(porSubgrupo)){ formHtml+=`<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`; for(let m of miembros){ formHtml+=`<div class="team-member-card" style="cursor:pointer;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;" onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical||'')}')"><div class="avatar" style="width:40px;height:40px;font-size:1rem;">${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase()||'?')}</div><div><strong>${escapeHtml(m.perfiles?.nombre)}</strong><br><span class="card-category">${escapeHtml(m.rol_musical||'Sin rol')}</span></div></div>`; } formHtml+=`</div></div>`; } formHtml+=`<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button></div>`; showModal(formHtml); }; window.confirmAddTurno=async(dateStr, usuarioIglesiaId, nombre, rol)=>{ if(confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)){ const { error } = await supabaseClient.from('turnos').insert([{ fecha:dateStr, usuario_iglesia_id:usuarioIglesiaId }]); if(error) showToast("Error: "+error.message); else { showToast("Turno asignado correctamente"); showDateManagement(dateStr); } } }; window.deleteTurnoFromDate=async(turnoId, dateStr)=>{ if(confirm("¿Eliminar este turno?")){ const { error } = await supabaseClient.from('turnos').delete().eq('id',turnoId); if(error) showToast("Error: "+error.message); else showDateManagement(dateStr); } }; const turnosMap={}; shifts.forEach(s=>{ const miembro=usuariosIglesia.find(u=>u.id===s.usuario_iglesia_id); if(miembro){ if(!turnosMap[s.fecha]) turnosMap[s.fecha]=[]; turnosMap[s.fecha].push({ nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } }); const modalHtml=`<h3>📅 Gestión de Turnos por Día</h3><p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p><div class="form-group"><input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha"></div><div style="margin-top:1rem;"><h4>📋 Resumen de turnos asignados</h4><div style="max-height:300px;overflow-y:auto;border-radius:var(--radius-sm);border:1px solid var(--border);"><table style="width:100%;border-collapse:collapse;"><thead style="position:sticky;top:0;background:var(--surface);"><tr><th style="padding:0.5rem;text-align:left;">Fecha</th><th style="padding:0.5rem;text-align:left;">Miembros (rol)</th></tr></thead><tbody>${Object.entries(turnosMap).map(([fecha, miembros])=>`<tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="showDateManagement('${fecha}')"><td style="padding:0.5rem;"><strong>${fecha}</strong></td><td style="padding:0.5rem;">${miembros.map(m=>`${m.nombre} (${m.rol||'Sin rol'})`).join(', ')}</td></tr>`).join('')||'<tr><td colspan="2" style="padding:1rem;text-align:center;">No hay turnos asignados aún.</td></tr>'}</tbody></table></div></div><div style="text-align:right;margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`; showModal(modalHtml); flatpickr("#shiftCalendar",{locale:"es",dateFormat:"d/m/Y",inline:true,onDayCreate:(dObj,dStr,fp,dayElem)=>{ const year=dayElem.dateObj.getFullYear(); const month=String(dayElem.dateObj.getMonth()+1).padStart(2,'0'); const day=String(dayElem.dateObj.getDate()).padStart(2,'0'); const dateStr=`${day}/${month}/${year}`; if(turnosMap[dateStr]){ dayElem.style.backgroundColor='#3B82F6'; dayElem.style.color='white'; dayElem.style.borderRadius='50%'; dayElem.title=`Turnos: ${turnosMap[dateStr].map(m=>m.nombre).join(', ')}`; } }, onChange:(selectedDates,dateStr)=>{ if(dateStr) showDateManagement(dateStr); } }); }
 
-// ==================== MÓDULO FZKIDS ====================
+// ==================== MÓDULO FZKIDS (COMPLETO + CLASES Y ESTUDIANTES) ====================
+
+// === Variables existentes ===
 let currentFzkidsLeccion = null;
 let currentFzkidsFecha = null;
 let materialesChecklist = {};
 let totalAsistencia = 18; // valor por defecto
 
-async function renderFzkids() {
-  if (!puedeVerFzkids()) {
-    document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-    return;
-  }
-  // Cargar lección del próximo domingo
-  await cargarLeccionProximoDomingo();
-  mostrarInterfazFzkids();
+// === NUEVAS variables para Clases y Estudiantes ===
+let currentFzkidsClaseId = null;
+let fzkidsClases = [];
+let fzkidsEstudiantes = [];
+let fzkidsAsistenciaDetalle = {};
+
+// ========== PERMISOS ==========
+function puedeEditarFzkids() {
+    if (isAdminUser) return true;
+    if (isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Escuela Bíblica') return true;
+    return false;
 }
 
+// ========== CARGA DE DATOS DE CLASES Y ESTUDIANTES (NUEVO) ==========
+async function cargarClasesFzkids() {
+    const { data, error } = await supabaseClient
+        .from('fzkids_clases')
+        .select('*')
+        .eq('iglesia_id', currentIglesiaId)
+        .order('orden', { ascending: true });
+    if (error) {
+        console.error('Error cargando clases:', error);
+        return [];
+    }
+    fzkidsClases = data || [];
+    return fzkidsClases;
+}
+
+async function cargarEstudiantesPorClase(claseId) {
+    if (!claseId) return [];
+    const { data, error } = await supabaseClient
+        .from('fzkids_estudiantes')
+        .select('*')
+        .eq('clase_id', claseId)
+        .eq('activo', true)
+        .order('nombre', { ascending: true });
+    if (error) {
+        console.error('Error cargando estudiantes:', error);
+        return [];
+    }
+    fzkidsEstudiantes = data || [];
+    return fzkidsEstudiantes;
+}
+
+async function cargarAsistenciaDetallePorFecha(claseId, fecha) {
+    if (!claseId || !fecha) return {};
+    const { data, error } = await supabaseClient
+        .from('fzkids_asistencia_detalle')
+        .select('*')
+        .eq('clase_id', claseId)
+        .eq('fecha', fecha);
+    if (error) {
+        console.error('Error cargando asistencia:', error);
+        return {};
+    }
+    const asistenciaMap = {};
+    data.forEach(a => {
+        asistenciaMap[a.estudiante_id] = a.estado;
+    });
+    return asistenciaMap;
+}
+
+// ========== FUNCIONES EXISTENTES (SIN CAMBIOS) ==========
 async function cargarLeccionProximoDomingo() {
-  const hoy = new Date();
-  const diasHastaDomingo = (7 - hoy.getDay()) % 7 || 7;
-  const proximoDomingo = new Date(hoy);
-  proximoDomingo.setDate(hoy.getDate() + diasHastaDomingo);
-  const fechaStr = proximoDomingo.toISOString().slice(0,10);
-  currentFzkidsFecha = fechaStr;
-  
-  const { data, error } = await supabaseClient
-    .from('fzkids_lecciones')
-    .select('*')
-    .eq('fecha', fechaStr)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') {
-    showToast('Error al cargar lección: ' + error.message, 'error');
-    currentFzkidsLeccion = null;
-  } else {
-    currentFzkidsLeccion = data || null;
-    if (currentFzkidsLeccion) {
-      // Inicializar checklist de materiales
-      materialesChecklist = {};
-      if (currentFzkidsLeccion.materiales && Array.isArray(currentFzkidsLeccion.materiales)) {
-        currentFzkidsLeccion.materiales.forEach(mat => { materialesChecklist[mat] = false; });
-      }
-      // Cargar asistencia guardada para esta lección (si existe)
-      const { data: asis } = await supabaseClient
+    const hoy = new Date();
+    const diasHastaDomingo = (7 - hoy.getDay()) % 7 || 7;
+    const proximoDomingo = new Date(hoy);
+    proximoDomingo.setDate(hoy.getDate() + diasHastaDomingo);
+    const fechaStr = proximoDomingo.toISOString().slice(0,10);
+    currentFzkidsFecha = fechaStr;
+    
+    const { data, error } = await supabaseClient
+        .from('fzkids_lecciones')
+        .select('*')
+        .eq('fecha', fechaStr)
+        .single();
+    
+    if (error && error.code !== 'PGRST116') {
+        showToast('Error al cargar lección: ' + error.message, 'error');
+        currentFzkidsLeccion = null;
+    } else {
+        currentFzkidsLeccion = data || null;
+        if (currentFzkidsLeccion) {
+            materialesChecklist = {};
+            if (currentFzkidsLeccion.materiales && Array.isArray(currentFzkidsLeccion.materiales)) {
+                currentFzkidsLeccion.materiales.forEach(mat => { materialesChecklist[mat] = false; });
+            }
+            const { data: asis } = await supabaseClient
+                .from('fzkids_asistencia')
+                .select('total_niños')
+                .eq('leccion_id', currentFzkidsLeccion.id)
+                .single();
+            if (asis) totalAsistencia = asis.total_niños;
+            else totalAsistencia = 18;
+        } else {
+            showToast('No hay lección programada para el próximo domingo. Selecciona otra fecha.', 'warning');
+        }
+    }
+}
+
+// ========== RENDER PRINCIPAL COMBINADO ==========
+async function renderFzkids() {
+    if (!puedeVerFzkids()) {
+        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
+        return;
+    }
+
+    document.getElementById('mainContent').innerHTML = `<div class="skeleton-loading" style="height: 400px; border-radius: 1rem;"></div>`;
+    
+    // Cargar clases y estudiantes
+    await cargarClasesFzkids();
+    
+    // Si hay clases y no hay una seleccionada, seleccionar la primera
+    if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
+        currentFzkidsClaseId = fzkidsClases[0].id;
+        await cargarEstudiantesPorClase(currentFzkidsClaseId);
+    }
+    
+    // Cargar asistencia detalle si hay clase seleccionada
+    if (currentFzkidsClaseId && currentFzkidsFecha) {
+        fzkidsAsistenciaDetalle = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
+    }
+    
+    // Cargar lección del próximo domingo (funcionalidad existente)
+    await cargarLeccionProximoDomingo();
+    
+    mostrarInterfazFzkidsCombinada();
+}
+
+function mostrarInterfazFzkidsCombinada() {
+    const container = document.getElementById('mainContent');
+    const puedeEditar = puedeEditarFzkids();
+    const claseSeleccionada = fzkidsClases.find(c => c.id === currentFzkidsClaseId);
+    const fechaLegible = currentFzkidsLeccion ? new Date(currentFzkidsLeccion.fecha).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : 'No hay lección';
+    
+    // Calcular resumen de asistencia de estudiantes
+    const totalEstudiantes = fzkidsEstudiantes.length;
+    let presentes = 0, ausentes = 0, atrasados = 0, justificados = 0;
+    fzkidsEstudiantes.forEach(e => {
+        const estado = fzkidsAsistenciaDetalle[e.id];
+        if (estado === 'presente') presentes++;
+        else if (estado === 'ausente') ausentes++;
+        else if (estado === 'atrasado') atrasados++;
+        else if (estado === 'justificado') justificados++;
+    });
+    
+    // Materiales HTML (funcionalidad existente)
+    const materialesArray = currentFzkidsLeccion?.materiales || [];
+    let materialesHtml = '<ul style="list-style: none; padding: 0; margin: 0;">';
+    materialesArray.forEach(mat => {
+        materialesHtml += `
+            <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                <input type="checkbox" style="width: 1.2rem; height: 1.2rem; margin-right: 0.75rem; accent-color: #14b8a6;" data-material="${escapeHtml(mat)}" ${materialesChecklist[mat] ? 'checked' : ''}>
+                <span style="color: var(--text-main);">${escapeHtml(mat)}</span>
+            </li>
+        `;
+    });
+    materialesHtml += '</ul>';
+    materialesHtml += `<button onclick="solicitarMaterialFaltante()" style="width: 100%; background: #f0fdf4; color: #0f766e; border: 1px solid #99f6e4; padding: 0.5rem; border-radius: 0.5rem; font-weight: 600; margin-top: 1rem; cursor: pointer;">📦 Solicitar material faltante</button>`;
+
+    // Recursos HTML (funcionalidad existente)
+    const recursos = currentFzkidsLeccion?.recursos || {};
+    const pdfUrl = recursos.pdf || '#';
+    const imgUrl = recursos.imagen || '#';
+    const driveUrl = recursos.drive || '#';
+
+    const recursosHtml = `
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+            <a href="${pdfUrl}" target="_blank" style="background: var(--surface); border: 1px solid var(--border); padding: 0.75rem; border-radius: 0.75rem; text-align: center; text-decoration: none; transition: 0.2s;">
+                <i class="fa-regular fa-file-pdf" style="font-size: 2rem; color: #ef4444; display: block; margin-bottom: 0.5rem;"></i>
+                <span style="font-size: 0.7rem; font-weight: bold; color: var(--text-main);">Guía del Maestro</span>
+                <span style="font-size: 0.6rem; color: var(--text-muted); display: block;">PDF</span>
+            </a>
+            <a href="${imgUrl}" target="_blank" style="background: var(--surface); border: 1px solid var(--border); padding: 0.75rem; border-radius: 0.75rem; text-align: center; text-decoration: none;">
+                <i class="fa-regular fa-image" style="font-size: 2rem; color: #3b82f6; display: block; margin-bottom: 0.5rem;"></i>
+                <span style="font-size: 0.7rem; font-weight: bold; color: var(--text-main);">Recortables</span>
+                <span style="font-size: 0.6rem; color: var(--text-muted); display: block;">JPG</span>
+            </a>
+            <a href="${driveUrl}" target="_blank" style="background: var(--surface); border: 1px solid var(--border); padding: 0.75rem; border-radius: 0.75rem; text-align: center; text-decoration: none;">
+                <i class="fa-brands fa-google-drive" style="font-size: 2rem; color: #22c55e; display: block; margin-bottom: 0.5rem;"></i>
+                <span style="font-size: 0.7rem; font-weight: bold; color: var(--text-main);">Carpeta Nube</span>
+                <span style="font-size: 0.6rem; color: var(--text-muted); display: block;">Material Extra</span>
+            </a>
+        </div>
+    `;
+
+    const html = `
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <!-- Header con degradado -->
+            <div style="background: linear-gradient(135deg, #3b82f6, #14b8a6); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 1.5rem;">
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+                    <div>
+                        <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-shapes"></i> FZKIDS</h1>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                            <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem;">Clase actual: ${fechaLegible}</span>
+                            <button onclick="abrirPlanMensual()" style="background: white; color: #0d9488; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-list-ul"></i> Ver plan mensual</button>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 1rem; text-align: center; backdrop-filter: blur(4px);">
+                        <span style="display: block; font-size: 0.7rem; text-transform: uppercase;">Asistencia Total</span>
+                        <input type="number" id="asistenciaInput" value="${totalAsistencia}" style="width: 70px; text-align: center; background: transparent; border: none; font-size: 1.8rem; font-weight: 800; color: white; border-bottom: 1px solid white;" min="0" step="1">
+                        <span style="font-size: 1rem;">/20</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Selector de Clases y Botones de Admin (NUEVO) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    ${fzkidsClases.map(c => `
+                        <button onclick="seleccionarClaseFzkids('${c.id}')" 
+                                style="background: ${currentFzkidsClaseId === c.id ? 'var(--primary)' : 'var(--surface)'}; 
+                                       color: ${currentFzkidsClaseId === c.id ? 'white' : 'var(--text-main)'};
+                                       border: 1px solid var(--border);
+                                       padding: 0.5rem 1rem;
+                                       border-radius: 2rem;
+                                       font-weight: 600;
+                                       cursor: pointer;
+                                       transition: 0.2s;">
+                            ${escapeHtml(c.nombre)}
+                        </button>
+                    `).join('')}
+                </div>
+                ${puedeEditar ? `
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button onclick="abrirModalClaseFzkids()" class="btn btn-primary" style="background: #10b981;"><i class="fas fa-plus"></i> Nueva Clase</button>
+                        <button onclick="abrirModalEstudianteFzkids()" class="btn btn-primary"><i class="fas fa-user-plus"></i> Nuevo Estudiante</button>
+                    </div>
+                ` : ''}
+            </div>
+            
+            <!-- Tarjeta de Resumen de Asistencia de Estudiantes (NUEVO) -->
+            ${totalEstudiantes > 0 ? `
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="stat-card-modern" style="text-align: center;">
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">Total Estudiantes</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #3b82f6;">${totalEstudiantes}</div>
+                </div>
+                <div class="stat-card-modern" style="text-align: center; background: #10b98110;">
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">✅ Presentes</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #10b981;">${presentes}</div>
+                </div>
+                <div class="stat-card-modern" style="text-align: center; background: #ef444410;">
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">❌ Ausentes</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #ef4444;">${ausentes}</div>
+                </div>
+                <div class="stat-card-modern" style="text-align: center; background: #f59e0b10;">
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">⏰ Atrasados</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #f59e0b;">${atrasados}</div>
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Tabla de Estudiantes (NUEVO) -->
+            ${totalEstudiantes > 0 ? `
+            <div style="background: var(--surface); border-radius: 1rem; border: 1px solid var(--border); overflow: hidden; margin-bottom: 1.5rem;">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: var(--bg-app); border-bottom: 2px solid var(--border);">
+                            <tr>
+                                <th style="padding: 0.8rem; text-align: left;">#</th>
+                                <th style="padding: 0.8rem; text-align: left;">Estudiante</th>
+                                <th style="padding: 0.8rem; text-align: left;">Edad</th>
+                                <th style="padding: 0.8rem; text-align: center;">Asistencia</th>
+                                ${puedeEditar ? '<th style="padding: 0.8rem; text-align: center;">Acciones</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${fzkidsEstudiantes.map((e, idx) => {
+                                const estadoActual = fzkidsAsistenciaDetalle[e.id] || '';
+                                return `
+                                    <tr style="border-top: 1px solid var(--border);">
+                                        <td style="padding: 0.8rem;">${idx + 1}</td>
+                                        <td style="padding: 0.8rem;">
+                                            <strong>${escapeHtml(e.nombre)}</strong>
+                                            ${e.apellido ? `<br><small style="color: var(--text-muted);">${escapeHtml(e.apellido)}</small>` : ''}
+                                        </td>
+                                        <td style="padding: 0.8rem;">${e.edad || '—'} </td>
+                                        <td style="padding: 0.8rem; text-align: center;">
+                                            <select id="asistencia_${e.id}" class="form-control" style="width: auto; min-width: 120px; padding: 0.3rem;" 
+                                                    onchange="guardarAsistenciaIndividual('${e.id}', this.value)">
+                                                <option value="">Seleccionar</option>
+                                                <option value="presente" ${estadoActual === 'presente' ? 'selected' : ''}>✅ Presente</option>
+                                                <option value="ausente" ${estadoActual === 'ausente' ? 'selected' : ''}>❌ Ausente</option>
+                                                <option value="atrasado" ${estadoActual === 'atrasado' ? 'selected' : ''}>⏰ Atrasado</option>
+                                                <option value="justificado" ${estadoActual === 'justificado' ? 'selected' : ''}>📝 Justificado</option>
+                                            </select>
+                                         </td>
+                                        ${puedeEditar ? `
+                                            <td style="padding: 0.8rem; text-align: center;">
+                                                <button class="btn-icon" onclick="editarEstudianteFzkids('${e.id}')" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn-icon" onclick="eliminarEstudianteFzkids('${e.id}')" title="Eliminar" style="color: #ef4444;">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                             </td>
+                                        ` : ''}
+                                     </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                     </table>
+                </div>
+            </div>
+            ` : puedeEditar ? `
+            <div style="background: var(--surface); border-radius: 1rem; padding: 2rem; text-align: center; border: 1px solid var(--border); margin-bottom: 1.5rem;">
+                <i class="fas fa-users-slash" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;"></i>
+                <p>No hay estudiantes en esta clase. Haz clic en "Nuevo Estudiante" para agregar.</p>
+            </div>
+            ` : ''}
+            
+            <!-- Pestañas existentes (Lección, Manualidad, Canciones, Materiales, Recursos) -->
+            <div style="border-bottom: 2px solid var(--border); margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="tab-fzkids-inline" data-tab="leccion" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid var(--primary); color: var(--primary);">📖 Lección</button>
+                    <button class="tab-fzkids-inline" data-tab="manualidad" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">✂️ Manualidad</button>
+                    <button class="tab-fzkids-inline" data-tab="canciones" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">🎵 Canción lema</button>
+                    <button class="tab-fzkids-inline" data-tab="materiales" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📦 Materiales</button>
+                    <button class="tab-fzkids-inline" data-tab="recursos" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📁 Recursos de Clase</button>
+                </div>
+            </div>
+
+            <!-- Contenido de pestañas (EXISTENTE) -->
+            <div id="tab-leccion" class="tab-contenido-inline" style="display: block;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                        <p style="color: #b45309; font-style: italic; margin: 0;">"${escapeHtml(currentFzkidsLeccion?.versiculo || '')}"</p>
+                        <p style="color: #d97706; font-size: 0.8rem; font-weight: bold; margin-top: 0.5rem;">— ${currentFzkidsLeccion?.versiculo ? 'Referencia' : 'Efesios 6:11'}</p>
+                    </div>
+                    <div style="color: var(--text-main); line-height: 1.5;">
+                        ${escapeHtml(currentFzkidsLeccion?.leccion_texto || 'No hay contenido de lección.')}
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-manualidad" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
+                    ${escapeHtml(currentFzkidsLeccion?.manualidad || 'No hay manualidad para esta clase.')}
+                </div>
+            </div>
+
+            <div id="tab-canciones" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
+                    ${escapeHtml(currentFzkidsLeccion?.canciones || 'No hay canciones sugeridas.')}
+                </div>
+            </div>
+
+            <div id="tab-materiales" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    ${materialesHtml}
+                </div>
+            </div>
+
+            <div id="tab-recursos" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    ${recursosHtml}
+                </div>
+            </div>
+
+            <!-- Botones de acción (EXISTENTES) -->
+            <div style="margin-top: 1.5rem; background: var(--bg-app); padding: 1rem; border-radius: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+                <button onclick="enviarWhatsAppFamilia()" style="background: #22c55e; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-brands fa-whatsapp"></i> Conexión a Casa</button>
+                <button onclick="abrirEmergencia()" style="background: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-life-ring"></i> Modo Supervivencia</button>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    // Eventos de pestañas (EXISTENTES)
+    document.querySelectorAll('.tab-fzkids-inline').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            document.querySelectorAll('.tab-fzkids-inline').forEach(b => {
+                b.style.borderBottomColor = 'transparent';
+                b.style.color = 'var(--text-muted)';
+            });
+            btn.style.borderBottomColor = 'var(--primary)';
+            btn.style.color = 'var(--primary)';
+            document.querySelectorAll('.tab-contenido-inline').forEach(div => div.style.display = 'none');
+            const activeDiv = document.getElementById(`tab-${tabId}`);
+            if (activeDiv) activeDiv.style.display = 'block';
+        });
+    });
+
+    // Eventos checklist (EXISTENTES)
+    document.querySelectorAll('input[data-material]').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+            const material = e.target.getAttribute('data-material');
+            if (material) materialesChecklist[material] = e.target.checked;
+        });
+    });
+
+    // Evento asistencia total (EXISTENTE)
+    const asistenciaInput = document.getElementById('asistenciaInput');
+    if (asistenciaInput && currentFzkidsLeccion) {
+        asistenciaInput.addEventListener('change', async () => {
+            const nuevoTotal = parseInt(asistenciaInput.value) || 0;
+            totalAsistencia = nuevoTotal;
+            await supabaseClient.from('fzkids_asistencia').upsert({
+                leccion_id: currentFzkidsLeccion.id,
+                fecha: currentFzkidsLeccion.fecha,
+                total_niños: nuevoTotal,
+                registrado_por: currentUser.id
+            }, { onConflict: 'leccion_id' });
+            showToast('Asistencia total actualizada', 'success');
+        });
+    }
+}
+
+// ========== FUNCIONES DE NAVEGACIÓN ENTRE CLASES (NUEVAS) ==========
+window.seleccionarClaseFzkids = async (claseId) => {
+    currentFzkidsClaseId = claseId;
+    await cargarEstudiantesPorClase(claseId);
+    if (currentFzkidsFecha) {
+        fzkidsAsistenciaDetalle = await cargarAsistenciaDetallePorFecha(claseId, currentFzkidsFecha);
+    }
+    mostrarInterfazFzkidsCombinada();
+};
+
+// ========== GESTIÓN DE ASISTENCIA INDIVIDUAL (NUEVA) ==========
+window.guardarAsistenciaIndividual = async (estudianteId, estado) => {
+    if (!estado || !currentFzkidsClaseId || !currentFzkidsFecha) return;
+    
+    const { error } = await supabaseClient
+        .from('fzkids_asistencia_detalle')
+        .upsert({
+            clase_id: currentFzkidsClaseId,
+            estudiante_id: estudianteId,
+            fecha: currentFzkidsFecha,
+            estado: estado,
+            registrado_por: currentUser.id
+        }, { onConflict: 'estudiante_id, fecha' });
+    
+    if (error) {
+        showToast('Error al guardar: ' + error.message, 'error');
+    } else {
+        fzkidsAsistenciaDetalle[estudianteId] = estado;
+        showToast('Asistencia guardada', 'success');
+        // Actualizar los contadores sin recargar toda la página
+        actualizarContadoresAsistencia();
+    }
+};
+
+function actualizarContadoresAsistencia() {
+    let presentes = 0, ausentes = 0, atrasados = 0;
+    fzkidsEstudiantes.forEach(e => {
+        const estado = fzkidsAsistenciaDetalle[e.id];
+        if (estado === 'presente') presentes++;
+        else if (estado === 'ausente') ausentes++;
+        else if (estado === 'atrasado') atrasados++;
+    });
+    
+    const presentesSpan = document.querySelector('.stat-card-modern:nth-child(2) .stat-number-modern');
+    const ausentesSpan = document.querySelector('.stat-card-modern:nth-child(3) .stat-number-modern');
+    const atrasadosSpan = document.querySelector('.stat-card-modern:nth-child(4) .stat-number-modern');
+    
+    if (presentesSpan) presentesSpan.innerText = presentes;
+    if (ausentesSpan) ausentesSpan.innerText = ausentes;
+    if (atrasadosSpan) atrasadosSpan.innerText = atrasados;
+}
+
+// ========== CRUD DE CLASES (NUEVO) ==========
+window.abrirModalClaseFzkids = (clase = null) => {
+    const esEdicion = !!clase;
+    const modalContent = `
+        <div style="max-width: 500px; margin: 0 auto;">
+            <h3><i class="fas fa-chalkboard"></i> ${esEdicion ? 'Editar' : 'Nueva'} Clase</h3>
+            <div class="form-group">
+                <label>Nombre de la Clase *</label>
+                <input type="text" id="claseNombre" class="form-control" value="${escapeHtml(clase?.nombre || '')}" placeholder="Ej: Principiantes, Intermedios, Avanzados">
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="claseDescripcion" rows="2" class="form-control" placeholder="Descripción de la clase">${escapeHtml(clase?.descripcion || '')}</textarea>
+            </div>
+            <div class="form-group">
+                <label>Orden de visualización</label>
+                <input type="number" id="claseOrden" class="form-control" value="${clase?.orden || 0}">
+            </div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarClaseFzkids('${esEdicion ? clase.id : ''}')">Guardar</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+};
+
+window.guardarClaseFzkids = async (id) => {
+    const nombre = document.getElementById('claseNombre').value.trim();
+    if (!nombre) {
+        showToast('El nombre de la clase es obligatorio', 'error');
+        return;
+    }
+    const descripcion = document.getElementById('claseDescripcion').value.trim();
+    const orden = parseInt(document.getElementById('claseOrden').value) || 0;
+    
+    let error;
+    if (id) {
+        const { error: updateError } = await supabaseClient
+            .from('fzkids_clases')
+            .update({ nombre, descripcion, orden })
+            .eq('id', id);
+        error = updateError;
+    } else {
+        const { error: insertError } = await supabaseClient
+            .from('fzkids_clases')
+            .insert({ iglesia_id: currentIglesiaId, nombre, descripcion, orden });
+        error = insertError;
+    }
+    
+    if (error) {
+        showToast('Error al guardar: ' + error.message, 'error');
+    } else {
+        showToast(id ? 'Clase actualizada' : 'Clase creada', 'success');
+        closeModal();
+        await cargarClasesFzkids();
+        if (!id && fzkidsClases.length > 0) currentFzkidsClaseId = fzkidsClases[0].id;
+        await cargarEstudiantesPorClase(currentFzkidsClaseId);
+        mostrarInterfazFzkidsCombinada();
+    }
+};
+
+// ========== CRUD DE ESTUDIANTES (NUEVO) ==========
+window.abrirModalEstudianteFzkids = (estudiante = null) => {
+    const esEdicion = !!estudiante;
+    const clasesOptions = fzkidsClases.map(c => `<option value="${c.id}" ${estudiante?.clase_id === c.id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('');
+    
+    const modalContent = `
+        <div style="max-width: 550px; margin: 0 auto;">
+            <h3><i class="fas fa-child"></i> ${esEdicion ? 'Editar' : 'Nuevo'} Estudiante</h3>
+            <div class="form-group">
+                <label>Clase *</label>
+                <select id="estudianteClase" class="form-control">${clasesOptions}</select>
+            </div>
+            <div class="row">
+                <div class="form-group" style="flex:1;">
+                    <label>Nombre *</label>
+                    <input type="text" id="estudianteNombre" class="form-control" value="${escapeHtml(estudiante?.nombre || '')}">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Apellido</label>
+                    <input type="text" id="estudianteApellido" class="form-control" value="${escapeHtml(estudiante?.apellido || '')}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group" style="flex:1;">
+                    <label>Edad</label>
+                    <input type="number" id="estudianteEdad" class="form-control" value="${estudiante?.edad || ''}">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Género</label>
+                    <select id="estudianteGenero" class="form-control">
+                        <option value="">Seleccionar</option>
+                        <option value="M" ${estudiante?.genero === 'M' ? 'selected' : ''}>Masculino</option>
+                        <option value="F" ${estudiante?.genero === 'F' ? 'selected' : ''}>Femenino</option>
+                        <option value="OTRO" ${estudiante?.genero === 'OTRO' ? 'selected' : ''}>Otro</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Nombre del Padre/Madre/Tutor</label>
+                <input type="text" id="estudianteContacto" class="form-control" value="${escapeHtml(estudiante?.contacto_padre || '')}">
+            </div>
+            <div class="form-group">
+                <label>Teléfono / WhatsApp</label>
+                <input type="tel" id="estudianteTelefono" class="form-control" value="${escapeHtml(estudiante?.telefono_padre || '')}">
+            </div>
+            <div class="form-group">
+                <label>Estado</label>
+                <select id="estudianteActivo" class="form-control">
+                    <option value="true" ${estudiante?.activo !== false ? 'selected' : ''}>Activo</option>
+                    <option value="false" ${estudiante?.activo === false ? 'selected' : ''}>Inactivo</option>
+                </select>
+            </div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarEstudianteFzkids('${esEdicion ? estudiante.id : ''}')">Guardar</button>
+            </div>
+        </div>
+    `;
+    showModal(modalContent);
+};
+
+window.guardarEstudianteFzkids = async (id) => {
+    const claseId = document.getElementById('estudianteClase').value;
+    const nombre = document.getElementById('estudianteNombre').value.trim();
+    if (!claseId || !nombre) {
+        showToast('Clase y nombre son obligatorios', 'error');
+        return;
+    }
+    
+    const data = {
+        clase_id: claseId,
+        nombre: nombre,
+        apellido: document.getElementById('estudianteApellido').value.trim() || null,
+        edad: parseInt(document.getElementById('estudianteEdad').value) || null,
+        genero: document.getElementById('estudianteGenero').value || null,
+        contacto_padre: document.getElementById('estudianteContacto').value.trim() || null,
+        telefono_padre: document.getElementById('estudianteTelefono').value.trim() || null,
+        activo: document.getElementById('estudianteActivo').value === 'true'
+    };
+    
+    let error;
+    if (id) {
+        const { error: updateError } = await supabaseClient
+            .from('fzkids_estudiantes')
+            .update(data)
+            .eq('id', id);
+        error = updateError;
+    } else {
+        const { error: insertError } = await supabaseClient
+            .from('fzkids_estudiantes')
+            .insert(data);
+        error = insertError;
+    }
+    
+    if (error) {
+        showToast('Error al guardar: ' + error.message, 'error');
+    } else {
+        showToast(id ? 'Estudiante actualizado' : 'Estudiante agregado', 'success');
+        closeModal();
+        await cargarEstudiantesPorClase(currentFzkidsClaseId);
+        mostrarInterfazFzkidsCombinada();
+    }
+};
+
+window.editarEstudianteFzkids = async (id) => {
+    const { data, error } = await supabaseClient
+        .from('fzkids_estudiantes')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (error) {
+        showToast('Error al cargar estudiante', 'error');
+        return;
+    }
+    abrirModalEstudianteFzkids(data);
+};
+
+window.eliminarEstudianteFzkids = async (id) => {
+    if (!confirm('¿Eliminar este estudiante permanentemente? Se perderá su historial de asistencia.')) return;
+    const { error } = await supabaseClient
+        .from('fzkids_estudiantes')
+        .delete()
+        .eq('id', id);
+    if (error) {
+        showToast('Error al eliminar: ' + error.message, 'error');
+    } else {
+        showToast('Estudiante eliminado', 'success');
+        await cargarEstudiantesPorClase(currentFzkidsClaseId);
+        mostrarInterfazFzkidsCombinada();
+    }
+};
+
+// ========== FUNCIONES EXISTENTES (SIN CAMBIOS) ==========
+// abrirPlanMensual, cambiarLeccionPorFecha, solicitarMaterialFaltante, enviarWhatsAppFamilia, abrirEmergencia
+// (Estas funciones se mantienen IDÉNTICAS a como las tenías)
+
+async function abrirPlanMensual() {
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), 4, 1);
+    const fin = new Date(hoy.getFullYear(), 6, 0);
+    const { data: lecciones, error } = await supabaseClient
+        .from('fzkids_lecciones')
+        .select('*')
+        .gte('fecha', inicio.toISOString().slice(0,10))
+        .lte('fecha', fin.toISOString().slice(0,10))
+        .order('fecha', { ascending: true });
+    
+    if (error) {
+        showToast('Error cargando plan mensual', 'error');
+        return;
+    }
+
+    const fechaActiva = currentFzkidsLeccion ? currentFzkidsLeccion.fecha : null;
+    const hoyStr = hoy.toISOString().slice(0,10);
+    
+    let contenido = `<div style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">`;
+    
+    for (const lec of lecciones) {
+        const fechaObj = new Date(lec.fecha);
+        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+        const esActiva = (lec.fecha === fechaActiva);
+        const esHoy = (lec.fecha === hoyStr);
+        
+        let badgeHtml = '';
+        let bgColor = '';
+        let borderClass = '';
+        let icono = '';
+        
+        if (esActiva) {
+            badgeHtml = '<span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">📌 Clase Activa</span>';
+            bgColor = '#f0fdfa';
+            borderClass = '2px solid #14b8a6';
+            icono = '<i class="fas fa-arrow-right" style="color: #14b8a6;"></i>';
+        } else if (esHoy) {
+            badgeHtml = '<span style="background: #fed7aa; color: #9a3412; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">📆 Clase de hoy</span>';
+            bgColor = '#fff7ed';
+            borderClass = '2px solid #f97316';
+            icono = '<i class="fas fa-calendar-day" style="color: #f97316;"></i>';
+        } else if (lec.fecha < hoyStr) {
+            badgeHtml = '<span style="background: #f3f4f6; color: #4b5563; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">⏪ Pasada</span>';
+            bgColor = '#f9fafb';
+            borderClass = '2px solid #e5e7eb';
+            icono = '<i class="fas fa-circle" style="color: #9ca3af; font-size: 0.6rem;"></i>';
+        } else {
+            badgeHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">🔜 Próxima</span>';
+            bgColor = '#ffffff';
+            borderClass = '2px solid #93c5fd';
+            icono = '<i class="fas fa-clock" style="color: #3b82f6;"></i>';
+        }
+        
+        contenido += `
+            <div style="background: ${bgColor}; border: ${borderClass}; border-radius: 1rem; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: 0.2s;" onclick="cambiarLeccionPorFecha('${lec.fecha}')">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <span style="font-weight: 700; color: var(--text-main);">${fechaFormateada} - ${escapeHtml(lec.titulo)}</span>
+                            ${badgeHtml}
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">${escapeHtml(lec.leccion_texto?.substring(0, 80) || '')}</p>
+                    </div>
+                    <div style="margin-left: 0.75rem;">
+                        ${icono}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    contenido += `</div>`;
+    
+    showModal(`
+        <div style="max-width: 550px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                <h3 style="font-size: 1.3rem; font-weight: bold; color: var(--text-main);"><i class="fa-regular fa-calendar-alt" style="color: #14b8a6; margin-right: 0.5rem;"></i> Plan de Estudios</h3>
+                <button onclick="closeModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);"><i class="fas fa-times"></i></button>
+            </div>
+            ${contenido}
+            <div style="text-align: right; margin-top: 1rem;">
+                <button onclick="closeModal()" class="btn btn-ghost" style="padding: 0.3rem 1rem;">Cerrar</button>
+            </div>
+        </div>
+    `);
+}
+
+async function cambiarLeccionPorFecha(fecha) {
+    closeModal();
+    const { data, error } = await supabaseClient
+        .from('fzkids_lecciones')
+        .select('*')
+        .eq('fecha', fecha)
+        .single();
+    if (error || !data) {
+        showToast('No se pudo cargar la lección', 'error');
+        return;
+    }
+    currentFzkidsLeccion = data;
+    currentFzkidsFecha = fecha;
+    materialesChecklist = {};
+    if (data.materiales && Array.isArray(data.materiales)) {
+        data.materiales.forEach(mat => { materialesChecklist[mat] = false; });
+    }
+    const { data: asis } = await supabaseClient
         .from('fzkids_asistencia')
         .select('total_niños')
-        .eq('leccion_id', currentFzkidsLeccion.id)
+        .eq('leccion_id', data.id)
         .single();
-      if (asis) totalAsistencia = asis.total_niños;
-      else totalAsistencia = 18; // valor por defecto
-    } else {
-      showToast('No hay lección programada para el próximo domingo. Selecciona otra fecha.', 'warning');
-    }
-  }
+    totalAsistencia = asis ? asis.total_niños : 18;
+    mostrarInterfazFzkidsCombinada();
 }
 
-function mostrarInterfazFzkids() {
-  const container = document.getElementById('mainContent');
-  if (!currentFzkidsLeccion) {
-    container.innerHTML = `
-      <div style="display: flex; justify-content: center; align-items: center; padding: 2rem;">
-        <div style="background: var(--surface); border-radius: 1rem; box-shadow: var(--shadow); padding: 2rem; text-align: center; max-width: 400px;">
-          <i class="fas fa-calendar-times" style="font-size: 3rem; color: #94a3b8; margin-bottom: 1rem;"></i>
-          <h3 style="font-size: 1.25rem; font-weight: bold;">No hay lección para el próximo domingo</h3>
-          <p style="color: var(--text-muted); margin-top: 0.5rem;">Puedes seleccionar otra fecha desde el plan mensual.</p>
-          <button onclick="abrirPlanMensual()" class="btn btn-primary" style="margin-top: 1rem;">📅 Ver plan mensual</button>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  const fechaLegible = new Date(currentFzkidsLeccion.fecha).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  const materialesArray = currentFzkidsLeccion.materiales || [];
-  
-  // Checklist de materiales
-  let materialesHtml = '<ul style="list-style: none; padding: 0; margin: 0;">';
-  materialesArray.forEach(mat => {
-    materialesHtml += `
-      <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-        <input type="checkbox" style="width: 1.2rem; height: 1.2rem; margin-right: 0.75rem; accent-color: #14b8a6;" data-material="${escapeHtml(mat)}" ${materialesChecklist[mat] ? 'checked' : ''}>
-        <span style="color: var(--text-main);">${escapeHtml(mat)}</span>
-      </li>
-    `;
-  });
-  materialesHtml += '</ul>';
-  materialesHtml += `<button onclick="solicitarMaterialFaltante()" style="width: 100%; background: #f0fdf4; color: #0f766e; border: 1px solid #99f6e4; padding: 0.5rem; border-radius: 0.5rem; font-weight: 600; margin-top: 1rem; cursor: pointer;">📦 Solicitar material faltante</button>`;
-
-  // Recursos (iconos)
-  const recursos = currentFzkidsLeccion.recursos || {};
-  const pdfUrl = recursos.pdf || '#';
-  const imgUrl = recursos.imagen || '#';
-  const driveUrl = recursos.drive || '#';
-
-  const recursosHtml = `
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
-      <a href="${pdfUrl}" target="_blank" style="background: var(--surface); border: 1px solid var(--border); padding: 0.75rem; border-radius: 0.75rem; text-align: center; text-decoration: none; transition: 0.2s;">
-        <i class="fa-regular fa-file-pdf" style="font-size: 2rem; color: #ef4444; display: block; margin-bottom: 0.5rem;"></i>
-        <span style="font-size: 0.7rem; font-weight: bold; color: var(--text-main);">Guía del Maestro</span>
-        <span style="font-size: 0.6rem; color: var(--text-muted); display: block;">PDF</span>
-      </a>
-      <a href="${imgUrl}" target="_blank" style="background: var(--surface); border: 1px solid var(--border); padding: 0.75rem; border-radius: 0.75rem; text-align: center; text-decoration: none;">
-        <i class="fa-regular fa-image" style="font-size: 2rem; color: #3b82f6; display: block; margin-bottom: 0.5rem;"></i>
-        <span style="font-size: 0.7rem; font-weight: bold; color: var(--text-main);">Recortables</span>
-        <span style="font-size: 0.6rem; color: var(--text-muted); display: block;">JPG</span>
-      </a>
-      <a href="${driveUrl}" target="_blank" style="background: var(--surface); border: 1px solid var(--border); padding: 0.75rem; border-radius: 0.75rem; text-align: center; text-decoration: none;">
-        <i class="fa-brands fa-google-drive" style="font-size: 2rem; color: #22c55e; display: block; margin-bottom: 0.5rem;"></i>
-        <span style="font-size: 0.7rem; font-weight: bold; color: var(--text-main);">Carpeta Nube</span>
-        <span style="font-size: 0.6rem; color: var(--text-muted); display: block;">Material Extra</span>
-      </a>
-    </div>
-  `;
-
-  const html = `
-    <div style="max-width: 1000px; margin: 0 auto;">
-      <!-- Header con degradado -->
-      <div style="background: linear-gradient(135deg, #3b82f6, #14b8a6); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 1.5rem;">
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
-          <div>
-            <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-shapes"></i> FZKIDS</h1>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
-              <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem;">Clase actual: ${fechaLegible}</span>
-              <button onclick="abrirPlanMensual()" style="background: white; color: #0d9488; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-list-ul"></i> Ver plan mensual</button>
-            </div>
-          </div>
-          <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 1rem; text-align: center; backdrop-filter: blur(4px);">
-            <span style="display: block; font-size: 0.7rem; text-transform: uppercase;">Asistencia</span>
-            <input type="number" id="asistenciaInput" value="${totalAsistencia}" style="width: 70px; text-align: center; background: transparent; border: none; font-size: 1.8rem; font-weight: 800; color: white; border-bottom: 1px solid white;" min="0" step="1">
-            <span style="font-size: 1rem;">/20</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pestañas (usando flex y eventos JS) -->
-      <div style="border-bottom: 2px solid var(--border); margin-bottom: 1rem;">
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button class="tab-fzkids-inline" data-tab="leccion" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid var(--primary); color: var(--primary);">📖 Lección</button>
-          <button class="tab-fzkids-inline" data-tab="manualidad" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">✂️ Manualidad</button>
-          <button class="tab-fzkids-inline" data-tab="canciones" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">🎵 Canción lema</button>
-          <button class="tab-fzkids-inline" data-tab="materiales" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📦 Materiales</button>
-          <button class="tab-fzkids-inline" data-tab="recursos" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📁 Recursos de Clase</button>
-        </div>
-      </div>
-
-      <!-- Contenido de pestañas -->
-      <div id="tab-leccion" class="tab-contenido-inline" style="display: block;">
-        <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
-          <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-            <p style="color: #b45309; font-style: italic; margin: 0;">"${escapeHtml(currentFzkidsLeccion.versiculo || '')}"</p>
-            <p style="color: #d97706; font-size: 0.8rem; font-weight: bold; margin-top: 0.5rem;">— ${currentFzkidsLeccion.versiculo ? 'Referencia' : 'Efesios 6:11'}</p>
-          </div>
-          <div style="color: var(--text-main); line-height: 1.5;">
-            ${escapeHtml(currentFzkidsLeccion.leccion_texto || 'No hay contenido de lección.')}
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-manualidad" class="tab-contenido-inline" style="display: none;">
-        <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
-          ${escapeHtml(currentFzkidsLeccion.manualidad || 'No hay manualidad para esta clase.')}
-        </div>
-      </div>
-
-      <div id="tab-canciones" class="tab-contenido-inline" style="display: none;">
-        <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
-          ${escapeHtml(currentFzkidsLeccion.canciones || 'No hay canciones sugeridas.')}
-        </div>
-      </div>
-
-      <div id="tab-materiales" class="tab-contenido-inline" style="display: none;">
-        <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
-          ${materialesHtml}
-        </div>
-      </div>
-
-      <div id="tab-recursos" class="tab-contenido-inline" style="display: none;">
-        <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
-          ${recursosHtml}
-        </div>
-      </div>
-
-      <!-- Botones de acción -->
-      <div style="margin-top: 1.5rem; background: var(--bg-app); padding: 1rem; border-radius: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
-        <button onclick="enviarWhatsAppFamilia()" style="background: #22c55e; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-brands fa-whatsapp"></i> Conexión a Casa</button>
-        <button onclick="abrirEmergencia()" style="background: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-life-ring"></i> Modo Supervivencia</button>
-      </div>
-    </div>
-  `;
-
-  container.innerHTML = html;
-
-  // Eventos de pestañas (con estilos en línea)
-  document.querySelectorAll('.tab-fzkids-inline').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.getAttribute('data-tab');
-      // Cambiar estilos de los botones
-      document.querySelectorAll('.tab-fzkids-inline').forEach(b => {
-        b.style.borderBottomColor = 'transparent';
-        b.style.color = 'var(--text-muted)';
-      });
-      btn.style.borderBottomColor = 'var(--primary)';
-      btn.style.color = 'var(--primary)';
-      // Mostrar/ocultar contenidos
-      document.querySelectorAll('.tab-contenido-inline').forEach(div => div.style.display = 'none');
-      const activeDiv = document.getElementById(`tab-${tabId}`);
-      if (activeDiv) activeDiv.style.display = 'block';
-    });
-  });
-
-  // Eventos checklist
-  document.querySelectorAll('input[data-material]').forEach(chk => {
-    chk.addEventListener('change', (e) => {
-      const material = e.target.getAttribute('data-material');
-      if (material) materialesChecklist[material] = e.target.checked;
-    });
-  });
-
-  // Evento asistencia
-  const asistenciaInput = document.getElementById('asistenciaInput');
-  if (asistenciaInput) {
-    asistenciaInput.addEventListener('change', async () => {
-      const nuevoTotal = parseInt(asistenciaInput.value) || 0;
-      totalAsistencia = nuevoTotal;
-      await supabaseClient.from('fzkids_asistencia').upsert({
-        leccion_id: currentFzkidsLeccion.id,
-        fecha: currentFzkidsLeccion.fecha,
-        total_niños: nuevoTotal,
-        registrado_por: currentUser.id
-      }, { onConflict: 'leccion_id' });
-      showToast('Asistencia actualizada', 'success');
-    });
-  }
-}
-    
-// --- Plan mensual (modal con estilos de la imagen) ---
-async function abrirPlanMensual() {
-  // Obtener lecciones desde mayo hasta final de junio (para mostrar variedad)
-  const hoy = new Date();
-  const inicio = new Date(hoy.getFullYear(), 4, 1); // 1 de mayo
-  const fin = new Date(hoy.getFullYear(), 6, 0);   // 30 de junio
-  const { data: lecciones, error } = await supabaseClient
-    .from('fzkids_lecciones')
-    .select('*')
-    .gte('fecha', inicio.toISOString().slice(0,10))
-    .lte('fecha', fin.toISOString().slice(0,10))
-    .order('fecha', { ascending: true });
-  
-  if (error) {
-    showToast('Error cargando plan mensual', 'error');
-    return;
-  }
-
-  const fechaActiva = currentFzkidsLeccion ? currentFzkidsLeccion.fecha : null;
-  const hoyStr = hoy.toISOString().slice(0,10);
-  
-  let contenido = `<div style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">`;
-  
-  for (const lec of lecciones) {
-    const fechaObj = new Date(lec.fecha);
-    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
-    const esActiva = (lec.fecha === fechaActiva);
-    const esHoy = (lec.fecha === hoyStr);
-    const esFutura = (lec.fecha > hoyStr);
-    const esPasada = (lec.fecha < hoyStr && !esActiva);
-    
-    let badgeHtml = '';
-    let bgColor = '';
-    let borderClass = '';
-    let icono = '';
-    let textoEstado = '';
-    
-    if (esActiva) {
-      badgeHtml = '<span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">📌 Clase Activa - Hoy</span>';
-      bgColor = '#f0fdfa';
-      borderClass = '2px solid #14b8a6';
-      icono = '<i class="fas fa-arrow-right" style="color: #14b8a6;"></i>';
-    } else if (esHoy) {
-      badgeHtml = '<span style="background: #fed7aa; color: #9a3412; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">📆 Clase de hoy</span>';
-      bgColor = '#fff7ed';
-      borderClass = '2px solid #f97316';
-      icono = '<i class="fas fa-calendar-day" style="color: #f97316;"></i>';
-    } else if (esPasada) {
-      badgeHtml = '<span style="background: #f3f4f6; color: #4b5563; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">⏪ No impartida</span>';
-      bgColor = '#f9fafb';
-      borderClass = '2px solid #e5e7eb';
-      icono = '<i class="fas fa-circle" style="color: #9ca3af; font-size: 0.6rem;"></i>';
-    } else {
-      badgeHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">🔜 Próxima clase</span>';
-      bgColor = '#ffffff';
-      borderClass = '2px solid #93c5fd';
-      icono = '<i class="fas fa-clock" style="color: #3b82f6;"></i>';
-    }
-    
-    contenido += `
-      <div style="background: ${bgColor}; border: ${borderClass}; border-radius: 1rem; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: 0.2s;" onclick="cambiarLeccionPorFecha('${lec.fecha}')">
-        <div style="display: flex; justify-content: space-between; align-items: start;">
-          <div style="flex: 1;">
-            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-              <span style="font-weight: 700; color: var(--text-main);">${fechaFormateada} - ${escapeHtml(lec.titulo)}</span>
-              ${badgeHtml}
-            </div>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">${escapeHtml(lec.leccion_texto?.substring(0, 80) || '')}</p>
-          </div>
-          <div style="margin-left: 0.75rem;">
-            ${icono}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  contenido += `</div>`;
-  
-  showModal(`
-    <div style="max-width: 550px; margin: 0 auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
-        <h3 style="font-size: 1.3rem; font-weight: bold; color: var(--text-main);"><i class="fa-regular fa-calendar-alt" style="color: #14b8a6; margin-right: 0.5rem;"></i> Plan de Estudios</h3>
-        <button onclick="closeModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);"><i class="fas fa-times"></i></button>
-      </div>
-      ${contenido}
-      <div style="text-align: right; margin-top: 1rem;">
-        <button onclick="closeModal()" class="btn btn-ghost" style="padding: 0.3rem 1rem;">Cerrar</button>
-      </div>
-    </div>
-  `);
-}
-async function cambiarLeccionPorFecha(fecha) {
-  closeModal();
-  const { data, error } = await supabaseClient
-    .from('fzkids_lecciones')
-    .select('*')
-    .eq('fecha', fecha)
-    .single();
-  if (error || !data) {
-    showToast('No se pudo cargar la lección', 'error');
-    return;
-  }
-  currentFzkidsLeccion = data;
-  currentFzkidsFecha = fecha;
-  // Reiniciar checklist
-  materialesChecklist = {};
-  if (data.materiales && Array.isArray(data.materiales)) {
-    data.materiales.forEach(mat => { materialesChecklist[mat] = false; });
-  }
-  // Cargar asistencia guardada
-  const { data: asis } = await supabaseClient
-    .from('fzkids_asistencia')
-    .select('total_niños')
-    .eq('leccion_id', data.id)
-    .single();
-  totalAsistencia = asis ? asis.total_niños : 18;
-  mostrarInterfazFzkids();
-}
-
-// --- Solicitud de materiales faltantes ---
 async function solicitarMaterialFaltante() {
-  const faltantes = Object.keys(materialesChecklist).filter(mat => !materialesChecklist[mat]);
-  if (faltantes.length === 0) {
-    showToast('Todos los materiales están listos. ¡Bien hecho!', 'success');
-    return;
-  }
-  if (confirm(`Faltan: ${faltantes.join(', ')}. ¿Enviar solicitud al administrador?`)) {
-    const inserts = faltantes.map(material => ({
-      leccion_id: currentFzkidsLeccion.id,
-      material,
-      solicitado_por: currentUser.id,
-      estado: 'pendiente'
-    }));
-    const { error } = await supabaseClient.from('fzkids_solicitudes').insert(inserts);
-    if (error) showToast('Error al enviar: ' + error.message, 'error');
-    else showToast('Solicitud enviada al administrador', 'success');
-  }
+    const faltantes = Object.keys(materialesChecklist).filter(mat => !materialesChecklist[mat]);
+    if (faltantes.length === 0) {
+        showToast('Todos los materiales están listos. ¡Bien hecho!', 'success');
+        return;
+    }
+    if (confirm(`Faltan: ${faltantes.join(', ')}. ¿Enviar solicitud al administrador?`)) {
+        const inserts = faltantes.map(material => ({
+            leccion_id: currentFzkidsLeccion.id,
+            material,
+            solicitado_por: currentUser.id,
+            estado: 'pendiente'
+        }));
+        const { error } = await supabaseClient.from('fzkids_solicitudes').insert(inserts);
+        if (error) showToast('Error al enviar: ' + error.message, 'error');
+        else showToast('Solicitud enviada al administrador', 'success');
+    }
 }
 
-// --- Enviar WhatsApp (Conexión a Casa) ---
 function enviarWhatsAppFamilia() {
-  if (!currentFzkidsLeccion) return;
-  const fecha = new Date(currentFzkidsLeccion.fecha).toLocaleDateString('es-ES');
-  const mensaje = `📖 *Resumen Clase FZKIDS* 📖\n\n🗓️ *Fecha:* ${fecha}\n📘 *Lección:* ${currentFzkidsLeccion.titulo}\n📖 *Versículo:* ${currentFzkidsLeccion.versiculo || 'Efesios 6:11'}\n✂️ *Actividad:* ${currentFzkidsLeccion.leccion_texto?.substring(0, 100) || 'Actividad especial'}\n🎵 *Canción:* Disponible en la app\n\n✅ *Reforzar en casa:* Repasar el versículo y realizar la manualidad.\n\n✨ ¡Dios les bendiga! ✨`;
-  const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
-  window.open(url, '_blank');
+    if (!currentFzkidsLeccion) return;
+    const fecha = new Date(currentFzkidsLeccion.fecha).toLocaleDateString('es-ES');
+    const mensaje = `📖 *Resumen Clase FZKIDS* 📖\n\n🗓️ *Fecha:* ${fecha}\n📘 *Lección:* ${currentFzkidsLeccion.titulo}\n📖 *Versículo:* ${currentFzkidsLeccion.versiculo || 'Efesios 6:11'}\n✂️ *Actividad:* ${currentFzkidsLeccion.leccion_texto?.substring(0, 100) || 'Actividad especial'}\n🎵 *Canción:* Disponible en la app\n\n✅ *Reforzar en casa:* Repasar el versículo y realizar la manualidad.\n\n✨ ¡Dios les bendiga! ✨`;
+    const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
 }
 
-// --- Emergencia (juego aleatorio) ---
 async function abrirEmergencia() {
-  let dinamicas = currentFzkidsLeccion?.dinamicas || [];
-  if (dinamicas.length === 0) {
-    const { data } = await supabaseClient.from('fzkids_dinamicas').select('texto');
-    if (data && data.length) dinamicas = data.map(d => d.texto);
-    else dinamicas = [
-      '🎲 "El Rey Manda" – Da instrucciones rápidas como "El rey manda que se toquen la nariz". Quien se equivoque se sienta.',
-      '🧩 Adivinanza bíblica: ¿Qué animal salvó Dios en el arca? (todos)',
-      '🃏 Juego de memoria: parejas de animales de la Biblia.',
-      '🏃 Carrera de versículos: el primero en encontrar Efesios 6:11 gana un punto.',
-      '🎤 Canción rápida: "Jesús me ama, eso sé" con movimientos.',
-      '❓ Pregunta: ¿Quién fue tragado por un gran pez? (Jonás)'
-    ];
-  }
-  const juego = dinamicas[Math.floor(Math.random() * dinamicas.length)];
-  showModal(`
-    <div style="text-align: center; max-width: 400px; margin: 0 auto;">
-      <div style="width: 80px; height: 80px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto;">
-        <i class="fa-solid fa-dice-d6" style="font-size: 2.5rem; color: #dc2626;"></i>
-      </div>
-      <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">🎲 ¡Tiempo Extra!</h2>
-      <p style="color: var(--text-muted); margin-bottom: 1rem;">Juego generado aleatoriamente para mantener el control.</p>
-      <div style="background: var(--surface); border: 2px solid #fecaca; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-        <h3 style="font-size: 1.1rem; font-weight: 700; color: #dc2626; margin-bottom: 0.75rem;">✨ ${juego.substring(0, 50)}</h3>
-        <p style="color: var(--text-main); font-size: 0.9rem;">${juego}</p>
-      </div>
-      <button onclick="closeModal()" style="margin-top: 1.5rem; background: #1f2937; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer;">Cerrar</button>
-    </div>
-  `);
+    let dinamicas = currentFzkidsLeccion?.dinamicas || [];
+    if (dinamicas.length === 0) {
+        const { data } = await supabaseClient.from('fzkids_dinamicas').select('texto');
+        if (data && data.length) dinamicas = data.map(d => d.texto);
+        else dinamicas = [
+            '🎲 "El Rey Manda" – Da instrucciones rápidas como "El rey manda que se toquen la nariz". Quien se equivoque se sienta.',
+            '🧩 Adivinanza bíblica: ¿Qué animal salvó Dios en el arca? (todos)',
+            '🃏 Juego de memoria: parejas de animales de la Biblia.',
+            '🏃 Carrera de versículos: el primero en encontrar Efesios 6:11 gana un punto.',
+            '🎤 Canción rápida: "Jesús me ama, eso sé" con movimientos.',
+            '❓ Pregunta: ¿Quién fue tragado por un gran pez? (Jonás)'
+        ];
+    }
+    const juego = dinamicas[Math.floor(Math.random() * dinamicas.length)];
+    showModal(`
+        <div style="text-align: center; max-width: 400px; margin: 0 auto;">
+            <div style="width: 80px; height: 80px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto;">
+                <i class="fa-solid fa-dice-d6" style="font-size: 2.5rem; color: #dc2626;"></i>
+            </div>
+            <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">🎲 ¡Tiempo Extra!</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Juego generado aleatoriamente para mantener el control.</p>
+            <div style="background: var(--surface); border: 2px solid #fecaca; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #dc2626; margin-bottom: 0.75rem;">✨ ${juego.substring(0, 50)}</h3>
+                <p style="color: var(--text-main); font-size: 0.9rem;">${juego}</p>
+            </div>
+            <button onclick="closeModal()" style="margin-top: 1.5rem; background: #1f2937; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer;">Cerrar</button>
+        </div>
+    `);
 }
-
 // ==================== MÓDULO FZ HOST (Ujieres y Bienvenida) ====================
 let turnoActualHost = 'Principal';
 let visitantesHoy = [];
