@@ -9695,23 +9695,26 @@ async function renderFzkids() {
 
     document.getElementById('mainContent').innerHTML = `<div class="skeleton-loading" style="height: 400px; border-radius: 1rem;"></div>`;
     
-    // Cargar clases y estudiantes
+    // 1. Cargar clases (asigna a fzkidsClases)
     await cargarClasesFzkids();
+    console.log("✅ Clases cargadas en renderFzkids:", fzkidsClases);
     
-    // Si hay clases y no hay una seleccionada, seleccionar la primera
+    // 2. Si hay clases y no hay una seleccionada, seleccionar la primera
     if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
         currentFzkidsClaseId = fzkidsClases[0].id;
         await cargarEstudiantesPorClase(currentFzkidsClaseId);
+        console.log("✅ Clase seleccionada:", currentFzkidsClaseId);
     }
     
-    // Cargar asistencia detalle si hay clase seleccionada
+    // 3. Si hay clase seleccionada, cargar asistencia
     if (currentFzkidsClaseId && currentFzkidsFecha) {
         fzkidsAsistenciaDetalle = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
     }
     
-    // Cargar lección del próximo domingo (funcionalidad existente)
+    // 4. Cargar lección del próximo domingo (funcionalidad existente)
     await cargarLeccionProximoDomingo();
     
+    // 5. Renderizar la interfaz
     mostrarInterfazFzkidsCombinada();
 }
 
