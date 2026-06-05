@@ -13605,20 +13605,17 @@ async function cargarEstudiantesPorClase(claseId) {
 }
     
 async function cargarCategoriasFinancieras() {
-    if (!currentIglesiaId) {
-        console.warn("currentIglesiaId no disponible");
-        return [];
-    }
+    if (!currentIglesiaId) return [];
     const { data, error } = await supabaseClient
         .from('finanzas_categorias_por_equipo')
         .select('*')
-        .eq('iglesia_id', currentIglesiaId)
-        .eq('equipo_tipo', 'fzkids'); // Fuerza 'fzkids' en lugar de usar variable
+        .eq('iglesia_id', currentIglesiaId);
+        // No filtres por equipo_tipo, o si lo haces usa .ilike('equipo_tipo', 'fzkids')
     if (error) {
         console.error('Error cargando categorías:', error);
         return [];
     }
-    console.log("✅ Categorías cargadas:", data); // Para depuración
+    console.log("✅ Categorías cargadas:", data);
     return data || [];
 }
 
