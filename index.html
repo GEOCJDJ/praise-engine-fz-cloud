@@ -9602,22 +9602,6 @@ function puedeEditarFzkids() {
 // ========== CARGA DE DATOS DE CLASES Y ESTUDIANTES (NUEVO) ==========
 
 
-async function cargarEstudiantesPorClase(claseId) {
-    if (!claseId) return [];
-    const { data, error } = await supabaseClient
-        .from('fzkids_estudiantes')
-        .select('*')
-        .eq('clase_id', claseId)
-        .eq('activo', true)
-        .order('nombre', { ascending: true });
-    if (error) {
-        console.error('Error cargando estudiantes:', error);
-        return [];
-    }
-    fzkidsEstudiantes = data || [];
-    return fzkidsEstudiantes;
-}
-
 async function cargarAsistenciaDetallePorFecha(claseId, fecha) {
     if (!claseId || !fecha) return {};
     const { data, error } = await supabaseClient
@@ -13516,11 +13500,7 @@ function puedeEditarContabilidad() {
 
 // ========== CARGA DE DATOS ==========
 async function cargarClasesFzkids() {
-    console.log("cargarClasesFzkids: currentIglesiaId =", currentIglesiaId);
-    if (!currentIglesiaId) {
-        console.warn("currentIglesiaId es null, no se pueden cargar clases");
-        return [];
-    }
+    if (!currentIglesiaId) return [];
     const { data, error } = await supabaseClient
         .from('fzkids_clases')
         .select('*')
@@ -13530,8 +13510,8 @@ async function cargarClasesFzkids() {
         console.error('Error cargando clases:', error);
         return [];
     }
-    console.log("Datos devueltos por Supabase:", data);
-    return data || [];
+    fzkidsClases = data || [];   // actualiza la variable global
+    return fzkidsClases;         // también retorna
 }
 
 async function cargarEstudiantesPorClase(claseId) {
@@ -13546,7 +13526,8 @@ async function cargarEstudiantesPorClase(claseId) {
         console.error('Error cargando estudiantes:', error);
         return [];
     }
-    return data || [];
+    fzkidsEstudiantes = data || [];   // actualiza global
+    return fzkidsEstudiantes;
 }
 
 async function cargarCategoriasFinancieras() {
