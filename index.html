@@ -9778,7 +9778,7 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                 </div>
             </div>
 
-            <!-- Selector de Clases -->
+            <!-- Selector de Clases y Botones de Admin -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     ${listaClases.map(c => `
@@ -9804,9 +9804,58 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                 ` : ''}
             </div>
 
-            <!-- Tarjetas de estadísticas -->
+            <!-- ========== NUEVO ORDEN: PESTAÑAS PRIMERO ========== -->
+            <!-- Pestañas (Lección, Manualidad, Canciones, Materiales, Recursos) -->
+            <div style="border-bottom: 2px solid var(--border); margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="tab-fzkids-inline" data-tab="leccion" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid var(--primary); color: var(--primary);">📖 Lección</button>
+                    <button class="tab-fzkids-inline" data-tab="manualidad" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">✂️ Manualidad</button>
+                    <button class="tab-fzkids-inline" data-tab="canciones" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">🎵 Canción lema</button>
+                    <button class="tab-fzkids-inline" data-tab="materiales" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📦 Materiales</button>
+                    <button class="tab-fzkids-inline" data-tab="recursos" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📁 Recursos de Clase</button>
+                </div>
+            </div>
+
+            <!-- Contenido de pestañas (se muestra la primera activa) -->
+            <div id="tab-leccion" class="tab-contenido-inline" style="display: block;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                        <p style="color: #b45309; font-style: italic; margin: 0;">"${escapeHtml(currentFzkidsLeccion?.versiculo || '')}"</p>
+                        <p style="color: #d97706; font-size: 0.8rem; font-weight: bold; margin-top: 0.5rem;">— ${currentFzkidsLeccion?.versiculo ? 'Referencia' : 'Efesios 6:11'}</p>
+                    </div>
+                    <div style="color: var(--text-main); line-height: 1.5;">
+                        ${escapeHtml(currentFzkidsLeccion?.leccion_texto || 'No hay contenido de lección.')}
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-manualidad" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
+                    ${escapeHtml(currentFzkidsLeccion?.manualidad || 'No hay manualidad para esta clase.')}
+                </div>
+            </div>
+
+            <div id="tab-canciones" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
+                    ${escapeHtml(currentFzkidsLeccion?.canciones || 'No hay canciones sugeridas.')}
+                </div>
+            </div>
+
+            <div id="tab-materiales" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    ${materialesHtml}
+                </div>
+            </div>
+
+            <div id="tab-recursos" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    ${recursosHtml}
+                </div>
+            </div>
+
+            <!-- ========== ESTADÍSTICAS Y TABLA DE ESTUDIANTES (AHORA ABAJO) ========== -->
             ${totalEstudiantes > 0 ? `
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 2rem 0 1rem 0;">
                 <div class="stat-card-modern" style="text-align: center;">
                     <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">Total Estudiantes</div>
                     <div style="font-size: 1.8rem; font-weight: 800; color: #3b82f6;">${totalEstudiantes}</div>
@@ -9826,7 +9875,6 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
             </div>
             ` : ''}
 
-            <!-- Tabla de Estudiantes -->
             ${totalEstudiantes > 0 ? `
             <div style="background: var(--surface); border-radius: 1rem; border: 1px solid var(--border); overflow: hidden; margin-bottom: 1.5rem;">
                 <div style="overflow-x: auto;">
@@ -9885,55 +9933,7 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
             </div>
             ` : ''}
 
-            <!-- Pestañas (Lección, Manualidad, Canciones, Materiales, Recursos) -->
-            <div style="border-bottom: 2px solid var(--border); margin-bottom: 1rem;">
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button class="tab-fzkids-inline" data-tab="leccion" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid var(--primary); color: var(--primary);">📖 Lección</button>
-                    <button class="tab-fzkids-inline" data-tab="manualidad" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">✂️ Manualidad</button>
-                    <button class="tab-fzkids-inline" data-tab="canciones" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">🎵 Canción lema</button>
-                    <button class="tab-fzkids-inline" data-tab="materiales" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📦 Materiales</button>
-                    <button class="tab-fzkids-inline" data-tab="recursos" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📁 Recursos de Clase</button>
-                </div>
-            </div>
-
-            <!-- Contenido pestañas -->
-            <div id="tab-leccion" class="tab-contenido-inline" style="display: block;">
-                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
-                    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-                        <p style="color: #b45309; font-style: italic; margin: 0;">"${escapeHtml(currentFzkidsLeccion?.versiculo || '')}"</p>
-                        <p style="color: #d97706; font-size: 0.8rem; font-weight: bold; margin-top: 0.5rem;">— ${currentFzkidsLeccion?.versiculo ? 'Referencia' : 'Efesios 6:11'}</p>
-                    </div>
-                    <div style="color: var(--text-main); line-height: 1.5;">
-                        ${escapeHtml(currentFzkidsLeccion?.leccion_texto || 'No hay contenido de lección.')}
-                    </div>
-                </div>
-            </div>
-
-            <div id="tab-manualidad" class="tab-contenido-inline" style="display: none;">
-                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
-                    ${escapeHtml(currentFzkidsLeccion?.manualidad || 'No hay manualidad para esta clase.')}
-                </div>
-            </div>
-
-            <div id="tab-canciones" class="tab-contenido-inline" style="display: none;">
-                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
-                    ${escapeHtml(currentFzkidsLeccion?.canciones || 'No hay canciones sugeridas.')}
-                </div>
-            </div>
-
-            <div id="tab-materiales" class="tab-contenido-inline" style="display: none;">
-                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
-                    ${materialesHtml}
-                </div>
-            </div>
-
-            <div id="tab-recursos" class="tab-contenido-inline" style="display: none;">
-                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
-                    ${recursosHtml}
-                </div>
-            </div>
-
-            <!-- Botones de acción -->
+            <!-- Botones de acción (WhatsApp y Emergencia) al final -->
             <div style="margin-top: 1.5rem; background: var(--bg-app); padding: 1rem; border-radius: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
                 <button onclick="enviarWhatsAppFamilia()" style="background: #22c55e; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-brands fa-whatsapp"></i> Conexión a Casa</button>
                 <button onclick="abrirEmergencia()" style="background: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-life-ring"></i> Modo Supervivencia</button>
