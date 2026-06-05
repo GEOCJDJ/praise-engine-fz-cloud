@@ -13605,15 +13605,20 @@ async function cargarEstudiantesPorClase(claseId) {
 }
     
 async function cargarCategoriasFinancieras() {
+    if (!currentIglesiaId) {
+        console.warn("currentIglesiaId no disponible");
+        return [];
+    }
     const { data, error } = await supabaseClient
         .from('finanzas_categorias_por_equipo')
         .select('*')
         .eq('iglesia_id', currentIglesiaId)
-        .eq('equipo_tipo', currentEquipoTipo);
+        .eq('equipo_tipo', 'fzkids'); // Fuerza 'fzkids' en lugar de usar variable
     if (error) {
         console.error('Error cargando categorías:', error);
         return [];
     }
+    console.log("✅ Categorías cargadas:", data); // Para depuración
     return data || [];
 }
 
@@ -13968,18 +13973,25 @@ async function guardarCategoria(id = null) {
             .from('finanzas_categorias_por_equipo')
             .insert({
                 iglesia_id: currentIglesiaId,
-                equipo_tipo: currentEquipoTipo,
+                equipo_tipo: 'fzkids', // Forzamos 'fzkids'
                 nombre,
                 tipo
             });
         error = insertError;
     }
-    if (error) showToast("Error: " + error.message, "error");
-    else {
-        showToast(id ? "Categoría actualizada" : "Categoría creada", "success");
-        closeModal();
-        await renderContabilidad(); // refresca la vista
+    if (error) {
+        if (error.code === '23505') { // código de violación unique
+            showToast(`Ya existe una categoría con el nombre "${nombre}"`, "warning");
+        } else {
+            showToast("Error: " + error.message, "error");
+        }
+        return;
     }
+    showToast(id ? "Categoría actualizada" : "Categoría creada", "success");
+    closeModal();
+    // Refrescar la vista de gestión si está abierta, y también la vista principal de contabilidad
+    await renderContabilidad(); // esto refresca la tabla y el selector de categorías en el formulario
+    // Si el modal de gestión sigue abierto, se cierra solo con closeModal().
 }
 
 async function editarCategoria(id) {
@@ -14006,19 +14018,18 @@ async function eliminarCategoria(id) {
 // ========== FORMULARIOS ==========
 async function mostrarFormularioTransaccion() {
     const clases = await cargarClasesFzkids();
-    const categorias = await cargarCategoriasFinancieras();
+    const categorias = await cargarCategoriasFinancieras(); // Todas, sin filtrar por tipo
     const estudiantes = [];
     
     const clasesOptions = clases.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
-    const categoriasIncome = categorias.filter(c => c.tipo === 'income').map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
-    const categoriasExpense = categorias.filter(c => c.tipo === 'expense').map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
+    const categoriasOptions = categorias.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
 
     const modalContent = `
         <div style="max-width: 550px; margin: 0 auto;">
             <h3><i class="fas fa-book"></i> Nuevo Movimiento</h3>
             <div class="form-group">
                 <label>Tipo *</label>
-                <select id="transTipo" class="form-control" onchange="toggleCategoriasTransaccion()">
+                <select id="transTipo" class="form-control">
                     <option value="income">Ingreso</option>
                     <option value="expense">Gasto</option>
                 </select>
@@ -14036,9 +14047,12 @@ async function mostrarFormularioTransaccion() {
                     <option value="">-- Ninguno --</option>
                 </select>
             </div>
-            <div class="form-group" id="categoriasContainer">
+            <div class="form-group">
                 <label>Categoría *</label>
-                <select id="transCategoria" class="form-control">${categoriasIncome}</select>
+                <select id="transCategoria" class="form-control">
+                    <option value="">Seleccionar categoría</option>
+                    ${categoriasOptions}
+                </select>
             </div>
             <div class="form-group">
                 <label>Monto *</label>
@@ -14061,6 +14075,7 @@ async function mostrarFormularioTransaccion() {
     showModal(modalContent);
     flatpickr("#transFecha", { dateFormat: "d/m/Y", locale: "es", defaultDate: "today" });
     
+    // Función auxiliar para estudiantes (sin cambios)
     window.cargarEstudiantesParaSelect = async (claseId) => {
         const container = document.getElementById('estudianteContainer');
         const select = document.getElementById('transEstudiante');
@@ -14077,6 +14092,7 @@ async function mostrarFormularioTransaccion() {
             container.style.display = 'none';
         }
     };
+}
     
     window.toggleCategoriasTransaccion = () => {
         const tipo = document.getElementById('transTipo').value;
