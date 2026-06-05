@@ -10360,29 +10360,60 @@ async function abrirPlanMensual() {
 }
 
 async function cambiarLeccionPorFecha(fecha) {
-    closeModal();
+    closeModal(); // Cierra el modal del plan mensual
+
+    // 1. Cargar la nueva lección
     const { data, error } = await supabaseClient
         .from('fzkids_lecciones')
         .select('*')
         .eq('fecha', fecha)
         .single();
+
     if (error || !data) {
         showToast('No se pudo cargar la lección', 'error');
         return;
     }
+
+    // 2. Actualizar variables globales
     currentFzkidsLeccion = data;
     currentFzkidsFecha = fecha;
+
+    // 3. Reinicializar checklist de materiales
     materialesChecklist = {};
     if (data.materiales && Array.isArray(data.materiales)) {
         data.materiales.forEach(mat => { materialesChecklist[mat] = false; });
     }
+
+    // 4. Cargar asistencia total de la nueva lección
     const { data: asis } = await supabaseClient
         .from('fzkids_asistencia')
         .select('total_niños')
         .eq('leccion_id', data.id)
         .single();
     totalAsistencia = asis ? asis.total_niños : 18;
-    mostrarInterfazFzkidsCombinada();
+
+    // 5. Recargar las clases (por si hay cambios, aunque normalmente no)
+    const clases = await cargarClasesFzkids();
+
+    // 6. Mantener la clase seleccionada actual (si existe, sino usar la primera)
+    if (clases.length > 0 && !currentFzkidsClaseId) {
+        currentFzkidsClaseId = clases[0].id;
+    }
+
+    // 7. Cargar estudiantes de la clase seleccionada
+    let estudiantes = [];
+    if (currentFzkidsClaseId) {
+        estudiantes = await cargarEstudiantesPorClase(currentFzkidsClaseId);
+    }
+
+    // 8. Cargar asistencia detallada (presente/ausente) para la fecha y clase actual
+    let asistenciaMap = {};
+    if (currentFzkidsClaseId && currentFzkidsFecha) {
+        asistenciaMap = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
+    }
+
+    // 9. Renderizar la interfaz con todos los datos actualizados
+    mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap);
 }
 
 async function solicitarMaterialFaltante() {
