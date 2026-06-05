@@ -9600,19 +9600,7 @@ function puedeEditarFzkids() {
 }
 
 // ========== CARGA DE DATOS DE CLASES Y ESTUDIANTES (NUEVO) ==========
-async function cargarClasesFzkids() {
-    const { data, error } = await supabaseClient
-        .from('fzkids_clases')
-        .select('*')
-        .eq('iglesia_id', currentIglesiaId)
-        .order('orden', { ascending: true });
-    if (error) {
-        console.error('Error cargando clases:', error);
-        return [];
-    }
-    fzkidsClases = data || [];
-    return fzkidsClases;
-}
+
 
 async function cargarEstudiantesPorClase(claseId) {
     if (!claseId) return [];
@@ -9695,11 +9683,12 @@ async function renderFzkids() {
 
     document.getElementById('mainContent').innerHTML = `<div class="skeleton-loading" style="height: 400px; border-radius: 1rem;"></div>`;
     
-    await cargarClasesFzkids();
-    console.log("✅ Clases cargadas en renderFzkids:", fzkidsClases);
+    // Cargar clases en variable local
+    const clases = await cargarClasesFzkids();
+    console.log("✅ Clases cargadas en renderFzkids:", clases);
     
-    if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
-        currentFzkidsClaseId = fzkidsClases[0].id;
+    if (clases.length > 0 && !currentFzkidsClaseId) {
+        currentFzkidsClaseId = clases[0].id;
         await cargarEstudiantesPorClase(currentFzkidsClaseId);
         console.log("✅ Clase seleccionada:", currentFzkidsClaseId);
     }
@@ -9709,13 +9698,14 @@ async function renderFzkids() {
     }
     
     await cargarLeccionProximoDomingo();
-    mostrarInterfazFzkidsCombinada();
+    // Pasar las clases como parámetro
+    mostrarInterfazFzkidsCombinada(clases);
 }
 
 function mostrarInterfazFzkidsCombinada() {
    
-    console.log("🔍 fzkidsClases en mostrarInterfaz:", fzkidsClases);
-   
+   const listaClases = clases || [];
+    console.log("🔍 fzkidsClases en mostrarInterfaz:", listaClases);
 
     const container = document.getElementById('mainContent');
     const puedeEditar = puedeEditarFzkids();
@@ -13526,6 +13516,11 @@ function puedeEditarContabilidad() {
 
 // ========== CARGA DE DATOS ==========
 async function cargarClasesFzkids() {
+    console.log("cargarClasesFzkids: currentIglesiaId =", currentIglesiaId);
+    if (!currentIglesiaId) {
+        console.warn("currentIglesiaId es null, no se pueden cargar clases");
+        return [];
+    }
     const { data, error } = await supabaseClient
         .from('fzkids_clases')
         .select('*')
@@ -13535,6 +13530,7 @@ async function cargarClasesFzkids() {
         console.error('Error cargando clases:', error);
         return [];
     }
+    console.log("Datos devueltos por Supabase:", data);
     return data || [];
 }
 
