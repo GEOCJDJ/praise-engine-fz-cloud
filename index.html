@@ -9667,7 +9667,6 @@ async function renderFzkids() {
 
     document.getElementById('mainContent').innerHTML = `<div class="skeleton-loading" style="height: 400px; border-radius: 1rem;"></div>`;
     
-    // 1. Cargar clases (asegurar que currentIglesiaId existe)
     if (!currentIglesiaId) {
         console.warn("currentIglesiaId no disponible en renderFzkids");
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-warning">Esperando datos de la iglesia...</div>';
@@ -9675,44 +9674,40 @@ async function renderFzkids() {
     }
 
     const clases = await cargarClasesFzkids();
-    console.log("✅ Clases cargadas en renderFzkids (local):", clases);
+    console.log("✅ Clases cargadas en renderFzkids:", clases);
 
     let estudiantes = [];
     if (clases.length > 0 && !currentFzkidsClaseId) {
         currentFzkidsClaseId = clases[0].id;
         estudiantes = await cargarEstudiantesPorClase(currentFzkidsClaseId);
-        console.log("✅ Clase seleccionada:", currentFzkidsClaseId);
     } else if (currentFzkidsClaseId) {
         estudiantes = await cargarEstudiantesPorClase(currentFzkidsClaseId);
     }
 
-    // 2. Asistencia detallada (si hay fecha y clase)
     let asistenciaMap = {};
     if (currentFzkidsClaseId && currentFzkidsFecha) {
         asistenciaMap = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
     }
 
-    // 3. Lección del próximo domingo
     await cargarLeccionProximoDomingo();
 
-    // 4. Renderizar interfaz pasando los datos obtenidos
     mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap);
 }
 
 function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
-    // Asegurar arrays válidos
     const listaClases = clases || [];
     const listaEstudiantes = estudiantes || [];
     const mapaAsistencia = asistenciaMap || {};
-    
-    console.log("🔍 Clases recibidas en mostrarInterfaz:", listaClases);
-    
+
+    console.log("🔍 Clases recibidas:", listaClases);
+    console.log("🔍 Estudiantes recibidos:", listaEstudiantes);
+
     const container = document.getElementById('mainContent');
     const puedeEditar = puedeEditarFzkids();
     const claseSeleccionada = listaClases.find(c => c.id === currentFzkidsClaseId);
     const fechaLegible = currentFzkidsLeccion ? new Date(currentFzkidsLeccion.fecha).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : 'No hay lección';
-    
-    // Calcular resumen de asistencia de estudiantes (usando mapaAsistencia y listaEstudiantes)
+
+    // Calcular asistencias
     const totalEstudiantes = listaEstudiantes.length;
     let presentes = 0, ausentes = 0, atrasados = 0, justificados = 0;
     listaEstudiantes.forEach(e => {
@@ -9722,8 +9717,8 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
         else if (estado === 'atrasado') atrasados++;
         else if (estado === 'justificado') justificados++;
     });
-    
-    // Materiales HTML (no necesita cambios)
+
+    // Materiales checklist
     const materialesArray = currentFzkidsLeccion?.materiales || [];
     let materialesHtml = '<ul style="list-style: none; padding: 0; margin: 0;">';
     materialesArray.forEach(mat => {
@@ -9737,7 +9732,7 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
     materialesHtml += '</ul>';
     materialesHtml += `<button onclick="solicitarMaterialFaltante()" style="width: 100%; background: #f0fdf4; color: #0f766e; border: 1px solid #99f6e4; padding: 0.5rem; border-radius: 0.5rem; font-weight: 600; margin-top: 1rem; cursor: pointer;">📦 Solicitar material faltante</button>`;
 
-    // Recursos HTML (sin cambios)
+    // Recursos
     const recursos = currentFzkidsLeccion?.recursos || {};
     const pdfUrl = recursos.pdf || '#';
     const imgUrl = recursos.imagen || '#';
@@ -9763,10 +9758,9 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
         </div>
     `;
 
-    // El resto del HTML usa listaClases en lugar de fzkidsClases
     const html = `
         <div style="max-width: 1200px; margin: 0 auto;">
-            <!-- Header con degradado (igual) -->
+            <!-- Header -->
             <div style="background: linear-gradient(135deg, #3b82f6, #14b8a6); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 1.5rem;">
                 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
                     <div>
@@ -9783,8 +9777,8 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                     </div>
                 </div>
             </div>
-            
-            <!-- Selector de Clases y Botones de Admin -->
+
+            <!-- Selector de Clases -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     ${listaClases.map(c => `
@@ -9809,8 +9803,8 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                     </div>
                 ` : ''}
             </div>
-            
-            <!-- Tarjetas de resumen (igual, pero usando variables calculadas) -->
+
+            <!-- Tarjetas de estadísticas -->
             ${totalEstudiantes > 0 ? `
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
                 <div class="stat-card-modern" style="text-align: center;">
@@ -9831,8 +9825,8 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                 </div>
             </div>
             ` : ''}
-            
-            <!-- Tabla de Estudiantes (usando listaEstudiantes y mapaAsistencia) -->
+
+            <!-- Tabla de Estudiantes -->
             ${totalEstudiantes > 0 ? `
             <div style="background: var(--surface); border-radius: 1rem; border: 1px solid var(--border); overflow: hidden; margin-bottom: 1.5rem;">
                 <div style="overflow-x: auto;">
@@ -9890,15 +9884,66 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                 <p>No hay estudiantes en esta clase. Haz clic en "Nuevo Estudiante" para agregar.</p>
             </div>
             ` : ''}
-            
-            <!-- Pestañas (lección, manualidad, etc.) - se mantienen igual -->
-            <!-- ... (el resto del código de pestañas y botones es idéntico) ... -->
+
+            <!-- Pestañas (Lección, Manualidad, Canciones, Materiales, Recursos) -->
+            <div style="border-bottom: 2px solid var(--border); margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="tab-fzkids-inline" data-tab="leccion" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid var(--primary); color: var(--primary);">📖 Lección</button>
+                    <button class="tab-fzkids-inline" data-tab="manualidad" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">✂️ Manualidad</button>
+                    <button class="tab-fzkids-inline" data-tab="canciones" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">🎵 Canción lema</button>
+                    <button class="tab-fzkids-inline" data-tab="materiales" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📦 Materiales</button>
+                    <button class="tab-fzkids-inline" data-tab="recursos" style="background: none; border: none; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted);">📁 Recursos de Clase</button>
+                </div>
+            </div>
+
+            <!-- Contenido pestañas -->
+            <div id="tab-leccion" class="tab-contenido-inline" style="display: block;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                        <p style="color: #b45309; font-style: italic; margin: 0;">"${escapeHtml(currentFzkidsLeccion?.versiculo || '')}"</p>
+                        <p style="color: #d97706; font-size: 0.8rem; font-weight: bold; margin-top: 0.5rem;">— ${currentFzkidsLeccion?.versiculo ? 'Referencia' : 'Efesios 6:11'}</p>
+                    </div>
+                    <div style="color: var(--text-main); line-height: 1.5;">
+                        ${escapeHtml(currentFzkidsLeccion?.leccion_texto || 'No hay contenido de lección.')}
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-manualidad" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
+                    ${escapeHtml(currentFzkidsLeccion?.manualidad || 'No hay manualidad para esta clase.')}
+                </div>
+            </div>
+
+            <div id="tab-canciones" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border); color: var(--text-main);">
+                    ${escapeHtml(currentFzkidsLeccion?.canciones || 'No hay canciones sugeridas.')}
+                </div>
+            </div>
+
+            <div id="tab-materiales" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    ${materialesHtml}
+                </div>
+            </div>
+
+            <div id="tab-recursos" class="tab-contenido-inline" style="display: none;">
+                <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
+                    ${recursosHtml}
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div style="margin-top: 1.5rem; background: var(--bg-app); padding: 1rem; border-radius: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+                <button onclick="enviarWhatsAppFamilia()" style="background: #22c55e; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-brands fa-whatsapp"></i> Conexión a Casa</button>
+                <button onclick="abrirEmergencia()" style="background: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-life-ring"></i> Modo Supervivencia</button>
+            </div>
         </div>
     `;
-    
+
     container.innerHTML = html;
-    
-    // Inicializar eventos (checklists, asistencia, pestañas) igual que antes
+
+    // Eventos de pestañas
     document.querySelectorAll('.tab-fzkids-inline').forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-tab');
@@ -9913,14 +9958,16 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
             if (activeDiv) activeDiv.style.display = 'block';
         });
     });
-    
+
+    // Checklist materiales
     document.querySelectorAll('input[data-material]').forEach(chk => {
         chk.addEventListener('change', (e) => {
             const material = e.target.getAttribute('data-material');
             if (material) materialesChecklist[material] = e.target.checked;
         });
     });
-    
+
+    // Asistencia total
     const asistenciaInput = document.getElementById('asistenciaInput');
     if (asistenciaInput && currentFzkidsLeccion) {
         asistenciaInput.addEventListener('change', async () => {
@@ -9936,6 +9983,10 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
         });
     }
 }
+
+
+
+    
 // ========== FUNCIONES DE NAVEGACIÓN ENTRE CLASES (NUEVAS) ==========
 window.seleccionarClaseFzkids = async (claseId) => {
     currentFzkidsClaseId = claseId;
@@ -9944,7 +9995,6 @@ window.seleccionarClaseFzkids = async (claseId) => {
     if (currentFzkidsFecha) {
         asistenciaMap = await cargarAsistenciaDetallePorFecha(claseId, currentFzkidsFecha);
     }
-    // Vuelve a renderizar con los datos actualizados (puedes reutilizar mostrarInterfazFzkidsCombinada)
     const clases = await cargarClasesFzkids();
     mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap);
 };
@@ -9973,20 +10023,6 @@ window.guardarAsistenciaIndividual = async (estudianteId, estado) => {
     }
 };
 
-window.recargarClasesFzkids = async () => {
-    await cargarClasesFzkids();  // actualiza global y devuelve
-    const clases = await cargarClasesFzkids(); // para asegurar
-    if (clases.length > 0 && !currentFzkidsClaseId) {
-        currentFzkidsClaseId = clases[0].id;
-    }
-    let estudiantes = [];
-    if (currentFzkidsClaseId) estudiantes = await cargarEstudiantesPorClase(currentFzkidsClaseId);
-    let asistenciaMap = {};
-    if (currentFzkidsFecha && currentFzkidsClaseId) {
-        asistenciaMap = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
-    }
-    mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap);
-};
 
     
     
@@ -10178,9 +10214,31 @@ window.guardarEstudianteFzkids = async (id) => {
     } else {
         showToast(id ? 'Estudiante actualizado' : 'Estudiante agregado', 'success');
         closeModal();
-        await cargarEstudiantesPorClase(currentFzkidsClaseId);
-        mostrarInterfazFzkidsCombinada();
+        // Recargar estudiantes de la clase actual y refrescar la vista
+        const estudiantesActualizados = await cargarEstudiantesPorClase(currentFzkidsClaseId);
+        const clasesActuales = await cargarClasesFzkids();
+        let asistenciaMap = {};
+        if (currentFzkidsFecha && currentFzkidsClaseId) {
+            asistenciaMap = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
+        }
+        mostrarInterfazFzkidsCombinada(clasesActuales, estudiantesActualizados, asistenciaMap);
     }
+};
+
+window.recargarClasesFzkids = async () => {
+    const clasesActuales = await cargarClasesFzkids();  // esto actualiza global también
+    if (clasesActuales.length > 0 && !currentFzkidsClaseId) {
+        currentFzkidsClaseId = clasesActuales[0].id;
+    }
+    let estudiantes = [];
+    if (currentFzkidsClaseId) {
+        estudiantes = await cargarEstudiantesPorClase(currentFzkidsClaseId);
+    }
+    let asistenciaMap = {};
+    if (currentFzkidsFecha && currentFzkidsClaseId) {
+        asistenciaMap = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
+    }
+    mostrarInterfazFzkidsCombinada(clasesActuales, estudiantes, asistenciaMap);
 };
 
 window.editarEstudianteFzkids = async (id) => {
