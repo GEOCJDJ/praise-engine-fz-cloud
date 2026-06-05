@@ -9767,7 +9767,12 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                         <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-shapes"></i> FZKIDS</h1>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
                             <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem;">Clase actual: ${fechaLegible}</span>
-                            <button onclick="abrirPlanMensual()" style="background: white; color: #0d9488; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-list-ul"></i> Ver plan mensual</button>
+                            <!-- Grupo de botones: Plan Mensual, Conexión a Casa, Modo Supervivencia -->
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button onclick="abrirPlanMensual()" style="background: white; color: #0d9488; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-list-ul"></i> Ver plan mensual</button>
+                                <button onclick="enviarWhatsAppFamilia()" style="background: #25D366; color: white; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; font-weight: bold; cursor: pointer;"><i class="fa-brands fa-whatsapp"></i> Conexión a Casa</button>
+                                <button onclick="abrirEmergencia()" style="background: #ef4444; color: white; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-life-ring"></i> Modo Supervivencia</button>
+                            </div>
                         </div>
                     </div>
                     <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 1rem; text-align: center; backdrop-filter: blur(4px);">
@@ -9804,7 +9809,6 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                 ` : ''}
             </div>
 
-            <!-- ========== NUEVO ORDEN: PESTAÑAS PRIMERO ========== -->
             <!-- Pestañas (Lección, Manualidad, Canciones, Materiales, Recursos) -->
             <div style="border-bottom: 2px solid var(--border); margin-bottom: 1rem;">
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -9816,7 +9820,7 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                 </div>
             </div>
 
-            <!-- Contenido de pestañas (se muestra la primera activa) -->
+            <!-- Contenido de pestañas -->
             <div id="tab-leccion" class="tab-contenido-inline" style="display: block;">
                 <div style="background: var(--surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border);">
                     <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
@@ -9853,7 +9857,7 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                 </div>
             </div>
 
-            <!-- ========== ESTADÍSTICAS Y TABLA DE ESTUDIANTES (AHORA ABAJO) ========== -->
+            <!-- Estadísticas y Tabla de Estudiantes -->
             ${totalEstudiantes > 0 ? `
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 2rem 0 1rem 0;">
                 <div class="stat-card-modern" style="text-align: center;">
@@ -9932,12 +9936,6 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
                 <p>No hay estudiantes en esta clase. Haz clic en "Nuevo Estudiante" para agregar.</p>
             </div>
             ` : ''}
-
-            <!-- Botones de acción (WhatsApp y Emergencia) al final -->
-            <div style="margin-top: 1.5rem; background: var(--bg-app); padding: 1rem; border-radius: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
-                <button onclick="enviarWhatsAppFamilia()" style="background: #22c55e; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-brands fa-whatsapp"></i> Conexión a Casa</button>
-                <button onclick="abrirEmergencia()" style="background: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-life-ring"></i> Modo Supervivencia</button>
-            </div>
         </div>
     `;
 
