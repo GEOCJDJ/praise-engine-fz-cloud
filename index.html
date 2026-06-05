@@ -14103,7 +14103,7 @@ async function mostrarFormularioTransaccion() {
         const selectHtml = `<label>Categoría *</label><select id="transCategoria" class="form-control">${categorias.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}</select>`;
         container.innerHTML = selectHtml;
     };
-}
+
 
 async function guardarTransaccion() {
     const tipo = document.getElementById('transTipo').value;
