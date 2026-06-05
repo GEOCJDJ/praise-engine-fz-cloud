@@ -9667,12 +9667,12 @@ async function renderFzkids() {
 
     document.getElementById('mainContent').innerHTML = `<div class="skeleton-loading" style="height: 400px; border-radius: 1rem;"></div>`;
     
-    // Cargar clases en variable local
-    const clases = await cargarClasesFzkids();
-    console.log("✅ Clases cargadas en renderFzkids:", clases);
+    // Cargar clases (esto actualiza la variable global fzkidsClases)
+    await cargarClasesFzkids();
+    console.log("✅ Clases cargadas en renderFzkids:", fzkidsClases);
     
-    if (clases.length > 0 && !currentFzkidsClaseId) {
-        currentFzkidsClaseId = clases[0].id;
+    if (fzkidsClases.length > 0 && !currentFzkidsClaseId) {
+        currentFzkidsClaseId = fzkidsClases[0].id;
         await cargarEstudiantesPorClase(currentFzkidsClaseId);
         console.log("✅ Clase seleccionada:", currentFzkidsClaseId);
     }
@@ -9682,8 +9682,7 @@ async function renderFzkids() {
     }
     
     await cargarLeccionProximoDomingo();
-    // Pasar las clases como parámetro
-    mostrarInterfazFzkidsCombinada(clases);
+    mostrarInterfazFzkidsCombinada();
 }
 
 function mostrarInterfazFzkidsCombinada() {
@@ -13510,8 +13509,8 @@ async function cargarClasesFzkids() {
         console.error('Error cargando clases:', error);
         return [];
     }
-    fzkidsClases = data || [];   // actualiza la variable global
-    return fzkidsClases;         // también retorna
+    fzkidsClases = data || [];
+    return fzkidsClases;
 }
 
 async function cargarEstudiantesPorClase(claseId) {
@@ -13526,7 +13525,7 @@ async function cargarEstudiantesPorClase(claseId) {
         console.error('Error cargando estudiantes:', error);
         return [];
     }
-    fzkidsEstudiantes = data || [];   // actualiza global
+    fzkidsEstudiantes = data || [];
     return fzkidsEstudiantes;
 }
 
@@ -13584,16 +13583,17 @@ async function renderContabilidad() {
     document.getElementById('actionHeader').innerHTML = '';
 
     try {
-        const fzkidsClases = await cargarClasesFzkids();
+        // Cargar clases (esto actualiza la variable global fzkidsClases)
+        await cargarClasesFzkids();
         const categorias = await cargarCategoriasFinancieras();
         const saldoActual = await cargarFondoEquipo();
         const puedeEditar = puedeEditarContabilidad();
 
-        // Si no hay categorías, crearlas
         if (categorias.length === 0) {
             await crearCategoriasPorDefecto();
         }
 
+        // Usar la variable global ya actualizada
         const clasesOptions = fzkidsClases.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
         
         const html = `
@@ -13703,7 +13703,6 @@ async function renderContabilidad() {
         `;
     }
 }
-
 // ========== CARGAR DATOS DE TRANSACCIONES ==========
 async function cargarDatosContables() {
     const classFilter = document.getElementById('class-filter');
