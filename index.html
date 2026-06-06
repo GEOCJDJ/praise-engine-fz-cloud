@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     <style>
-        /* ===== ESTILOS GLOBALES (igual que antes, conservando el footer) ===== */
+        /* ===== ESTILOS GLOBALES===== */
         :root { --primary: #1E3A8A; --primary-light: #3B82F6; --primary-rgb: 30,58,138; --bg-app: #F8FAFC; --surface: #FFFFFF; --text-main: #1E293B; --text-muted: #64748B; --border: #E2E8F0; --shadow: 0 10px 25px rgba(0,0,0,0.08); --radius-lg: 1.5rem; --radius-sm: 1rem; }
         body.dark { --primary: #3B82F6; --primary-light: #60A5FA; --primary-rgb: 59,130,246; --bg-app: #0F172A; --surface: #1E293B; --text-main: #F1F5F9; --text-muted: #94A3B8; --border: #334155; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -192,7 +192,7 @@ body.dark .chord-item {
 }
         
 
-        /* ========== NUEVOS ESTILOS PARA VISOR Y EDITOR (del ejemplo) ========== */
+        /* ==========  PARA VISOR Y EDITOR AORDES JJEJE ========== */
 
 
 #songModal .modal-content {
@@ -302,8 +302,8 @@ body.dark .bpm-indicator.beat {
     }
 }
 
-       /* ========== ESTILOS OBLIGATORIOS PARA EL VISOR ========== */
-/* Forzar alineación izquierda y monoespaciado en el contenedor y todos sus hijos */
+       /* ========== ESTILOS OBLIGATORIOS PARA EL VISOR SUPER IMPORTANTE JAJA ========== */
+/* Forzar alineación izquierda y monoespaciado en el contenedor  */
 .cifra-content-wrapper,
 .cifra-content-wrapper * {
     font-family: 'Courier New', Courier, monospace !important;
@@ -329,7 +329,7 @@ body.dark .chord {
     color: #60a5fa !important;
 }
 
-       /* Colores para el modal del visor (usa variables CSS) */
+       /* Colores para el modal del visor  */
 .cifra-modal {
     background: var(--bg-app);
     color: var(--text-main);
@@ -863,7 +863,7 @@ body.tema-naranja { --primary: #C2410C; --primary-light: #F97316; }
   border-bottom-color: var(--primary);
   color: var(--primary);
 }
-        /* Para pestañas FZKIDS */
+        /* pestañas FZKIDS */
 .tab-fzkids {
   background: none;
   border: none;
@@ -902,7 +902,7 @@ body.dark { --border-color: #334155; }
     transform: scale(0.95);
 }
 
-        /* Avatar de cuerpo entero (estilo Free Fire / cuerpo completo) */
+        /* Avatar de cuerpo entero N OFUNCIONA  */
 
         .profile-avatar-fullbody {
     width: 120px;
@@ -919,12 +919,12 @@ body.dark { --border-color: #334155; }
 .avatar-header {
     width: 32px;
     height: 32px;
-    border-radius: 50%;     /* solo en el header sí es círculo (por espacio) */
+    border-radius: 50%;    
     object-fit: cover;
     border: 1px solid #C8972A;
 }
 
- /* ===== ESTILOS MODERNOS PARA LOGIN (sin afectar el resto) ===== */
+ /* ===== ESTILOS MODERNOS PARA LOGIN  ===== */
 .login-modern-wrapper {
     display: flex;
     justify-content: center;
@@ -1083,7 +1083,7 @@ body.dark { --border-color: #334155; }
     text-decoration: underline;
 }
 
-/* Modo oscuro automático (respeta el tema de tu app) */
+/* Modo oscuro automático  */
 body.dark .login-modern-wrapper {
     background: linear-gradient(135deg, #0f172a 0%, #0f172a 100%);
 }
@@ -1130,7 +1130,7 @@ input[type="date"]:valid {
     color: var(--text-main);
 }
 
-/* ===== NUEVOS ESTILOS PARA MÓDULO DE CUMPLEAÑOS ===== */
+/* =====  ESTILOS MÓDULO DE CUMPLEAÑOS ===== */
 .glass-effect {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
@@ -1279,7 +1279,7 @@ body.light .premium-birthday-card {
     margin-bottom: 0.5rem;
 }
 
- /* ===== COLORES PERSONALIZADOS PARA ÍCONOS DEL MENÚ ===== */
+ /* =====  ÍCONOS DEL MENÚ ===== */
 .nav-item i {
     transition: all 0.2s ease;
 }
@@ -1330,7 +1330,7 @@ body.dark .nav-item[data-tab="profile"] i { color: #94a3b8; }
 body.dark .nav-item[data-tab="admin"] i { color: #f87171; }
 body.dark .nav-item#notificacionesBtn i { color: #fb923c; }
 
-/* Ajuste para el estado activo: fondo suave y el icono mantiene su color */
+/* Ajuste para el estado activo fondo suave*/
 .nav-item.active {
     background: rgba(var(--primary-rgb), 0.15);
 }
@@ -1338,11 +1338,9 @@ body.dark .nav-item#notificacionesBtn i { color: #fb923c; }
     background: transparent !important;
     color: inherit !important;
 }    
-        /* =========================================
-   MEJORAS VISUALES: HOME PRINCIPAL
-   ========================================= */
+     
 
-/* 1. HEADER CON GLASSMORPHISM (Efecto cristal) */
+/*  HEADER CON GLASSMORPHISM (Efecto cristal) */
 .app-header {
     background: rgba(255, 255, 255, 0.85) !important;
     backdrop-filter: blur(16px);
@@ -1355,7 +1353,7 @@ body.dark .app-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-/* 2. ICONO DE LA APP IDÉNTICO AL REGISTRO */
+/*  ICONO DE LA APP  */
 .app-title i {
     display: inline-block;
     width: 26px !important;
@@ -1369,7 +1367,7 @@ body.dark .app-header {
     margin-right: 6px;
 }
 
-/* 3. MEJORA DEL BUSCADOR (Más suave e interactivo) */
+/*  MEJORA DEL BUSCADOR  */
 .search-box {
     border-radius: 2rem !important;
     padding: 1rem 1.5rem 1rem 3rem !important;
@@ -1388,7 +1386,7 @@ body.dark .search-box {
     border: 1px solid var(--border) !important;
 }
 
-/* 4. TARJETAS (CARDS) MÁS GENIALES Y MODERNAS */
+/* TARJETAS  MÁS GENIALES Y MODERNAS SEGUN YO JAJJA */
 .card {
     border-radius: 1.5rem !important;
     padding: 1.5rem !important;
@@ -1418,7 +1416,7 @@ body.dark .search-box {
     opacity: 1;
 }
 
-/* 5. ETIQUETAS DE CATEGORÍA ELEGANTES */
+/*  ETIQUETAS DE CATEGORÍA ELEGANTES */
 .card-category {
     background: rgba(var(--primary-rgb), 0.08) !important;
     color: var(--primary) !important;
@@ -1458,13 +1456,13 @@ body.dark .card-category {
     background: linear-gradient(135deg, #C8972A, #f5d061) !important;
 }
 
-/* Si tu HTML ya tiene un ícono allí y se ve mal, ocultémoslo para que el nuevo brille */
+
 .app-title i, .app-title img {
     display: none !important;
 }       
 
 /* ==========================================================================
-   IMPLEMENTACIÓN: SKELETON LOADERS & NAVEGACIÓN STICKY EFECTO SCROLL
+   IMPLEMENTACIÓN: SKELETON LOADERS & NAVEGACIÓN STICKY EFECTO SCROLL SEGUN LA IA
    ========================================================================== */
 
 /* --- 1. SKELETON LOADERS (Para estados de carga fluidos y elegantes) --- */
@@ -1664,7 +1662,7 @@ body.dark #gpraise-aula-shield .border.rounded-lg.p-3.bg-slate-50 {
 }    
 
  /* ==========================================================================
-   ADIÓS WINDOWS XP: MODERNIZACIÓN DE SUB-MÓDULOS (AULA VIRTUAL)
+   MODERNIZACIÓN DE SUB-MÓDULOS (AULA VIRTUAL)
    ========================================================================== */
 
 /* 1. CONTENEDORES Y REJILLAS PRINCIPALES */
@@ -2091,7 +2089,7 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
     <div id="toastContainer" class="toast-container"></div>
 <body>
 <div id="appRoot"></div>
-<!-- MODAL DE SORPRESA PARA CUMPLEAÑOS -->
+<!--  CUMPLEAÑOS POR MEJORAR, ALGUN DIA TERMINARÉ-->
 <div id="birthday-modal" class="modal-overlay">
     <div class="premium-birthday-card">
         <button class="close-modal-btn" onclick="closeBirthdayModal()">×</button>
@@ -2190,8 +2188,6 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
 const SUPABASE_URL = 'https://mudcrmgaqejmpyeyocmt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZGNybWdhcWVqbXB5ZXlvY210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTg2MzUsImV4cCI6MjA5NDM3NDYzNX0.Izf3hp-JHgkWH00kEpSMitSo61pMtGeQh-6PimhcNIU';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-// ========== PARCHES PARA EVITAR ERRORES FATALES ==========
-// Definir variables de API bíblica (aunque no tengas key real, evita el error)
 
 if (typeof confetti === 'undefined') {
     window.confetti = function() { console.log('confetti no disponible'); };
@@ -2237,7 +2233,7 @@ let currentTab = 'home', selectedListId = null, listsViewMode = 'grid';
 let sortableInstance = null, metronomeInterval = null;
 let isAdminUser = false;
 let isEquipoAdmin = false;
-let equipoAdminData = null;   // objeto del equipo (nombre, id)
+let equipoAdminData = null;  
 let isIglesiaAdmin = false;
 let isDeptAdmin = false;
 let currentProfile = null;
@@ -2267,7 +2263,7 @@ async function loginWithGoogle() {
             }
         });
         if (error) throw error;
-        // El navegador redirigirá automáticamente a Google
+        // El navegador redirigE automáticamente a Google
     } catch (err) {
         showToast("Error al conectar con Google: " + err.message, "error");
     }
@@ -2313,7 +2309,7 @@ let currentSongIndex = -1;
 
     
 function aplicarTema(temaId) {
-    // Elimina cualquier tema anterior
+   
     document.body.classList.remove('tema-default', 'tema-verde', 'tema-morado', 'tema-rosa', 'tema-naranja');
     if (temaId && temaId !== 'default') {
         document.body.classList.add(`tema-${temaId}`);
@@ -2321,7 +2317,7 @@ function aplicarTema(temaId) {
         document.body.classList.add('tema-default');
     }
 
-    // Aplica variables CSS según el tema
+    // Aplica CSS según el tema
     const root = document.documentElement;
     switch (temaId) {
         case 'verde':
@@ -2481,7 +2477,6 @@ document.addEventListener('click', function(e) {
             }
         }
     } else {
-        // Opcional: cerrar si se toca fuera (mejor experiencia)
         if (window.innerWidth <= 768 && firstToolbar.style.display === 'flex') {
             const floatingMenu = document.getElementById('cifraFloatingMenu');
     if (floatingMenu) floatingMenu.style.display = 'none';
@@ -2573,10 +2568,6 @@ function renderCifraFromText(content) {
     });
     renderCifraFromText(transposedLines.join('\n'));
 }
-    
-
-    
-
 
    function changeFontSizeCifra(delta) {
     cifraFontSize += delta;
@@ -2618,7 +2609,7 @@ function transposeCifra(steps) {
     applyTransposition(cifraCurrentOffset);
 }
 
-// Transpone directamente N semitonos desde el texto base (sin necesitar fromKey/toKey)
+
 function transponeSemitonos(text, semitones) {
     if (!text || semitones === 0) return text;
     const semiNorm = ((semitones % 12) + 12) % 12;
@@ -2659,12 +2650,12 @@ function startMetronomeVisual(bpm) {
     cifraMetronomeInterval = setInterval(() => {
         dot.classList.add('beat');
         setTimeout(() => dot.classList.remove('beat'), 150);
-        // Si quieres vibración opcional, descomenta la siguiente línea
-        // if (navigator.vibrate) navigator.vibrate(30);
+    
+         if (navigator.vibrate) navigator.vibrate(30);
     }, 60000 / bpm);
 }
 
-// Alterna el metrónomo (encendido/apagado)
+//  metrónomo (encendido/apagado)
 function toggleMetronome() {
     const btn = document.getElementById('toggleMetronomeBtn');
     if (isMetronomeRunning) {
@@ -2691,7 +2682,7 @@ function toggleMetronome() {
 function updateSongBpm() {
     if (cifraCurrentSong) {
         cifraCurrentSong.bpm = parseInt(document.getElementById('cifraBpmInput').value) || 80;
-        // Si el metrónomo está corriendo, lo reiniciamos con el nuevo BPM
+        // Si el metrónomo está correndo, lo reiniciamos con el nuevo BPM
         if (isMetronomeRunning) {
             startMetronomeVisual(cifraCurrentSong.bpm);
         }
@@ -3083,7 +3074,6 @@ async function loadUserIglesia() {
         isIglesiaAdmin = data.es_admin_iglesia || false;
         isDeptAdmin = data.es_admin_departamento || false;
 
-        // --- NUEVO: Admin de equipo ---
         isEquipoAdmin = data.es_admin_equipo || false;
         if (isEquipoAdmin && data.equipo_id) {
             const { data: equipo } = await supabaseClient
@@ -3190,10 +3180,10 @@ async function logout() { await supabaseClient.auth.signOut(); currentUser = nul
             </div>
         `;
         
-        // Mejora visual para input date (placeholder simulado)
+        
         const fechaInput = document.getElementById('regFecha');
         if (fechaInput) {
-            // Si no tiene valor, mostrar texto indicativo (solo visual)
+            
             if (!fechaInput.value) {
                 fechaInput.style.color = '#94a3b8';
             }
@@ -3205,7 +3195,7 @@ async function logout() { await supabaseClient.auth.signOut(); currentUser = nul
     })();
 }
 
-// Función global para mostrar/ocultar contraseña (colócala fuera de renderRegister)
+// Función global para mostrar/ocultar contraseña 
 window.togglePasswordVisibility = (inputId, btn) => {
     const input = document.getElementById(inputId);
     if (input.type === 'password') {
@@ -3244,7 +3234,7 @@ window.togglePasswordVisibility = (inputId, btn) => {
                 nombre: name,
                 email: email,
                 fecha_nacimiento: fecha,
-                birth_date: fecha,   // ← NUEVO: para el módulo de cumpleaños
+                birth_date: fecha,   
                 rol: 'user'
             }]);
 
@@ -3339,7 +3329,7 @@ async function loadUserData() {
             ...song, 
             chordsUrl: song.chords_url, 
             chordsData: song.chords_data,
-            capo: song.capo || ''   // ← CORREGIDO
+            capo: song.capo || ''   
         }));
 
         const { data: deptos } = await supabaseClient.from('departamentos').select('*').eq('iglesia_id', currentIglesiaId);
@@ -3429,7 +3419,6 @@ function puedeVerListas() {
     if (isAdminUser || isIglesiaAdmin) return true;
     if (isEquipoAdmin && equipoAdminData) {
         const equipo = equipoAdminData.nombre.toLowerCase();
-        // Agregamos 'producción' y 'multimedia'
         return equipo === 'alabanza' || equipo === 'danza' || equipo === 'equipo de alabanza' ||
                equipo === 'producción' || equipo === 'multimedia' || equipo === 'artes';
     }
@@ -3437,31 +3426,27 @@ function puedeVerListas() {
     if (!miembro) return false;
     const depto = departamentos.find(d => d.id === miembro.departamento_id);
     if (!depto) return false;
-    // Lista ampliada
     const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza', 'Producción', 'Multimedia'];
-    // Además, si el departamento tiene un padre que esté en la lista permitida
     const padre = depto.padre_id ? departamentos.find(d => d.id === depto.padre_id) : null;
     const permitido = deptosPermitidos.includes(depto.nombre) || (padre && deptosPermitidos.includes(padre.nombre));
     return permitido;
 }
 
    function puedeVerGmedia() {
-    // 1. Admin general (superadmin) siempre ve
+    // Superadmin siempre ve, Osea YO JAJA
     if (isAdminUser) return true;
     
-    // 2. Miembros del departamento PRODUCCIÓN (nombre exacto "Producción" o "PRODUCCIÓN")
+    //  Miembros del departamento Producción
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
     if (!miembro) return false;
     
     const depto = departamentos.find(d => d.id === miembro.departamento_id);
     if (!depto) return false;
-    
-    // 3. El departamento puede llamarse "Producción" o tener un padre "Producción" (subequipos)
+
     const esProduccion = depto.nombre === 'Producción' || depto.nombre === 'PRODUCCIÓN';
     const padre = depto.padre_id ? departamentos.find(d => d.id === depto.padre_id) : null;
     const esHijoDeProduccion = padre && (padre.nombre === 'Producción' || padre.nombre === 'PRODUCCIÓN');
     
-    // 4. También puede ser admin de equipo de producción (si existe esa lógica)
     const esAdminEquipoProduccion = isEquipoAdmin && equipoAdminData && 
         (equipoAdminData.nombre === 'Producción' || equipoAdminData.nombre === 'PRODUCCIÓN');
     
@@ -3576,7 +3561,7 @@ function renderApp() {
 
     if (!currentIglesiaId) { renderLogin(); return; }
 
-    // Usuario normal (iglesia seleccionada) – SIN duplicar el ítem fzkids
+
     document.getElementById('appRoot').innerHTML = `<header class="app-header">
    
    <div class="app-title" id="easterEggTitle">
@@ -3711,7 +3696,7 @@ function darkModeToggle() {
 
     // ========== VALIDACIONES DE PERMISOS ==========
     
-    // Cancionero y Favoritos (solo Alabanza)
+    // Cancionero y Favoritos solo Alabanza
     if (currentTab === 'songs' || currentTab === 'favorites') {
         if (!puedeVerAlabanza()) {
             document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
@@ -3719,7 +3704,7 @@ function darkModeToggle() {
         }
     }
 
-    // LISTAS (Alabanza, Danza, Producción, Multimedia)
+    // LISTAS Alabanza, Danza, Producción, Multimedia
     if (currentTab === 'lists') {
         if (!puedeVerListas()) {
             document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
@@ -3733,13 +3718,13 @@ function darkModeToggle() {
         return;
     }
 
-    // FZKIDS (Escuela Bíblica)
+    // FZKIDS 
     if (currentTab === 'fzkids' && !puedeVerFzkids()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
     }
 
-    // FZ HOST (Ujieres)
+    // FZ HOST OSEA UjieRES
     if (currentTab === 'fzhost' && !puedeVerFzHost()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
         return;
@@ -3758,7 +3743,7 @@ function darkModeToggle() {
             return;
         }
         await renderContabilidad();
-        return; // Importante: salir para no seguir con otros renderizados
+        return; 
     }
 
     // ========== RENDERIZADO DE VISTAS ==========
@@ -3869,7 +3854,7 @@ async function renderHome() {
         deptoNombre = depto ? depto.nombre : 'No asignado';
     }
 
-    // Generar avatar HTML (común para usar dentro del versículo)
+    // Generar avatar HTML dentro del versículo
     const avatarHtml = `
         <div style="flex-shrink: 0; width: 70px; height: 70px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgba(255,255,255,0.5);">
             ${currentProfile?.avatar_url ? 
@@ -4313,24 +4298,24 @@ async function loadComments(listaId) {
     async function addComment(listaId) { const contenido = document.getElementById('newComment').value.trim(); if(!contenido) return showToast("Escribe un comentario"); const { error } = await supabaseClient.from('comentarios_lista').insert({ lista_id: listaId, user_id: currentUser.id, contenido }); if(error) showToast("Error: " + error.message); else { document.getElementById('newComment').value=''; loadComments(listaId); } }
 async function deleteComment(commentId, listaId) { if(confirm("¿Eliminar comentario?")) { await supabaseClient.from('comentarios_lista').delete().eq('id',commentId); loadComments(listaId); } }
 
-// ========== MÓDULO G-NOTES (Recursos por Instrumento) ==========
+// ========== MÓDULO G-NOTES (TALVEZ LO QUITE, LO DEJO PENDIENTE AHORITA JEJE ) ==========
 async function renderGnotes() {
     const container = document.getElementById('mainContent');
     const actionHeader = document.getElementById('actionHeader');
-    actionHeader.innerHTML = ''; // No necesita botones extra
+    actionHeader.innerHTML = ''; 
 
     // Detectar el rol musical del usuario actual
-    let rolUsuario = "Guitarra"; // valor por defecto
+    let rolUsuario = "Guitarra"; 
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
     if (miembro && miembro.rol_musical) {
         const rol = miembro.rol_musical.toLowerCase();
         if (rol.includes('guitar') || rol.includes('bajo')) rolUsuario = "Guitarra";
         else if (rol.includes('voz') || rol.includes('cantante') || rol.includes('coro')) rolUsuario = "Voces";
         else if (rol.includes('trompeta') || rol.includes('viento') || rol.includes('cuerda') || rol.includes('violín')) rolUsuario = "Vientos";
-        // Si no coincide, se queda "Guitarra" por defecto
+        
     }
 
-    // Datos de ejemplo (luego los puedes conectar a Supabase)
+    // Datos de ejemplo 
     const recursosPorInstrumento = {
         "Guitarra": {
             titulo: "Banco de Presets y Parches de Efectos",
@@ -4341,7 +4326,7 @@ async function renderGnotes() {
                 { cancion: "Alaba a Dios", detalle: "Captura de pantalla: Configuración analógica del pedal de Overdrive y Reverb de fondo", archivo: "Captura_Pedalboard.png" }
             ]
         },
-        "Bajo": {  // También lo incluimos si el rol es "Bajo"
+        "Bajo": {  
             titulo: "Configuración de Frecuencias y Líneas Base",
             descripcion: "Ajustes de Preamp, Compresión y presets para capturar el golpe exacto en la mezcla de sala.",
             items: [
@@ -4366,7 +4351,7 @@ async function renderGnotes() {
         }
     };
 
-    // Obtener los datos según el rol detectado (si es Bajo, usamos la entrada "Bajo"; si no, la que tenemos)
+    // Obtener los datos según el rol detectado 
     const data = recursosPorInstrumento[rolUsuario] || recursosPorInstrumento["Guitarra"];
     // Para el caso de Bajo, aseguramos que se muestre bien
     const rolMostrado = (rolUsuario === "Bajo") ? "Bajo" : (rolUsuario === "Voces" ? "Voces" : (rolUsuario === "Vientos" ? "Vientos" : "Guitarra"));
@@ -4520,7 +4505,7 @@ async function renderGnotes() {
     container.innerHTML = html;
 }
 
-// Función auxiliar para la descarga (por ahora solo alerta, luego conectar a Supabase Storage)
+// Función auxiliar para la descarga (por ahora solo alerta, luego conectamos a drive o lo que sea)
 window.descargarRecursoGnotes = (archivo) => {
     showToast(`🔧 En una versión posterior podrás descargar "${archivo}" directamente desde Supabase Storage.`);
 };
@@ -4533,7 +4518,7 @@ let scFavorites = [];           // Array de objetos { book, chapter, verseStart,
 let scHighlights = {};          // Clave: "book_chapter_verse" -> color
 let bibleBooksList = [];        // Lista de libros disponibles en la BD
 
-// Listas canónicas para orden
+// Listas para orden
 const OT_BOOKS = [ "Génesis", "Éxodo", "Levítico", "Números", "Deuteronomio", "Josué", "Jueces", "Rut", "1 Samuel", "2 Samuel", "1 Reyes", "2 Reyes", "1 Crónicas", "2 Crónicas", "Esdras", "Nehemías", "Ester", "Job", "Salmos", "Proverbios", "Eclesiastés", "Cantares", "Isaías", "Jeremías", "Lamentaciones", "Ezequiel", "Daniel", "Oseas", "Joel", "Amós", "Abdías", "Jonás", "Miqueas", "Nahúm", "Habacuc", "Sofonías", "Hageo", "Zacarías", "Malaquías" ];
 const NT_BOOKS = [ "Mateo", "Marcos", "Lucas", "Juan", "Hechos", "Romanos", "1 Corintios", "2 Corintios", "Gálatas", "Efesios", "Filipenses", "Colosenses", "1 Tesalonicenses", "2 Tesalonicenses", "1 Timoteo", "2 Timoteo", "Tito", "Filemón", "Hebreos", "Santiago", "1 Pedro", "2 Pedro", "1 Juan", "2 Juan", "3 Juan", "Judas", "Apocalipsis" ];
 
@@ -4598,7 +4583,7 @@ async function actualizarSelectorCapitulos() {
   selector.style.display = capitulos.length > 1 ? 'inline-block' : 'none';
 }
 
-// ========== RENDERIZADO DEL CAPÍTULO (MODERNO) ==========
+// ========== RENDERIZADO DELOS CAPÍTULOS  ==========
 async function renderChapterContent(book, chapter) {
   const container = document.getElementById('sc-bible-text-flow');
   if (!container) return;
@@ -4651,7 +4636,7 @@ async function renderChapterContent(book, chapter) {
   }
 }
 
-// ========== SELECCIÓN MÚLTIPLE (CON SHIFT PARA RANGOS) ==========
+// ========== SELECCIÓN MÚLTIPLE  ==========
 function seleccionarVersiculo(verseNum, event) {
   if (event.shiftKey && scSelectedVerses.length > 0) {
     const last = scSelectedVerses[scSelectedVerses.length - 1];
@@ -4698,7 +4683,7 @@ function abrirPanelContextual() {
   }
   // Actualizar vista de comparación con el texto seleccionado
   actualizarVistaComparacion();
-  // Actualizar botón de favorito
+  
   const esFavorito = scFavorites.some(f =>
     f.book === scCurrentBook && f.chapter === scCurrentChapter &&
     f.verseStart === Math.min(...scSelectedVerses) &&
@@ -4843,7 +4828,7 @@ function shareVerseAction() {
   if (scSelectedVerses.length === 0) return;
   const verseStart = Math.min(...scSelectedVerses);
   const verseEnd = Math.max(...scSelectedVerses);
-  // No podemos obtener el texto aquí de forma síncrona; lo obtenemos desde el DOM o desde la variable global.
+
   const compView = document.getElementById('scComparisonView');
   const texto = compView?.querySelector('.sc-v-text')?.innerText || '';
   let referencia;
@@ -4871,7 +4856,7 @@ async function cargarFavoritosUsuario() {
     console.error('Error cargando favoritos:', error);
     return;
   }
-  console.log('Datos de biblia_progreso:', data); // Ver qué trae
+  console.log('Datos de biblia_progreso:', data); 
   scHighlights = {};
   const favMap = new Map();
   for (let item of data) {
@@ -5118,7 +5103,7 @@ function openTeleprompter() { const selectSongs = songs.map(s=>`<option value="$
 function openBackupModal() { showModal(`<h3>Importar/Exportar datos</h3><button class="btn btn-primary" style="margin:0.5rem;" onclick="exportBackup()"><i class="fas fa-download"></i> Exportar respaldo JSON</button><button class="btn btn-primary" style="margin:0.5rem;" onclick="importSongBookZip()"><i class="fas fa-file-archive"></i> Importar desde ZIP (.cho)</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`); }
 function exportBackup() { const data = { songs, lists, attendance, shifts, cursos, modulosList, examenes, preguntas, departamentos, usuariosIglesia }; const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `praise_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); }
 async function importSongBookZip() { const input = document.createElement('input'); input.type='file'; input.accept='.zip'; input.onchange=async(e)=>{ const file=e.target.files[0]; if(!file) return; try { const zip=await JSZip.loadAsync(file); const files=Object.values(zip.files).filter(f=>!f.dir && f.name.toLowerCase().endsWith('.cho')); if(files.length===0) throw new Error("No se encontraron archivos .cho"); const cancionesTemp=[]; for(let zipFile of files){ const content=await zipFile.async('text'); const songData=parseChoFile(content,zipFile.name); cancionesTemp.push(songData); } showImportEditModal(cancionesTemp); } catch(err){ showToast("Error al procesar el ZIP: "+err.message); } }; input.click(); }
-
+   // COPIA DE SEGURIDAD EN ZIP BUENO ALGO ASI
     function parseChoFile(content, filename) {
     const lines = content.split(/\r?\n/);
     let metadata = {
@@ -5212,12 +5197,7 @@ function createSongObject(index,cancionesTemp) { return { id:generateUniqueId(),
 // ========== ASISTENCIA Y TURNOS ==========
 function viewAttendanceReport() { let html = `<h3>Reporte de Asistencia</h3><table style="width:100%;border-collapse:collapse;"><thead><tr><th>Fecha</th><th>Miembro</th><th>Estado</th></tr></thead><tbody>`; attendance.forEach(reg=>{ const miembro = usuariosIglesia.find(u=>u.id===reg.usuario_iglesia_id); html += `<tr><td>${reg.fecha}</td><td>${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'}</td><td>${reg.estado==='puntual'?'✅ Puntual':'⚠️ Tarde'}</td></tr>`; }); html += `</tbody></table><button class="btn btn-primary" onclick="exportAttendanceExcel()">Exportar Excel</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
 function exportAttendanceExcel() { const data = [["Fecha","Miembro","Estado"]]; attendance.forEach(reg=>{ const miembro = usuariosIglesia.find(u=>u.id===reg.usuario_iglesia_id); data.push([reg.fecha, miembro?miembro.perfiles?.nombre:'Desconocido', reg.estado]); }); const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Asistencia"); XLSX.writeFile(wb, `asistencia_${new Date().toISOString().slice(0,10)}.xlsx`); }
- 
-
-    // ========== ASISTENCIA Y TURNOS ==========
-// ... otras funciones anteriores (viewAttendanceReport, exportAttendanceExcel, etc.)
-
-async function viewMyShifts() {
+ async function viewMyShifts() {
     const miembro = usuariosIglesia.find(m => m.user_id === currentUser.id);
     if (!miembro) {
         showToast("No tienes un rol asignado en el equipo. Contacta al administrador.");
@@ -5503,7 +5483,7 @@ async function renderAgenda() {
     `;
     container.innerHTML = html;
 }
-// ==================== MÓDULO G-EVENTOS (Archivo completo de eventos) ====================
+// ==================== MÓDULO G-EVENTOS ====================
 async function renderEventosCompletos() {
     const container = document.getElementById('mainContent');
     const actionHeader = document.getElementById('actionHeader');
@@ -6350,7 +6330,6 @@ async function construirJuegoBienvenida() {
         .single();
     
     if (yaRespondio) {
-        // Mostrar mensaje en lugar del juego
         wrap.innerHTML = `<div class="text-center text-slate-300 text-sm py-2">✅ Ya participaste hoy. ¡Vuelve mañana para más XP!</div>`;
         document.querySelector('#wlGameCard .av-today-icon')?.parentElement?.removeEventListener('click', toggleWelcomeGame);
         return;
@@ -6368,7 +6347,7 @@ async function construirJuegoBienvenida() {
 }
 
 async function cargarTriviaDiaria() {
-    const container = document.getElementById('av-welcome-game2'); // lo crearemos en el HTML
+    const container = document.getElementById('av-welcome-game2');
     if (!container) return;
     
     const hoy = new Date().toISOString().slice(0,10);
@@ -6385,13 +6364,12 @@ async function cargarTriviaDiaria() {
         return;
     }
     
-    // Obtener una pregunta aleatoria (puede ser fija por día usando el día del año como semilla)
+    // Obtener una pregunta aleatoria 
     const { data: preguntas } = await supabaseClient
         .from('preguntas_biblicas_diarias')
         .select('*');
     if (!preguntas || preguntas.length === 0) return;
     
-    // Usar el día del año para elegir siempre la misma pregunta para todos (opcional)
     const ahora = new Date();
     const inicio = new Date(ahora.getFullYear(), 0, 0);
     const diaDelAnio = Math.floor((ahora - inicio) / (1000 * 60 * 60 * 24));
@@ -6507,7 +6485,7 @@ async function evaluarBienvenidaGemini(idx, el) {
     } else {
         el.classList.add('wrong');
         fb.textContent = 'Respuesta incorrecta. Juan 4:23 nos llama a adorar en Espíritu y Verdad.';
-        // No suma XP, pero igual marcamos que respondió para que no pueda volver a intentar hoy
+        // No suma XP, pero igual marcamos que respondió para que no pueda volver a intentar
         await supabaseClient.from('reto_diario').insert({
             user_id: currentUser.id,
             fecha: hoy
@@ -6585,9 +6563,8 @@ async function cargarDevocionalGemini() {
     devocionalGemini = data || null;
 }
 
-// ==================== DEVOCIONALES CON RACHA (STREAK) ====================
+// ==================== DEVOCIONALES CON RACHA  ====================
 
-// Obtener el progreso actual del usuario (desde Supabase)
 async function obtenerProgresoDevocional() {
     if (!currentUser) return null;
     try {
@@ -7304,19 +7281,12 @@ async function mostrarLogrosEnPanel() {
     showModal(html);
 }
 
-// Integrar verificación de logros después de sumar XP o actualizar racha
-// Modificar la función agregarXPGemini para que al final llame a verificarLogros
-// Si ya existe, añade esta línea al final: await verificarLogros();
 
-// También modificar guardarDevocionalGemini y evaluarBienvenidaGemini
-// para que llamen a verificarLogros después de cambiar XP o racha.
     
     
 async function cargarRetosGemini() {
     const container = document.getElementById('av-tab-retos'); // ← ID corregido
     if (!container) return;
-    // ... resto del código igual (sin cambios en la lógica, solo el container)
-    // Asegúrate de que el resto de la función use container para inyectar el HTML
     const otros = usuariosIglesia.filter(u => u.user_id !== currentUser.id);
     const opciones = otros.map(u => `<option value="${u.user_id}">${u.perfiles?.nombre || 'Usuario'}</option>`).join('');
     let desafiosHtml = '<div class="space-y-2">';
@@ -7561,8 +7531,7 @@ async function startExam(examenId) { const { data: existing } = await supabaseCl
         loadExamQuestion();
       } 
       else if (q.tipo === 'multiple' && isMulti) {
-        // Para múltiple, llamamos a submitMultiAnswer (que ya guarda respuestas)
-        // Pero si el tiempo expira sin marcar nada, submitMultiAnswer guardará cadena vacía
+       
         window.submitMultiAnswer();
       } 
       else {
@@ -8210,8 +8179,6 @@ function renderAdmin() {
         return; 
     }
     document.getElementById('actionHeader').innerHTML = `<button class="btn btn-primary" onclick="refreshAdmin()">Refrescar</button>`;
-    
-    // Construimos el grid con todas las tarjetas, incluyendo la nueva
     let gridHtml = `
         <div id="adminIglesiaSelectorContainer"></div>
         <div class="grid">
@@ -8276,7 +8243,6 @@ function renderAdmin() {
     
     document.getElementById('mainContent').innerHTML = gridHtml;
     
-    // El selector de iglesias para el admin global se mantiene igual
     if (isAdminUser) {
         (async () => {
             const { data: iglesiasList, error } = await supabaseClient.from('iglesias').select('id, nombre');
@@ -8302,7 +8268,7 @@ window.changeAdminIglesia = async () => {
 };
 function refreshAdmin() { loadUserData().then(() => renderAdmin()); }
 
-// ========== ESTADÍSTICAS DE USO (VERSIÓN MODERNA) ==========
+// ========== ESTADÍSTICAS DE USO  ==========
 async function showEstadisticas() {
     try {
         // Fecha límite: últimos 30 días
@@ -8483,7 +8449,7 @@ async function showEstadisticas() {
             </style>
         `;
         
-        // Función para calcular el máximo de una lista (para las barras)
+    
         const maxCount = (items) => items.length ? Math.max(...items.map(i => i.count)) : 0;
         const maxCanciones = maxCount(topSongs);
         const maxListas = maxCount(topLists);
@@ -8577,7 +8543,6 @@ async function showEstadisticas() {
     }
 }
 
-// Asegurar que la función sea global
 window.showEstadisticas = showEstadisticas;
 
     async function adminDesafios() {
@@ -9282,12 +9247,6 @@ window.buscarUsuarioPorEmail = async () => {
     const email = prompt("📧 Ingresa el email del usuario (ej: adrian.1999ch@gmail.com):");
     if (!email) return;
 
-    // 1. Buscar en auth.users (no se puede directamente desde cliente, usaremos una función edge o buscamos en perfiles primero)
-    // Pero como ya tenemos los IDs, haremos: primero buscar en perfiles, si no existe, intentar obtener desde auth mediante una RPC.
-    // Para simplicidad, si no existe en perfiles, mostraremos un mensaje para crearlo manualmente con SQL.
-    // Una alternativa: usar la función de admin para listar usuarios, pero requiere configuración.
-    // Mejor: si no existe en perfiles, ofrecer crearlo con el botón de búsqueda, pidiendo nombre.
-
     let { data: perfil, error } = await supabaseClient
         .from('perfiles')
         .select('id, nombre, email')
@@ -9295,13 +9254,10 @@ window.buscarUsuarioPorEmail = async () => {
         .maybeSingle();
     
     if (error || !perfil) {
-        // No está en perfiles. Preguntamos si queremos crearlo (necesitamos el ID desde auth, pero no tenemos acceso directo)
-        // Solución: pedir al admin que primero ejecute el SQL manualmente (como ya hicimos).
+       
         showToast(`No se encontró perfil para ${email}. Si el usuario ya está registrado, ejecuta el SQL de creación de perfil.`, "error");
         return;
     }
-
-    // Resto igual...
     const { data: existe } = await supabaseClient
         .from('usuarios_iglesia')
         .select('id')
@@ -9583,9 +9539,7 @@ window.deleteActividad = async (id) => {
 let currentFzkidsLeccion = null;
 let currentFzkidsFecha = null;
 let materialesChecklist = {};
-let totalAsistencia = 18; // valor por defecto
-
-// === NUEVAS variables para Clases y Estudiantes ===
+let totalAsistencia = 18; // valor por defecto CAMBIARLO LUEGO
 let currentFzkidsClaseId = null;
 let fzkidsClases = [];
 let fzkidsEstudiantes = [];
@@ -9598,9 +9552,6 @@ function puedeEditarFzkids() {
     if (isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Escuela Bíblica') return true;
     return false;
 }
-
-// ========== CARGA DE DATOS DE CLASES Y ESTUDIANTES (NUEVO) ==========
-
 
 async function cargarAsistenciaDetallePorFecha(claseId, fecha) {
     if (!claseId || !fecha) return {};
@@ -9620,7 +9571,6 @@ async function cargarAsistenciaDetallePorFecha(claseId, fecha) {
     return asistenciaMap;
 }
 
-// ========== FUNCIONES EXISTENTES (SIN CAMBIOS) ==========
 async function cargarLeccionProximoDomingo() {
     const hoy = new Date();
     const diasHastaDomingo = (7 - hoy.getDay()) % 7 || 7;
@@ -9658,7 +9608,7 @@ async function cargarLeccionProximoDomingo() {
     }
 }
 
-// ========== RENDER PRINCIPAL COMBINADO ==========
+
 async function renderFzkids() {
     if (!puedeVerFzkids()) {
         document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
@@ -9985,7 +9935,6 @@ function mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap) {
 
 
     
-// ========== FUNCIONES DE NAVEGACIÓN ENTRE CLASES (NUEVAS) ==========
 window.seleccionarClaseFzkids = async (claseId) => {
     currentFzkidsClaseId = claseId;
     const estudiantes = await cargarEstudiantesPorClase(claseId);
@@ -9997,7 +9946,6 @@ window.seleccionarClaseFzkids = async (claseId) => {
     mostrarInterfazFzkidsCombinada(clases, estudiantes, asistenciaMap);
 };
 
-// ========== GESTIÓN DE ASISTENCIA INDIVIDUAL (NUEVA) ==========
 window.guardarAsistenciaIndividual = async (estudianteId, estado) => {
     if (!estado || !currentFzkidsClaseId || !currentFzkidsFecha) return;
     
@@ -10266,10 +10214,6 @@ window.eliminarEstudianteFzkids = async (id) => {
         mostrarInterfazFzkidsCombinada();
     }
 };
-
-// ========== FUNCIONES EXISTENTES (SIN CAMBIOS) ==========
-// abrirPlanMensual, cambiarLeccionPorFecha, solicitarMaterialFaltante, enviarWhatsAppFamilia, abrirEmergencia
-// (Estas funciones se mantienen IDÉNTICAS a como las tenías)
 
 async function abrirPlanMensual() {
     const hoy = new Date();
@@ -10694,7 +10638,7 @@ async function abrirChecklistAmbiente() {
 let plannerEventos = [];
 let plannerSemanaSeleccionada = null;
 let plannerRolActivo = 'musica';
-let refreshPlanner = false;  // ← añade esta línea
+let refreshPlanner = false;  
 
 async function renderPlanner() {
     if (!puedeVerPlanner()) {
@@ -10723,7 +10667,6 @@ async function cargarEventosPlanner() {
     console.log("🔄 Cargando eventos...");
     //document.getElementById('mainContent').innerHTML = '<div class="text-center p-8"><i class="fas fa-spinner fa-pulse fa-2x"></i><br>Cargando planner...</div>';
     
-    // 1. Cargar todos los eventos
     const { data: eventos, error: eventError } = await supabaseClient
         .from('cronograma_eventos')
         .select('*')
@@ -11091,9 +11034,9 @@ async function confirmarAsignarLista(eventoId) {
     if (!lista) return;
     const evento = plannerEventos.find(e => e.id === eventoId);
     if (!evento) return;
-    // Eliminar canciones previas del evento
+
     await supabaseClient.from('cronograma_canciones').delete().eq('evento_id', eventoId);
-    // Insertar las canciones de la lista en cronograma_canciones
+   
     const nuevasCanciones = lista.items.map((item, idx) => {
         const song = songs.find(s => s.id === (item.songId || item.song_id));
         if (!song) return null;
@@ -11195,7 +11138,7 @@ async function crearEventoPlanner() {
 }
     
 // ==================== MÓDULO G-DESK (Solicitudes entre departamentos) ====================
-let gdeskCurrentFilter = 'todos'; // 'todos', 'mis_tickets'
+let gdeskCurrentFilter = 'todos'; 
 
 function puedeVerGDesk() {
     // Todos los usuarios autenticados con iglesia pueden ver el módulo
@@ -11492,7 +11435,7 @@ async function cambiarEstadoTicketGDesk(ticketId, nuevoEstado) {
     );
     
     // --- NOTIFICACIÓN A ADMINISTRADORES DEL DEPARTAMENTO CORRESPONDIENTE ---
-    // Mapeo de departamento a nombre del equipo (según tu estructura)
+  
     const deptoEquipoMap = {
         'alabanza': 'Alabanza',
         'multimedia': 'Multimedia',
@@ -11660,7 +11603,7 @@ async function cargarComentariosTicket(ticketId) {
     }
 }
 
-// Función para refrescar comentarios cada cierto tiempo (opcional)
+// Función para refrescar comentarios cada cierto tiempo 
 function iniciarRefrescoComentarios() {
     // Evita múltiples intervalos
     if (window.comentariosInterval) clearInterval(window.comentariosInterval);
@@ -11678,9 +11621,7 @@ function cambiarFiltroGDesk(filtro) {
     renderGDesk();
 }
     
-// ==================== FUNCIONES G-DANCE INTEGRADAS EN PLANNER ====================
 
-// Editar vestuario
 window.editarVestuarioPlanner = (eventoId, vestuarioActual) => {
     const valorActual = (vestuarioActual === 'undefined' || !vestuarioActual) ? '' : vestuarioActual;
     showModal(`
@@ -11696,10 +11637,9 @@ window.editarVestuarioPlanner = (eventoId, vestuarioActual) => {
     `);
 };
 
-// Guardar vestuario en la base de datos
 window.guardarVestuarioPlanner = async (eventoId) => {
     const nuevoVestuario = document.getElementById('input-vestuario').value.trim();
-    // Actualizar la tabla cronograma_eventos (asumiendo que existe la columna 'vestuario')
+  
     const { error } = await supabaseClient
         .from('cronograma_eventos')
         .update({ vestuario: nuevoVestuario })
@@ -11708,12 +11648,12 @@ window.guardarVestuarioPlanner = async (eventoId) => {
         showToast('Error al guardar el vestuario: ' + error.message, 'error');
         return;
     }
-    // Actualizar la vista local
+    
     const textoVestuario = document.getElementById(`vestuario-text-${eventoId}`);
     if (textoVestuario) {
         textoVestuario.innerText = nuevoVestuario || 'No asignado';
     }
-    // Actualizar también la variable local plannerSemanaSeleccionada
+  
     if (plannerSemanaSeleccionada && plannerSemanaSeleccionada.id === eventoId) {
         plannerSemanaSeleccionada.vestuario = nuevoVestuario;
     }
@@ -11723,7 +11663,7 @@ window.guardarVestuarioPlanner = async (eventoId) => {
 
 // Video Guía (modal interactivo)
 window.abrirVideoGuiaPlanner = (eventoId) => {
-    // Aquí puedes cargar un enlace desde la base de datos si lo deseas
+    // Aquícarga un enlace desde la base de datos 
     showModal(`
         <div style="text-align: center;">
             <h3 style="color: var(--text-main); font-weight: 800; margin-bottom: 10px;"><i class="fas fa-play-circle" style="color: #3b82f6;"></i> Video Guía Coreográfica</h3>
@@ -12092,7 +12032,7 @@ async function crearNotificacion(usuarioId, ticketId, tipo, titulo, mensaje) {
         titulo: titulo,
         mensaje: mensaje
     });
-    // Si el usuario actual es el destinatario, refrescar badge
+
     if (usuarioId === currentUser?.id) cargarNotificaciones();
 }
 
@@ -12684,9 +12624,8 @@ async function guardarAsignacionGrupoEvento(eventoId) {
     }
 }
 
-  // ==========================================================
+  
 // MÓDULO INTERACTIVO: DASHBOARD DE EVALUACIONES (G-SUITE)
-// ==========================================================
 
 window.abrirDashboardEvaluaciones = async () => {
     // 1. Permisos
@@ -12850,7 +12789,6 @@ window.abrirDashboardEvaluaciones = async () => {
     await window.cargarDatosEvaluaciones();
 };
 
-// ========== FUNCIONES PARA DATOS REALES ==========
 
 window.cambiarPestañaEvaluacion = (min) => {
     window.evalModuleState.ministerioActivo = min;
@@ -13033,7 +12971,7 @@ window.renderMétricasEvaluacion = (lista, min) => {
     }).join('');
 };
 
-// ========== NUEVA FUNCIÓN: VER DETALLE DE EXÁMENES POR MIEMBRO ==========
+// =========VER DETALLE DE EXÁMENES POR MIEMBRO ==========
 window.verDetalleMiembro = async (userId) => {
     try {
         // Obtener el miembro de la lista ya cargada (para no repetir consultas)
@@ -13111,11 +13049,10 @@ window.verDetalleMiembro = async (userId) => {
     }
 };
 
- // ==========================================================
 // MÓDULO G-AVATAR: CREADOR DE PERSONAJES PREMIUM (DiceBear)
-// ==========================================================
 
-// Opciones de personalización (puedes ampliarlas después)
+
+// Opciones de personalización 
 const AVATAR_OPTIONS = {
     hair: ['short01', 'short02', 'short03', 'short04', 'short05', 'long01', 'long02', 'long03', 'long04', 'long05', 'long19', 'bob', 'pixie', 'dreads', 'frida'],
     hairColor: ['000000', '4a3123', 'f59e0b', 'ef4444', '3b82f6', '10b981', 'a855f7', 'e2e8f0', '8b5cf6', 'ec4899'],
@@ -13145,8 +13082,7 @@ function generarSeedAleatoria() {
 window.abrirCreadorAvatar = async () => {
     // Cargar avatar actual si existe (para previsualizar)
     if (currentProfile?.avatar_url) {
-        // Opcional: intentar extraer los parámetros de la URL (avanzado, no necesario)
-        // Por simplicidad, empezamos con valores aleatorios atractivos
+     
     }
     
     // Generar seed única y valores iniciales aleatorios (variedad)
@@ -13449,7 +13385,7 @@ async function checkAndShowBirthday() {
         text: m.message_text
     }));
     
-    // Mensaje inspirador personalizado (puedes conectar a IA después)
+    // Mensaje inspirador 
     const aiMessage = `🎵 Que este nuevo año de vida esté lleno de acordes de alegría, armonía y bendiciones. Tu servicio en ${currentProfile?.rol_musical || 'el ministerio'} es un regalo para todos. ¡Disfruta tu día especial! 🎂✨`;
     
     triggerBirthdayExperience({
@@ -13550,7 +13486,7 @@ async function loadMonthBirthdays() {
     `).join('');
 }
 
-// ==================== MÓDULO CONTABLE UNIFICADO ====================
+// ==================== MÓDULO CONTABLE KIDS ====================
 
 let currentFinanceChart = null;
 let currentEquipoTipo = 'fzkids'; // 'fzkids', 'alabanza', 'danza'
@@ -13583,7 +13519,7 @@ async function cargarClasesFzkids() {
         console.error('Error cargando clases:', error);
         return [];
     }
-    // Actualizamos la global por compatibilidad con otros módulos (contabilidad)
+    // Actualizamos la global por compatibilidad con otros módulos 
     fzkidsClases = data || [];
     return fzkidsClases;
 }
@@ -13610,7 +13546,7 @@ async function cargarCategoriasFinancieras() {
         .from('finanzas_categorias_por_equipo')
         .select('*')
         .eq('iglesia_id', currentIglesiaId);
-        // No filtres por equipo_tipo, o si lo haces usa .ilike('equipo_tipo', 'fzkids')
+        
     if (error) {
         console.error('Error cargando categorías:', error);
         return [];
@@ -13706,7 +13642,6 @@ async function renderContabilidad() {
             await crearCategoriasPorDefecto();
         }
 
-        // ... (el resto del HTML igual, pero añadiendo un botón para gestionar categorías)
         const clasesOptions = fzkidsClases.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
         
         const html = `
@@ -13986,9 +13921,9 @@ async function guardarCategoria(id = null) {
     }
     showToast(id ? "Categoría actualizada" : "Categoría creada", "success");
     closeModal();
-    // Refrescar la vista de gestión si está abierta, y también la vista principal de contabilidad
+   
     await renderContabilidad(); // esto refresca la tabla y el selector de categorías en el formulario
-    // Si el modal de gestión sigue abierto, se cierra solo con closeModal().
+   
 }
 
 async function editarCategoria(id) {
@@ -14072,7 +14007,7 @@ async function mostrarFormularioTransaccion() {
     showModal(modalContent);
     flatpickr("#transFecha", { dateFormat: "d/m/Y", locale: "es", defaultDate: "today" });
     
-    // Función auxiliar para estudiantes (sin cambios)
+    // Función auxiliar para estudiantes
     window.cargarEstudiantesParaSelect = async (claseId) => {
         const container = document.getElementById('estudianteContainer');
         const select = document.getElementById('transEstudiante');
@@ -14280,7 +14215,7 @@ async function guardarEdicionTransaccion(id, montoAnterior, tipoAnterior) {
         return;
     }
     
-    // Actualizar saldo del fondo (restar efecto anterior, sumar nuevo)
+    // Actualizar saldo del fondo
     const saldoActual = await cargarFondoEquipo();
     let nuevoSaldo = saldoActual;
     if (tipoAnterior === 'income') nuevoSaldo -= montoAnterior;
@@ -14444,28 +14379,27 @@ function exportFinanceReport() {
 }    
     
   // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA) ====================
-let appInicializada = false; // El semáforo que evita que la app choque consigo misma
+let appInicializada = false;
 
 (async () => {
     // 1. Aplicar tema visual guardado
     const savedTheme = localStorage.getItem('user_theme');
     if (savedTheme) aplicarTema(savedTheme);
 
-    // 2. Función centralizada y blindada para arrancar la app
     const iniciarSesionCompleta = async (session) => {
-        if (appInicializada) return; // Si ya arrancó, detenemos el doble choque
+        if (appInicializada) return; 
         appInicializada = true;
 
         currentUser = session.user;
         
-        // A. Verificar si el perfil existe REALMENTE en Supabase (Crucial para Google)
+        //  Verificar si el perfil existe REALMENTE en Supabase (Crucial para Google)
         const { data: perfilDB } = await supabaseClient
             .from('perfiles')
             .select('id')
             .eq('id', currentUser.id)
             .maybeSingle();
         
-        // B. Si es un usuario nuevo (Google o Email), le creamos su perfil oficial
+        //  Si es un usuario nuevo (Google o Email), le creamos su perfil oficial
         if (!perfilDB) {
             const nombreUsuario = currentUser.user_metadata?.full_name || currentUser.email;
             await supabaseClient.from('perfiles').insert([{
@@ -14484,19 +14418,19 @@ renderApp();
 setTimeout(() => checkAndShowBirthday(), 1000);
     };
 
-    // 3. Escuchar cambios de Google, Inicio de sesión o Cierre de sesión
+    //  Escuchar cambios de Google, Inicio de sesión o Cierre de sesión
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session) {
             iniciarSesionCompleta(session);
         } else if (event === 'SIGNED_OUT') {
-            appInicializada = false; // Reseteamos el semáforo
+            appInicializada = false; 
             currentUser = null;
             currentIglesiaId = null;
             renderLogin();
         }
     });
 
-    // 4. Verificación de sesión al recargar la página
+    // Verificación de sesión al recargar la página
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         iniciarSesionCompleta(session);
@@ -14504,7 +14438,7 @@ setTimeout(() => checkAndShowBirthday(), 1000);
         renderLogin();
     }
 
-    // 5. Motor de notificaciones en segundo plano
+    //  Motor de notificaciones en segundo plano
     setInterval(() => {
         if (currentUser && typeof cargarNotificaciones === 'function') {
             cargarNotificaciones();
@@ -14512,8 +14446,6 @@ setTimeout(() => checkAndShowBirthday(), 1000);
     }, 30000);
 })();
      
-    
-
 
 </script>
 </body>
