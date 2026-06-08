@@ -2082,6 +2082,136 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
         max-height: 200px;
     }
 }
+  /* =========================================
+   DISEÑO DE TARJETAS PARA GESTIÓN DE TURNOS
+   ========================================= */
+
+/* Contenedor principal: Grilla adaptable */
+.turnos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 15px 0;
+    width: 100%;
+}
+
+/* Tarjeta individual de cada turno */
+.turno-card {
+    background-color: #1a1a1a;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.turno-card:hover {
+    transform: translateY(-4px);
+    border-color: #5ea1ff;
+}
+
+/* Cabecera: Fecha y Título del Evento */
+.turno-header {
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 12px;
+    margin-bottom: 15px;
+}
+
+.turno-fecha {
+    font-size: 0.85rem;
+    color: #5ea1ff;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.turno-titulo {
+    font-size: 1.25rem;
+    color: #ffffff;
+    margin: 8px 0 0 0;
+    font-weight: 700;
+}
+
+/* Lista de Músicos Asignados */
+.turno-musicos {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.musico-item {
+    display: flex;
+    align-items: center;
+    background-color: #242424;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    color: #e0e0e0;
+}
+
+.musico-rol {
+    background-color: #333333;
+    color: #ffffff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 12px;
+    min-width: 70px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+/* Botones de Acción */
+.turno-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+}
+
+.btn-turno {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-editar {
+    background-color: #5ea1ff;
+    color: #121212;
+}
+
+.btn-editar:hover {
+    background-color: #438ce6;
+    transform: scale(1.02);
+}
+
+.btn-eliminar {
+    background-color: #242424;
+    color: #ff5e5e;
+    border: 1px solid #333;
+}
+
+.btn-eliminar:hover {
+    background-color: #ff5e5e;
+    color: #121212;
+    border-color: #ff5e5e;
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -9563,28 +9693,53 @@ window.deleteActividad = async (id) => {
             });
         }
 
-        let html = `<h3>📅 Turnos del ${dateStr}</h3><div style="margin-bottom:1rem;">`;
-        for (let [grupo, lista] of Object.entries(miembrosPorSubgrupo)) {
-            if (lista.length === 0) continue;
-            html += `<div class="card" style="margin-bottom:1rem;padding:0.8rem;"><h4>${grupo}</h4>`;
-            for (let item of lista) {
+        let html = `
+            <div style="max-width: 700px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text-main); margin: 0;">
+                        <i class="fas fa-calendar-day" style="color: #5ea1ff;"></i> Turnos del ${dateStr}
+                    </h2>
+                    <button class="btn btn-ghost" onclick="closeModal(); adminShifts();" style="padding: 0.3rem 1rem;">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </button>
+                </div>
+        `;
+
+        if (Object.keys(miembrosPorSubgrupo).length === 0) {
+            html += `<div class="card text-center" style="padding: 2rem; color: var(--text-muted);">
+                        <i class="fas fa-user-friends" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                        No hay turnos asignados para esta fecha.
+                    </div>`;
+        } else {
+            for (let [grupo, lista] of Object.entries(miembrosPorSubgrupo)) {
                 html += `
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                        <div><strong>${escapeHtml(item.nombre)}</strong> (${escapeHtml(item.rol || 'Sin rol')})</div>
-                        <button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}', '${dateStr}')" style="color:red;">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #5ea1ff;">
+                        <h4 style="margin: 0 0 0.8rem 0; font-size: 1rem; font-weight: 800; color: var(--primary);">
+                            <i class="fas fa-users"></i> ${grupo}
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.8rem;">
+                            ${lista.map(item => `
+                                <div style="background: var(--bg-app); border-radius: 2rem; padding: 0.4rem 1rem; display: flex; align-items: center; gap: 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                    <span style="font-weight: 700;">${escapeHtml(item.nombre)}</span>
+                                    <span class="card-category" style="font-size: 0.7rem;">${escapeHtml(item.rol || 'Sin rol')}</span>
+                                    <button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}', '${dateStr}')" style="color: #ef4444;" title="Eliminar">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                 `;
             }
-            html += `</div>`;
         }
+
         html += `
-            <div style="margin-top:1rem;">
-                <button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button>
-                <button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <i class="fas fa-user-plus"></i> Agregar miembro a este día
+                </button>
             </div>
-        `;
+        </div>`;
         showModal(html);
     }
 
@@ -9608,28 +9763,44 @@ window.deleteActividad = async (id) => {
             porSubgrupo[grupo].push(m);
         }
 
-        let formHtml = `<h3>Agregar miembro al turno del ${dateStr}</h3>`;
+        let formHtml = `
+            <div style="max-width: 650px; margin: 0 auto;">
+                <h3 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user-plus"></i> Agregar miembro
+                </h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Selecciona una persona para el turno del <strong>${dateStr}</strong></p>
+        `;
         for (let [grupo, miembros] of Object.entries(porSubgrupo)) {
-            formHtml += `<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4>
-                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`;
-            for (let m of miembros) {
-                formHtml += `
-                    <div class="team-member-card" style="cursor:pointer;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;" 
-                         onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical || '')}')">
-                        <div class="avatar" style="width:40px;height:40px;font-size:1rem;">${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase() || '?')}</div>
-                        <div><strong>${escapeHtml(m.perfiles?.nombre)}</strong><br><span class="card-category">${escapeHtml(m.rol_musical || 'Sin rol')}</span></div>
+            formHtml += `
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0 0 1rem 0;"><i class="fas fa-layer-group"></i> ${grupo}</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.8rem;">
+                        ${miembros.map(m => `
+                            <div class="team-member-card" style="cursor: pointer; padding: 0.5rem; border-radius: 1rem; background: var(--bg-app); display: flex; align-items: center; gap: 0.8rem; transition: 0.2s;" 
+                                 onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical || '')}')">
+                                <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                    ${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase() || '?')}
+                                </div>
+                                <div>
+                                    <strong style="font-size: 0.85rem;">${escapeHtml(m.perfiles?.nombre)}</strong>
+                                    <div class="card-category" style="font-size: 0.65rem;">${escapeHtml(m.rol_musical || 'Sin rol')}</div>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
-                `;
-            }
-            formHtml += `</div></div>`;
+                </div>
+            `;
         }
-        formHtml += `<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button></div>`;
+        formHtml += `
+            <div style="text-align: right; margin-top: 1rem;">
+                <button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button>
+            </div>
+        </div>`;
         showModal(formHtml);
     };
 
     window.confirmAddTurno = async (dateStr, usuarioIglesiaId, nombre, rol) => {
         if (confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)) {
-            // Obtener el user_id (UUID de auth.users) desde usuarios_iglesia
             const { data: miembro, error: fetchError } = await supabaseClient
                 .from('usuarios_iglesia')
                 .select('user_id')
@@ -9641,7 +9812,6 @@ window.deleteActividad = async (id) => {
                 return;
             }
 
-            // Insertar con las tres columnas: fecha, usuario_iglesia_id y user_id
             const { error } = await supabaseClient.from('turnos').insert({
                 fecha: dateStr,
                 usuario_iglesia_id: usuarioIglesiaId,
@@ -9651,7 +9821,7 @@ window.deleteActividad = async (id) => {
             if (error) {
                 showToast("Error: " + error.message, "error");
             } else {
-                showToast("Turno asignado correctamente", "success");
+                showToast(`✅ ${nombre} asignado al turno del ${dateStr}`, "success");
                 showDateManagement(dateStr);
             }
         }
@@ -9669,7 +9839,7 @@ window.deleteActividad = async (id) => {
         }
     };
 
-    // Construir resumen de turnos existentes para el calendario
+    // --- Construir resumen de turnos existentes (en tarjetas) ---
     const turnosMap = {};
     shifts.forEach(s => {
         const miembro = usuariosIglesia.find(u => u.id === s.usuario_iglesia_id);
@@ -9682,55 +9852,148 @@ window.deleteActividad = async (id) => {
         }
     });
 
+    // Función para obtener el título del evento si existe en actividades
+    async function obtenerTituloEvento(fecha) {
+        const [dia, mes, anio] = fecha.split('/');
+        const fechaISO = `${anio}-${mes}-${dia}`;
+        const { data } = await supabaseClient
+            .from('actividades')
+            .select('titulo')
+            .eq('fecha', fecha)
+            .maybeSingle();
+        return data?.titulo || 'Culto Dominical';
+    }
+
+    // Generar HTML de tarjetas (con promesas para títulos)
+    const renderTarjetas = async () => {
+        if (Object.keys(turnosMap).length === 0) {
+            return '<div class="text-center p-4" style="color: var(--text-muted);">No hay turnos asignados aún.</div>';
+        }
+
+        let tarjetasHtml = '<div class="turnos-grid">';
+        const fechasOrdenadas = Object.keys(turnosMap).sort((a,b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
+        
+        for (const fecha of fechasOrdenadas) {
+            const miembros = turnosMap[fecha];
+            const tituloEvento = await obtenerTituloEvento(fecha);
+            
+            tarjetasHtml += `
+                <div class="turno-card" onclick="showDateManagement('${fecha}')" style="cursor: pointer;">
+                    <div class="turno-header">
+                        <div class="turno-fecha">
+                            <i class="fa-regular fa-calendar"></i> ${fecha}
+                        </div>
+                        <h3 class="turno-titulo">${escapeHtml(tituloEvento)}</h3>
+                    </div>
+                    <div class="turno-musicos">
+                        ${miembros.map(m => `
+                            <div class="musico-item">
+                                <span class="musico-rol">${escapeHtml(m.rol || 'Músico')}</span>
+                                <span class="musico-nombre">${escapeHtml(m.nombre)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="turno-actions" onclick="event.stopPropagation();">
+                        <button class="btn-turno btn-editar" onclick="showDateManagement('${fecha}')">
+                            <i class="fa-solid fa-pen-to-square"></i> Editar
+                        </button>
+                        <button class="btn-turno btn-eliminar" onclick="eliminarTodosTurnosFecha('${fecha}')">
+                            <i class="fa-solid fa-trash"></i> Eliminar todo
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        tarjetasHtml += '</div>';
+        return tarjetasHtml;
+    };
+
+    // Función para eliminar todos los turnos de una fecha (opcional)
+    window.eliminarTodosTurnosFecha = async (fecha) => {
+        if (confirm(`¿Eliminar TODOS los turnos del día ${fecha}? Esta acción no se puede deshacer.`)) {
+            const { error } = await supabaseClient.from('turnos').delete().eq('fecha', fecha);
+            if (error) {
+                showToast("Error al eliminar: " + error.message, "error");
+            } else {
+                showToast(`Todos los turnos del ${fecha} fueron eliminados`, "success");
+                adminShifts(); // Recargar la vista principal
+            }
+        }
+    };
+
+    // Mostrar el modal principal con calendario y tarjetas
     const modalHtml = `
-        <h3>📅 Gestión de Turnos por Día</h3>
-        <p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p>
-        <div class="form-group"><input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha"></div>
-        <div style="margin-top:1rem;">
-            <h4>📋 Resumen de turnos asignados</h4>
-            <div style="max-height:300px;overflow-y:auto;border-radius:var(--radius-sm);border:1px solid var(--border);">
-                <table style="width:100%;border-collapse:collapse;">
-                    <thead style="position:sticky;top:0;background:var(--surface);">
-                        <tr><th style="padding:0.5rem;text-align:left;">Fecha</th><th style="padding:0.5rem;text-align:left;">Miembros (rol)</th></tr>
-                    </thead>
-                    <tbody>
-                        ${Object.entries(turnosMap).map(([fecha, miembros]) => `
-                            <tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="showDateManagement('${fecha}')">
-                                <td style="padding:0.5rem;"><strong>${fecha}</strong></td>
-                                <td style="padding:0.5rem;">${miembros.map(m => `${m.nombre} (${m.rol || 'Sin rol'})`).join(', ')}</td>
-                            </tr>
-                        `).join('') || '<tr><td colspan="2" style="padding:1rem;text-align:center;">No hay turnos asignados aún.</td></tr>'}
-                    </tbody>
-                </table>
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <!-- Cabecera -->
+            <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 1rem; padding: 1rem 1.5rem; color: white; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; margin: 0;"><i class="fas fa-calendar-alt"></i> Gestión de Turnos</h2>
+                        <p style="margin: 0; opacity: 0.8; font-size: 0.8rem;">Programación semanal de equipo</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.8rem; border-radius: 2rem;">
+                        <i class="fas fa-church"></i> ${currentIglesiaData?.nombre || 'Iglesia'}
+                    </div>
+                </div>
             </div>
-        </div>
-        <div style="text-align:right;margin-top:1rem;">
-            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Calendario -->
+                <div class="card" style="padding: 1rem;">
+                    <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 1rem;"><i class="fas fa-calendar-week"></i> Calendario</h3>
+                    <div id="shiftCalendarContainer"></div>
+                    <p class="text-muted" style="font-size: 0.7rem; margin-top: 1rem;">📌 Días con turnos aparecen resaltados en <span style="color: #5ea1ff;">azul</span>.</p>
+                </div>
+
+                <!-- Tarjetas de turnos -->
+                <div class="card" style="padding: 1rem; overflow-y: auto; max-height: 70vh;">
+                    <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 1rem;"><i class="fas fa-list-ul"></i> Turnos programados</h3>
+                    <div id="turnosCardsContainer" style="max-height: 60vh; overflow-y: auto;">
+                        <div class="text-center p-4">Cargando...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+            </div>
         </div>
     `;
 
     showModal(modalHtml);
 
-    flatpickr("#shiftCalendar", {
-        locale: "es",
-        dateFormat: "d/m/Y",
-        inline: true,
-        onDayCreate: (dObj, dStr, fp, dayElem) => {
-            const year = dayElem.dateObj.getFullYear();
-            const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
-            const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
-            const dateStr = `${day}/${month}/${year}`;
-            if (turnosMap[dateStr]) {
-                dayElem.style.backgroundColor = '#3B82F6';
-                dayElem.style.color = 'white';
-                dayElem.style.borderRadius = '50%';
-                dayElem.title = `Turnos: ${turnosMap[dateStr].map(m => m.nombre).join(', ')}`;
+    // Renderizar las tarjetas dentro del contenedor
+    const cardsContainer = document.getElementById('turnosCardsContainer');
+    if (cardsContainer) {
+        renderTarjetas().then(html => {
+            cardsContainer.innerHTML = html;
+        });
+    }
+
+    // Inicializar flatpickr
+    const calendarContainer = document.getElementById('shiftCalendarContainer');
+    if (calendarContainer) {
+        flatpickr(calendarContainer, {
+            locale: "es",
+            dateFormat: "d/m/Y",
+            inline: true,
+            onDayCreate: (dObj, dStr, fp, dayElem) => {
+                const year = dayElem.dateObj.getFullYear();
+                const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
+                const dateStr = `${day}/${month}/${year}`;
+                if (turnosMap[dateStr]) {
+                    dayElem.style.backgroundColor = '#5ea1ff';
+                    dayElem.style.color = 'white';
+                    dayElem.style.borderRadius = '50%';
+                    dayElem.title = `Turnos: ${turnosMap[dateStr].map(m => m.nombre).join(', ')}`;
+                }
+            },
+            onChange: (selectedDates, dateStr) => {
+                if (dateStr) showDateManagement(dateStr);
             }
-        },
-        onChange: (selectedDates, dateStr) => {
-            if (dateStr) showDateManagement(dateStr);
-        }
-    });
+        });
+    }
 }
 
 // ==================== MÓDULO FZKIDS (COMPLETO + CLASES Y ESTUDIANTES) ====================
