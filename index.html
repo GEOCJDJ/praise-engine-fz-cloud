@@ -5224,8 +5224,23 @@ async function renderScriptura() {
     
 // ========== RECURSOS ==========
     
-function renderResources() { document.getElementById('actionHeader').innerHTML = ''; document.getElementById('mainContent').innerHTML = `<div class="grid"><div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll"></i><h3>Teleprompter</h3></div><div class="card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Backup</h3></div><div class="card" onclick="openEquiposView()"><i class="fas fa-users"></i><h3>Equipos</h3></div><div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3></div><div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3></div><div class="card" onclick="viewMyShifts()"><i class="fas fa-calendar-alt"></i><h3>Mis Turnos</h3></div></div>`; }
-async function openEquiposView() { const tree = buildDepartmentTree(departamentos); let html = `<h3>🎭 Equipos de la Iglesia - ${currentIglesiaData?.nombre}</h3>`; html += renderDepartmentTree(tree, 0); html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
+function renderResources() {
+    document.getElementById('actionHeader').innerHTML = '';
+    document.getElementById('mainContent').innerHTML = `
+        <div class="grid">
+            <div class="card" onclick="openTeleprompter()"><i class="fas fa-scroll"></i><h3>Teleprompter</h3></div>
+            <div class="card" onclick="openBackupModal()"><i class="fas fa-database"></i><h3>Backup</h3></div>
+            <div class="card" onclick="openEquiposView()"><i class="fas fa-users"></i><h3>Equipos</h3></div>
+            <div class="card" onclick="openTuner()"><i class="fas fa-guitar"></i><h3>Afinador</h3></div>
+            <div class="card" onclick="viewAttendanceReport()"><i class="fas fa-clipboard-list"></i><h3>Asistencia</h3></div>
+            <div class="card" onclick="viewMyShifts()"><i class="fas fa-calendar-alt"></i><h3>Mis Turnos</h3></div>
+            <div class="card" onclick="renderHorarioGeneral()"><i class="fas fa-calendar-week"></i><h3>Horario General</h3></div>
+        </div>
+    `;
+}
+
+    
+    async function openEquiposView() { const tree = buildDepartmentTree(departamentos); let html = `<h3>🎭 Equipos de la Iglesia - ${currentIglesiaData?.nombre}</h3>`; html += renderDepartmentTree(tree, 0); html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
 function buildDepartmentTree(deptos) { const map = new Map(); const roots = []; deptos.forEach(d=>{ map.set(d.id, {...d, children:[]}); }); deptos.forEach(d=>{ if(d.padre_id) { const parent = map.get(d.padre_id); if(parent) parent.children.push(map.get(d.id)); } else roots.push(map.get(d.id)); }); return roots; }
 function renderDepartmentTree(nodes, level) { let html = ''; nodes.forEach(node=>{ const margin = level*20; html += `<div style="margin-left:${margin}px;margin-bottom:1rem;"><div class="card" style="padding:0.8rem;background:var(--bg-app);"><div style="display:flex;justify-content:space-between;align-items:center;"><strong>${escapeHtml(node.nombre)}</strong>${(isIglesiaAdmin || (currentUserIglesia?.es_admin_departamento && currentUserIglesia.departamento_id===node.id)) ? `<button class="btn-icon" onclick="manageDepartmentMembers('${node.id}')"><i class="fas fa-users-cog"></i></button>` : ''}</div><div style="margin-top:0.5rem;">${usuariosIglesia.filter(u=>u.departamento_id===node.id).map(u=>`<div class="team-member-card" style="display:inline-block;margin:0.2rem;padding:0.2rem 0.5rem;background:var(--surface);border-radius:1rem;"><i class="fas fa-user"></i> ${escapeHtml(u.perfiles?.nombre||'Usuario')} ${u.rol_musical?`<span class="card-category">${escapeHtml(u.rol_musical)}</span>`:''}</div>`).join('')||'<span class="text-muted">Sin miembros</span>'}</div></div></div>`; if(node.children.length) html += renderDepartmentTree(node.children, level+1); }); return html; }
 async function manageDepartmentMembers(deptId) { const miembrosEnDepto = usuariosIglesia.filter(u=>u.departamento_id===deptId); const miembrosOtros = usuariosIglesia.filter(u=>u.departamento_id!==deptId && u.user_id!==currentUser.id); let html = `<h3>Gestionar miembros del departamento ${departamentos.find(d=>d.id===deptId)?.nombre}</h3><div><strong>Miembros actuales:</strong><ul>${miembrosEnDepto.map(m=>`<li>${escapeHtml(m.perfiles?.nombre)} (${m.rol_musical||'Sin rol'}) <button onclick="removeFromDept('${m.id}')">Quitar</button></li>`).join('')||'<li>Ninguno</li>'}</ul></div><div><strong>Agregar miembro:</strong><select id="addMemberSelect">${miembrosOtros.map(m=>`<option value="${m.id}">${escapeHtml(m.perfiles?.nombre)} (actual: ${departamentos.find(d=>d.id===m.departamento_id)?.nombre||'Sin depto'})</option>`).join('')}</select><button onclick="assignToDept('${deptId}')">Asignar</button></div><button class="btn btn-ghost" onclick="closeModal(); openEquiposView();">Cerrar</button>`; showModal(html); window.assignToDept = async (deptId) => { const userId = document.getElementById('addMemberSelect').value; await supabaseClient.from('usuarios_iglesia').update({ departamento_id: deptId }).eq('id', userId); await loadUserData(); manageDepartmentMembers(deptId); }; window.removeFromDept = async (userId) => { await supabaseClient.from('usuarios_iglesia').update({ departamento_id: null }).eq('id', userId); await loadUserData(); manageDepartmentMembers(deptId); }; }
@@ -14840,6 +14855,152 @@ function exportFinanceReport() {
         showToast('Resumen copiado al portapapeles', 'success');
     }
 }    
+// ========== HORARIO GENERAL (SOLO LECTURA) ==========
+async function renderHorarioGeneral() {
+    // Verificar permisos: solo miembros de alabanza o danza
+    if (!puedeVerAlabanza() && !puedeVerPlanner()) {
+        showToast("No tienes permiso para ver el horario general", "error");
+        navigateTo('home');
+        return;
+    }
+
+    // Agrupar turnos por fecha desde la variable global 'shifts'
+    const turnosMap = {};
+    shifts.forEach(s => {
+        const miembro = usuariosIglesia.find(u => u.id === s.usuario_iglesia_id);
+        if (miembro && miembro.perfiles?.nombre) {
+            if (!turnosMap[s.fecha]) turnosMap[s.fecha] = [];
+            turnosMap[s.fecha].push({
+                nombre: miembro.perfiles.nombre,
+                rol: miembro.rol_musical || 'Músico'
+            });
+        }
+    });
+
+    // Función para obtener título del evento desde tabla 'actividades'
+    async function obtenerTituloEvento(fecha) {
+        const { data } = await supabaseClient
+            .from('actividades')
+            .select('titulo')
+            .eq('fecha', fecha)
+            .maybeSingle();
+        return data?.titulo || 'Culto Dominical';
+    }
+
+    // Filtro inicial: mes actual
+    let currentFilterYear = new Date().getFullYear();
+    let currentFilterMonth = new Date().getMonth() + 1;
+
+    // Función que renderiza las tarjetas según el filtro
+    const renderTarjetas = async () => {
+        // Filtrar fechas por año y mes
+        const fechasFiltradas = Object.keys(turnosMap).filter(fecha => {
+            const [dia, mes, anio] = fecha.split('/');
+            return parseInt(anio) === currentFilterYear && parseInt(mes) === currentFilterMonth;
+        }).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
+
+        let tarjetasHtml = '';
+        if (fechasFiltradas.length === 0) {
+            tarjetasHtml = '<div class="text-center p-4" style="color: var(--text-muted);">No hay turnos programados para este mes.</div>';
+        } else {
+            tarjetasHtml = '<div class="turnos-grid">';
+            for (const fecha of fechasFiltradas) {
+                const miembros = turnosMap[fecha];
+                const tituloEvento = await obtenerTituloEvento(fecha);
+                tarjetasHtml += `
+                    <div class="turno-card">
+                        <div class="turno-header">
+                            <div class="turno-fecha">
+                                <i class="fa-regular fa-calendar"></i> ${fecha}
+                            </div>
+                            <h3 class="turno-titulo">${escapeHtml(tituloEvento)}</h3>
+                        </div>
+                        <div class="turno-musicos">
+                            ${miembros.map(m => `
+                                <div class="musico-item">
+                                    <span class="musico-rol">${escapeHtml(m.rol)}</span>
+                                    <span class="musico-nombre">${escapeHtml(m.nombre)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <!-- Sin botones de acción (solo lectura) -->
+                    </div>
+                `;
+            }
+            tarjetasHtml += '</div>';
+        }
+        document.getElementById('horarioTarjetasContainer').innerHTML = tarjetasHtml;
+    };
+
+    // Construir interfaz principal
+    const html = `
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <!-- Cabecera con gradiente -->
+            <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 1rem; padding: 1rem 1.5rem; color: white; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; margin: 0;"><i class="fas fa-calendar-week"></i> Horario General</h2>
+                        <p style="margin: 0; opacity: 0.8; font-size: 0.8rem;">Turnos programados para el equipo de música y danza</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.8rem; border-radius: 2rem;">
+                        <i class="fas fa-church"></i> ${currentIglesiaData?.nombre || 'Iglesia'}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtro por mes -->
+            <div class="card" style="padding: 1rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="flex:1">
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.3rem;">Filtrar por mes</label>
+                        <input type="month" id="horarioMonthFilter" class="form-control" value="${currentFilterYear}-${String(currentFilterMonth).padStart(2, '0')}">
+                    </div>
+                    <button class="btn btn-primary" onclick="aplicarFiltroHorario()">Filtrar</button>
+                    <button class="btn btn-ghost" onclick="renderHorarioGeneral()">Mostrar mes actual</button>
+                </div>
+            </div>
+
+            <!-- Contenedor de tarjetas -->
+            <div id="horarioTarjetasContainer" class="turnos-grid">
+                <div class="text-center p-4">Cargando...</div>
+            </div>
+
+            <!-- Botón volver -->
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button class="btn btn-ghost" onclick="renderCurrentView()">Volver</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('actionHeader').innerHTML = '';
+
+    // Renderizar las tarjetas iniciales
+    await renderTarjetas();
+
+    // Configurar evento de cambio en el filtro de mes
+    const monthFilter = document.getElementById('horarioMonthFilter');
+    if (monthFilter) {
+        monthFilter.addEventListener('change', (e) => {
+            if (e.target.value) {
+                const [year, month] = e.target.value.split('-');
+                currentFilterYear = parseInt(year);
+                currentFilterMonth = parseInt(month);
+                renderTarjetas();
+            }
+        });
+    }
+
+    // Función global para aplicar filtro manualmente (por si usas el botón)
+    window.aplicarFiltroHorario = () => {
+        if (monthFilter && monthFilter.value) {
+            const [year, month] = monthFilter.value.split('-');
+            currentFilterYear = parseInt(year);
+            currentFilterMonth = parseInt(month);
+            renderTarjetas();
+        }
+    };
+}
     
   // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA) ====================
 let appInicializada = false;
