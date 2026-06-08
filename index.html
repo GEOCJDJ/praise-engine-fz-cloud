@@ -9546,7 +9546,7 @@ window.deleteActividad = async (id) => {
         return data;
     }
 
-    window.showDateManagement = async function(dateStr) {
+    async function showDateManagement(dateStr) {
         currentDate = dateStr;
         const turnos = await loadTurnosForDate(dateStr);
         const miembrosPorSubgrupo = {};
@@ -9581,26 +9581,14 @@ window.deleteActividad = async (id) => {
         }
         html += `
             <div style="margin-top:1rem;">
-                <button class="btn btn-primary" onclick="window.showAddMemberForm('${dateStr}')">➕ Agregar miembro</button>
+                <button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button>
                 <button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button>
             </div>
         `;
         showModal(html);
-    };
+    }
 
-    window.deleteTurnoFromDate = async function(turnoId, dateStr) {
-        if (confirm("¿Eliminar este turno?")) {
-            const { error } = await supabaseClient.from('turnos').delete().eq('id', turnoId);
-            if (error) {
-                showToast("Error al eliminar: " + error.message, "error");
-            } else {
-                showToast("Turno eliminado", "success");
-                if (window.showDateManagement) window.showDateManagement(dateStr);
-            }
-        }
-    };
-
-    window.showAddMemberForm = async function(dateStr) {
+    window.showAddMemberForm = async (dateStr) => {
         const turnosExistentes = await loadTurnosForDate(dateStr);
         const miembrosOcupados = turnosExistentes.map(t => t.usuario_iglesia_id);
         const miembrosDisponibles = usuariosIglesia.filter(u => !miembrosOcupados.includes(u.id));
@@ -9622,11 +9610,12 @@ window.deleteActividad = async (id) => {
 
         let formHtml = `<h3>Agregar miembro al turno del ${dateStr}</h3>`;
         for (let [grupo, miembros] of Object.entries(porSubgrupo)) {
-            formHtml += `<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`;
+            formHtml += `<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`;
             for (let m of miembros) {
                 formHtml += `
                     <div class="team-member-card" style="cursor:pointer;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;" 
-                         onclick="window.confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical || '')}')">
+                         onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical || '')}')">
                         <div class="avatar" style="width:40px;height:40px;font-size:1rem;">${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase() || '?')}</div>
                         <div><strong>${escapeHtml(m.perfiles?.nombre)}</strong><br><span class="card-category">${escapeHtml(m.rol_musical || 'Sin rol')}</span></div>
                     </div>
@@ -9634,13 +9623,13 @@ window.deleteActividad = async (id) => {
             }
             formHtml += `</div></div>`;
         }
-        formHtml += `<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="window.showDateManagement('${dateStr}')">Cancelar</button></div>`;
+        formHtml += `<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button></div>`;
         showModal(formHtml);
     };
 
     window.confirmAddTurno = async (dateStr, usuarioIglesiaId, nombre, rol) => {
         if (confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)) {
-            // Obtener el user_id (UUID)
+            // Obtener el user_id (UUID de auth.users) desde usuarios_iglesia
             const { data: miembro, error: fetchError } = await supabaseClient
                 .from('usuarios_iglesia')
                 .select('user_id')
@@ -9652,70 +9641,97 @@ window.deleteActividad = async (id) => {
                 return;
             }
 
-            // Insertar con member_id = usuarioIglesiaId (como funcionaba originalmente)
+            // Insertar con las tres columnas: fecha, usuario_iglesia_id y user_id
             const { error } = await supabaseClient.from('turnos').insert({
                 fecha: dateStr,
                 usuario_iglesia_id: usuarioIglesiaId,
-                user_id: miembro.user_id,
-                member_id: usuarioIglesiaId   // ← mantenerlo como antes
+                user_id: miembro.user_id
             });
 
             if (error) {
                 showToast("Error: " + error.message, "error");
             } else {
                 showToast("Turno asignado correctamente", "success");
-                if (window.showDateManagement) window.showDateManagement(dateStr);
+                showDateManagement(dateStr);
             }
         }
     };
 
-    // Mostrar calendario
-    (async () => {
-        const { data: fechasConTurnos, error } = await supabaseClient
-            .from('turnos')
-            .select('fecha');
-        
-        const fechasMap = new Map();
-        if (!error && fechasConTurnos) {
-            fechasConTurnos.forEach(t => fechasMap.set(t.fecha, true));
-        }
-
-        const modalContent = `
-            <div style="max-width: 500px; margin: 0 auto;">
-                <h3><i class="fas fa-calendar-alt"></i> Gestión de Turnos</h3>
-                <p style="font-size: 0.8rem; color: var(--text-muted);">Selecciona una fecha para ver o asignar turnos.</p>
-                <input type="text" id="turnosDatePicker" class="form-control" placeholder="Haz clic para elegir una fecha">
-                <div style="margin-top: 1rem; text-align: right;">
-                    <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-                </div>
-            </div>
-        `;
-        showModal(modalContent);
-
-        flatpickr("#turnosDatePicker", {
-            locale: "es",
-            dateFormat: "d/m/Y",
-            onChange: (selectedDates, dateStr) => {
-                if (dateStr) {
-                    closeModal();
-                    window.showDateManagement(dateStr);
-                }
-            },
-            onDayCreate: (dObj, dStr, fp, dayElem) => {
-                const year = dayElem.dateObj.getFullYear();
-                const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
-                const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
-                const dateStr = `${day}/${month}/${year}`;
-                if (fechasMap.has(dateStr)) {
-                    dayElem.style.backgroundColor = '#F59E0B';
-                    dayElem.style.color = 'white';
-                    dayElem.style.borderRadius = '50%';
-                    dayElem.title = 'Hay turnos asignados';
-                }
+    window.deleteTurnoFromDate = async (turnoId, dateStr) => {
+        if (confirm("¿Eliminar este turno?")) {
+            const { error } = await supabaseClient.from('turnos').delete().eq('id', turnoId);
+            if (error) {
+                showToast("Error: " + error.message, "error");
+            } else {
+                showToast("Turno eliminado", "success");
+                showDateManagement(dateStr);
             }
-        });
-    })();
-}   
+        }
+    };
+
+    // Construir resumen de turnos existentes para el calendario
+    const turnosMap = {};
+    shifts.forEach(s => {
+        const miembro = usuariosIglesia.find(u => u.id === s.usuario_iglesia_id);
+        if (miembro) {
+            if (!turnosMap[s.fecha]) turnosMap[s.fecha] = [];
+            turnosMap[s.fecha].push({
+                nombre: miembro.perfiles?.nombre,
+                rol: miembro.rol_musical
+            });
+        }
+    });
+
+    const modalHtml = `
+        <h3>📅 Gestión de Turnos por Día</h3>
+        <p>Selecciona una fecha en el calendario. Los días con turnos aparecen marcados.</p>
+        <div class="form-group"><input type="text" id="shiftCalendar" class="form-control" placeholder="Elige una fecha"></div>
+        <div style="margin-top:1rem;">
+            <h4>📋 Resumen de turnos asignados</h4>
+            <div style="max-height:300px;overflow-y:auto;border-radius:var(--radius-sm);border:1px solid var(--border);">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead style="position:sticky;top:0;background:var(--surface);">
+                        <tr><th style="padding:0.5rem;text-align:left;">Fecha</th><th style="padding:0.5rem;text-align:left;">Miembros (rol)</th></tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(turnosMap).map(([fecha, miembros]) => `
+                            <tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="showDateManagement('${fecha}')">
+                                <td style="padding:0.5rem;"><strong>${fecha}</strong></td>
+                                <td style="padding:0.5rem;">${miembros.map(m => `${m.nombre} (${m.rol || 'Sin rol'})`).join(', ')}</td>
+                            </tr>
+                        `).join('') || '<tr><td colspan="2" style="padding:1rem;text-align:center;">No hay turnos asignados aún.</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div style="text-align:right;margin-top:1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+        </div>
+    `;
+
+    showModal(modalHtml);
+
+    flatpickr("#shiftCalendar", {
+        locale: "es",
+        dateFormat: "d/m/Y",
+        inline: true,
+        onDayCreate: (dObj, dStr, fp, dayElem) => {
+            const year = dayElem.dateObj.getFullYear();
+            const month = String(dayElem.dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dayElem.dateObj.getDate()).padStart(2, '0');
+            const dateStr = `${day}/${month}/${year}`;
+            if (turnosMap[dateStr]) {
+                dayElem.style.backgroundColor = '#3B82F6';
+                dayElem.style.color = 'white';
+                dayElem.style.borderRadius = '50%';
+                dayElem.title = `Turnos: ${turnosMap[dateStr].map(m => m.nombre).join(', ')}`;
+            }
+        },
+        onChange: (selectedDates, dateStr) => {
+            if (dateStr) showDateManagement(dateStr);
+        }
+    });
+}
 
 // ==================== MÓDULO FZKIDS (COMPLETO + CLASES Y ESTUDIANTES) ====================
 
