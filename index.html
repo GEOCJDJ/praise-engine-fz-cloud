@@ -2338,7 +2338,82 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
     background-color: #ff5e5e;
     color: #121212;
 }
+/* Layout responsivo para adminShifts */
+.admin-turnos-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
 
+@media (min-width: 768px) {
+    .admin-turnos-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    .calendario-wrapper {
+        max-width: 100%;
+    }
+}
+
+.calendario-wrapper {
+    background: var(--surface);
+    border-radius: 1rem;
+    padding: 0.8rem;
+    border: 1px solid var(--border);
+}
+
+.calendario-contenido {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* Ajuste para el flatpickr en móvil */
+.flatpickr-calendar {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.flatpickr-calendar .flatpickr-days {
+    width: 100% !important;
+}
+
+.flatpickr-calendar .dayContainer {
+    width: 100% !important;
+    min-width: auto !important;
+    max-width: 100% !important;
+    justify-content: space-around !important;
+}
+
+.flatpickr-calendar .flatpickr-weekday {
+    font-size: 0.7rem !important;
+}
+
+.flatpickr-calendar .flatpickr-day {
+    max-width: 38px !important;
+    width: 12% !important;
+    height: 38px !important;
+    line-height: 38px !important;
+    font-size: 0.8rem !important;
+}
+
+@media (max-width: 480px) {
+    .flatpickr-calendar .flatpickr-day {
+        height: 32px !important;
+        line-height: 32px !important;
+        font-size: 0.7rem !important;
+    }
+}
+
+/* Tarjetas turnos-grid ya existentes, pero aseguramos responsive */
+.turnos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    }
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -9853,8 +9928,10 @@ window.deleteActividad = async (id) => {
     function removeQuestion(idx) { if(confirm("¿Eliminar esta pregunta?")){ tempQuestions.splice(idx,1); tempQuestions.forEach((q,i)=>q.orden_index=i); renderQuestionBuilder(); } }
     async function saveAllQuestions() { if(!currentExamId) return showToast("No hay examen seleccionado"); await supabaseClient.from('preguntas').delete().eq('examen_id',currentExamId); for(let i=0;i<tempQuestions.length;i++){ const q=tempQuestions[i]; await supabaseClient.from('preguntas').insert({ id:generateUniqueId(), examen_id:currentExamId, enunciado:q.enunciado, tipo:q.tipo||'multiple', opcion_a:q.opcion_a||'', opcion_b:q.opcion_b||'', opcion_c:q.opcion_c||'', opcion_d:q.opcion_d||'', opcion_correcta:q.opcion_correcta, tiempo_segundos:q.tiempo_segundos, orden_index:i }); } await loadUserData(); showToast("Preguntas guardadas correctamente"); closeModal(); adminExams(); }
     function adminAttendance() { let html=`<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${usuariosIglesia.map(u=>`<option value="${u.id}">${escapeHtml(u.perfiles?.nombre)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); flatpickr("#attDate",{locale:"es",dateFormat:"d/m/Y",defaultDate:"today"}); const renderAttList=()=>{ const container=document.getElementById('attList'); if(container) container.innerHTML=attendance.map((a)=>{ const miembro=usuariosIglesia.find(u=>u.id===a.usuario_iglesia_id); return `<div>${a.fecha} - ${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`; }).join(''); }; window.saveAttendanceAdmin=async()=>{ const date=document.getElementById('attDate').value; const usuarioIglesiaId=document.getElementById('attMember').value; const status=document.getElementById('attStatus').value; if(!date||!usuarioIglesiaId) return showToast("Completa los campos"); const { error } = await supabaseClient.from('asistencia').insert([{ fecha:date, usuario_iglesia_id:usuarioIglesiaId, estado:status }]); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); document.getElementById('attDate').value=''; }; window.deleteAttendanceAdmin=async(id)=>{ if(confirm("¿Eliminar este registro?")){ const { error } = await supabaseClient.from('asistencia').delete().eq('id',id); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); } }; renderAttList(); }
-   function adminShifts() {
+
+    function adminShifts() {
     let currentDate = null;
+    let calendarCollapsed = false;
 
     async function loadTurnosForDate(dateStr) {
         const { data, error } = await supabaseClient
@@ -10044,7 +10121,6 @@ window.deleteActividad = async (id) => {
         }
     });
 
-    // Función para obtener el título del evento si existe en actividades
     async function obtenerTituloEvento(fecha) {
         const [dia, mes, anio] = fecha.split('/');
         const fechaISO = `${anio}-${mes}-${dia}`;
@@ -10056,19 +10132,15 @@ window.deleteActividad = async (id) => {
         return data?.titulo || 'Culto Dominical';
     }
 
-    // Generar HTML de tarjetas (con promesas para títulos)
-    const renderTarjetas = async () => {
+    async function renderTarjetas() {
         if (Object.keys(turnosMap).length === 0) {
             return '<div class="text-center p-4" style="color: var(--text-muted);">No hay turnos asignados aún.</div>';
         }
-
         let tarjetasHtml = '<div class="turnos-grid">';
         const fechasOrdenadas = Object.keys(turnosMap).sort((a,b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
-        
         for (const fecha of fechasOrdenadas) {
             const miembros = turnosMap[fecha];
             const tituloEvento = await obtenerTituloEvento(fecha);
-            
             tarjetasHtml += `
                 <div class="turno-card" onclick="showDateManagement('${fecha}')" style="cursor: pointer;">
                     <div class="turno-header">
@@ -10098,9 +10170,8 @@ window.deleteActividad = async (id) => {
         }
         tarjetasHtml += '</div>';
         return tarjetasHtml;
-    };
+    }
 
-    // Función para eliminar todos los turnos de una fecha (opcional)
     window.eliminarTodosTurnosFecha = async (fecha) => {
         if (confirm(`¿Eliminar TODOS los turnos del día ${fecha}? Esta acción no se puede deshacer.`)) {
             const { error } = await supabaseClient.from('turnos').delete().eq('fecha', fecha);
@@ -10108,45 +10179,61 @@ window.deleteActividad = async (id) => {
                 showToast("Error al eliminar: " + error.message, "error");
             } else {
                 showToast(`Todos los turnos del ${fecha} fueron eliminados`, "success");
-                adminShifts(); // Recargar la vista principal
+                adminShifts();
             }
         }
     };
 
-    // Mostrar el modal principal con calendario y tarjetas
+    // Toggle para colapsar el calendario en móvil
+    const toggleCalendar = () => {
+        calendarCollapsed = !calendarCollapsed;
+        const calendarDiv = document.getElementById('shiftCalendarContainer');
+        const toggleBtn = document.getElementById('toggleCalendarBtn');
+        if (calendarDiv) {
+            calendarDiv.style.display = calendarCollapsed ? 'none' : 'block';
+            if (toggleBtn) toggleBtn.innerHTML = calendarCollapsed ? '<i class="fas fa-calendar-alt"></i> Mostrar calendario' : '<i class="fas fa-calendar-times"></i> Ocultar calendario';
+        }
+    };
+
+    // Construir modal principal
     const modalHtml = `
-        <div style="max-width: 1200px; margin: 0 auto;">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 0 10px;">
             <!-- Cabecera -->
-            <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 1rem; padding: 1rem 1.5rem; color: white; margin-bottom: 1.5rem;">
+            <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 1rem; padding: 1rem; color: white; margin-bottom: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
-                        <h2 style="font-size: 1.5rem; font-weight: 800; margin: 0;"><i class="fas fa-calendar-alt"></i> Gestión de Turnos</h2>
-                        <p style="margin: 0; opacity: 0.8; font-size: 0.8rem;">Programación semanal de equipo</p>
+                        <h2 style="font-size: 1.3rem; font-weight: 800; margin: 0;"><i class="fas fa-calendar-alt"></i> Gestión de Turnos</h2>
+                        <p style="margin: 0; opacity: 0.8; font-size: 0.75rem;">Programación semanal de equipo</p>
                     </div>
-                    <div style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.8rem; border-radius: 2rem;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem;">
                         <i class="fas fa-church"></i> ${currentIglesiaData?.nombre || 'Iglesia'}
                     </div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                <!-- Calendario -->
-                <div class="card" style="padding: 1rem;">
-                    <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 1rem;"><i class="fas fa-calendar-week"></i> Calendario</h3>
-                    <div id="shiftCalendarContainer"></div>
-                    <p class="text-muted" style="font-size: 0.7rem; margin-top: 1rem;">📌 Días con turnos aparecen resaltados en <span style="color: #5ea1ff;">azul</span>.</p>
+            <div class="admin-turnos-layout">
+                <!-- Bloque calendario con botón colapsable en móvil -->
+                <div class="calendario-wrapper">
+                    <div class="calendario-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h3 style="font-size: 0.9rem; font-weight: 800; margin: 0;"><i class="fas fa-calendar-week"></i> Calendario</h3>
+                        <button id="toggleCalendarBtn" class="btn-icon" onclick="toggleCalendar()" style="display: none; background: #242424; color: #5ea1ff;">
+                            <i class="fas fa-calendar-times"></i> Ocultar
+                        </button>
+                    </div>
+                    <div id="shiftCalendarContainer" class="calendario-contenido"></div>
+                    <p class="text-muted" style="font-size: 0.7rem; margin-top: 8px;">📌 Días con turnos aparecen resaltados en <span style="color: #5ea1ff;">azul</span>.</p>
                 </div>
 
                 <!-- Tarjetas de turnos -->
-                <div class="card" style="padding: 1rem; overflow-y: auto; max-height: 70vh;">
-                    <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 1rem;"><i class="fas fa-list-ul"></i> Turnos programados</h3>
-                    <div id="turnosCardsContainer" style="max-height: 60vh; overflow-y: auto;">
+                <div class="tarjetas-wrapper">
+                    <h3 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 0.5rem;"><i class="fas fa-list-ul"></i> Turnos programados</h3>
+                    <div id="turnosCardsContainer" style="max-height: 55vh; overflow-y: auto; padding-right: 5px;">
                         <div class="text-center p-4">Cargando...</div>
                     </div>
                 </div>
             </div>
 
-            <div style="text-align: right; margin-top: 1.5rem;">
+            <div style="text-align: right; margin-top: 1rem;">
                 <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
             </div>
         </div>
@@ -10154,7 +10241,7 @@ window.deleteActividad = async (id) => {
 
     showModal(modalHtml);
 
-    // Renderizar las tarjetas dentro del contenedor
+    // Cargar tarjetas
     const cardsContainer = document.getElementById('turnosCardsContainer');
     if (cardsContainer) {
         renderTarjetas().then(html => {
@@ -10162,7 +10249,7 @@ window.deleteActividad = async (id) => {
         });
     }
 
-    // Inicializar flatpickr
+    // Inicializar flatpickr dentro del contenedor específico
     const calendarContainer = document.getElementById('shiftCalendarContainer');
     if (calendarContainer) {
         flatpickr(calendarContainer, {
@@ -10186,7 +10273,35 @@ window.deleteActividad = async (id) => {
             }
         });
     }
-}
+
+    // Ajustes responsive y toggle en móvil
+    const toggleBtn = document.getElementById('toggleCalendarBtn');
+    const updateLayout = () => {
+        const isMobile = window.innerWidth <= 768;
+        if (toggleBtn) {
+            toggleBtn.style.display = isMobile ? 'block' : 'none';
+            if (!isMobile) {
+                const calendarDiv = document.getElementById('shiftCalendarContainer');
+                if (calendarDiv) calendarDiv.style.display = 'block';
+                calendarCollapsed = false;
+                toggleBtn.innerHTML = '<i class="fas fa-calendar-times"></i> Ocultar';
+            } else if (calendarCollapsed) {
+                const calendarDiv = document.getElementById('shiftCalendarContainer');
+                if (calendarDiv) calendarDiv.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="fas fa-calendar-alt"></i> Mostrar calendario';
+            } else {
+                const calendarDiv = document.getElementById('shiftCalendarContainer');
+                if (calendarDiv) calendarDiv.style.display = 'block';
+                toggleBtn.innerHTML = '<i class="fas fa-calendar-times"></i> Ocultar';
+            }
+        }
+    };
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    window.toggleCalendar = toggleCalendar;
+                          }
+    
+
 
 // ==================== MÓDULO FZKIDS (COMPLETO + CLASES Y ESTUDIANTES) ====================
 
