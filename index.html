@@ -9532,39 +9532,40 @@ window.deleteActividad = async (id) => {
     async function saveAllQuestions() { if(!currentExamId) return showToast("No hay examen seleccionado"); await supabaseClient.from('preguntas').delete().eq('examen_id',currentExamId); for(let i=0;i<tempQuestions.length;i++){ const q=tempQuestions[i]; await supabaseClient.from('preguntas').insert({ id:generateUniqueId(), examen_id:currentExamId, enunciado:q.enunciado, tipo:q.tipo||'multiple', opcion_a:q.opcion_a||'', opcion_b:q.opcion_b||'', opcion_c:q.opcion_c||'', opcion_d:q.opcion_d||'', opcion_correcta:q.opcion_correcta, tiempo_segundos:q.tiempo_segundos, orden_index:i }); } await loadUserData(); showToast("Preguntas guardadas correctamente"); closeModal(); adminExams(); }
     function adminAttendance() { let html=`<h3>Registro de Asistencia</h3><div class="form-group"><label>Fecha</label><input id="attDate" class="form-control" placeholder="dd/mm/aaaa"></div><div class="form-group"><label>Miembro</label><select id="attMember" class="form-control">${usuariosIglesia.map(u=>`<option value="${u.id}">${escapeHtml(u.perfiles?.nombre)}</option>`).join('')}</select></div><div class="form-group"><label>Estado</label><select id="attStatus" class="form-control"><option value="puntual">Puntual</option><option value="tarde">Tarde</option></select></div><button class="btn btn-primary" onclick="saveAttendanceAdmin()">Registrar</button><hr><h4>Historial</h4><div id="attList"></div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); flatpickr("#attDate",{locale:"es",dateFormat:"d/m/Y",defaultDate:"today"}); const renderAttList=()=>{ const container=document.getElementById('attList'); if(container) container.innerHTML=attendance.map((a)=>{ const miembro=usuariosIglesia.find(u=>u.id===a.usuario_iglesia_id); return `<div>${a.fecha} - ${miembro?escapeHtml(miembro.perfiles?.nombre):'Desconocido'} (${a.estado}) <button class="btn-icon" onclick="deleteAttendanceAdmin(${a.id})"><i class="fas fa-trash"></i></button></div>`; }).join(''); }; window.saveAttendanceAdmin=async()=>{ const date=document.getElementById('attDate').value; const usuarioIglesiaId=document.getElementById('attMember').value; const status=document.getElementById('attStatus').value; if(!date||!usuarioIglesiaId) return showToast("Completa los campos"); const { error } = await supabaseClient.from('asistencia').insert([{ fecha:date, usuario_iglesia_id:usuarioIglesiaId, estado:status }]); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); document.getElementById('attDate').value=''; }; window.deleteAttendanceAdmin=async(id)=>{ if(confirm("¿Eliminar este registro?")){ const { error } = await supabaseClient.from('asistencia').delete().eq('id',id); if(error) return showToast("Error: "+error.message); await loadUserData(); renderAttList(); } }; renderAttList(); }
     function adminShifts() { let currentDate=null; async function loadTurnosForDate(dateStr){ const { data, error } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(perfiles(nombre,email))').eq('fecha',dateStr); if(error){ console.error(error); return []; } return data; } async function showDateManagement(dateStr){ currentDate=dateStr; const turnos=await loadTurnosForDate(dateStr); const miembrosPorSubgrupo={}; for(let turno of turnos){ const miembro=usuariosIglesia.find(u=>u.id===turno.usuario_iglesia_id); if(!miembro) continue; const depto=departamentos.find(d=>d.id===miembro.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!miembrosPorSubgrupo[grupo]) miembrosPorSubgrupo[grupo]=[]; miembrosPorSubgrupo[grupo].push({ id:turno.id, nombre:miembro.perfiles?.nombre, rol:miembro.rol_musical }); } let html=`<h3>📅 Turnos del ${dateStr}</h3><div style="margin-bottom:1rem;">`; for(let [grupo,lista] of Object.entries(miembrosPorSubgrupo)){ if(lista.length===0) continue; html+=`<div class="card" style="margin-bottom:1rem;padding:0.8rem;"><h4>${grupo}</h4>`; for(let item of lista){ html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;"><div><strong>${escapeHtml(item.nombre)}</strong> (${escapeHtml(item.rol||'Sin rol')})</div><button class="btn-icon" onclick="deleteTurnoFromDate('${item.id}','${dateStr}')" style="color:red;"><i class="fas fa-trash"></i></button></div>`; } html+=`</div>`; } html+=`<div style="margin-top:1rem;"><button class="btn btn-primary" onclick="showAddMemberForm('${dateStr}')">➕ Agregar miembro</button><button class="btn btn-ghost" onclick="closeModal(); adminShifts();">Cerrar</button></div>`; showModal(html); } window.showAddMemberForm=async(dateStr)=>{ const turnosExistentes=await loadTurnosForDate(dateStr); const miembrosOcupados=turnosExistentes.map(t=>t.usuario_iglesia_id); const miembrosDisponibles=usuariosIglesia.filter(u=>!miembrosOcupados.includes(u.id)); if(miembrosDisponibles.length===0){ showToast("Todos los miembros ya tienen turno asignado en esta fecha."); closeModal(); adminShifts(); return; } const porSubgrupo={}; for(let m of miembrosDisponibles){ const depto=departamentos.find(d=>d.id===m.departamento_id); const grupo=depto?depto.nombre:'Otro'; if(!porSubgrupo[grupo]) porSubgrupo[grupo]=[]; porSubgrupo[grupo].push(m); } let formHtml=`<h3>Agregar miembro al turno del ${dateStr}</h3>`; for(let [grupo, miembros] of Object.entries(porSubgrupo)){ formHtml+=`<div class="card" style="margin-bottom:1rem;"><h4>${grupo}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;">`; for(let m of miembros){ formHtml+=`<div class="team-member-card" style="cursor:pointer;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;" onclick="confirmAddTurno('${dateStr}','${m.id}','${escapeHtml(m.perfiles?.nombre)}','${escapeHtml(m.rol_musical||'')}')"><div class="avatar" style="width:40px;height:40px;font-size:1rem;">${escapeHtml(m.perfiles?.nombre?.charAt(0).toUpperCase()||'?')}</div><div><strong>${escapeHtml(m.perfiles?.nombre)}</strong><br><span class="card-category">${escapeHtml(m.rol_musical||'Sin rol')}</span></div></div>`; } formHtml+=`</div></div>`; } formHtml+=`<div style="margin-top:1rem;text-align:right;"><button class="btn btn-ghost" onclick="showDateManagement('${dateStr}')">Cancelar</button></div>`; showModal(formHtml); }; 
-                            // window.confirmAddTurno = async (dateStr, usuarioIglesiaId, nombre, rol) => {
-//    if (confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)) {
+                             window.confirmAddTurno = async (dateStr, usuarioIglesiaId, nombre, rol) => {
+   if (confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)) {
         // 1. Obtener el user_id (UUID del auth) desde usuarios_iglesia
-     //   const { data: miembro, error: fetchError } = await supabaseClient
-      //      .from('usuarios_iglesia')
-     //       .select('user_id')
-     //       .eq('id', usuarioIglesiaId)
-     //       .single();
+      const { data: miembro, error: fetchError } = await supabaseClient
+            .from('usuarios_iglesia')
+            .select('user_id')
+            .eq('id', usuarioIglesiaId)
+            .single();
 
-    //    if (fetchError || !miembro?.user_id) {
-     //       showToast("No se pudo obtener el usuario autenticado", "error");
-//            return;
-    //    }
+        if (fetchError || !miembro?.user_id) {
+            showToast("No se pudo obtener el usuario autenticado", "error");
+            return;
+        }
 
         // 2. Definir member_id (asumimos que es el mismo usuario_iglesia_id)
-    //    const memberId = usuarioIglesiaId;
+        const memberId = usuarioIglesiaId;
 
         // 3. Insertar turno con todos los campos obligatorios
-      //  const { error } = await supabaseClient.from('turnos').insert([{
-      //      fecha: dateStr,
-      //      usuario_iglesia_id: usuarioIglesiaId,
-      //      user_id: miembro.user_id,
-      //      member_id: memberId
-     //   }]);
+        const { error } = await supabaseClient.from('turnos').insert([{
+            fecha: dateStr,
+            usuario_iglesia_id: usuarioIglesiaId,
+            user_id: miembro.user_id,
+            member_id: memberId
+        }]);
 
-       // if (error) {
-      //      showToast("Error: " + error.message, "error");
-     //   } else {
-      //      showToast("Turno asignado correctamente", "success");
-     //       showDateManagement(dateStr);
-   //     }
-   // }
-//};
+        if (error) {
+            showToast("Error: " + error.message, "error");
+   } else {
+      showToast("Turno asignado correctamente", "success");
+            showDateManagement(dateStr);
+        }
+    }
+};
+}                            
 
 // ==================== MÓDULO FZKIDS (COMPLETO + CLASES Y ESTUDIANTES) ====================
 
