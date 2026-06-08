@@ -5355,18 +5355,19 @@ async function renderScriptura() {
 let recursosList = [];
 let recursosFiltro = '';
 
-async function renderResources() {
-    // Verificar permisos para mostrar/agregar recursos (solo alabanza y danza pueden ver, administradores pueden gestionar)
-    const puedeGestionar = isAdminUser || isIglesiaAdmin || (isEquipoAdmin && (equipoAdminData?.nombre === 'Alabanza' || equipoAdminData?.nombre === 'Danza' || equipoAdminData?.nombre === 'Producción'));
-    const puedeVer = puedeVerAlabanza() || puedeVerPlanner();
-
-    if (!puedeVer) {
-        document.getElementById('mainContent').innerHTML = '<div class="alert alert-danger p-4 text-center">No tienes permiso para acceder a este módulo.</div>';
-        return;
-    }
-
-    // Cargar recursos desde Supabase
-    await cargarRecursos();
+function renderResources() {
+    document.getElementById('actionHeader').innerHTML = '';
+    
+    // Lista de recursos estáticos (sin base de datos)
+    const recursosEstaticos = [
+        { nombre: "Teleprompter", descripcion: "Desplazamiento de letras en vivo", icono: "fa-solid fa-scroll", accion: "openTeleprompter()", color: "#5ea1ff" },
+        { nombre: "Backup", descripcion: "Importar/Exportar datos", icono: "fa-solid fa-database", accion: "openBackupModal()", color: "#10b981" },
+        { nombre: "Equipos", descripcion: "Ver estructura de equipos y miembros", icono: "fa-solid fa-users", accion: "openEquiposView()", color: "#f59e0b" },
+        { nombre: "Afinador", descripcion: "Afinador cromático en tiempo real", icono: "fa-solid fa-guitar", accion: "openTuner()", color: "#ec4899" },
+        { nombre: "Asistencia", descripcion: "Reporte de asistencia de miembros", icono: "fa-solid fa-clipboard-list", accion: "viewAttendanceReport()", color: "#8b5cf6" },
+        { nombre: "Mis Turnos", descripcion: "Ver tus turnos asignados", icono: "fa-solid fa-calendar-alt", accion: "viewMyShifts()", color: "#14b8a6" },
+        { nombre: "Horario General", descripcion: "Turnos programados del equipo", icono: "fa-solid fa-calendar-week", accion: "renderHorarioGeneral()", color: "#a855f7" }
+    ];
 
     const html = `
         <div style="max-width: 1200px; margin: 0 auto;">
@@ -5374,8 +5375,8 @@ async function renderResources() {
             <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 1rem; padding: 1rem 1.5rem; color: white; margin-bottom: 1.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
-                        <h2 style="font-size: 1.5rem; font-weight: 800; margin: 0;"><i class="fas fa-tools"></i> Biblioteca de Recursos</h2>
-                        <p style="margin: 0; opacity: 0.8; font-size: 0.8rem;">Enlaces útiles para el ministerio de música y danza</p>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; margin: 0;"><i class="fas fa-tools"></i> Recursos Útiles</h2>
+                        <p style="margin: 0; opacity: 0.8; font-size: 0.8rem;">Herramientas y utilidades para el ministerio</p>
                     </div>
                     <div style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.8rem; border-radius: 2rem;">
                         <i class="fas fa-church"></i> ${currentIglesiaData?.nombre || 'Iglesia'}
@@ -5383,21 +5384,26 @@ async function renderResources() {
                 </div>
             </div>
 
-            <!-- Barra de búsqueda y botón agregar -->
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-                <div style="flex: 1;">
-                    <input type="text" id="recursoSearch" class="form-control" placeholder="🔍 Buscar recurso por nombre o tipo..." value="${escapeHtml(recursosFiltro)}" oninput="filtrarRecursos()">
-                </div>
-                ${puedeGestionar ? `
-                <button class="btn btn-primary" onclick="mostrarFormularioAgregarRecurso()" style="background: linear-gradient(135deg, #10b981, #059669); white-space: nowrap;">
-                    <i class="fas fa-plus"></i> Agregar recurso
-                </button>
-                ` : ''}
-            </div>
-
-            <!-- Grilla de recursos (tarjetas horizontales) -->
-            <div id="recursosGridContainer" class="recursos-grid">
-                <div class="text-center p-4">Cargando recursos...</div>
+            <!-- Grilla de tarjetas (estilo recursos-grid) -->
+            <div class="recursos-grid">
+                ${recursosEstaticos.map(recurso => `
+                    <div class="recurso-card" onclick="${recurso.accion}" style="cursor: pointer;">
+                        <div class="recurso-info">
+                            <div class="recurso-icono" style="background: ${recurso.color}20; color: ${recurso.color};">
+                                <i class="${recurso.icono}"></i>
+                            </div>
+                            <div class="recurso-detalles">
+                                <span class="recurso-nombre">${escapeHtml(recurso.nombre)}</span>
+                                <span class="recurso-tipo">${escapeHtml(recurso.descripcion)}</span>
+                            </div>
+                        </div>
+                        <div class="recurso-acciones">
+                            <div class="btn-recurso-accion btn-ver-recurso" style="background: ${recurso.color}20; color: ${recurso.color}; pointer-events: none;">
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
 
             <div style="text-align: right; margin-top: 1.5rem;">
@@ -5407,174 +5413,8 @@ async function renderResources() {
     `;
 
     document.getElementById('mainContent').innerHTML = html;
-    document.getElementById('actionHeader').innerHTML = '';
-    
-    // Renderizar la lista de recursos
-    await renderizarRecursosGrid();
 }
 
-// Cargar recursos desde Supabase
-async function cargarRecursos() {
-    if (!currentIglesiaId) return;
-    const { data, error } = await supabaseClient
-        .from('recursos')
-        .select('*')
-        .eq('iglesia_id', currentIglesiaId)
-        .order('created_at', { ascending: false });
-    
-    if (error) {
-        console.error('Error cargando recursos:', error);
-        recursosList = [];
-    } else {
-        recursosList = data || [];
-    }
-}
-
-// Renderizar la grilla de recursos aplicando el filtro
-async function renderizarRecursosGrid() {
-    const container = document.getElementById('recursosGridContainer');
-    if (!container) return;
-
-    const term = recursosFiltro.toLowerCase().trim();
-    let filtrados = recursosList.filter(r => 
-        r.nombre.toLowerCase().includes(term) || 
-        (r.tipo && r.tipo.toLowerCase().includes(term))
-    );
-
-    if (filtrados.length === 0) {
-        container.innerHTML = '<div class="text-center p-4" style="color: var(--text-muted);">No hay recursos disponibles. ¡Agrega el primero!</div>';
-        return;
-    }
-
-    const puedeGestionar = isAdminUser || isIglesiaAdmin || (isEquipoAdmin && (equipoAdminData?.nombre === 'Alabanza' || equipoAdminData?.nombre === 'Danza' || equipoAdminData?.nombre === 'Producción'));
-
-    let html = '<div class="recursos-grid">';
-    for (const recurso of filtrados) {
-        // Determinar ícono según el enlace
-        let claseIcono = 'fa-solid fa-link';
-        const urlLower = (recurso.enlace || '').toLowerCase();
-        if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
-            claseIcono = 'fa-brands fa-youtube';
-        } else if (urlLower.includes('drive.google.com')) {
-            claseIcono = 'fa-brands fa-google-drive';
-        } else if (urlLower.includes('.pdf')) {
-            claseIcono = 'fa-solid fa-file-pdf';
-        } else if (urlLower.includes('spotify.com')) {
-            claseIcono = 'fa-brands fa-spotify';
-        } else if (urlLower.includes('whatsapp.com') || urlLower.includes('wa.me')) {
-            claseIcono = 'fa-brands fa-whatsapp';
-        }
-
-        html += `
-            <div class="recurso-card">
-                <div class="recurso-info">
-                    <div class="recurso-icono">
-                        <i class="${claseIcono}"></i>
-                    </div>
-                    <div class="recurso-detalles">
-                        <span class="recurso-nombre" title="${escapeHtml(recurso.nombre)}">${escapeHtml(recurso.nombre)}</span>
-                        <span class="recurso-tipo">${escapeHtml(recurso.tipo || 'Enlace web')}</span>
-                    </div>
-                </div>
-                <div class="recurso-acciones">
-                    <a href="${escapeHtml(recurso.enlace)}" target="_blank" class="btn-recurso-accion btn-ver-recurso" title="Abrir recurso">
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                    </a>
-                    ${puedeGestionar ? `
-                    <button class="btn-recurso-accion btn-eliminar-recurso" onclick="eliminarRecurso('${recurso.id}')" title="Eliminar recurso">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    }
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-// Filtrar recursos en tiempo real
-window.filtrarRecursos = () => {
-    const input = document.getElementById('recursoSearch');
-    if (input) {
-        recursosFiltro = input.value;
-        renderizarRecursosGrid();
-    }
-};
-
-// Mostrar formulario para agregar recurso (solo administradores)
-window.mostrarFormularioAgregarRecurso = () => {
-    showModal(`
-        <div style="max-width: 500px; margin: 0 auto;">
-            <h3><i class="fas fa-plus-circle"></i> Nuevo recurso</h3>
-            <div class="form-group">
-                <label>Nombre del recurso *</label>
-                <input type="text" id="nuevoRecursoNombre" class="form-control" placeholder="Ej: Tutorial de batería">
-            </div>
-            <div class="form-group">
-                <label>Enlace (URL) *</label>
-                <input type="url" id="nuevoRecursoEnlace" class="form-control" placeholder="https://...">
-            </div>
-            <div class="form-group">
-                <label>Tipo (opcional)</label>
-                <select id="nuevoRecursoTipo" class="form-control">
-                    <option value="Enlace web">Enlace web</option>
-                    <option value="Video">Video</option>
-                    <option value="Documento">Documento</option>
-                    <option value="Partitura">Partitura</option>
-                    <option value="Audio">Audio</option>
-                </select>
-            </div>
-            <div style="text-align: right; margin-top: 1rem;">
-                <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-                <button class="btn btn-primary" onclick="agregarRecurso()">Guardar</button>
-            </div>
-        </div>
-    `);
-};
-
-// Agregar recurso a Supabase
-window.agregarRecurso = async () => {
-    const nombre = document.getElementById('nuevoRecursoNombre').value.trim();
-    const enlace = document.getElementById('nuevoRecursoEnlace').value.trim();
-    const tipo = document.getElementById('nuevoRecursoTipo').value;
-
-    if (!nombre || !enlace) {
-        showToast('Completa el nombre y el enlace', 'error');
-        return;
-    }
-
-    const { error } = await supabaseClient.from('recursos').insert({
-        id: generateUniqueId(),
-        nombre: nombre,
-        enlace: enlace,
-        tipo: tipo,
-        creado_por: currentUser.id,
-        iglesia_id: currentIglesiaId
-    });
-
-    if (error) {
-        showToast('Error al guardar: ' + error.message, 'error');
-    } else {
-        showToast('Recurso agregado correctamente', 'success');
-        closeModal();
-        await cargarRecursos();
-        await renderizarRecursosGrid();
-    }
-};
-
-// Eliminar recurso
-window.eliminarRecurso = async (id) => {
-    if (!confirm('¿Eliminar este recurso permanentemente?')) return;
-    const { error } = await supabaseClient.from('recursos').delete().eq('id', id);
-    if (error) {
-        showToast('Error al eliminar: ' + error.message, 'error');
-    } else {
-        showToast('Recurso eliminado', 'success');
-        await cargarRecursos();
-        await renderizarRecursosGrid();
-    }
-};
 
     
     async function openEquiposView() { const tree = buildDepartmentTree(departamentos); let html = `<h3>🎭 Equipos de la Iglesia - ${currentIglesiaData?.nombre}</h3>`; html += renderDepartmentTree(tree, 0); html += `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`; showModal(html); }
