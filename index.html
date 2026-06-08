@@ -9534,21 +9534,18 @@ window.deleteActividad = async (id) => {
    function adminShifts() {
     let currentDate = null;
 
-    // Función para cargar turnos de una fecha
     async function loadTurnosForDate(dateStr) {
-    const { data, error } = await supabaseClient
-        .from('turnos')
-        .select('*, usuarios_iglesia(perfiles(nombre, email))')
-        .eq('fecha', dateStr)
-        .eq('iglesia_id', currentIglesiaId);  // ← filtrar por iglesia actual
-    if (error) {
-        console.error(error);
-        return [];
+        const { data, error } = await supabaseClient
+            .from('turnos')
+            .select('*, usuarios_iglesia(perfiles(nombre, email))')
+            .eq('fecha', dateStr);
+        if (error) {
+            console.error(error);
+            return [];
+        }
+        return data;
     }
-    return data;
-}
 
-    // Función para mostrar la gestión de turnos de una fecha (ahora global)
     window.showDateManagement = async function(dateStr) {
         currentDate = dateStr;
         const turnos = await loadTurnosForDate(dateStr);
@@ -9591,7 +9588,6 @@ window.deleteActividad = async (id) => {
         showModal(html);
     };
 
-    // Función para eliminar un turno (global)
     window.deleteTurnoFromDate = async function(turnoId, dateStr) {
         if (confirm("¿Eliminar este turno?")) {
             const { error } = await supabaseClient.from('turnos').delete().eq('id', turnoId);
@@ -9604,7 +9600,6 @@ window.deleteActividad = async (id) => {
         }
     };
 
-    // Función para mostrar el formulario de agregar miembro (global)
     window.showAddMemberForm = async function(dateStr) {
         const turnosExistentes = await loadTurnosForDate(dateStr);
         const miembrosOcupados = turnosExistentes.map(t => t.usuario_iglesia_id);
@@ -9643,45 +9638,42 @@ window.deleteActividad = async (id) => {
         showModal(formHtml);
     };
 
-    // Función para confirmar la asignación de turno (global)
     window.confirmAddTurno = async (dateStr, usuarioIglesiaId, nombre, rol) => {
-    if (confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)) {
-        // Obtener user_id (UUID) desde usuarios_iglesia
-        const { data: miembro, error: fetchError } = await supabaseClient
-            .from('usuarios_iglesia')
-            .select('user_id')
-            .eq('id', usuarioIglesiaId)
-            .single();
+        if (confirm(`¿Asignar turno el ${dateStr} a ${nombre} (${rol})?`)) {
+            // Obtener el user_id (UUID)
+            const { data: miembro, error: fetchError } = await supabaseClient
+                .from('usuarios_iglesia')
+                .select('user_id')
+                .eq('id', usuarioIglesiaId)
+                .single();
 
-        if (fetchError || !miembro?.user_id) {
-            showToast("No se pudo obtener el usuario autenticado", "error");
-            return;
+            if (fetchError || !miembro?.user_id) {
+                showToast("No se pudo obtener el usuario autenticado", "error");
+                return;
+            }
+
+            // Insertar con member_id = usuarioIglesiaId (como funcionaba originalmente)
+            const { error } = await supabaseClient.from('turnos').insert({
+                fecha: dateStr,
+                usuario_iglesia_id: usuarioIglesiaId,
+                user_id: miembro.user_id,
+                member_id: usuarioIglesiaId   // ← mantenerlo como antes
+            });
+
+            if (error) {
+                showToast("Error: " + error.message, "error");
+            } else {
+                showToast("Turno asignado correctamente", "success");
+                if (window.showDateManagement) window.showDateManagement(dateStr);
+            }
         }
+    };
 
-        // Insertar SOLO las columnas necesarias (sin member_id)
-        const { error } = await supabaseClient.from('turnos').insert({
-            fecha: dateStr,
-            usuario_iglesia_id: usuarioIglesiaId,
-            user_id: miembro.user_id,
-            iglesia_id: currentIglesiaId   // ← importante para filtrar por iglesia
-        });
-
-        if (error) {
-            showToast("Error: " + error.message, "error");
-        } else {
-            showToast("Turno asignado correctamente", "success");
-            if (window.showDateManagement) window.showDateManagement(dateStr);
-        }
-    }
-};
-
-    // --- MOSTRAR EL CALENDARIO PARA SELECCIONAR FECHA ---
-    // Obtenemos todas las fechas que ya tienen turnos (para resaltarlas en el calendario)
+    // Mostrar calendario
     (async () => {
         const { data: fechasConTurnos, error } = await supabaseClient
             .from('turnos')
-            .select('fecha')
-            .eq('iglesia_id', currentIglesiaId);
+            .select('fecha');
         
         const fechasMap = new Map();
         if (!error && fechasConTurnos) {
@@ -9723,7 +9715,7 @@ window.deleteActividad = async (id) => {
             }
         });
     })();
-}                  
+}   
 
 // ==================== MÓDULO FZKIDS (COMPLETO + CLASES Y ESTUDIANTES) ====================
 
