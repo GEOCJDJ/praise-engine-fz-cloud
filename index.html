@@ -11580,7 +11580,7 @@ function mostrarInterfazPlanner() {
                     `).join('')}
                 </div>
 
-               <!-- Tarjetas de sábado y domingo -->
+<!-- Tarjetas de sábado y domingo -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
     <!-- SÁBADO -->
     <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 1rem; padding: 0.8rem;">
@@ -11588,13 +11588,10 @@ function mostrarInterfazPlanner() {
         <b id="plannerSabadoActividad" style="font-size: 0.85rem; display: block; margin-top: 4px; color: var(--text-main);">${plannerSemanaSeleccionada?.sabado_actividad || 'Cargando...'}</b>
     </div>
     
-    <!-- DOMINGO -->
+    <!-- DOMINGO (solo muestra el grupo asignado) -->
     <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 1rem; padding: 0.8rem;">
         <span style="font-size: 0.65rem; font-weight: 800; color: #7e22ce; display: block;"><i class="fa-solid fa-church"></i> DOMINGO (08:30)</span>
-        <div id="plannerDomingoGrupo" style="font-size: 0.85rem; margin-top: 4px; color: var(--text-main);">
-            ${(plannerSemanaSeleccionada?.domingo_grupo || 'Asarel').replace(/Azarel/g, 'Asarel')}
-        </div>
-        <div style="font-size: 0.7rem; margin-top: 0.25rem; color: var(--text-muted);" id="grupoAsignadoDetalle">
+        <div id="grupoAsignadoDetalle" style="font-size: 0.85rem; margin-top: 4px; color: var(--text-main);">
             ${plannerSemanaSeleccionada?.grupo_danza_id ? '<span id="nombreGrupoAsignado">Cargando...</span>' : 'Sin grupo asignado'}
         </div>
     </div>
@@ -13381,7 +13378,7 @@ async function guardarAsignacionGrupoEvento(eventoId) {
             .eq('id', grupoId)
             .single();
         if (grupo) {
-            if (containerNombre) containerNombre.innerText = `🎭 Grupo: ${grupo.nombre}`;
+            if (containerNombre) containerNombre.innerText = `🕺 ${grupo.nombre}`;
             if (displaySelector) displaySelector.innerText = grupo.nombre;
             // Cargar miembros del grupo para tooltip
             const { data: miembrosGrupo } = await supabaseClient
