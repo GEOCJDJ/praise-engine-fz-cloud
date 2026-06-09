@@ -2678,7 +2678,254 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
         flex-direction: column;
         align-items: stretch;
     }
-}       
+} 
+
+/* =========================================
+   CONTABILIDAD FZKIDS - DISEÑO RESPONSIVE
+   ========================================= */
+
+.conta-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Cabecera */
+.conta-header {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border-radius: 1rem;
+    padding: 1rem 1.2rem;
+    color: white;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.conta-header h1 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.conta-header p {
+    margin: 0;
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.conta-fondo-card {
+    background: rgba(255,255,255,0.1);
+    border-radius: 1rem;
+    padding: 0.4rem 1.2rem;
+    text-align: center;
+    backdrop-filter: blur(4px);
+}
+
+.conta-fondo-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.conta-fondo-valor {
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+/* Botones de acción */
+.conta-actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+/* Filtros */
+.conta-filters {
+    background: var(--surface);
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.conta-filter-group {
+    flex: 1;
+    min-width: 140px;
+}
+
+.conta-filter-group label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    color: var(--text-muted);
+}
+
+/* KPIs - tarjetas amplias */
+.conta-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.conta-kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.2rem 0.8rem;
+    text-align: center;
+    transition: 0.2s;
+}
+
+.conta-kpi-card:hover {
+    transform: translateY(-3px);
+    border-color: #5ea1ff;
+}
+
+.conta-kpi-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.3rem;
+}
+
+.conta-kpi-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.conta-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-top: 0.3rem;
+}
+
+.conta-kpi-value.income { color: #10b981; }
+.conta-kpi-value.expense { color: #ef4444; }
+.conta-kpi-value.net { color: #3b82f6; }
+
+/* Gráfico y tabla en dos columnas */
+.conta-two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .conta-two-columns {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+.conta-chart-card,
+.conta-table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+.conta-chart-card h3,
+.conta-table-card h3 {
+    font-size: 0.9rem;
+    font-weight: 800;
+    margin: 0 0 0.8rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-main);
+}
+
+/* Tabla responsiva */
+.conta-table-wrapper {
+    overflow-x: auto;
+    margin-top: 0.5rem;
+}
+
+.conta-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    min-width: 550px;
+}
+
+.conta-table th {
+    text-align: left;
+    padding: 0.6rem 0.4rem;
+    background: var(--bg-app);
+    font-weight: 700;
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--border);
+}
+
+.conta-table td {
+    padding: 0.6rem 0.4rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.conta-table tr:last-child td {
+    border-bottom: none;
+}
+
+.text-income {
+    color: #10b981;
+    font-weight: 700;
+}
+
+.text-expense {
+    color: #ef4444;
+    font-weight: 700;
+}
+
+/* Botones en tabla */
+.conta-action-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.2rem 0.3rem;
+    border-radius: 0.3rem;
+    transition: 0.2s;
+}
+
+.conta-action-btn:hover {
+    background: var(--bg-app);
+}
+
+/* Mensaje vacío */
+.conta-empty {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+/* Ajustes para móvil muy pequeño */
+@media (max-width: 480px) {
+    .conta-kpi-value {
+        font-size: 1.2rem;
+    }
+    .conta-fondo-valor {
+        font-size: 1.2rem;
+    }
+    .conta-header h1 {
+        font-size: 1rem;
+    }
+}
+        
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -14742,7 +14989,9 @@ async function renderContabilidad() {
         loader.updateProgress(40, "Cargando categorías...");
         const categorias = await cargarCategoriasFinancieras();
         loader.updateProgress(60, "Calculando saldos...");
-        const saldoActual = await cargarFondoEquipo();
+        
+        // Mostrar fondo global (todas las clases) o podrías mostrar el de la clase seleccionada
+        const saldoActual = await cargarFondoEquipo(null);
         loader.updateProgress(80, "Generando reportes...");
         const puedeEditar = puedeEditarContabilidad();
 
@@ -14753,70 +15002,101 @@ async function renderContabilidad() {
         const clasesOptions = fzkidsClases.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
         
         const html = `
-        <div class="accounting-container" style="max-width: 1200px; margin: 0 auto;">
-            <!-- Cabecera -->
-            <div style="background: linear-gradient(135deg, #0f172a, #3b82f6); border-radius: 1.5rem; padding: 1.5rem; color: white; margin-bottom: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div class="conta-container">
+                <!-- Cabecera -->
+                <div class="conta-header">
                     <div>
-                        <h1 style="font-size: 1.8rem; font-weight: 900; margin: 0;"><i class="fas fa-church"></i> Contabilidad FZKIDS</h1>
-                        <p style="margin: 0; opacity: 0.9;">Fondos de Escuela Bíblica</p>
+                        <h1><i class="fas fa-church"></i> Contabilidad FZKIDS</h1>
+                        <p>Fondos de Escuela Bíblica</p>
                     </div>
-                    <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 1.5rem; border-radius: 1rem; text-align: center;">
-                        <div style="font-size: 0.7rem; text-transform: uppercase;">Fondo disponible</div>
-                        <div style="font-size: 1.5rem; font-weight: 800;" id="saldoActualDisplay">$${saldoActual.toFixed(2)}</div>
+                    <div class="conta-fondo-card">
+                        <div class="conta-fondo-label">Fondo disponible</div>
+                        <div class="conta-fondo-valor" id="saldoActualDisplay">$${saldoActual.toFixed(2)}</div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="conta-actions">
+                    ${puedeEditar ? `<button class="btn btn-primary" onclick="mostrarGestionCategorias()"><i class="fas fa-tags"></i> Gestionar Categorías</button>` : ''}
+                    <button class="btn btn-ghost" onclick="exportFinanceReport()"><i class="fas fa-download"></i> Exportar Resumen</button>
+                    ${puedeEditar ? `<button class="btn btn-primary" onclick="mostrarFormularioTransaccion()"><i class="fas fa-plus-circle"></i> Nuevo Movimiento</button>` : ''}
+                </div>
+
+                <!-- Filtros -->
+                <div class="conta-filters">
+                    <div class="conta-filter-group">
+                        <label><i class="fas fa-users"></i> Clase</label>
+                        <select id="class-filter" class="form-control" onchange="cargarDatosContables()">
+                            <option value="all">Todas las clases</option>
+                            ${clasesOptions}
+                        </select>
+                    </div>
+                    <div class="conta-filter-group">
+                        <label><i class="fas fa-calendar-alt"></i> Período</label>
+                        <select id="period-filter" class="form-control" onchange="cargarDatosContables()">
+                            <option value="monthly">Mensual</option>
+                            <option value="quarterly">Trimestral</option>
+                            <option value="semi-annual">Semestral</option>
+                            <option value="annual">Anual</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- KPIs -->
+                <div class="conta-kpis">
+                    <div class="conta-kpi-card">
+                        <div class="conta-kpi-icon"><i class="fas fa-arrow-up"></i></div>
+                        <div class="conta-kpi-label">Ingresos del período</div>
+                        <div class="conta-kpi-value income" id="total-income">$0</div>
+                    </div>
+                    <div class="conta-kpi-card">
+                        <div class="conta-kpi-icon"><i class="fas fa-arrow-down"></i></div>
+                        <div class="conta-kpi-label">Gastos del período</div>
+                        <div class="conta-kpi-value expense" id="total-expenses">$0</div>
+                    </div>
+                    <div class="conta-kpi-card">
+                        <div class="conta-kpi-icon"><i class="fas fa-scale-balanced"></i></div>
+                        <div class="conta-kpi-label">Balance del período</div>
+                        <div class="conta-kpi-value net" id="net-balance">$0</div>
+                    </div>
+                </div>
+
+                <!-- Gráfico y tabla (dos columnas en escritorio, una en móvil) -->
+                <div class="conta-two-columns">
+                    <div class="conta-chart-card">
+                        <h3><i class="fas fa-chart-pie"></i> Distribución por Categoría</h3>
+                        <canvas id="financeChart" style="max-height: 220px; width: 100%;"></canvas>
+                    </div>
+                    <div class="conta-table-card">
+                        <h3><i class="fas fa-list-ul"></i> Últimos Movimientos</h3>
+                        <div class="conta-table-wrapper">
+                            <table class="conta-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th><th>Clase</th><th>Concepto</th><th>Categoría</th><th>Monto</th>${puedeEditar ? '<th>Acciones</th>' : ''}
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body">
+                                    <tr><td colspan="${puedeEditar ? 6 : 5}" class="conta-empty">Cargando movimientos...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Botones de acción adicionales -->
-            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-bottom: 1rem;">
-                ${puedeEditar ? `<button class="btn btn-primary" onclick="mostrarGestionCategorias()"><i class="fas fa-tags"></i> Gestionar Categorías</button>` : ''}
-                <button class="btn btn-ghost" onclick="exportFinanceReport()"><i class="fas fa-download"></i> Exportar Resumen</button>
-            </div>
-
-            <!-- Filtros -->
-            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                <div style="flex:2;">
-                    <label>Clase</label>
-                    <select id="class-filter" class="form-control" onchange="cargarDatosContables()">
-                        <option value="all">Todas las clases</option>
-                        ${clasesOptions}
-                    </select>
-                </div>
-                <div style="flex:1;">
-                    <label>Período</label>
-                    <select id="period-filter" class="form-control" onchange="cargarDatosContables()">
-                        <option value="monthly">Mensual</option>
-                        <option value="quarterly">Trimestral</option>
-                        <option value="semi-annual">Semestral</option>
-                        <option value="annual">Anual</option>
-                    </select>
-                </div>
-                ${puedeEditar ? `
-                <div style="flex:1; display: flex; align-items: flex-end;">
-                    <button class="btn btn-primary" onclick="mostrarFormularioTransaccion()" style="width: 100%;">
-                        <i class="fas fa-plus-circle"></i> Nuevo Movimiento
-                    </button>
-                </div>
-                ` : ''}
-            </div>
-
-            <!-- KPIs -->
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 20px;">
-                <div class="stat-card-modern"><div><i class="fas fa-arrow-up"></i> Ingresos del período</div><div class="stat-number-modern text-income" id="total-income">$0</div></div>
-                <div class="stat-card-modern"><div><i class="fas fa-arrow-down"></i> Gastos del período</div><div class="stat-number-modern text-expense" id="total-expenses">$0</div></div>
-                <div class="stat-card-modern"><div><i class="fas fa-scale-balanced"></i> Balance del período</div><div class="stat-number-modern" id="net-balance">$0</div></div>
-            </div>
-
-            <!-- Gráfico y Tabla -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                <div class="card"><h3>Distribución por Categoría</h3><canvas id="financeChart" style="max-height: 250px; width: 100%;"></canvas></div>
-                <div class="card"><h3>Últimos Movimientos</h3><div style="overflow-x: auto; max-height: 350px; overflow-y: auto;"><table class="modern-table" style="width: 100%; border-collapse: collapse;"><thead style="position: sticky; top: 0; background: var(--surface);"><tr><th>Fecha</th><th>Clase</th><th>Concepto</th><th>Categoría</th><th>Monto</th>${puedeEditar ? '<th>Acciones</th>' : ''}</tr></thead><tbody id="transactions-table-body"><tr><td colspan="${puedeEditar ? 6 : 5}" class="text-center">Cargando...</td></tr></tbody></table></div></div>
-            </div>
-        </div>`;
+        `;
         
         document.getElementById('mainContent').innerHTML = html;
+        document.getElementById('actionHeader').innerHTML = '';
         loader.updateProgress(100, "Listo!");
+        
+        // Ajustar canvas
+        const canvas = document.getElementById('financeChart');
+        if (canvas) {
+            canvas.style.maxHeight = '220px';
+            canvas.style.width = '100%';
+        }
+        
         await cargarDatosContables();
     } catch (err) {
         console.error(err);
