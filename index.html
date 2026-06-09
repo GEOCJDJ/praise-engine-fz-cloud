@@ -2925,7 +2925,18 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
         font-size: 1rem;
     }
 }
-        
+ /* FIX para flatpickr dentro de modales */
+.flatpickr-calendar {
+    z-index: 9999 !important;
+    background: var(--surface) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+    border: 1px solid var(--border) !important;
+    backdrop-filter: none !important;
+}
+.flatpickr-day.selected, .flatpickr-day.selected:hover {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+}       
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -11543,8 +11554,16 @@ window.eliminarEstudianteFzkids = async (id) => {
         showToast('Error al eliminar: ' + error.message, 'error');
     } else {
         showToast('Estudiante eliminado', 'success');
-        await cargarEstudiantesPorClase(currentFzkidsClaseId);
-        mostrarInterfazFzkidsCombinada();
+        // Recargar estudiantes de la clase actual
+        fzkidsEstudiantes = await cargarEstudiantesPorClase(currentFzkidsClaseId);
+        // Recargar asistencia para esa fecha y clase
+        let asistenciaMap = {};
+        if (currentFzkidsFecha && currentFzkidsClaseId) {
+            asistenciaMap = await cargarAsistenciaDetallePorFecha(currentFzkidsClaseId, currentFzkidsFecha);
+        }
+        // Volver a renderizar la interfaz con los datos actualizados
+        const clases = await cargarClasesFzkids();
+        mostrarInterfazFzkidsCombinada(clases, fzkidsEstudiantes, asistenciaMap);
     }
 };
 
@@ -15209,13 +15228,13 @@ async function cargarDatosContables() {
     const netEl = document.getElementById('net-balance');
     netEl.innerText = `$${net.toFixed(2)}`;
     netEl.style.color = net >= 0 ? '#10b981' : '#ef4444';
-
     // Mostrar saldo de la clase seleccionada (o global si 'all')
-    const saldoActual = await cargarFondoEquipo(classId);
-    const saldoDisplay = document.getElementById('saldoActualDisplay');
-    if (saldoDisplay) saldoDisplay.innerText = `$${saldoActual.toFixed(2)}`;
+const saldoActual = await cargarFondoEquipo(classId);
+const saldoDisplay = document.getElementById('saldoActualDisplay');
+if (saldoDisplay) saldoDisplay.innerText = `$${saldoActual.toFixed(2)}`;
 
     renderFinanceChart(categoryMap);
+    
 }
 
  // Ver permiso (mismo que para editar contabilidad)
@@ -15349,10 +15368,10 @@ async function eliminarCategoria(id) {
 // ========== FORMULARIOS ==========
 async function mostrarFormularioTransaccion() {
     const clases = await cargarClasesFzkids();
-    const categorias = await cargarCategoriasFinancieras(); // Todas, sin filtrar por tipo
-    const estudiantes = [];
+    const categorias = await cargarCategoriasFinancieras();
     
     const clasesOptions = clases.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
+    // Inicialmente mostramos todas las categorías (luego el select de tipo las filtrará)
     const categoriasOptions = categorias.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
 
     const modalContent = `
@@ -15360,7 +15379,7 @@ async function mostrarFormularioTransaccion() {
             <h3><i class="fas fa-book"></i> Nuevo Movimiento</h3>
             <div class="form-group">
                 <label>Tipo *</label>
-                <select id="transTipo" class="form-control">
+                <select id="transTipo" class="form-control" onchange="toggleCategoriasTransaccion()">
                     <option value="income">Ingreso</option>
                     <option value="expense">Gasto</option>
                 </select>
@@ -15378,7 +15397,7 @@ async function mostrarFormularioTransaccion() {
                     <option value="">-- Ninguno --</option>
                 </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="categoriasContainer">
                 <label>Categoría *</label>
                 <select id="transCategoria" class="form-control">
                     <option value="">Seleccionar categoría</option>
@@ -15404,9 +15423,21 @@ async function mostrarFormularioTransaccion() {
         </div>
     `;
     showModal(modalContent);
-    flatpickr("#transFecha", { dateFormat: "d/m/Y", locale: "es", defaultDate: "today" });
-    
-    // Función auxiliar para estudiantes
+
+    // Inicializar flatpickr UNA SOLA VEZ, con la configuración correcta y después de que el modal esté visible
+    setTimeout(() => {
+        flatpickr("#transFecha", {
+            dateFormat: "d/m/Y",
+            locale: "es",
+            defaultDate: "today",
+            allowInput: true,
+            position: "auto",
+            static: true,
+            disableMobile: true
+        });
+    }, 100);
+
+    // Función auxiliar para estudiantes (existe globalmente)
     window.cargarEstudiantesParaSelect = async (claseId) => {
         const container = document.getElementById('estudianteContainer');
         const select = document.getElementById('transEstudiante');
@@ -15426,15 +15457,21 @@ async function mostrarFormularioTransaccion() {
 }
     
     window.toggleCategoriasTransaccion = () => {
-        const tipo = document.getElementById('transTipo').value;
-        const container = document.getElementById('categoriasContainer');
-        const categorias = tipo === 'income' 
-            ? categorias.filter(c => c.tipo === 'income')
-            : categorias.filter(c => c.tipo === 'expense');
-        const selectHtml = `<label>Categoría *</label><select id="transCategoria" class="form-control">${categorias.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}</select>`;
+    const tipo = document.getElementById('transTipo').value;
+    const container = document.getElementById('categoriasContainer');
+    // Necesitas tener las categorías disponibles globalmente o volver a cargarlas
+    cargarCategoriasFinancieras().then(categorias => {
+        const categoriasFiltradas = categorias.filter(c => c.tipo === tipo);
+        const selectHtml = `
+            <label>Categoría *</label>
+            <select id="transCategoria" class="form-control">
+                <option value="">Seleccionar categoría</option>
+                ${categoriasFiltradas.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}
+            </select>
+        `;
         container.innerHTML = selectHtml;
-    };
-
+    });
+};
 
 async function guardarTransaccion() {
     const tipo = document.getElementById('transTipo').value;
