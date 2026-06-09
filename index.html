@@ -2425,7 +2425,260 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 1rem;
     }
-        
+ /* ===== LISTAS - ESTILO MODERNO CLARO ===== */
+
+/* Grilla principal de listas */
+.lists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* Tarjeta de lista */
+.list-card-modern {
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.list-card-modern:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e1;
+}
+.list-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+.list-fecha {
+    font-size: 0.7rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.list-titulo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0.25rem 0 0 0;
+    color: #1e293b;
+}
+.list-icon {
+    font-size: 1.5rem;
+    color: #3b82f6;
+    opacity: 0.7;
+}
+.list-card-body {
+    margin-bottom: 0.75rem;
+}
+.list-canciones-count {
+    font-size: 0.75rem;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+    display: inline-block;
+}
+.list-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Detalle de lista */
+.list-detail-header {
+    background: #f8fafc;
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+}
+.list-detail-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+.list-detail-header p {
+    margin: 0.25rem 0 0;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+/* Lista de canciones */
+.songs-list-container {
+    margin-bottom: 2rem;
+}
+.song-item-card {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    transition: all 0.2s;
+}
+.song-item-card:hover {
+    border-color: #cbd5e1;
+    background: #fafcff;
+}
+.song-order {
+    width: 32px;
+    text-align: center;
+    font-weight: 700;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+.song-info {
+    flex: 2;
+    margin-left: 0.75rem;
+}
+.song-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #0f172a;
+}
+.song-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+.song-category, .song-key, .song-bpm {
+    font-size: 0.65rem;
+    background: #f1f5f9;
+    padding: 0.2rem 0.5rem;
+    border-radius: 1rem;
+    color: #475569;
+}
+.song-actions {
+    display: flex;
+    gap: 0.3rem;
+    margin-left: auto;
+    margin-right: 0.5rem;
+}
+.song-move-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.move-up-btn, .move-down-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #3b82f6;
+    padding: 0.2rem;
+}
+.empty-songs {
+    text-align: center;
+    padding: 2rem;
+    color: #64748b;
+    background: #f8fafc;
+    border-radius: 1rem;
+    border: 1px dashed #cbd5e1;
+}
+
+/* Sección de comentarios */
+.comments-section {
+    margin-top: 1.5rem;
+    background: #f8fafc;
+    border-radius: 1rem;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+}
+.comments-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+.comment-item {
+    background: #ffffff;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e2e8f0;
+}
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+    font-size: 0.75rem;
+}
+.comment-author {
+    font-weight: 700;
+    color: #1e293b;
+}
+.comment-date {
+    color: #94a3b8;
+}
+.comment-text {
+    font-size: 0.85rem;
+    color: #334155;
+    margin: 0;
+}
+.add-comment {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+.add-comment textarea {
+    flex: 1;
+}
+
+/* Responsive móvil */
+@media (max-width: 640px) {
+    .lists-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .song-item-card {
+        flex-wrap: wrap;
+        position: relative;
+    }
+    .song-order {
+        display: none;
+    }
+    .song-info {
+        width: 100%;
+        margin-left: 0;
+        margin-bottom: 0.5rem;
+    }
+    .song-actions {
+        order: 2;
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-start;
+        gap: 0.5rem;
+    }
+    .song-move-buttons {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        flex-direction: row;
+        gap: 0.3rem;
+    }
+    .move-up-btn, .move-down-btn {
+        background: #f1f5f9;
+        padding: 0.3rem 0.6rem;
+        border-radius: 0.5rem;
+    }
+    .add-comment {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}       
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -4471,8 +4724,62 @@ async function deleteSongConfirm(id) { if (confirm("¿Eliminar?")) await deleteS
 function viewChords(songId) { const song = songs.find(s=>s.id===songId); if(!song) return; let content = ''; if(song.chordsData) { const blob = dataURLtoBlob(song.chordsData); const url = URL.createObjectURL(blob); content = `<iframe src="${url}" style="width:100%;height:420px;border:none"></iframe><br><a href="${url}" download="acordes_${song.id}.pdf" class="btn btn-primary">Descargar Archivo</a>`; } else if(song.chordsUrl) { content = `<iframe src="${song.chordsUrl}" style="width:100%;height:420px;border:none"></iframe><br><a href="${song.chordsUrl}" target="_blank" class="btn btn-primary">Abrir enlace</a>`; } else content = `<p>No hay archivos adjuntos.</p>`; showModal(`<h3>Acordes: ${escapeHtml(song.title)}</h3>${content}<div style="margin-top:1rem;"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); }
 
 // ========== LISTAS ==========
-function renderLists() { const query = document.getElementById('globalSearch')?.value.toLowerCase()||''; let filtered = lists.filter(l=>l.name.toLowerCase().includes(query)); document.getElementById('actionHeader').innerHTML = (isAdminUser||isIglesiaAdmin) ? `<button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button><button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>` : ''; const container = document.getElementById('mainContent'); if(listsViewMode==='grid') { container.innerHTML = `<div class="grid" id="listsGrid">${filtered.map(l=>`<div class="card list-card" data-list-id="${l.id}"><span class="card-category">Lista</span><div class="card-title">${escapeHtml(l.name)}</div><div>📅 ${l.date||'Sin fecha'}</div><div>🎵 ${l.items?l.items.length:0} canciones</div>${(isAdminUser||isIglesiaAdmin)?`<div onclick="event.stopPropagation()" style="margin-top:0.5rem;"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></div>`:''}</div>`).join('')}</div>`; document.querySelectorAll('.list-card').forEach(card=>{card.addEventListener('click',(e)=>{if(e.target.closest('.btn-icon')) return; selectedListId=card.dataset.listId; renderCurrentView();});}); } else { container.innerHTML = `<div class="list-view-container"><table style="width:100%"><thead><tr><th>Nombre</th><th>Fecha</th><th>Canciones</th>${(isAdminUser||isIglesiaAdmin)?'<th>Acciones</th>':''}<tr></thead><tbody>${filtered.map(l=>`<tr class="list-row" data-list-id="${l.id}"><td><b>${escapeHtml(l.name)}</b></b></td><td>${l.date||'—'}</td><td>${l.items?l.items.length:0}</td>${(isAdminUser||isIglesiaAdmin)?`<td onclick="event.stopPropagation()"><button class="btn-icon" onclick="editListName('${l.id}')"><i class="fas fa-pen"></i></button><button class="btn-icon" onclick="deleteList('${l.id}')"><i class="fas fa-trash"></i></button></td>`:''}</tr>`).join('')}</tbody></table></div>`; document.querySelectorAll('.list-row').forEach(row=>{row.addEventListener('click',(e)=>{if(e.target.closest('.btn-icon')) return; selectedListId=row.dataset.listId; renderCurrentView();});}); } }
-function openCreateListModal() { showModal(`<h3>Nueva Lista</h3><div class="form-group"><input id="lName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="lDate" class="form-control" placeholder="Fecha"></div><button class="btn btn-primary" onclick="saveNewList()">Crear</button>`); flatpickr("#lDate",{locale:"es",dateFormat:"d/m/Y"}); }
+async function renderLists() {
+    const query = document.getElementById('globalSearch')?.value.toLowerCase() || '';
+    let filtered = lists.filter(l => l.name.toLowerCase().includes(query));
+    
+    // Acciones en cabecera (solo administradores pueden crear)
+    const puedeEditar = puedeEditarListas();
+    document.getElementById('actionHeader').innerHTML = puedeEditar
+        ? `<button class="btn btn-primary" onclick="openCreateListModal()"><i class="fas fa-folder-plus"></i> Crear Lista</button>
+           <button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>`
+        : `<button class="btn btn-ghost" onclick="exportAllListsToExcel()"><i class="fas fa-file-excel"></i> Exportar Todas</button>`;
+    
+    const container = document.getElementById('mainContent');
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center p-4">No hay listas creadas.</div>';
+        return;
+    }
+    
+    // Grilla responsiva (similar a recursos)
+    let html = '<div class="lists-grid">';
+    filtered.forEach(list => {
+        html += `
+            <div class="list-card-modern" data-list-id="${list.id}">
+                <div class="list-card-header">
+                    <div>
+                        <span class="list-fecha">${list.date || 'Sin fecha'}</span>
+                        <h3 class="list-titulo">${escapeHtml(list.name)}</h3>
+                    </div>
+                    <i class="fas fa-music list-icon"></i>
+                </div>
+                <div class="list-card-body">
+                    <span class="list-canciones-count"><i class="fas fa-list-ul"></i> ${list.items ? list.items.length : 0} canciones</span>
+                </div>
+                ${puedeEditar ? `
+                <div class="list-card-actions" onclick="event.stopPropagation()">
+                    <button class="btn-icon" onclick="editListName('${list.id}')" title="Editar nombre"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon" onclick="deleteList('${list.id}')" title="Eliminar lista" style="color:#ef4444;"><i class="fas fa-trash-alt"></i></button>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+    
+    // Evento para abrir detalle al hacer clic en la tarjeta
+    document.querySelectorAll('.list-card-modern').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.list-card-actions')) return;
+            selectedListId = card.dataset.listId;
+            renderCurrentView();
+        });
+    });
+}
+    
+    function openCreateListModal() { showModal(`<h3>Nueva Lista</h3><div class="form-group"><input id="lName" class="form-control" placeholder="Nombre"></div><div class="form-group"><input id="lDate" class="form-control" placeholder="Fecha"></div><button class="btn btn-primary" onclick="saveNewList()">Crear</button>`); flatpickr("#lDate",{locale:"es",dateFormat:"d/m/Y"}); }
 async function saveNewList() { const name = document.getElementById('lName').value.trim()||"Lista sin nombre"; const date = document.getElementById('lDate').value; await saveList({ id:null, name, date, items:[] }); closeModal(); registrarActividad('crear_lista',name); }
 async function editListName(id) { const list = lists.find(l=>l.id===id); const newName = prompt("Nuevo nombre:",list.name); if(newName) { list.name=newName; await saveList(list); } }
 
@@ -4483,30 +4790,17 @@ async function renderListDetail() {
         renderLists();
         return;
     }
-
-    // Determinar si el usuario puede editar la lista
-    const puedeEditar = isAdminUser || isIglesiaAdmin ||
-        (isEquipoAdmin && equipoAdminData && 
-         ['alabanza', 'equipo de alabanza', 'artes', 'producción', 'multimedia', 'danza']
-            .includes(equipoAdminData.nombre.toLowerCase())) ||
-        (() => {
-            const miembro = usuariosIglesia.find(m => m.user_id === currentUser?.id);
-            if (!miembro) return false;
-            const depto = departamentos.find(d => d.id === miembro.departamento_id);
-            if (!depto) return false;
-            const deptosPermitidos = ['Artes', 'EQUIPO DE ARTES', 'Danza', 'Producción', 'Multimedia'];
-            const padre = depto.padre_id ? departamentos.find(d => d.id === depto.padre_id) : null;
-            return deptosPermitidos.includes(depto.nombre) || (padre && deptosPermitidos.includes(padre.nombre));
-        })();
-
-    // Cabecera de acciones
+    
+    const puedeEditar = puedeEditarListas();
+    
+    // Cabecera de acciones (visibles para todos, pero botones de edición solo si puedeEditar)
     document.getElementById('actionHeader').innerHTML = `
         <button class="btn btn-ghost" onclick="selectedListId=null; renderCurrentView()">
             <i class="fas fa-arrow-left"></i> Volver
         </button>
-        <button class="btn btn-primary" onclick="openAddSongToListModal()">
+        ${puedeEditar ? `<button class="btn btn-primary" onclick="openAddSongToListModal()">
             <i class="fas fa-plus"></i> Añadir Canción
-        </button>
+        </button>` : ''}
         <button class="btn btn-ghost" onclick="printList('${list.id}')">
             <i class="fas fa-print"></i> Imprimir (12 copias)
         </button>
@@ -4517,63 +4811,67 @@ async function renderListDetail() {
             <i class="fas fa-file-excel"></i> Excel
         </button>
     `;
-
+    
     const container = document.getElementById('mainContent');
     container.innerHTML = `
-        <div class="card" style="margin-bottom:1rem">
+        <div class="list-detail-header">
             <h2>${escapeHtml(list.name)}</h2>
-            <p>${list.date || ''} • ${list.items ? list.items.length : 0} canciones</p>
+            <p>${list.date || 'Sin fecha'} • ${list.items ? list.items.length : 0} canciones</p>
         </div>
-        <div id="songsListContainer"></div>
+        <div id="songsListContainer" class="songs-list-container"></div>
+        <div id="commentsSection" class="comments-section"></div>
     `;
-
+    
+    // Renderizar canciones
     const songsContainer = document.getElementById('songsListContainer');
     if (!list.items || list.items.length === 0) {
-        songsContainer.innerHTML = `<p style="padding:1rem;text-align:center;">No hay canciones agregadas.</p>`;
+        songsContainer.innerHTML = `<div class="empty-songs">🎵 No hay canciones agregadas. ${puedeEditar ? 'Haz clic en "Añadir Canción" para empezar.' : ''}</div>`;
     } else {
         songsContainer.innerHTML = list.items.map((item, idx) => {
             const song = songs.find(s => s.id === (item.songId || item.song_id));
             if (!song) return '';
             let currentTone = item.keyOverride || item.key_override || song.key;
             return `
-                <div class="card" data-index="${idx}" style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.5rem;">
-                    ${puedeEditar ? `
-                        <div style="display:flex; flex-direction:column; gap:0.2rem; margin-right:0.3rem;">
-                            ${idx > 0 ? `<button class="move-up-btn" style="background:transparent; border:none; cursor:pointer; color:#3b82f6; font-size:1rem; transition:0.1s;" onclick="moveSongInList('${list.id}', ${idx}, 'up')"><i class="fas fa-chevron-up"></i></button>` : '<div style="width:28px; height:28px;"></div>'}
-                            ${idx < list.items.length-1 ? `<button class="move-down-btn" style="background:transparent; border:none; cursor:pointer; color:#3b82f6; font-size:1rem; transition:0.1s;" onclick="moveSongInList('${list.id}', ${idx}, 'down')"><i class="fas fa-chevron-down"></i></button>` : '<div style="width:28px; height:28px;"></div>'}
+                <div class="song-item-card" data-index="${idx}">
+                    <div class="song-order">${idx + 1}</div>
+                    <div class="song-info">
+                        <div class="song-title">${escapeHtml(song.title)}</div>
+                        <div class="song-meta">
+                            <span class="song-category">${escapeHtml(song.category)}</span>
+                            <span class="song-key">🎵 Tono: ${currentTone}</span>
+                            <span class="song-bpm">🥁 ${song.bpm || '--'} BPM</span>
                         </div>
-                    ` : ''}
-                    <i class="fas fa-grip-vertical" style="color:#94a3b8; opacity:0.5;"></i>
-                    <div style="flex:1">
-                        <b style="color:var(--primary-light);">${escapeHtml(song.title)}</b>
-                        <span class="card-category">${song.category}</span>
-                        <div>Tono: <b>${currentTone}</b> | 🥁 ${song.bpm || '--'} BPM</div>
                     </div>
-                    <div style="display:flex; gap:0.3rem;">
-                        <button class="btn-icon" onclick="openMetronome('${song.id}')"><i class="fas fa-drumstick-bite"></i></button>
-                        <button class="btn-icon" onclick="viewChords('${song.id}')"><i class="fas fa-file-pdf"></i></button>
-                        <button class="btn-icon" onclick="openLyricsEditor('${song.id}')"><i class="fas fa-music"></i></button>
+                    <div class="song-actions">
+                        <button class="btn-icon" onclick="openMetronome('${song.id}')" title="Metrónomo"><i class="fas fa-drumstick-bite"></i></button>
+                        <button class="btn-icon" onclick="viewChords('${song.id}')" title="Acordes"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn-icon" onclick="openLyricsEditor('${song.id}')" title="Letra/Acordes"><i class="fas fa-music"></i></button>
                         ${puedeEditar ? `
-                            <button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})"><i class="fas fa-sliders-h"></i></button>
-                            <button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})"><i class="fas fa-times"></i></button>
+                            <button class="btn-icon" onclick="changeItemKey('${list.id}',${idx})" title="Cambiar tonalidad"><i class="fas fa-sliders-h"></i></button>
+                            <button class="btn-icon" onclick="removeSongFromList('${list.id}',${idx})" title="Quitar" style="color:#ef4444;"><i class="fas fa-times"></i></button>
                         ` : ''}
                     </div>
+                    ${puedeEditar ? `
+                    <div class="song-move-buttons">
+                        ${idx > 0 ? `<button class="move-up-btn" onclick="moveSongInList('${list.id}', ${idx}, 'up')"><i class="fas fa-chevron-up"></i></button>` : ''}
+                        ${idx < list.items.length-1 ? `<button class="move-down-btn" onclick="moveSongInList('${list.id}', ${idx}, 'down')"><i class="fas fa-chevron-down"></i></button>` : ''}
+                    </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');
     }
-
-    // Sección de comentarios
-    const commentsSection = document.createElement('div');
-    commentsSection.id = 'commentsSection';
-    commentsSection.style.marginTop = '2rem';
+    
+    // Sección de comentarios (cualquiera puede comentar, pero solo admin puede eliminar)
+    const commentsSection = document.getElementById('commentsSection');
     commentsSection.innerHTML = `
-        <h3>💬 Comentarios de la lista</h3>
-        <div id="commentsList"></div>
-        <textarea id="newComment" class="form-control" placeholder="Escribe un comentario..." rows="2"></textarea>
-        <button class="btn btn-primary" onclick="addComment('${list.id}')">Comentar</button>
+        <h3><i class="fas fa-comments"></i> 💬 Comentarios de la lista</h3>
+        <div id="commentsList" class="comments-list"></div>
+        <div class="add-comment">
+            <textarea id="newComment" class="form-control" placeholder="Escribe un comentario..." rows="2"></textarea>
+            <button class="btn btn-primary" onclick="addComment('${list.id}')">Enviar comentario</button>
+        </div>
     `;
-    container.appendChild(commentsSection);
     await loadComments(list.id);
 }
 
@@ -4593,7 +4891,12 @@ async function moveSongInList(listId, index, direction) {
     await renderListDetail();
 }    
     
-    function openAddSongToListModal() { const list = lists.find(l=>l.id===selectedListId); if(!list) return; let songsHtml = ''; songs.forEach(song=>{ const alreadyInList = list.items.some(item=>(item.songId||item.song_id)===song.id); songsHtml += `<label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;cursor:pointer;"><input type="checkbox" class="song-checkbox" value="${song.id}" ${alreadyInList?'disabled':''}><span><b>${escapeHtml(song.title)}</b> (${song.key}) - ${song.category}</span>${alreadyInList?'<span style="color:green;"> ✓ Ya está</span>':''}</label>`; }); showModal(`<h3>Añadir canciones a "${escapeHtml(list.name)}"</h3><input type="text" id="filterSongsMulti" class="form-control" placeholder="Filtrar canciones..." style="margin-bottom:1rem"><div id="songsMultiList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);padding:0.5rem;border-radius:8px;">${songsHtml}</div><div style="margin-top:1rem;text-align:right;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addSelectedSongsToList('${list.id}')">Añadir seleccionadas</button></div>`); const filterInput = document.getElementById('filterSongsMulti'); if(filterInput) filterInput.addEventListener('input',(e)=>{ const term = e.target.value.toLowerCase(); const labels = document.querySelectorAll('#songsMultiList label'); labels.forEach(label=>{ const text = label.innerText.toLowerCase(); label.style.display = text.includes(term)?'flex':'none'; }); }); }
+    function openAddSongToListModal() { 
+         if (!puedeEditarListas()) {
+        showToast("Solo administradores de Alabanza pueden añadir canciones", "error");
+        return;
+    }
+        const list = lists.find(l=>l.id===selectedListId); if(!list) return; let songsHtml = ''; songs.forEach(song=>{ const alreadyInList = list.items.some(item=>(item.songId||item.song_id)===song.id); songsHtml += `<label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;cursor:pointer;"><input type="checkbox" class="song-checkbox" value="${song.id}" ${alreadyInList?'disabled':''}><span><b>${escapeHtml(song.title)}</b> (${song.key}) - ${song.category}</span>${alreadyInList?'<span style="color:green;"> ✓ Ya está</span>':''}</label>`; }); showModal(`<h3>Añadir canciones a "${escapeHtml(list.name)}"</h3><input type="text" id="filterSongsMulti" class="form-control" placeholder="Filtrar canciones..." style="margin-bottom:1rem"><div id="songsMultiList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);padding:0.5rem;border-radius:8px;">${songsHtml}</div><div style="margin-top:1rem;text-align:right;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addSelectedSongsToList('${list.id}')">Añadir seleccionadas</button></div>`); const filterInput = document.getElementById('filterSongsMulti'); if(filterInput) filterInput.addEventListener('input',(e)=>{ const term = e.target.value.toLowerCase(); const labels = document.querySelectorAll('#songsMultiList label'); labels.forEach(label=>{ const text = label.innerText.toLowerCase(); label.style.display = text.includes(term)?'flex':'none'; }); }); }
 async function addSelectedSongsToList(listId) { const list = lists.find(l=>l.id===listId); if(!list) return; const checkboxes = document.querySelectorAll('.song-checkbox:checked'); if(checkboxes.length===0){ showToast("Selecciona al menos una canción."); return; } for(let cb of checkboxes){ const songId = cb.value; if(list.items.some(item=>(item.songId||item.song_id)===songId)) continue; list.items.push({ songId, keyOverride:null }); } await saveList(list); closeModal(); renderListDetail(); }
 async function removeSongFromList(listId, idx) { if(confirm("¿Quitar canción?")) { const list = lists.find(l=>l.id===listId); list.items.splice(idx,1); await saveList(list); renderListDetail(); } }
 async function changeItemKey(listId, idx) { const list = lists.find(l=>l.id===listId); const item = list.items[idx]; const song = songs.find(s=>s.id===(item.songId||item.song_id)); const newKey = prompt(`Cambiar tonalidad de "${song.title}" para esta lista:`, item.keyOverride||item.key_override||song.key); if(newKey && keys.includes(newKey)) { item.keyOverride = newKey; await saveList(list); renderListDetail(); } else if(newKey) showToast("Tonalidad no válida."); }
@@ -12823,8 +13126,7 @@ document.addEventListener('click', (e) => {
 let currentGrupoSeleccionado = 'Asarel';
 
 async function abrirGestionMiembrosDanza() {
-    // Verificar permisos
-    if (!(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
+    if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
         showToast('No tienes permiso para gestionar miembros de danza', 'error');
         return;
     }
@@ -13058,7 +13360,7 @@ async function actualizarContadoresGruposDanza() {
 let currentGrupoSeleccionadoEnModal = null;
 
 async function abrirGestionGruposDanza() {
-    if (!(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
+   if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
         showToast('No tienes permiso para gestionar grupos de danza', 'error');
         return;
     }
@@ -13167,6 +13469,10 @@ window.abrirFormularioNuevoGrupo = () => {
 };
 
 window.guardarNuevoGrupo = async () => {
+      if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
+        showToast('No tienes permiso para crear grupos', 'error');
+        return;
+    }
     const nombre = document.getElementById('grupoNombre').value.trim();
     if (!nombre) return showToast('El nombre es obligatorio', 'error');
     const descripcion = document.getElementById('grupoDesc').value.trim() || null;
@@ -13193,6 +13499,10 @@ window.guardarNuevoGrupo = async () => {
 };
 
 window.editarGrupo = async (grupoId) => {
+      if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
+        showToast('No tienes permiso para editar grupos', 'error');
+        return;
+    }
     const { data: grupo } = await supabaseClient.from('danza_grupos').select('*').eq('id', grupoId).single();
     if (!grupo) return;
     const fechaFormateada = grupo.fecha_asignada ? new Date(grupo.fecha_asignada).toLocaleDateString('es-ES') : '';
@@ -13221,6 +13531,10 @@ window.editarGrupo = async (grupoId) => {
 };
 
 window.guardarEdicionGrupo = async (grupoId) => {
+      if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
+        showToast('No tienes permiso para crear grupos', 'error');
+        return;
+    }
     const nombre = document.getElementById('editGrupoNombre').value.trim();
     if (!nombre) return showToast('El nombre es obligatorio', 'error');
     const descripcion = document.getElementById('editGrupoDesc').value.trim() || null;
@@ -13310,6 +13624,10 @@ window.guardarMiembrosGrupo = async () => {
 };
 
 window.eliminarGrupo = async (grupoId) => {
+      if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
+        showToast('No tienes permiso para crear grupos', 'error');
+        return;
+    }
     if (!confirm('¿Eliminar este grupo permanentemente? Se perderá la asignación de miembros y la planificación.')) return;
     await supabaseClient.from('danza_grupo_miembros').delete().eq('grupo_id', grupoId);
     const { error } = await supabaseClient.from('danza_grupos').delete().eq('id', grupoId);
@@ -15299,6 +15617,16 @@ async function renderHorarioGeneral() {
         }
     };
 }
+
+// ========== PERMISOS PARA LISTAS ==========
+function puedeEditarListas() {
+    // Solo superadmin, admin de iglesia, o admin específico del equipo de Alabanza
+    if (isAdminUser) return true;
+    if (isIglesiaAdmin) return true;
+    if (isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Alabanza') return true;
+    return false;
+}
+
     
   // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA) ====================
 let appInicializada = false;
