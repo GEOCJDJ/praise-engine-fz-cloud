@@ -3179,41 +3179,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
     
     let currentUser = null;
-    // ========== TEXTO DINÁMICO PARA SPLASH SCREEN ==========
-const frasesCarga = [
-    "Afinando el motor de alabanza...",
-    "Conectando con FZ Cloud...",
-    "Sincronizando perfiles y turnos...",
-    "Preparando tu interfaz personalizada..."
-];
-let indiceFrase = 0;
-let intervaloTextos = null;
-
-// Función para iniciar el cambio de textos (se llama al arrancar la app)
-function iniciarRotacionTextos() {
-    const loaderTextElement = document.getElementById('loader-text');
-    if (!loaderTextElement) return;
-    if (intervaloTextos) clearInterval(intervaloTextos);
-    intervaloTextos = setInterval(() => {
-        indiceFrase = (indiceFrase + 1) % frasesCarga.length;
-        if (loaderTextElement) {
-            loaderTextElement.innerText = frasesCarga[indiceFrase];
-        }
-    }, 800);
-}
-
-// Función para ocultar el splash screen (se llama cuando la app está lista)
-function ocultarSplashScreen() {
-    if (intervaloTextos) clearInterval(intervaloTextos);
-    const loader = document.getElementById('gpraise-loader');
-    if (loader) {
-        loader.classList.add('hidden');
-        // Opcional: eliminar el loader del DOM después de la transición
-        setTimeout(() => {
-            if (loader && loader.parentNode) loader.remove();
-        }, 700);
-    }
-}
+   
 let currentIglesiaId = null;
 let currentIglesiaData = null;
 let currentUserIglesia = null;
@@ -4317,6 +4283,7 @@ async function registrarImpresionLista(listaId) { if (!currentUser) return; try 
 async function registrarActividad(accion, detalles = '') { if (!currentUser) return; try { await supabaseClient.from('estadisticas_usuarios').insert({ user_id: currentUser.id, accion, detalles, iglesia_id: currentIglesiaId }); } catch(e) { console.error(e); } }
 
 // ========== CARGA DE DATOS ==========
+// ========== CARGA DE DATOS ==========
 async function loadUserData() {
     if (!currentUser || !currentIglesiaId) return;
     try {
@@ -4347,9 +4314,27 @@ async function loadUserData() {
         const { data: sh } = await supabaseClient.from('turnos').select('*, usuarios_iglesia(user_id)').eq('usuarios_iglesia.iglesia_id', currentIglesiaId);
         shifts = sh || [];
         
-        const deptIds = departamentos.map(d => d.id).join(',') || 'null';
-        const { data: c } = await supabaseClient.from('cursos').select('*').or(`entidad_tipo.eq.iglesia,and(entidad_tipo.eq.departamento,entidad_id.in.(${deptIds})`);
-        cursos = c || [];
+        // ========== CONSULTA CORREGIDA DE CURSOS ==========
+        let cursosData = [];
+        // Cursos de tipo iglesia
+        const { data: cursosIglesia } = await supabaseClient
+            .from('cursos')
+            .select('*')
+            .eq('entidad_tipo', 'iglesia');
+        if (cursosIglesia) cursosData.push(...cursosIglesia);
+        
+        // Cursos de tipo departamento (si hay departamentos)
+        if (departamentos.length > 0) {
+            const deptIds = departamentos.map(d => d.id).join(',');
+            const { data: cursosDept } = await supabaseClient
+                .from('cursos')
+                .select('*')
+                .eq('entidad_tipo', 'departamento')
+                .in('entidad_id', deptIds.split(','));
+            if (cursosDept) cursosData.push(...cursosDept);
+        }
+        cursos = cursosData;
+        // ========== FIN CONSULTA CORREGIDA ==========
         
         const { data: m } = await supabaseClient.from('modulos').select('*');
         modulosList = m || [];
@@ -4361,8 +4346,9 @@ async function loadUserData() {
         preguntas = p || [];
         
     } catch(e) {
-        console.error(e);
-        showToast("Error al cargar datos. Recarga la página.");
+        console.error("Error en loadUserData:", e);
+        showToast("Error al cargar datos. Algunas funciones pueden estar limitadas.", "warning");
+        // No relanzamos el error para que la app pueda continuar
     }
 }
     
@@ -16180,6 +16166,7 @@ const frasesCarga = [
 let indiceFrase = 0;
 let intervaloTextos = null;
 
+// Funciones auxiliares del splash (deben estar definidas antes de usarse)
 function iniciarRotacionTextos() {
     const loaderTextElement = document.getElementById('loader-text');
     if (!loaderTextElement) return;
@@ -16271,6 +16258,7 @@ window.asignarIglesiaYContinuar = async () => {
 };
 
 // ========== FUNCIÓN PRINCIPAL DE INICIO DE SESIÓN ==========
+// ========== FUNCIÓN PRINCIPAL DE INICIO DE SESIÓN ==========
 const iniciarSesionCompleta = async (session) => {
     if (appInicializada) return;
     appInicializada = true;
@@ -16301,7 +16289,11 @@ const iniciarSesionCompleta = async (session) => {
     if (!currentIglesiaId) {
         // Superadmin puede pasar sin iglesia (panel de admin)
         if (isAdminUser) {
-            await loadUserData();
+            try {
+                await loadUserData();
+            } catch (err) {
+                console.error("Error cargando datos para superadmin:", err);
+            }
             renderApp();
             setTimeout(() => ocultarSplashScreen(), 500);
             setTimeout(() => checkAndShowBirthday(), 1000);
@@ -16321,7 +16313,12 @@ const iniciarSesionCompleta = async (session) => {
     }
 
     // Si ya tiene iglesia, cargar datos y renderizar
-    await loadUserData();
+    try {
+        await loadUserData();
+    } catch (error) {
+        console.error("Error al cargar datos del usuario:", error);
+        showToast("Hubo un problema al cargar algunos datos. La aplicación continuará.", "warning");
+    }
     renderApp();
     setTimeout(() => ocultarSplashScreen(), 500);
     setTimeout(() => checkAndShowBirthday(), 1000);
