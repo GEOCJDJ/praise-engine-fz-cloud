@@ -14841,22 +14841,22 @@ async function cargarDatosContables() {
     const range = obtenerRangoFechas(period);
     const puedeEditar = puedeEditarContabilidad();
 
-    // Construir consulta con LEFT JOIN
+    // Construir consulta con INNER JOIN
     let query = supabaseClient
         .from('transacciones_equipos')
         .select(`
-            id,
-            amount,
-            tipo,
-            description,
-            fecha,
-            clase_id,
-            estudiante_id,
-            categoria_id,
-            finanzas_categorias_por_equipo!left(nombre, tipo as cat_tipo),
-            fzkids_clases!left(nombre as clase_nombre),
-            fzkids_estudiantes!left(nombre as estudiante_nombre, apellido)
-        `)
+    id,
+    amount,
+    tipo,
+    description,
+    fecha,
+    clase_id,
+    estudiante_id,
+    categoria_id,
+    finanzas_categorias_por_equipo(nombre, tipo),
+    fzkids_clases(nombre),
+    fzkids_estudiantes(nombre, apellido)
+`)
         .eq('equipo_tipo', currentEquipoTipo)
         .eq('iglesia_id', currentIglesiaId)
         .gte('fecha', range.start)
