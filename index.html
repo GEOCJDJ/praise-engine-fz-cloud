@@ -14680,13 +14680,20 @@ function mostrarLoaderContabilidad(mensaje = "Cargando datos financieros...") {
     } };
 }
     
-async function cargarFondoEquipo() {
-    const { data, error } = await supabaseClient
+async function cargarFondoEquipo(claseId = null) {
+    let query = supabaseClient
         .from('fondos_equipos')
         .select('saldo_actual')
         .eq('iglesia_id', currentIglesiaId)
-        .eq('equipo_tipo', currentEquipoTipo)
-        .single();
+        .eq('equipo_tipo', currentEquipoTipo);
+    
+    if (claseId) {
+        query = query.eq('clase_id', claseId);
+    } else {
+        query = query.is('clase_id', null);
+    }
+    
+    const { data, error } = await query.maybeSingle();
     if (error && error.code !== 'PGRST116') {
         console.error('Error cargando fondo:', error);
         return 0;
@@ -14694,16 +14701,24 @@ async function cargarFondoEquipo() {
     return data?.saldo_actual || 0;
 }
 
-async function actualizarFondoEquipo(saldo) {
-    await supabaseClient
+async function actualizarFondoEquipo(nuevoSaldo, claseId = null) {
+    const upsertData = {
+        iglesia_id: currentIglesiaId,
+        equipo_tipo: currentEquipoTipo,
+        saldo_actual: nuevoSaldo,
+        updated_at: new Date()
+    };
+    if (claseId) {
+        upsertData.clase_id = claseId;
+    } else {
+        upsertData.clase_id = null;
+    }
+    
+    const { error } = await supabaseClient
         .from('fondos_equipos')
-        .upsert({
-            iglesia_id: currentIglesiaId,
-            equipo_tipo: currentEquipoTipo,
-            nombre_equipo: currentEquipoTipo === 'fzkids' ? 'Escuela Bíblica' : currentEquipoTipo,
-            saldo_actual: saldo,
-            updated_at: new Date()
-        }, { onConflict: 'iglesia_id, equipo_tipo' });
+        .upsert(upsertData, { onConflict: 'iglesia_id, equipo_tipo, clase_id' });
+    
+    if (error) console.error('Error actualizando fondo:', error);
 }
 
 // ========== RENDER PRINCIPAL ==========
@@ -14821,20 +14836,24 @@ async function cargarDatosContables() {
         return;
     }
 
-    const classId = classFilter.value;
+    const classId = classFilter.value === 'all' ? null : classFilter.value;
     const period = periodFilter.value;
     const range = obtenerRangoFechas(period);
     const puedeEditar = puedeEditarContabilidad();
 
+    // Construir consulta con LEFT JOIN
     let query = supabaseClient
         .from('transacciones_equipos')
         .select(`
             id,
-            amount, tipo, description, fecha,
+            amount,
+            tipo,
+            description,
+            fecha,
             clase_id,
             estudiante_id,
             categoria_id,
-            finanzas_categorias_por_equipo!inner(nombre, tipo as cat_tipo),
+            finanzas_categorias_por_equipo!left(nombre, tipo as cat_tipo),
             fzkids_clases!left(nombre as clase_nombre),
             fzkids_estudiantes!left(nombre as estudiante_nombre, apellido)
         `)
@@ -14843,39 +14862,44 @@ async function cargarDatosContables() {
         .gte('fecha', range.start)
         .lte('fecha', range.end);
 
-    if (classId !== 'all') {
+    if (classId) {
         query = query.eq('clase_id', classId);
     }
 
     const { data, error } = await query;
+    
     if (error) {
-        console.error(error);
-        showToast('Error al cargar transacciones', 'error');
+        console.error("❌ Error en consulta Supabase:", error);
+        showToast('Error al cargar transacciones: ' + error.message, 'error');
+        tbody.innerHTML = `<tr><td colspan="${puedeEditar ? 6 : 5}" class="text-center text-red-500">Error: ${error.message}</td></tr>`;
         return;
     }
+
+    console.log("✅ Transacciones cargadas:", data);
 
     let income = 0, expenses = 0;
     tbody.innerHTML = '';
     const categoryMap = new Map();
 
     (data || []).forEach(t => {
-        if (t.tipo === 'income') income += parseFloat(t.amount);
-        else expenses += parseFloat(t.amount);
+        const monto = parseFloat(t.amount);
+        if (t.tipo === 'income') income += monto;
+        else expenses += monto;
 
-        const catName = t.finanzas_categorias_por_equipo?.nombre || 'Otro';
+        const catName = t.finanzas_categorias_por_equipo?.nombre || 'Sin categoría';
         const current = categoryMap.get(catName) || 0;
-        categoryMap.set(catName, current + parseFloat(t.amount));
+        categoryMap.set(catName, current + monto);
 
         const claseNombre = t.fzkids_clases?.clase_nombre || 'General';
         const estudianteNombre = t.fzkids_estudiantes ? `${t.fzkids_estudiantes.nombre} ${t.fzkids_estudiantes.apellido || ''}` : '';
 
         let row = `<tr>
-            <td>${t.fecha}</td>
+            <td>${t.fecha || '—'}</td>
             <td>${escapeHtml(claseNombre)}${estudianteNombre ? `<br><small>${escapeHtml(estudianteNombre)}</small>` : ''}</td>
             <td>${escapeHtml(t.description || '—')}</td>
             <td>${escapeHtml(catName)}</td>
             <td class="${t.tipo === 'income' ? 'text-income' : 'text-expense'}">
-                ${t.tipo === 'income' ? '+' : '-'}$${parseFloat(t.amount).toFixed(2)}
+                ${t.tipo === 'income' ? '+' : '-'}$${monto.toFixed(2)}
             </td>`;
 
         if (puedeEditar) {
@@ -14886,7 +14910,7 @@ async function cargarDatosContables() {
                         <button class="btn-icon" onclick="eliminarTransaccion('${t.id}')" title="Eliminar" style="color: #ef4444;">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                     </td>`;
+                    </td>`;
         }
         row += `</tr>`;
         tbody.innerHTML += row;
@@ -14904,8 +14928,8 @@ async function cargarDatosContables() {
     netEl.innerText = `$${net.toFixed(2)}`;
     netEl.style.color = net >= 0 ? '#10b981' : '#ef4444';
 
-    // Actualizar saldo del fondo
-    const saldoActual = await cargarFondoEquipo();
+    // Mostrar saldo de la clase seleccionada (o global si 'all')
+    const saldoActual = await cargarFondoEquipo(classId);
     const saldoDisplay = document.getElementById('saldoActualDisplay');
     if (saldoDisplay) saldoDisplay.innerText = `$${saldoActual.toFixed(2)}`;
 
@@ -15165,23 +15189,25 @@ async function guardarTransaccion() {
         return;
     }
     
-    // Actualizar saldo del fondo
-    const saldoActual = await cargarFondoEquipo();
+    // Actualizar saldo del fondo para esa clase
+    const saldoActual = await cargarFondoEquipo(claseId);
     const nuevoSaldo = tipo === 'income' ? saldoActual + monto : saldoActual - monto;
-    await actualizarFondoEquipo(nuevoSaldo);
+    await actualizarFondoEquipo(nuevoSaldo, claseId);
     
     showToast('Movimiento registrado correctamente', 'success');
     closeModal();
     await cargarDatosContables();
 }
 
-// ========== EDITAR Y ELIMINAR ==========
+let claseOriginalEnEdicion = null;
+
 async function editarTransaccion(id) {
     if (!puedeEditarContabilidad()) {
         showToast('No tienes permiso para editar', 'error');
         return;
     }
 
+    // Obtener datos de la transacción
     const { data, error } = await supabaseClient
         .from('transacciones_equipos')
         .select('*')
@@ -15193,20 +15219,27 @@ async function editarTransaccion(id) {
         return;
     }
 
+    // Guardar clase original para después actualizar saldos
+    claseOriginalEnEdicion = data.clase_id;
+
+    // Cargar listas necesarias
     const clases = await cargarClasesFzkids();
     const categorias = await cargarCategoriasFinancieras();
     const estudiantes = data.clase_id ? await cargarEstudiantesPorClase(data.clase_id) : [];
     
+    // Generar opciones de HTML
     const clasesOptions = clases.map(c => `<option value="${c.id}" ${c.id === data.clase_id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('');
     const estudiantesOptions = '<option value="">-- Ninguno --</option>' + 
         estudiantes.map(e => `<option value="${e.id}" ${e.id === data.estudiante_id ? 'selected' : ''}>${escapeHtml(e.nombre)} ${e.apellido || ''}</option>`).join('');
     
+    // Categorías según tipo de transacción (income o expense)
     const categoriasTipo = data.tipo === 'income' ? categorias.filter(c => c.tipo === 'income') : categorias.filter(c => c.tipo === 'expense');
     const categoriasHtml = categoriasTipo.map(c => `<option value="${c.id}" ${c.id === data.categoria_id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('');
 
     const modalContent = `
         <div style="max-width: 550px; margin: 0 auto;">
             <h3><i class="fas fa-edit"></i> Editar Movimiento</h3>
+            <input type="hidden" id="editClaseOriginal" value="${data.clase_id}">
             <div class="form-group">
                 <label>Tipo *</label>
                 <select id="editTipo" class="form-control" onchange="toggleCategoriasEdicion()">
@@ -15245,8 +15278,11 @@ async function editarTransaccion(id) {
         </div>
     `;
     showModal(modalContent);
+    
+    // Inicializar flatpickr
     flatpickr("#editFecha", { dateFormat: "d/m/Y", locale: "es" });
     
+    // Funciones auxiliares del modal (se asignan globalmente o se declaran aquí)
     window.cargarEstudiantesEdicion = async (claseId) => {
         const container = document.getElementById('editEstudianteContainer');
         const select = document.getElementById('editEstudiante');
@@ -15267,13 +15303,21 @@ async function editarTransaccion(id) {
     window.toggleCategoriasEdicion = () => {
         const tipo = document.getElementById('editTipo').value;
         const container = document.getElementById('editCategoriasContainer');
-        const categoriasList = tipo === 'income' ? categorias.filter(c => c.tipo === 'income') : categorias.filter(c => c.tipo === 'expense');
-        const selectHtml = `<label>Categoría *</label><select id="editCategoria" class="form-control">${categoriasList.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}</select>`;
+        // Usar categorías filtradas (deben estar en variable global o cargadas nuevamente)
+        const categoriasList = (categorias || []).filter(c => c.tipo === tipo);
+        const selectHtml = `<label>Categoría *</label><select id="editCategoria" class="form-control">${
+            categoriasList.map(c => `<option value="${c.id}" ${c.id === data.categoria_id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')
+        }</select>`;
         container.innerHTML = selectHtml;
     };
 }
-
+    
 async function guardarEdicionTransaccion(id, montoAnterior, tipoAnterior) {
+    if (!puedeEditarContabilidad()) {
+        showToast('No tienes permiso para editar', 'error');
+        return;
+    }
+
     const tipo = document.getElementById('editTipo').value;
     const claseId = document.getElementById('editClase').value;
     const estudianteId = document.getElementById('editEstudiante')?.value || null;
@@ -15307,19 +15351,51 @@ async function guardarEdicionTransaccion(id, montoAnterior, tipoAnterior) {
         showToast('Error al actualizar: ' + error.message, 'error');
         return;
     }
+
+    // --- Ajustar saldos de clases afectadas ---
+    // Clase original (antes de editar)
+    const claseOriginal = document.getElementById('editClaseOriginal')?.value || claseOriginalEnEdicion;
     
-    // Actualizar saldo del fondo
-    const saldoActual = await cargarFondoEquipo();
-    let nuevoSaldo = saldoActual;
-    if (tipoAnterior === 'income') nuevoSaldo -= montoAnterior;
-    else nuevoSaldo += montoAnterior;
-    if (tipo === 'income') nuevoSaldo += monto;
-    else nuevoSaldo -= monto;
-    await actualizarFondoEquipo(nuevoSaldo);
-    
-    showToast('Movimiento actualizado', 'success');
+    // Si la clase cambió, hay que ajustar saldo en ambas clases
+    if (claseOriginal && claseOriginal !== claseId) {
+        // Recalcular saldo de la clase original (restar el efecto de la transacción anterior)
+        const saldoOriginalClase = await recalcularSaldoClase(claseOriginal);
+        await actualizarFondoEquipo(saldoOriginalClase, claseOriginal);
+        
+        // Recalcular saldo de la nueva clase (sumar el efecto de la transacción nueva)
+        const saldoNuevaClase = await recalcularSaldoClase(claseId);
+        await actualizarFondoEquipo(saldoNuevaClase, claseId);
+    } else {
+        // Misma clase: recalcular saldo completo desde cero (más seguro que ajuste incremental)
+        const saldoActualizado = await recalcularSaldoClase(claseId);
+        await actualizarFondoEquipo(saldoActualizado, claseId);
+    }
+
+    showToast('Movimiento actualizado correctamente', 'success');
     closeModal();
     await cargarDatosContables();
+}
+
+// Función auxiliar para recalcular saldo de una clase desde cero
+async function recalcularSaldoClase(claseId) {
+    if (!claseId) return 0;
+    const { data, error } = await supabaseClient
+        .from('transacciones_equipos')
+        .select('amount, tipo')
+        .eq('iglesia_id', currentIglesiaId)
+        .eq('equipo_tipo', currentEquipoTipo)
+        .eq('clase_id', claseId);
+    
+    if (error) {
+        console.error('Error recalculando saldo:', error);
+        return 0;
+    }
+    let saldo = 0;
+    data.forEach(t => {
+        if (t.tipo === 'income') saldo += parseFloat(t.amount);
+        else saldo -= parseFloat(t.amount);
+    });
+    return saldo;
 }
 
 async function eliminarTransaccion(id) {
@@ -15328,10 +15404,10 @@ async function eliminarTransaccion(id) {
         return;
     }
     
-    // Obtener datos antes de eliminar para ajustar saldo
+    // Obtener datos antes de eliminar
     const { data, error: fetchError } = await supabaseClient
         .from('transacciones_equipos')
-        .select('amount, tipo')
+        .select('amount, tipo, clase_id')
         .eq('id', id)
         .single();
     
@@ -15352,10 +15428,11 @@ async function eliminarTransaccion(id) {
         return;
     }
     
-    // Ajustar saldo
-    const saldoActual = await cargarFondoEquipo();
+    // Ajustar saldo de la clase correspondiente
+    const claseId = data.clase_id;
+    const saldoActual = await cargarFondoEquipo(claseId);
     const nuevoSaldo = data.tipo === 'income' ? saldoActual - data.amount : saldoActual + data.amount;
-    await actualizarFondoEquipo(nuevoSaldo);
+    await actualizarFondoEquipo(nuevoSaldo, claseId);
     
     showToast('Movimiento eliminado', 'success');
     await cargarDatosContables();
