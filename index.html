@@ -2086,27 +2086,42 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
    DISEÑO DE TARJETAS PARA GESTIÓN DE TURNOS
    ========================================= */
 
-/* Contenedor principal: Grilla adaptable */
+/* Contenedor de la grilla - más flexible */
 .turnos-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-    padding: 15px 0;
-    width: 100%;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
 }
 
-/* Tarjeta individual de cada turno */
+/* Para pantallas muy grandes, que las tarjetas no se estiren demasiado */
+@media (min-width: 1400px) {
+    .turnos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+}
+
+/* Tarjeta individual - un poco más de padding y altura si quieres */
 .turno-card {
     background-color: #1a1a1a;
     border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 1.2rem;
     border: 1px solid #2a2a2a;
-    display: flex;
-    flex-direction: column;
     transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
+/* Ajuste del contenedor principal de la página (elimina márgenes laterales innecesarios) */
+#mainContent {
+    width: 100%;
+    padding: 0 0.5rem;
+    box-sizing: border-box;
+}
+
+/* En pantallas grandes, quitar padding lateral excesivo */
+@media (min-width: 1024px) {
+    #mainContent {
+        padding: 0 1rem;
+    }
+}
 .turno-card:hover {
     transform: translateY(-4px);
     border-color: #5ea1ff;
@@ -15149,14 +15164,12 @@ function exportFinanceReport() {
 }    
 // ========== HORARIO GENERAL (SOLO LECTURA) ==========
 async function renderHorarioGeneral() {
-    // Verificar permisos: solo miembros de alabanza o danza
     if (!puedeVerAlabanza() && !puedeVerPlanner()) {
         showToast("No tienes permiso para ver el horario general", "error");
         navigateTo('home');
         return;
     }
 
-    // Agrupar turnos por fecha desde la variable global 'shifts'
     const turnosMap = {};
     shifts.forEach(s => {
         const miembro = usuariosIglesia.find(u => u.id === s.usuario_iglesia_id);
@@ -15169,7 +15182,6 @@ async function renderHorarioGeneral() {
         }
     });
 
-    // Función para obtener título del evento desde tabla 'actividades'
     async function obtenerTituloEvento(fecha) {
         const { data } = await supabaseClient
             .from('actividades')
@@ -15179,55 +15191,51 @@ async function renderHorarioGeneral() {
         return data?.titulo || 'Culto Dominical';
     }
 
-    // Filtro inicial: mes actual
     let currentFilterYear = new Date().getFullYear();
     let currentFilterMonth = new Date().getMonth() + 1;
 
-    // Función que renderiza las tarjetas según el filtro
     const renderTarjetas = async () => {
-        // Filtrar fechas por año y mes
         const fechasFiltradas = Object.keys(turnosMap).filter(fecha => {
             const [dia, mes, anio] = fecha.split('/');
             return parseInt(anio) === currentFilterYear && parseInt(mes) === currentFilterMonth;
         }).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
 
-        let tarjetasHtml = '';
         if (fechasFiltradas.length === 0) {
-            tarjetasHtml = '<div class="text-center p-4" style="color: var(--text-muted);">No hay turnos programados para este mes.</div>';
-        } else {
-            tarjetasHtml = '<div class="turnos-grid">';
-            for (const fecha of fechasFiltradas) {
-                const miembros = turnosMap[fecha];
-                const tituloEvento = await obtenerTituloEvento(fecha);
-                tarjetasHtml += `
-                    <div class="turno-card">
-                        <div class="turno-header">
-                            <div class="turno-fecha">
-                                <i class="fa-regular fa-calendar"></i> ${fecha}
-                            </div>
-                            <h3 class="turno-titulo">${escapeHtml(tituloEvento)}</h3>
-                        </div>
-                        <div class="turno-musicos">
-                            ${miembros.map(m => `
-                                <div class="musico-item">
-                                    <span class="musico-rol">${escapeHtml(m.rol)}</span>
-                                    <span class="musico-nombre">${escapeHtml(m.nombre)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <!-- Sin botones de acción (solo lectura) -->
-                    </div>
-                `;
-            }
-            tarjetasHtml += '</div>';
+            document.getElementById('horarioTarjetasContainer').innerHTML = '<div class="text-center p-4" style="color: var(--text-muted);">No hay turnos programados para este mes.</div>';
+            return;
         }
+
+        let tarjetasHtml = '<div class="turnos-grid">';
+        for (const fecha of fechasFiltradas) {
+            const miembros = turnosMap[fecha];
+            const tituloEvento = await obtenerTituloEvento(fecha);
+            tarjetasHtml += `
+                <div class="turno-card">
+                    <div class="turno-header">
+                        <div class="turno-fecha">
+                            <i class="fa-regular fa-calendar"></i> ${fecha}
+                        </div>
+                        <h3 class="turno-titulo">${escapeHtml(tituloEvento)}</h3>
+                    </div>
+                    <div class="turno-musicos">
+                        ${miembros.map(m => `
+                            <div class="musico-item">
+                                <span class="musico-rol">${escapeHtml(m.rol)}</span>
+                                <span class="musico-nombre">${escapeHtml(m.nombre)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        tarjetasHtml += '</div>';
         document.getElementById('horarioTarjetasContainer').innerHTML = tarjetasHtml;
     };
 
-    // Construir interfaz principal
+    // Interfaz principal SIN max-width
     const html = `
-        <div style="max-width: 1200px; margin: 0 auto;">
-            <!-- Cabecera con gradiente -->
+        <div style="width: 100%; padding: 0 1rem; box-sizing: border-box;">
+            <!-- Cabecera -->
             <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 1rem; padding: 1rem 1.5rem; color: white; margin-bottom: 1.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
@@ -15240,10 +15248,10 @@ async function renderHorarioGeneral() {
                 </div>
             </div>
 
-            <!-- Filtro por mes -->
+            <!-- Filtro -->
             <div class="card" style="padding: 1rem; margin-bottom: 1.5rem;">
                 <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
-                    <div style="flex:1">
+                    <div style="flex: 2; min-width: 180px;">
                         <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.3rem;">Filtrar por mes</label>
                         <input type="month" id="horarioMonthFilter" class="form-control" value="${currentFilterYear}-${String(currentFilterMonth).padStart(2, '0')}">
                     </div>
@@ -15252,12 +15260,11 @@ async function renderHorarioGeneral() {
                 </div>
             </div>
 
-            <!-- Contenedor de tarjetas -->
+            <!-- Contenedor de tarjetas (ocupa todo el ancho) -->
             <div id="horarioTarjetasContainer" class="turnos-grid">
                 <div class="text-center p-4">Cargando...</div>
             </div>
 
-            <!-- Botón volver -->
             <div style="text-align: right; margin-top: 1.5rem;">
                 <button class="btn btn-ghost" onclick="renderCurrentView()">Volver</button>
             </div>
@@ -15267,10 +15274,8 @@ async function renderHorarioGeneral() {
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('actionHeader').innerHTML = '';
 
-    // Renderizar las tarjetas iniciales
     await renderTarjetas();
 
-    // Configurar evento de cambio en el filtro de mes
     const monthFilter = document.getElementById('horarioMonthFilter');
     if (monthFilter) {
         monthFilter.addEventListener('change', (e) => {
@@ -15283,7 +15288,6 @@ async function renderHorarioGeneral() {
         });
     }
 
-    // Función global para aplicar filtro manualmente (por si usas el botón)
     window.aplicarFiltroHorario = () => {
         if (monthFilter && monthFilter.value) {
             const [year, month] = monthFilter.value.split('-');
