@@ -11619,20 +11619,22 @@ function mostrarInterfazPlanner() {
     ` : ''}
 
     <!-- Vestuario -->
-    <div style="background: var(--bg-app); border-radius: 1rem; padding: 0.8rem 1rem; margin-bottom: 1rem; border: 1px solid var(--border);">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 0.8rem;">
-                <i class="fa-solid fa-shirt" style="color: #ec4899; font-size: 1.2rem;"></i>
-                <div>
-                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vestuario Asignado</span>
-                    <div id="vestuario-text-${plannerSemanaSeleccionada.id}" style="font-size: 0.9rem; font-weight: 600; color: #C8972A;">${vestuarioActual || 'No asignado'}</div>
-                </div>
+<div style="background: var(--bg-app); border-radius: 1rem; padding: 0.8rem 1rem; margin-bottom: 1rem; border: 1px solid var(--border);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <i class="fa-solid fa-shirt" style="color: #ec4899; font-size: 1.2rem;"></i>
+            <div>
+                <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vestuario Asignado</span>
+                <div id="vestuario-text-${plannerSemanaSeleccionada.id}" style="font-size: 0.9rem; font-weight: 600; color: #C8972A;">${vestuarioActual || 'No asignado'}</div>
             </div>
-            <button onclick="editarVestuarioPlanner('${plannerSemanaSeleccionada.id}', '${escapeHtml(vestuarioActual)}')" class="btn-icon" style="background: none; color: var(--text-muted);">
-                <i class="fas fa-edit"></i>
-            </button>
         </div>
+        ${(isAdminUser || isIglesiaAdmin || (isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) ? `
+        <button onclick="editarVestuarioPlanner('${plannerSemanaSeleccionada.id}', '${escapeHtml(vestuarioActual)}')" class="btn-icon" style="background: none; color: var(--text-muted);">
+            <i class="fas fa-edit"></i>
+        </button>
+        ` : ''}
     </div>
+</div>
 
     <!-- Selector de grupo para este evento -->
     <div style="background: var(--bg-app); border-radius: 1rem; padding: 0.8rem 1rem; margin-bottom: 1rem; border: 1px solid var(--border);">
@@ -12393,9 +12395,15 @@ function cambiarFiltroGDesk(filtro) {
     
 
 window.editarVestuarioPlanner = (eventoId, vestuarioActual) => {
+     // Verificar permisos: solo administradores pueden editar vestuario
+    if (!isAdminUser && !isIglesiaAdmin && !(isEquipoAdmin && equipoAdminData?.nombre === 'Danza')) {
+        showToast("No tienes permiso para editar el vestuario", "error");
+        return;
+    }
+    
     const valorActual = (vestuarioActual === 'undefined' || !vestuarioActual) ? '' : vestuarioActual;
     showModal(`
-        <div style="text-align: center;">
+         <div style="text-align: center;">
             <h3 style="margin-bottom: 15px; color: var(--text-main); font-weight: 800;">👗 Asignar Vestuario</h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Escribe la descripción del vestuario para esta fecha.</p>
             <input type="text" id="input-vestuario" value="${escapeHtml(valorActual)}" placeholder="Ej: Túnica Blanca + Manto Azul" style="width: 100%; margin-bottom: 20px; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-app); color: var(--text-main); outline: none;">
