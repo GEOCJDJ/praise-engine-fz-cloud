@@ -16024,72 +16024,167 @@ function puedeEditarListas() {
 }
 
     
-  // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA) ====================
-let appInicializada = false;
 
+// ==================== INICIALIZACIÓN DE LA APP (CORREGIDA + GOOGLE IGLESIA) ====================
+let appInicializada = false;
+let pendingGoogleUser = null; // Para recordar el usuario mientras selecciona iglesia
+
+// Función auxiliar: obtener lista de iglesias
+async function obtenerListaIglesias() {
+    const { data, error } = await supabaseClient.from('iglesias').select('id, nombre');
+    if (error) {
+        console.error(error);
+        return [];
+    }
+    return data || [];
+}
+
+// Función para mostrar selector de iglesias (cuando falta asignación)
+function mostrarSelectorIglesia(iglesias, userData) {
+    pendingGoogleUser = userData;
+    const opciones = iglesias.map(ig => `<option value="${ig.id}">${escapeHtml(ig.nombre)}</option>`).join('');
+    const modalContent = `
+        <div style="max-width: 400px; margin: 0 auto; text-align: center;">
+            <div style="margin-bottom: 1rem;">
+                <div class="avatar" style="width: 80px; height: 80px; margin: 0 auto;">
+                    ${userData?.user_metadata?.avatar_url ? 
+                        `<img src="${userData.user_metadata.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` :
+                        `<i class="fas fa-user-circle fa-4x"></i>`
+                    }
+                </div>
+                <h3>Bienvenido, ${escapeHtml(userData?.user_metadata?.full_name || userData?.email || 'Usuario')}</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Selecciona la iglesia a la que perteneces para continuar.</p>
+            </div>
+            <select id="iglesiaSeleccionada" class="form-control">${opciones}</select>
+            <button class="btn btn-primary mt-3" style="margin-top: 1rem;" onclick="asignarIglesiaYContinuar()">
+                <i class="fas fa-check-circle"></i> Confirmar
+            </button>
+        </div>
+    `;
+    showModal(modalContent);
+}
+
+// Función global para asignar iglesia y continuar
+window.asignarIglesiaYContinuar = async () => {
+    const iglesiaId = document.getElementById('iglesiaSeleccionada')?.value;
+    if (!iglesiaId) {
+        showToast("Debes seleccionar una iglesia", "error");
+        return;
+    }
+    if (!pendingGoogleUser) {
+        showToast("Error: no se pudo identificar al usuario", "error");
+        return;
+    }
+    // Insertar en usuarios_iglesia
+    const { error } = await supabaseClient.from('usuarios_iglesia').insert({
+        user_id: pendingGoogleUser.id,
+        iglesia_id: iglesiaId,
+        departamento_id: null,
+        es_admin_iglesia: false,
+        es_admin_departamento: false,
+        rol_musical: null
+    });
+    if (error) {
+        showToast("Error al asignar iglesia: " + error.message, "error");
+        return;
+    }
+    closeModal();
+    // Recargar la sesión completa
+    currentUser = pendingGoogleUser;
+    pendingGoogleUser = null;
+    await loadProfile();
+    await loadUserIglesia();
+    await loadUserData();
+    renderApp();
+    setTimeout(() => checkAndShowBirthday(), 1000);
+};
+
+// Función principal de inicio de sesión
+const iniciarSesionCompleta = async (session) => {
+    if (appInicializada) return; 
+    appInicializada = true;
+
+    currentUser = session.user;
+    
+    // 1. Verificar/crear perfil en tabla 'perfiles'
+    const { data: perfilDB } = await supabaseClient
+        .from('perfiles')
+        .select('id')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+    
+    if (!perfilDB) {
+        const nombreUsuario = currentUser.user_metadata?.full_name || currentUser.email;
+        await supabaseClient.from('perfiles').insert([{
+            id: currentUser.id,
+            nombre: nombreUsuario,
+            email: currentUser.email,
+            rol: 'user'
+        }]);
+    }
+
+    // 2. Cargar perfil y membresía de iglesia
+    await loadProfile();
+    await loadUserIglesia();
+
+    // 3. Si el usuario NO tiene iglesia asignada (nuevo usuario Google o email sin asignar)
+    if (!currentIglesiaId) {
+        // Si es superadmin global, permitir acceso sin iglesia (solo panel admin)
+        if (isAdminUser) {
+            renderApp(); // el renderApp ya maneja admin sin iglesia
+            return;
+        }
+        // Para cualquier otro usuario, pedir asignación de iglesia
+        const iglesias = await obtenerListaIglesias();
+        if (iglesias.length === 0) {
+            showToast("No hay iglesias registradas. Contacta al administrador.", "error");
+            logout();
+            return;
+        }
+        // Mostrar selector y detener la carga (la variable pendingGoogleUser guarda al usuario)
+        mostrarSelectorIglesia(iglesias, currentUser);
+        appInicializada = false; // permitir reintentar después de asignar
+        return;
+    }
+
+    // 4. Si ya tiene iglesia, cargar datos y renderizar app
+    await loadUserData();
+    renderApp();
+    setTimeout(() => checkAndShowBirthday(), 1000);
+};
+
+// Escuchar cambios de autenticación (Google, email, cierre)
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+        iniciarSesionCompleta(session);
+    } else if (event === 'SIGNED_OUT') {
+        appInicializada = false;
+        currentUser = null;
+        currentIglesiaId = null;
+        pendingGoogleUser = null;
+        renderLogin();
+    }
+});
+
+// Verificación de sesión al cargar la página
 (async () => {
-    // 1. Aplicar tema visual guardado
     const savedTheme = localStorage.getItem('user_theme');
     if (savedTheme) aplicarTema(savedTheme);
-
-    const iniciarSesionCompleta = async (session) => {
-        if (appInicializada) return; 
-        appInicializada = true;
-
-        currentUser = session.user;
-        
-        //  Verificar si el perfil existe REALMENTE en Supabase (Crucial para Google)
-        const { data: perfilDB } = await supabaseClient
-            .from('perfiles')
-            .select('id')
-            .eq('id', currentUser.id)
-            .maybeSingle();
-        
-        //  Si es un usuario nuevo (Google o Email), le creamos su perfil oficial
-        if (!perfilDB) {
-            const nombreUsuario = currentUser.user_metadata?.full_name || currentUser.email;
-            await supabaseClient.from('perfiles').insert([{
-                id: currentUser.id,
-                nombre: nombreUsuario,
-                email: currentUser.email,
-                rol: 'user' // Todos inician como usuarios normales
-            }]);
-        }
-
-        // C. Cargar los datos del usuario y renderizar
-        await loadProfile();
-        await loadUserIglesia();
-        await loadUserData();
-renderApp();
-setTimeout(() => checkAndShowBirthday(), 1000);
-    };
-
-    //  Escuchar cambios de Google, Inicio de sesión o Cierre de sesión
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            iniciarSesionCompleta(session);
-        } else if (event === 'SIGNED_OUT') {
-            appInicializada = false; 
-            currentUser = null;
-            currentIglesiaId = null;
-            renderLogin();
-        }
-    });
-
-    // Verificación de sesión al recargar la página
+    
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         iniciarSesionCompleta(session);
     } else {
         renderLogin();
     }
+})();
 
-    //  Motor de notificaciones en segundo plano
-    setInterval(() => {
-        if (currentUser && typeof cargarNotificaciones === 'function') {
-            cargarNotificaciones();
-        }
-    }, 30000);
+// Notificaciones periódicas
+setInterval(() => {
+    if (currentUser && typeof cargarNotificaciones === 'function') {
+        cargarNotificaciones();
+    }
+}, 30000);
 })();
      
 
