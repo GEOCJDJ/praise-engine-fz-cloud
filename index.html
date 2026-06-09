@@ -4729,12 +4729,14 @@ async function renderHome() {
             </div>
         </div>
 
-        <div class="card" style="background:linear-gradient(135deg,#F59E0B,#FCD34D);color:white;">
+<!-- Tarjeta Próximos turnos (clickeable) -->
+        <div class="card" style="background:linear-gradient(135deg,#F59E0B,#FCD34D);color:white; cursor: pointer;" onclick="viewMyShifts()">
             <h3><i class="fas fa-calendar-alt"></i> 📆 Próximos turnos</h3>
             ${proximosTurnos.length === 0 ? '<p>Sin turnos próximos.</p>' : `<ul>${proximosTurnos.map(t => `<li><strong>${t.fecha}</strong></li>`).join('')}</ul>`}
         </div>
 
-        <div class="card" style="background:linear-gradient(135deg,#10B981,#34D399);color:white;">
+        <!-- Tarjeta Eventos especiales (clickeable) -->
+        <div class="card" style="background:linear-gradient(135deg,#10B981,#34D399);color:white; cursor: pointer;" onclick="navigateTo('agenda')">
             <h3><i class="fas fa-star-of-life"></i> 🎉 Eventos especiales</h3>
             ${proximasActividades.length === 0 ? '<p>No hay actividades próximas.</p>' : `<ul>${proximasActividades.map(a => `<li><strong>${a.fecha}</strong> – ${escapeHtml(a.titulo)}</li>`).join('')}</ul>`}
         </div>
@@ -4750,7 +4752,7 @@ async function renderHome() {
                 <i class="fas fa-user" style="color:var(--primary);"></i>
                 <h3>Mi perfil</h3>
             </div>
-            <div class="card quick-access-card" onclick="navigateTo('myShifts')">
+            <div class="card quick-access-card" onclick="renderHorarioGeneral()">
                 <i class="fas fa-calendar-alt" style="color:#F59E0B;"></i>
                 <h3>Mis turnos</h3>
             </div>
