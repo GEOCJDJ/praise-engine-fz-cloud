@@ -3084,6 +3084,232 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
         font-size: 1.4rem !important;
     }
 }
+/* =========================================
+   ESTILOS PREMIUM DEL AFINADOR G-PRAISE
+   ========================================= */
+.gp-tuner-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 24px;
+    padding: 24px;
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    font-family: 'Inter', sans-serif;
+}
+
+.gp-tuner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.tuner-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+}
+
+.tuner-title-wrapper h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.pulse-icon {
+    color: #5ea1ff;
+    animation: pulseGlowIA 2s infinite ease-in-out;
+}
+
+.freq-badge {
+    background: #242424;
+    color: #888;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Contenedor de la aguja e interfaz circular */
+.gp-tuner-display-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 25px 0;
+}
+
+.gp-tuner-circle-container {
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #161616 0%, #111111 100%);
+    border: 6px solid #242424;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 4px 20px rgba(0,0,0,0.6);
+    transition: all 0.25s ease;
+}
+
+/* Efecto de luces neón cuando está afinado */
+.gp-tuner-circle-container.is-tuned {
+    border-color: rgba(0, 255, 157, 0.4);
+    box-shadow: inset 0 4px 20px rgba(0,0,0,0.6), 0 0 25px rgba(0, 255, 157, 0.25);
+}
+
+.tuner-needle-axis {
+    position: absolute;
+    bottom: 50%;
+    width: 2px;
+    height: 90px;
+    transform-origin: bottom center;
+    transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tuner-needle {
+    width: 3px;
+    height: 100%;
+    background: #ff5e5e;
+    box-shadow: 0 0 8px #ff5e5e;
+    border-radius: 4px;
+    position: relative;
+}
+
+.gp-tuner-circle-container.is-tuned .tuner-needle {
+    background: #00ff9d !important;
+    box-shadow: 0 0 15px #00ff9d !important;
+    width: 4px;
+}
+
+/* Centro del círculo */
+.tuner-center-info {
+    text-align: center;
+    z-index: 5;
+    pointer-events: none;
+    margin-top: 30px;
+}
+
+.tuner-cents-txt {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ff5e5e;
+    letter-spacing: 0.5px;
+}
+
+.gp-tuner-circle-container.is-tuned .tuner-cents-txt {
+    color: #00ff9d;
+}
+
+.tuner-note-txt {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1;
+    margin: 4px 0;
+}
+
+.tuner-note-txt span {
+    font-size: 1.5rem;
+    color: #5ea1ff;
+    font-weight: 500;
+}
+
+.tuner-transposed-txt {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: 600;
+    text-transform: uppercase;
+    min-height: 15px;
+}
+
+/* Indicadores inferiores */
+.tuner-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+    margin-bottom: 25px;
+}
+
+.status-lbl {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #444;
+    letter-spacing: 0.5px;
+}
+
+.status-center-dot {
+    width: 8px;
+    height: 8px;
+    background: #444;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.gp-tuner-circle-container.is-tuned + .tuner-status-bar .status-center-dot {
+    background: #00ff9d;
+    box-shadow: 0 0 10px #00ff9d;
+}
+
+/* Slider de instrumentos */
+.gp-instrument-slider {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+}
+
+.gp-instrument-slider::-webkit-scrollbar {
+    display: none;
+}
+
+.gp-instr-btn {
+    background: #242424;
+    border: 1px solid #333;
+    border-radius: 14px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.gp-instr-btn i {
+    font-size: 1rem;
+}
+
+.gp-instr-btn span {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.gp-instr-btn:hover {
+    border-color: #5ea1ff;
+    color: #ffffff;
+}
+
+.gp-instr-btn.active {
+    background: #5ea1ff;
+    color: #121212;
+    border-color: #5ea1ff;
+    box-shadow: 0 4px 15px rgba(94, 161, 255, 0.3);
+}
+
+@keyframes pulseGlowIA {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -6201,7 +6427,9 @@ function renderResources() {
         { nombre: "Teleprompter", descripcion: "Desplazamiento de letras en vivo", icono: "fa-solid fa-scroll", accion: "openTeleprompter()", color: "#5ea1ff" },
         { nombre: "Backup", descripcion: "Importar/Exportar datos", icono: "fa-solid fa-database", accion: "openBackupModal()", color: "#10b981" },
         { nombre: "Equipos", descripcion: "Ver estructura de equipos y miembros", icono: "fa-solid fa-users", accion: "openEquiposView()", color: "#f59e0b" },
-        { nombre: "Afinador", descripcion: "Afinador cromático en tiempo real", icono: "fa-solid fa-guitar", accion: "openTuner()", color: "#ec4899" },
+        
+        { nombre: "Afinador", descripcion: "Afina tu instrumento", icono: "fa-solid fa-guitar", accion: "openTuner()", color: "#ec4899" },
+        
         { nombre: "Asistencia", descripcion: "Reporte de asistencia de miembros", icono: "fa-solid fa-clipboard-list", accion: "viewAttendanceReport()", color: "#8b5cf6" },
         { nombre: "Mis Turnos", descripcion: "Ver tus turnos asignados", icono: "fa-solid fa-calendar-alt", accion: "viewMyShifts()", color: "#14b8a6" },
         { nombre: "Horario General", descripcion: "Turnos programados del equipo", icono: "fa-solid fa-calendar-week", accion: "renderHorarioGeneral()", color: "#a855f7" }
@@ -6509,10 +6737,241 @@ function exportAttendanceExcel() { const data = [["Fecha","Miembro","Estado"]]; 
         });
     }
 }
-    
-    
-    function openTuner() { showModal(`<div class="tuner-container"><h3>Afinador</h3><div class="tuner-note" id="tunerNote">--</div><div class="tuner-meter"><div class="tuner-needle" id="tunerNeedle"></div></div><p>Reproduce una nota</p><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`); const noteElem=document.getElementById('tunerNote'), needleElem=document.getElementById('tunerNeedle'); if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ noteElem.innerText="Sin micrófono"; return; } navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{ const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const source=audioCtx.createMediaStreamSource(stream); const analyser=audioCtx.createAnalyser(); analyser.fftSize=2048; source.connect(analyser); const bufferLength=analyser.frequencyBinCount; const dataArray=new Float32Array(bufferLength); const detectPitch=()=>{ if(!document.getElementById('tunerNote')) return; analyser.getFloatTimeDomainData(dataArray); let maxSample=0; for(let i=0;i<bufferLength;i++) if(Math.abs(dataArray[i])>maxSample) maxSample=Math.abs(dataArray[i]); if(maxSample<0.01){ requestAnimationFrame(detectPitch); return; } let autocorr=new Array(bufferLength); for(let lag=0;lag<bufferLength;lag++){ let sum=0; for(let i=0;i<bufferLength-lag;i++) sum+=dataArray[i]*dataArray[i+lag]; autocorr[lag]=sum; } let maxVal=-1, maxLag=0; for(let lag=20;lag<bufferLength/2;lag++) if(autocorr[lag]>maxVal){ maxVal=autocorr[lag]; maxLag=lag; } let freq=audioCtx.sampleRate/maxLag; let noteNum=12*Math.log2(freq/440)+69; let roundedNote=Math.round(noteNum); let cents=Math.round((noteNum-roundedNote)*100); let note=noteNames[roundedNote%12]; if(freq>50&&freq<600){ noteElem.innerText=`${note} (${cents>0?'+':''}${cents}¢)`; let percent=Math.min(100,Math.max(0,50+(cents/50)*50)); needleElem.style.width=`${percent}%`; needleElem.style.background=Math.abs(cents)<5?"#10B981":"#F59E0B"; } else { noteElem.innerText="--"; needleElem.style.width="0%"; } requestAnimationFrame(detectPitch); }; detectPitch(); }).catch(()=>{ if(noteElem) noteElem.innerText="Permiso denegado"; }); }
+ // ========== AFINADOR PROFESIONAL CON INSTRUMENTOS Y TRANSPOSICIÓN ==========
+function openTuner() {
+    // Variable para almacenar el stream de audio (para detenerlo al cerrar)
+    let audioStream = null;
+    let audioContext = null;
+    let sourceNode = null;
+    let analyserNode = null;
+    let animationId = null;
+    let instrumentoActual = 'Guitarra';
+    let transposicionActual = 'C';
 
+    // Mapeo de transposición (Nota Real -> Nota del instrumento)
+    const mapaTransposicion = {
+        'Eb': {
+            'C': 'A', 'C#': 'A#', 'D': 'B', 'D#': 'C', 'E': 'C#', 'F': 'D',
+            'F#': 'D#', 'G': 'E', 'G#': 'F', 'A': 'F#', 'A#': 'G', 'B': 'G#'
+        },
+        'Bb': {
+            'C': 'D', 'C#': 'D#', 'D': 'E', 'D#': 'F', 'E': 'F#', 'F': 'G',
+            'F#': 'G#', 'G': 'A', 'G#': 'A#', 'A': 'B', 'A#': 'C', 'B': 'C#'
+        }
+    };
+
+    // Función para actualizar la UI del afinador
+    function actualizarAfinadorVisual(notaReal, octava, cents) {
+        const elContainer = document.getElementById('tuner-circle-container');
+        const elCents = document.getElementById('tuner-cents-display');
+        const elNote = document.getElementById('tuner-note-display');
+        const elTransposed = document.getElementById('tuner-transposed-display');
+        const needleAxis = document.querySelector('.tuner-needle-axis');
+
+        // Calcular rotación de la aguja (-50 cents = -45°, +50 cents = +45°)
+        if (needleAxis) {
+            const anguloRotacion = Math.max(-45, Math.min(45, (cents * 45) / 50));
+            needleAxis.style.transform = `rotate(${anguloRotacion}deg)`;
+        }
+
+        // Mostrar centésimas
+        if (Math.abs(cents) <= 3) {
+            elCents.innerText = "¡PERFECTO! 🎯";
+            if (elContainer) elContainer.classList.add('is-tuned');
+        } else {
+            elCents.innerText = cents > 0 ? `+${cents} cents` : `${cents} cents`;
+            if (elContainer) elContainer.classList.remove('is-tuned');
+        }
+
+        // Procesar transposición
+        if (transposicionActual !== 'C' && mapaTransposicion[transposicionActual] && mapaTransposicion[transposicionActual][notaReal]) {
+            const notaInstrumento = mapaTransposicion[transposicionActual][notaReal];
+            elNote.innerHTML = `${notaInstrumento}<span>${octava}</span>`;
+            elTransposed.innerText = `Nota real: ${notaReal}${octava} → Instrumento: ${notaInstrumento}${octava}`;
+        } else {
+            elNote.innerHTML = `${notaReal}<span>${octava}</span>`;
+            elTransposed.innerText = `Modo estándar (Do) | ${instrumentoActual}`;
+        }
+    }
+
+    // Función para cambiar instrumento
+    function cambiarInstrumento(nombre, trans, elemento) {
+        instrumentoActual = nombre;
+        transposicionActual = trans;
+        // Actualizar botones visualmente
+        document.querySelectorAll('.gp-instr-btn').forEach(btn => btn.classList.remove('active'));
+        elemento.classList.add('active');
+        // Resetear visualización
+        actualizarAfinadorVisual('A', 4, 0);
+    }
+
+    // Función para iniciar el micrófono y detectar nota
+    async function iniciarAfinador() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioStream = stream;
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            sourceNode = audioContext.createMediaStreamSource(stream);
+            analyserNode = audioContext.createAnalyser();
+            analyserNode.fftSize = 2048;
+            sourceNode.connect(analyserNode);
+            
+            const bufferLength = analyserNode.frequencyBinCount;
+            const dataArray = new Float32Array(bufferLength);
+            
+            function detectarPitch() {
+                if (!analyserNode) return;
+                analyserNode.getFloatTimeDomainData(dataArray);
+                
+                let maxSample = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    if (Math.abs(dataArray[i]) > maxSample) maxSample = Math.abs(dataArray[i]);
+                }
+                if (maxSample < 0.01) {
+                    animationId = requestAnimationFrame(detectarPitch);
+                    return;
+                }
+                
+                // Autocorrelación para encontrar frecuencia
+                let autocorr = new Array(bufferLength);
+                for (let lag = 0; lag < bufferLength; lag++) {
+                    let sum = 0;
+                    for (let i = 0; i < bufferLength - lag; i++) {
+                        sum += dataArray[i] * dataArray[i + lag];
+                    }
+                    autocorr[lag] = sum;
+                }
+                
+                let maxVal = -1, maxLag = 0;
+                for (let lag = 20; lag < bufferLength / 2; lag++) {
+                    if (autocorr[lag] > maxVal) {
+                        maxVal = autocorr[lag];
+                        maxLag = lag;
+                    }
+                }
+                
+                let freq = audioContext.sampleRate / maxLag;
+                if (freq > 60 && freq < 500) {
+                    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                    const noteNum = 12 * Math.log2(freq / 440) + 69;
+                    const roundedNote = Math.round(noteNum);
+                    const cents = Math.round((noteNum - roundedNote) * 100);
+                    const noteName = noteNames[roundedNote % 12];
+                    const octave = Math.floor(roundedNote / 12) - 1;
+                    actualizarAfinadorVisual(noteName, octave, cents);
+                    const freqDisplay = document.getElementById('tuner-freq-display');
+                    if (freqDisplay) freqDisplay.innerText = `${Math.round(freq)} Hz`;
+                } else {
+                    const elCents = document.getElementById('tuner-cents-display');
+                    if (elCents) elCents.innerText = "🎤 Toca una nota...";
+                }
+                
+                animationId = requestAnimationFrame(detectarPitch);
+            }
+            
+            detectarPitch();
+        } catch (err) {
+            console.error("Error al acceder al micrófono:", err);
+            const elCents = document.getElementById('tuner-cents-display');
+            if (elCents) elCents.innerText = "❌ Permiso denegado";
+            showToast("No se pudo acceder al micrófono. Verifica los permisos.", "error");
+        }
+    }
+
+    // Detener el afinador y liberar recursos
+    function detenerAfinador() {
+        if (animationId) cancelAnimationFrame(animationId);
+        if (sourceNode) sourceNode.disconnect();
+        if (analyserNode) analyserNode.disconnect();
+        if (audioContext) audioContext.close();
+        if (audioStream) audioStream.getTracks().forEach(track => track.stop());
+        audioStream = null;
+        audioContext = null;
+        sourceNode = null;
+        analyserNode = null;
+    }
+
+    // Construir el HTML del modal
+    const modalHtml = `
+        <div style="max-width: 450px; margin: 0 auto;">
+            <div class="gp-tuner-card">
+                <div class="gp-tuner-header">
+                    <div class="tuner-title-wrapper">
+                        <i class="fa-solid fa-wave-square pulse-icon"></i>
+                        <h3>AFINADOR CROMÁTICO PRO</h3>
+                    </div>
+                    <span id="tuner-freq-display" class="freq-badge">440 Hz</span>
+                </div>
+
+                <div class="gp-tuner-display-wrapper">
+                    <div class="gp-tuner-circle-container" id="tuner-circle-container">
+                        <div class="tuner-needle-axis">
+                            <div id="tuner-needle" class="tuner-needle"></div>
+                        </div>
+                        <div class="tuner-center-info">
+                            <div id="tuner-cents-display" class="tuner-cents-txt">—</div>
+                            <div id="tuner-note-display" class="tuner-note-txt">A<span>4</span></div>
+                            <div id="tuner-transposed-display" class="tuner-transposed-txt">Selecciona un instrumento</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tuner-status-bar">
+                    <span class="status-lbl flat-lbl">♭ FLAT</span>
+                    <div class="status-center-dot" id="tuner-status-dot"></div>
+                    <span class="status-lbl sharp-lbl">SHARP ♯</span>
+                </div>
+
+                <div class="gp-instrument-slider">
+                    <button class="gp-instr-btn active" data-trans="C" data-name="Guitarra">
+                        <i class="fa-solid fa-guitar"></i> <span>Guitarra</span>
+                    </button>
+                    <button class="gp-instr-btn" data-trans="C" data-name="Bajo">
+                        <i class="fa-solid fa-sliders"></i> <span>Bajo</span>
+                    </button>
+                    <button class="gp-instr-btn" data-trans="C" data-name="Violin">
+                        <i class="fa-solid fa-music"></i> <span>Violín</span>
+                    </button>
+                    <button class="gp-instr-btn" data-trans="Eb" data-name="Saxofon">
+                        <i class="fa-solid fa-saxophone"></i> <span>Saxofón Mi♭</span>
+                    </button>
+                    <button class="gp-instr-btn" data-trans="Bb" data-name="Trompeta">
+                        <i class="fa-solid fa-trumpet"></i> <span>Trompeta Si♭</span>
+                    </button>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 1rem;">
+                <button class="btn btn-ghost" onclick="cerrarAfinadorModal()">Cerrar</button>
+            </div>
+        </div>
+    `;
+    
+    showModal(modalHtml);
+    
+    // Asignar eventos a los botones de instrumento
+    document.querySelectorAll('.gp-instr-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const trans = btn.getAttribute('data-trans');
+            const name = btn.getAttribute('data-name');
+            document.querySelectorAll('.gp-instr-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            instrumentoActual = name;
+            transposicionActual = trans;
+            actualizarAfinadorVisual('A', 4, 0);
+        });
+    });
+    
+    // Iniciar el afinador
+    iniciarAfinador();
+    
+    // Guardar la función de cierre global
+    window.cerrarAfinadorModal = () => {
+        detenerAfinador();
+        closeModal();
+    };
+}   
+    
+   
 // ========== AULA VIRTUAL CON ESCUDO DE ESTILOS Y MENÚ COLAPSABLE (VERSIÓN LIMPIA Y CORREGIDA) ==========
 let xpGemini = 0;
 let rachaGemini = 0;
