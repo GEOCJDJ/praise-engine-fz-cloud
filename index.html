@@ -3310,7 +3310,337 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
     50% { opacity: 1; }
     100% { opacity: 0.6; }
 }
-        
+/* =========================================
+   ESTILOS PREMIUM G-QUEST GAMIFICATION
+   ========================================= */
+.gquest-container {
+    background: #121212;
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    padding: 16px;
+    max-width: 500px;
+    margin: 0 auto;
+    border-radius: 24px;
+}
+.gquest-panel { transition: all 0.3s ease; }
+.gquest-panel.hidden { display: none !important; }
+
+/* Header del Hub */
+.gquest-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1a1a;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #2a2a2a;
+    margin-bottom: 20px;
+}
+.gquest-user-stats h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #5ea1ff;
+}
+.gquest-user-stats p {
+    margin: 4px 0 0 0;
+    font-size: 0.8rem;
+    color: #aaa;
+}
+.trophy-icon {
+    font-size: 1.5rem;
+    color: #ffd700;
+    margin-right: 12px;
+    float: left;
+}
+.gquest-badge {
+    background: rgba(94, 161, 255, 0.15);
+    color: #5ea1ff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+/* Modos de Juego Grid */
+.gquest-modes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.gquest-mode-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.gquest-mode-card:hover {
+    transform: translateY(-4px);
+    border-color: #5ea1ff;
+}
+.mode-icon {
+    font-size: 1.8rem;
+    color: #5ea1ff;
+    margin-bottom: 10px;
+}
+.gquest-mode-card h5 {
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+.gquest-mode-card p {
+    margin: 0 0 16px 0;
+    font-size: 0.75rem;
+    color: #888;
+    line-height: 1.4;
+    height: 48px;
+    overflow: hidden;
+}
+.btn-mode-play {
+    background: #5ea1ff;
+    color: #121212;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    width: 100%;
+    cursor: pointer;
+}
+.btn-mode-play.secondary {
+    background: #242424;
+    color: #ffffff;
+    border: 1px solid #333;
+}
+
+/* Ranking Semanal */
+.gquest-ranking-section {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 16px;
+}
+.ranking-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #ffd700;
+}
+.ranking-title-wrapper h5 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #ffffff;
+    font-weight: 700;
+}
+.ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ranking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: #222222;
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+.ranking-item.top-3 {
+    border-left: 3px solid #ffd700;
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.05) 0%, #222222 100%);
+}
+.rank-position {
+    font-weight: 800;
+    color: #ffd700;
+    width: 24px;
+}
+.rank-name {
+    font-weight: 600;
+    flex-grow: 1;
+}
+.rank-xp {
+    font-weight: 700;
+    color: #5ea1ff;
+}
+
+/* INTERFAZ MILLONARIO DE JUEGO */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.game-timer-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid #ff5e5e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.2rem;
+    box-shadow: 0 0 10px rgba(255, 94, 94, 0.3);
+}
+.game-level-indicator, .game-xp-indicator {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+}
+.game-xp-indicator { color: #00ff9d; }
+.game-question-area {
+    background: linear-gradient(135deg, #1e1e1e 0%, #161616 100%);
+    border: 1px solid #333;
+    padding: 24px;
+    border-radius: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#game-question-text {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.5;
+    margin: 0;
+}
+.game-comodines-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+.btn-comodin {
+    background: #242424;
+    border: 1px solid #3c3c3c;
+    color: #ccc;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-comodin:hover:not(:disabled) {
+    border-color: #5ea1ff;
+    color: #fff;
+}
+.btn-comodin:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+.game-options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.quiz-option {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #ffffff;
+    padding: 16px 20px;
+    border-radius: 14px;
+    text-align: left;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.2s ease;
+}
+.option-letter {
+    background: #2a2a2a;
+    color: #5ea1ff;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+.quiz-option:hover {
+    border-color: #5ea1ff;
+    background: #222;
+}
+.quiz-option.correct {
+    background: rgba(0, 255, 157, 0.15) !important;
+    border-color: #00ff9d !important;
+}
+.quiz-option.correct .option-letter { background: #00ff9d; color: #121212; }
+.quiz-option.wrong {
+    background: rgba(255, 94, 94, 0.15) !important;
+    border-color: #ff5e5e !important;
+}
+.quiz-option.wrong .option-letter { background: #ff5e5e; color: #ffffff; }
+
+/* Menú Duelos */
+.duelo-box {
+    text-align: center;
+    padding: 20px 10px;
+}
+.duelo-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 25px 0;
+}
+.btn-gquest-action {
+    background: #5ea1ff;
+    color: #121212;
+    font-weight: 700;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    width: 100%;
+}
+.btn-gquest-action.secondary {
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #333;
+}
+.duelo-box input {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    padding: 12px;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    font-weight: 700;
+    width: 100%;
+    margin-bottom: 10px;
+}
+.codigo-display {
+    background: #222;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-weight: 800;
+    color: #00ff9d;
+    letter-spacing: 1px;
+}
+.btn-back-hub {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+}        
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -6428,7 +6758,7 @@ function renderResources() {
         { nombre: "Backup", descripcion: "Importar/Exportar datos", icono: "fa-solid fa-database", accion: "openBackupModal()", color: "#10b981" },
         { nombre: "Equipos", descripcion: "Ver estructura de equipos y miembros", icono: "fa-solid fa-users", accion: "openEquiposView()", color: "#f59e0b" },
         
-        { nombre: "Afinador", descripcion: "Afina tu instrumento", icono: "fa-solid fa-guitar", accion: "openTuner()", color: "#ec4899" },
+        { nombre: "Afinador", descripcion: "Afina tu instrumento", icono: "fa-solid fa-guitar", accion: "()", color: "#ec4899" },
         
         { nombre: "Asistencia", descripcion: "Reporte de asistencia de miembros", icono: "fa-solid fa-clipboard-list", accion: "viewAttendanceReport()", color: "#8b5cf6" },
         { nombre: "Mis Turnos", descripcion: "Ver tus turnos asignados", icono: "fa-solid fa-calendar-alt", accion: "viewMyShifts()", color: "#14b8a6" },
@@ -6737,161 +7067,209 @@ function exportAttendanceExcel() { const data = [["Fecha","Miembro","Estado"]]; 
         });
     }
 }
- // ========== AFINADOR PROFESIONAL CON INSTRUMENTOS Y TRANSPOSICIÓN ==========
-function openTuner() {
-    // Variable para almacenar el stream de audio (para detenerlo al cerrar)
-    let audioStream = null;
-    let audioContext = null;
-    let sourceNode = null;
-    let analyserNode = null;
-    let animationId = null;
-    let instrumentoActual = 'Guitarra';
-    let transposicionActual = 'C';
+// ========== AFINADOR PROFESIONAL CON MICRÓFONO REAL ==========
+let afinadorStream = null;
+let afinadorContext = null;
+let afinadorSource = null;
+let afinadorAnalyser = null;
+let afinadorAnimationId = null;
+let afinadorInstrumentoActual = 'Guitarra';
+let afinadorTransposicionActual = 'C';
 
-    // Mapeo de transposición (Nota Real -> Nota del instrumento)
-    const mapaTransposicion = {
-        'Eb': {
-            'C': 'A', 'C#': 'A#', 'D': 'B', 'D#': 'C', 'E': 'C#', 'F': 'D',
-            'F#': 'D#', 'G': 'E', 'G#': 'F', 'A': 'F#', 'A#': 'G', 'B': 'G#'
-        },
-        'Bb': {
-            'C': 'D', 'C#': 'D#', 'D': 'E', 'D#': 'F', 'E': 'F#', 'F': 'G',
-            'F#': 'G#', 'G': 'A', 'G#': 'A#', 'A': 'B', 'A#': 'C', 'B': 'C#'
-        }
-    };
+const mapaTransposicionAfinador = {
+    'Eb': {
+        'C': 'A', 'C#': 'A#', 'D': 'B', 'D#': 'C', 'E': 'C#', 'F': 'D',
+        'F#': 'D#', 'G': 'E', 'G#': 'F', 'A': 'F#', 'A#': 'G', 'B': 'G#'
+    },
+    'Bb': {
+        'C': 'D', 'C#': 'D#', 'D': 'E', 'D#': 'F', 'E': 'F#', 'F': 'G',
+        'F#': 'G#', 'G': 'A', 'G#': 'A#', 'A': 'B', 'A#': 'C', 'B': 'C#'
+    }
+};
 
-    // Función para actualizar la UI del afinador
-    function actualizarAfinadorVisual(notaReal, octava, cents) {
-        const elContainer = document.getElementById('tuner-circle-container');
-        const elCents = document.getElementById('tuner-cents-display');
-        const elNote = document.getElementById('tuner-note-display');
-        const elTransposed = document.getElementById('tuner-transposed-display');
-        const needleAxis = document.querySelector('.tuner-needle-axis');
+// Función para actualizar la interfaz visual
+function actualizarAfinadorVisual(notaReal, octava, cents) {
+    const elContainer = document.getElementById('tuner-circle-container');
+    const elCents = document.getElementById('tuner-cents-display');
+    const elNote = document.getElementById('tuner-note-display');
+    const elTransposed = document.getElementById('tuner-transposed-display');
+    const needleAxis = document.querySelector('.tuner-needle-axis');
+    const freqDisplay = document.getElementById('tuner-freq-display');
 
-        // Calcular rotación de la aguja (-50 cents = -45°, +50 cents = +45°)
-        if (needleAxis) {
-            const anguloRotacion = Math.max(-45, Math.min(45, (cents * 45) / 50));
-            needleAxis.style.transform = `rotate(${anguloRotacion}deg)`;
-        }
-
-        // Mostrar centésimas
-        if (Math.abs(cents) <= 3) {
-            elCents.innerText = "¡PERFECTO! 🎯";
-            if (elContainer) elContainer.classList.add('is-tuned');
-        } else {
-            elCents.innerText = cents > 0 ? `+${cents} cents` : `${cents} cents`;
-            if (elContainer) elContainer.classList.remove('is-tuned');
-        }
-
-        // Procesar transposición
-        if (transposicionActual !== 'C' && mapaTransposicion[transposicionActual] && mapaTransposicion[transposicionActual][notaReal]) {
-            const notaInstrumento = mapaTransposicion[transposicionActual][notaReal];
-            elNote.innerHTML = `${notaInstrumento}<span>${octava}</span>`;
-            elTransposed.innerText = `Nota real: ${notaReal}${octava} → Instrumento: ${notaInstrumento}${octava}`;
-        } else {
-            elNote.innerHTML = `${notaReal}<span>${octava}</span>`;
-            elTransposed.innerText = `Modo estándar (Do) | ${instrumentoActual}`;
-        }
+    if (needleAxis) {
+        const angulo = Math.max(-45, Math.min(45, (cents * 45) / 50));
+        needleAxis.style.transform = `rotate(${angulo}deg)`;
     }
 
-    // Función para cambiar instrumento
-    function cambiarInstrumento(nombre, trans, elemento) {
-        instrumentoActual = nombre;
-        transposicionActual = trans;
-        // Actualizar botones visualmente
-        document.querySelectorAll('.gp-instr-btn').forEach(btn => btn.classList.remove('active'));
-        elemento.classList.add('active');
-        // Resetear visualización
-        actualizarAfinadorVisual('A', 4, 0);
+    if (Math.abs(cents) <= 3) {
+        elCents.innerText = "¡PERFECTO! 🎯";
+        if (elContainer) elContainer.classList.add('is-tuned');
+    } else {
+        elCents.innerText = cents > 0 ? `+${cents} cents` : `${cents} cents`;
+        if (elContainer) elContainer.classList.remove('is-tuned');
     }
 
-    // Función para iniciar el micrófono y detectar nota
-    async function iniciarAfinador() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            audioStream = stream;
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            sourceNode = audioContext.createMediaStreamSource(stream);
-            analyserNode = audioContext.createAnalyser();
-            analyserNode.fftSize = 2048;
-            sourceNode.connect(analyserNode);
+    if (afinadorTransposicionActual !== 'C' && mapaTransposicionAfinador[afinadorTransposicionActual] && mapaTransposicionAfinador[afinadorTransposicionActual][notaReal]) {
+        const notaInstrumento = mapaTransposicionAfinador[afinadorTransposicionActual][notaReal];
+        elNote.innerHTML = `${notaInstrumento}<span>${octava}</span>`;
+        elTransposed.innerText = `Nota real: ${notaReal}${octava} → Instrumento: ${notaInstrumento}${octava}`;
+    } else {
+        elNote.innerHTML = `${notaReal}<span>${octava}</span>`;
+        elTransposed.innerText = `Modo estándar (Do) | ${afinadorInstrumentoActual}`;
+    }
+    
+    if (freqDisplay && arguments.length > 3) {
+        // La frecuencia se actualiza desde la función de detección
+    }
+}
+
+// Función para cambiar instrumento (se llama desde los botones)
+function cambiarInstrumentoAfinador(nombre, trans, elemento) {
+    afinadorInstrumentoActual = nombre;
+    afinadorTransposicionActual = trans;
+    
+    // Actualizar UI de botones
+    document.querySelectorAll('.gp-instr-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (elemento) elemento.classList.add('active');
+    
+    // Resetear visualización
+    actualizarAfinadorVisual('A', 4, 0);
+    const freqDisplay = document.getElementById('tuner-freq-display');
+    if (freqDisplay) freqDisplay.innerText = '440 Hz';
+    const elCents = document.getElementById('tuner-cents-display');
+    if (elCents) elCents.innerText = '🎤 Toca una nota...';
+}
+
+// Iniciar captura de micrófono y detección de notas REAL
+async function iniciarAfinadorReal() {
+    try {
+        // Detener cualquier instancia anterior
+        if (afinadorStream) {
+            detenerAfinadorReal();
+        }
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        afinadorStream = stream;
+        afinadorContext = new (window.AudioContext || window.webkitAudioContext)();
+        afinadorSource = afinadorContext.createMediaStreamSource(stream);
+        afinadorAnalyser = afinadorContext.createAnalyser();
+        afinadorAnalyser.fftSize = 2048;
+        afinadorSource.connect(afinadorAnalyser);
+        
+        const bufferLength = afinadorAnalyser.frequencyBinCount;
+        const dataArray = new Float32Array(bufferLength);
+        
+        function detectarPitchReal() {
+            if (!afinadorAnalyser || !afinadorContext) return;
+            afinadorAnalyser.getFloatTimeDomainData(dataArray);
             
-            const bufferLength = analyserNode.frequencyBinCount;
-            const dataArray = new Float32Array(bufferLength);
-            
-            function detectarPitch() {
-                if (!analyserNode) return;
-                analyserNode.getFloatTimeDomainData(dataArray);
-                
-                let maxSample = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    if (Math.abs(dataArray[i]) > maxSample) maxSample = Math.abs(dataArray[i]);
-                }
-                if (maxSample < 0.01) {
-                    animationId = requestAnimationFrame(detectarPitch);
-                    return;
-                }
-                
-                // Autocorrelación para encontrar frecuencia
-                let autocorr = new Array(bufferLength);
-                for (let lag = 0; lag < bufferLength; lag++) {
-                    let sum = 0;
-                    for (let i = 0; i < bufferLength - lag; i++) {
-                        sum += dataArray[i] * dataArray[i + lag];
-                    }
-                    autocorr[lag] = sum;
-                }
-                
-                let maxVal = -1, maxLag = 0;
-                for (let lag = 20; lag < bufferLength / 2; lag++) {
-                    if (autocorr[lag] > maxVal) {
-                        maxVal = autocorr[lag];
-                        maxLag = lag;
-                    }
-                }
-                
-                let freq = audioContext.sampleRate / maxLag;
-                if (freq > 60 && freq < 500) {
-                    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-                    const noteNum = 12 * Math.log2(freq / 440) + 69;
-                    const roundedNote = Math.round(noteNum);
-                    const cents = Math.round((noteNum - roundedNote) * 100);
-                    const noteName = noteNames[roundedNote % 12];
-                    const octave = Math.floor(roundedNote / 12) - 1;
-                    actualizarAfinadorVisual(noteName, octave, cents);
-                    const freqDisplay = document.getElementById('tuner-freq-display');
-                    if (freqDisplay) freqDisplay.innerText = `${Math.round(freq)} Hz`;
-                } else {
-                    const elCents = document.getElementById('tuner-cents-display');
-                    if (elCents) elCents.innerText = "🎤 Toca una nota...";
-                }
-                
-                animationId = requestAnimationFrame(detectarPitch);
+            // Detectar volumen para saber si hay sonido
+            let maxSample = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                if (Math.abs(dataArray[i]) > maxSample) maxSample = Math.abs(dataArray[i]);
             }
             
-            detectarPitch();
-        } catch (err) {
-            console.error("Error al acceder al micrófono:", err);
-            const elCents = document.getElementById('tuner-cents-display');
-            if (elCents) elCents.innerText = "❌ Permiso denegado";
-            showToast("No se pudo acceder al micrófono. Verifica los permisos.", "error");
+            if (maxSample < 0.01) {
+                const elCents = document.getElementById('tuner-cents-display');
+                if (elCents && elCents.innerText !== '🎤 Toca una nota...') {
+                    elCents.innerText = '🎤 Toca una nota...';
+                }
+                afinadorAnimationId = requestAnimationFrame(detectarPitchReal);
+                return;
+            }
+            
+            // Autocorrelación para encontrar la frecuencia fundamental
+            let autocorr = new Array(bufferLength);
+            for (let lag = 0; lag < bufferLength; lag++) {
+                let sum = 0;
+                for (let i = 0; i < bufferLength - lag; i++) {
+                    sum += dataArray[i] * dataArray[i + lag];
+                }
+                autocorr[lag] = sum;
+            }
+            
+            let maxVal = -1, maxLag = 0;
+            for (let lag = 20; lag < bufferLength / 2; lag++) {
+                if (autocorr[lag] > maxVal) {
+                    maxVal = autocorr[lag];
+                    maxLag = lag;
+                }
+            }
+            
+            if (maxLag === 0) {
+                afinadorAnimationId = requestAnimationFrame(detectarPitchReal);
+                return;
+            }
+            
+            let freq = afinadorContext.sampleRate / maxLag;
+            
+            // Solo procesar frecuencias en rango audible de instrumentos (60Hz a 500Hz)
+            if (freq > 60 && freq < 500) {
+                const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                const noteNum = 12 * Math.log2(freq / 440) + 69;
+                const roundedNote = Math.round(noteNum);
+                const cents = Math.round((noteNum - roundedNote) * 100);
+                const noteName = noteNames[roundedNote % 12];
+                const octave = Math.floor(roundedNote / 12) - 1;
+                
+                // Mostrar frecuencia en el badge
+                const freqDisplay = document.getElementById('tuner-freq-display');
+                if (freqDisplay) freqDisplay.innerText = `${Math.round(freq)} Hz`;
+                
+                actualizarAfinadorVisual(noteName, octave, cents);
+            } else {
+                const elCents = document.getElementById('tuner-cents-display');
+                if (elCents && elCents.innerText !== '🎤 Toca una nota...') {
+                    elCents.innerText = '🎤 Toca una nota...';
+                }
+            }
+            
+            afinadorAnimationId = requestAnimationFrame(detectarPitchReal);
         }
+        
+        detectarPitchReal();
+    } catch (err) {
+        console.error("Error al acceder al micrófono:", err);
+        const elCents = document.getElementById('tuner-cents-display');
+        if (elCents) elCents.innerText = "❌ Permiso denegado";
+        showToast("No se pudo acceder al micrófono. Verifica los permisos.", "error");
     }
+}
 
-    // Detener el afinador y liberar recursos
-    function detenerAfinador() {
-        if (animationId) cancelAnimationFrame(animationId);
-        if (sourceNode) sourceNode.disconnect();
-        if (analyserNode) analyserNode.disconnect();
-        if (audioContext) audioContext.close();
-        if (audioStream) audioStream.getTracks().forEach(track => track.stop());
-        audioStream = null;
-        audioContext = null;
-        sourceNode = null;
-        analyserNode = null;
+// Detener el afinador y liberar recursos
+function detenerAfinadorReal() {
+    if (afinadorAnimationId) {
+        cancelAnimationFrame(afinadorAnimationId);
+        afinadorAnimationId = null;
     }
+    if (afinadorSource) {
+        afinadorSource.disconnect();
+        afinadorSource = null;
+    }
+    if (afinadorAnalyser) {
+        afinadorAnalyser.disconnect();
+        afinadorAnalyser = null;
+    }
+    if (afinadorContext) {
+        afinadorContext.close();
+        afinadorContext = null;
+    }
+    if (afinadorStream) {
+        afinadorStream.getTracks().forEach(track => track.stop());
+        afinadorStream = null;
+    }
+}
 
-    // Construir el HTML del modal
+// Función global para cerrar el modal del afinador
+window.cerrarAfinadorModal = () => {
+    detenerAfinadorReal();
+    closeModal();
+};
+
+// Función principal que abre el afinador (se llama desde Recursos)
+function openTuner() {
     const modalHtml = `
         <div style="max-width: 450px; margin: 0 auto;">
             <div class="gp-tuner-card">
@@ -6909,7 +7287,7 @@ function openTuner() {
                             <div id="tuner-needle" class="tuner-needle"></div>
                         </div>
                         <div class="tuner-center-info">
-                            <div id="tuner-cents-display" class="tuner-cents-txt">—</div>
+                            <div id="tuner-cents-display" class="tuner-cents-txt">🎤 Toca una nota...</div>
                             <div id="tuner-note-display" class="tuner-note-txt">A<span>4</span></div>
                             <div id="tuner-transposed-display" class="tuner-transposed-txt">Selecciona un instrumento</div>
                         </div>
@@ -6948,28 +7326,26 @@ function openTuner() {
     
     showModal(modalHtml);
     
-    // Asignar eventos a los botones de instrumento
-    document.querySelectorAll('.gp-instr-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const trans = btn.getAttribute('data-trans');
-            const name = btn.getAttribute('data-name');
-            document.querySelectorAll('.gp-instr-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            instrumentoActual = name;
-            transposicionActual = trans;
-            actualizarAfinadorVisual('A', 4, 0);
+    // Asignar eventos a los botones de instrumento después de que el DOM esté listo
+    setTimeout(() => {
+        document.querySelectorAll('.gp-instr-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const trans = btn.getAttribute('data-trans');
+                const name = btn.getAttribute('data-name');
+                cambiarInstrumentoAfinador(name, trans, btn);
+            });
         });
-    });
+    }, 100);
     
-    // Iniciar el afinador
-    iniciarAfinador();
-    
-    // Guardar la función de cierre global
+    // Iniciar la captura de micrófono real
+    iniciarAfinadorReal();
+     // Guardar la función de cierre global
     window.cerrarAfinadorModal = () => {
         detenerAfinador();
         closeModal();
     };
-}   
+}
     
    
 // ========== AULA VIRTUAL CON ESCUDO DE ESTILOS Y MENÚ COLAPSABLE (VERSIÓN LIMPIA Y CORREGIDA) ==========
@@ -7865,6 +8241,7 @@ async function renderMoodle() {
                 <button class="av-tab" data-tab="tareas">📎 Tareas</button>
                 <button class="av-tab" data-tab="devocional">🙏 Devocional</button>
                 <button class="av-tab" data-tab="retos">⚔️ Retos</button>
+                <button class="av-tab" data-tab="gquest">🎮 Arena Bíblica</button>
             </div>
 
             <div id="av-tab-inicio" class="av-tab-content active"></div>
@@ -7873,6 +8250,7 @@ async function renderMoodle() {
             <div id="av-tab-tareas" class="av-tab-content"></div>
             <div id="av-tab-devocional" class="av-tab-content"></div>
             <div id="av-tab-retos" class="av-tab-content"></div>
+            <div id="av-tab-gquest" class="av-tab-content"></div>
         </div>
     </div>`;
 
@@ -7892,6 +8270,9 @@ async function renderMoodle() {
             else if (tabId === 'cursos') cargarCursosGemini();
             else if (tabId === 'evaluaciones') cargarEvaluacionesGemini();
             else if (tabId === 'tareas') cargarTareasGemini();
+            else if (tabId === 'gquest') {
+    renderGQuestHub(); 
+}
             else if (tabId === 'devocional') {
                 // Verificar si es domingo
                 const hoy = new Date();
@@ -16670,7 +17051,397 @@ function puedeEditarListas() {
     if (isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Alabanza') return true;
     return false;
 }
+// ========== G-QUEST HUB: GAMIFICACIÓN Y JUEGOS ==========
+// Banco de preguntas (puedes ampliarlo hasta 100 fácilmente)
+const BANCO_PREGUNTAS_GQUEST = [
+    { nivel: 1, pregunta: "¿Cuál es el primer libro de la Biblia?", opciones: { A: "Éxodo", B: "Génesis", C: "Levítico", D: "Salmos" }, correcta: "B" },
+    { nivel: 2, pregunta: "¿Quién construyó el arca para salvarse del diluvio?", opciones: { A: "Moisés", B: "Abraham", C: "Noé", D: "David" }, correcta: "C" },
+    { nivel: 3, pregunta: "¿Cuántos días y noches llovió durante el diluvio?", opciones: { A: "7 días", B: "12 días", C: "40 días", D: "100 días" }, correcta: "C" },
+    { nivel: 4, pregunta: "¿Qué mar abrió Moisés para que pasara el pueblo de Israel?", opciones: { A: "Mar Muerto", B: "Mar Mediterráneo", C: "Mar Rojo", D: "Mar de Galilea" }, correcta: "C" },
+    { nivel: 5, pregunta: "¿Quién derrotó al gigante Goliat con una honda y una piedra?", opciones: { A: "Saúl", B: "Salomón", C: "David", D: "Samson" }, correcta: "C" },
+    { nivel: 6, pregunta: "¿Cuál es el libro de la Biblia que contiene 150 cantos y poemas?", opciones: { A: "Proverbios", B: "Cantares", C: "Salmos", D: "Eclesiastés" }, correcta: "C" },
+    { nivel: 7, pregunta: "¿Quién es conocido como el apóstol de los gentiles?", opciones: { A: "Pedro", B: "Juan", C: "Pablo", D: "Santiago" }, correcta: "C" },
+    // AÑADE AQUÍ MÁS PREGUNTAS (hasta 100) SIGUIENDO LA MISMA ESTRUCTURA
+];
 
+// Variables de juego
+let indicePreguntaActualGQ = 0;
+let tiempoRestanteGQ = 30;
+let intervaloTimerGQ = null;
+let xpGanadaEnSesionGQ = 0;
+let canalDueloRealtimeGQ = null;
+let codigoSalaActivaGQ = null;
+
+// Función principal que pinta el hub dentro de la pestaña
+function renderGQuestHub() {
+    const container = document.getElementById('av-tab-gquest');
+    if (!container) return;
+
+    const html = `
+        <div class="gquest-container">
+            <div id="gquest-main-hub" class="gquest-panel">
+                <div class="gquest-header">
+                    <div class="gquest-user-stats">
+                        <i class="fa-solid fa-trophy trophy-icon"></i>
+                        <div>
+                            <h4>G-QUEST ARENA</h4>
+                            <p>Tu Nivel: <span id="user-current-level">1</span> | <span id="user-total-xp">0</span> XP Totales</p>
+                        </div>
+                    </div>
+                    <div class="gquest-badge-container">
+                        <span class="gquest-badge"><i class="fa-solid fa-bolt"></i> Racha: <span id="user-racha">0</span> Días</span>
+                    </div>
+                </div>
+
+                <div class="gquest-modes-grid">
+                    <div class="gquest-mode-card single-player" onclick="iniciarQuizIndividual()">
+                        <div class="mode-icon"><i class="fa-solid fa-crown"></i></div>
+                        <h5>Modo Individual</h5>
+                        <p>Estilo "Millonario". Sube de nivel, gana comodines y acumula XP semanal.</p>
+                        <button class="btn-mode-play">Jugar Ahora</button>
+                    </div>
+
+                    <div class="gquest-mode-card multi-player" onclick="abrirMenuDuelo()">
+                        <div class="mode-icon"><i class="fa-solid fa-user-group"></i></div>
+                        <h5>Desafío en Equipo / Duelo</h5>
+                        <p>Compite en tiempo real contra otro miembro del ministerio. ¡Doble XP!</p>
+                        <button class="btn-mode-play secondary">Crear / Unirse</button>
+                    </div>
+                </div>
+
+                <div class="gquest-ranking-section">
+                    <div class="ranking-title-wrapper">
+                        <i class="fa-solid fa-ranking-star"></i>
+                        <h5>Ranking Semanal de XP</h5>
+                    </div>
+                    <div class="ranking-list" id="xp-ranking-list">
+                        <div class="ranking-item loading-item">Cargando tabla de posiciones...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="gquest-duelo-menu" class="gquest-panel hidden">
+                <button class="btn-back-hub" onclick="regresarAlHub()"><i class="fa-solid fa-arrow-left"></i> Volver</button>
+                <div class="duelo-box">
+                    <h4>DESAFÍO EN EQUIPO 1v1</h4>
+                    <p>Genera un código para invitar a un hermano del ministerio o ingresa un código existente.</p>
+                    
+                    <div class="duelo-actions">
+                        <div class="action-block">
+                            <button class="btn-gquest-action" onclick="crearSalaDuelo()">Crear Sala Nueva</button>
+                            <div id="codigo-sala-generado" class="codigo-display hidden">CÓDIGO: <span id="sala-code">---</span></div>
+                        </div>
+                        <div class="divider-text">O</div>
+                        <div class="action-block">
+                            <input type="text" id="input-codigo-sala" placeholder="Ingresa código de sala...">
+                            <button class="btn-gquest-action secondary" onclick="unirseASalaDuelo()">Unirse a Desafío</button>
+                        </div>
+                    </div>
+                    <div id="duelo-status-msg" class="duelo-status">Esperando contrincante...</div>
+                </div>
+            </div>
+
+            <div id="gquest-game-screen" class="gquest-panel hidden">
+                <div class="game-header">
+                    <span class="game-level-indicator" id="game-current-level-txt">PREGUNTA 1/10</span>
+                    <div class="game-timer-circle" id="game-timer">30</div>
+                    <span class="game-xp-indicator" id="game-pending-xp">+100 XP</span>
+                </div>
+
+                <div class="game-question-area">
+                    <p id="game-question-text">Cargando pregunta...</p>
+                </div>
+
+                <div class="game-comodines-wrapper">
+                    <button class="btn-comodin" id="comodin-50" onclick="usarComodin5050()"><i class="fa-solid fa-heart-crack"></i> 50:50</button>
+                    <button class="btn-comodin" id="comodin-publico" onclick="usarComodinPublico()"><i class="fa-solid fa-users"></i> Sabiduría Popular</button>
+                    <button class="btn-comodin" id="comodin-tiempo" onclick="usarComodinTiempo()"><i class="fa-solid fa-hourglass-half"></i> +15s</button>
+                </div>
+
+                <div class="game-options-grid">
+                    <button class="quiz-option" data-option="A" onclick="seleccionarRespuesta('A')">
+                        <span class="option-letter">A</span> <span id="opt-text-A">Opción A</span>
+                    </button>
+                    <button class="quiz-option" data-option="B" onclick="seleccionarRespuesta('B')">
+                        <span class="option-letter">B</span> <span id="opt-text-B">Opción B</span>
+                    </button>
+                    <button class="quiz-option" data-option="C" onclick="seleccionarRespuesta('C')">
+                        <span class="option-letter">C</span> <span id="opt-text-C">Opción C</span>
+                    </button>
+                    <button class="quiz-option" data-option="D" onclick="seleccionarRespuesta('D')">
+                        <span class="option-letter">D</span> <span id="opt-text-D">Opción D</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.innerHTML = html;
+
+    // Cargar datos del usuario y ranking
+    cargarDatosUsuarioGQuest();
+    cargarRankingSemanalGQuest();
+}
+
+// Cargar XP y racha del usuario desde progreso_usuario
+async function cargarDatosUsuarioGQuest() {
+    if (!currentUser) return;
+    const { data, error } = await supabaseClient
+        .from('progreso_usuario')
+        .select('xp, racha')
+        .eq('user_id', currentUser.id)
+        .single();
+    if (!error && data) {
+        document.getElementById('user-total-xp').innerText = data.xp || 0;
+        document.getElementById('user-racha').innerText = data.racha || 0;
+        const nivel = Math.floor((data.xp || 0) / 500) + 1;
+        document.getElementById('user-current-level').innerText = nivel;
+    }
+}
+
+// Ranking semanal (top 10 de la iglesia actual)
+async function cargarRankingSemanalGQuest() {
+    const listContenedor = document.getElementById('xp-ranking-list');
+    if (!listContenedor) return;
+    try {
+        const { data: miembros, error: errMiembros } = await supabaseClient
+            .from('usuarios_iglesia')
+            .select('user_id')
+            .eq('iglesia_id', currentIglesiaId);
+        if (errMiembros) throw errMiembros;
+        const userIds = miembros.map(m => m.user_id);
+        if (userIds.length === 0) {
+            listContenedor.innerHTML = '<div class="ranking-item">No hay miembros en tu iglesia.</div>';
+            return;
+        }
+        const { data: progresos, error: errProg } = await supabaseClient
+            .from('progreso_usuario')
+            .select('user_id, xp')
+            .in('user_id', userIds)
+            .order('xp', { ascending: false })
+            .limit(10);
+        if (errProg) throw errProg;
+        if (!progresos || progresos.length === 0) {
+            listContenedor.innerHTML = '<div class="ranking-item">¡Sé el primero en ganar XP!</div>';
+            return;
+        }
+        const { data: perfiles } = await supabaseClient
+            .from('perfiles')
+            .select('id, nombre')
+            .in('id', progresos.map(p => p.user_id));
+        const nombresMap = Object.fromEntries((perfiles || []).map(p => [p.id, p.nombre]));
+        let html = '';
+        progresos.forEach((user, idx) => {
+            const esTop3 = idx < 3 ? 'top-3' : '';
+            html += `
+                <div class="ranking-item ${esTop3}">
+                    <span class="rank-position">#${idx + 1}</span>
+                    <span class="rank-name">${escapeHtml(nombresMap[user.user_id] || 'Usuario')}</span>
+                    <span class="rank-xp">${user.xp || 0} XP</span>
+                </div>
+            `;
+        });
+        listContenedor.innerHTML = html;
+    } catch (err) {
+        console.error("Error al cargar ranking:", err);
+        listContenedor.innerHTML = '<div class="ranking-item">Error al cargar ranking.</div>';
+    }
+}
+
+// Variable para almacenar las preguntas barajadas de la partida actual
+let preguntasPartida = [];
+
+function barajarArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+window.iniciarQuizIndividual = function() {
+    // Barajar todas las preguntas
+    preguntasPartida = barajarArray([...BANCO_PREGUNTAS_GQUEST]);
+    indicePreguntaActualGQ = 0;
+    xpGanadaEnSesionGQ = 0;
+    // Resetear comodines visuales
+    document.querySelectorAll('.btn-comodin').forEach(btn => btn.disabled = false);
+    // Cambiar de panel
+    document.getElementById('gquest-main-hub').classList.add('hidden');
+    document.getElementById('gquest-game-screen').classList.remove('hidden');
+    cargarPreguntaGQ(0);
+};
+
+// Modifica cargarPreguntaGQ para usar preguntasPartida
+function cargarPreguntaGQ(indice) {
+    if (indice >= preguntasPartida.length) {
+        finalizarJuegoExitosoGQ();
+        return;
+    }
+    const item = preguntasPartida[indice];
+    document.getElementById('game-current-level-txt').innerText = `PREGUNTA ${indice + 1}/${preguntasPartida.length}`;
+    document.getElementById('game-question-text').innerText = item.pregunta;
+    document.getElementById('game-pending-xp').innerText = `+${item.nivel * 50} XP`;
+    document.getElementById('opt-text-A').innerText = item.opciones.A;
+    document.getElementById('opt-text-B').innerText = item.opciones.B;
+    document.getElementById('opt-text-C').innerText = item.opciones.C;
+    document.getElementById('opt-text-D').innerText = item.opciones.D;
+    document.querySelectorAll('.quiz-option').forEach(btn => {
+        btn.classList.remove('correct', 'wrong');
+        btn.style.display = 'flex';
+    });
+    tiempoRestanteGQ = 30;
+    document.getElementById('game-timer').innerText = tiempoRestanteGQ;
+    document.getElementById('game-timer').style.borderColor = '#ff5e5e';
+    if (intervaloTimerGQ) clearInterval(intervaloTimerGQ);
+    intervaloTimerGQ = setInterval(() => {
+        tiempoRestanteGQ--;
+        document.getElementById('game-timer').innerText = tiempoRestanteGQ;
+        if (tiempoRestanteGQ <= 0) {
+            clearInterval(intervaloTimerGQ);
+            procesarRespuestaIncorrectaGQ();
+        }
+    }, 1000);
+}
+
+async function seleccionarRespuesta(letra) {
+    clearInterval(intervaloTimerGQ);
+    const pregunta = BANCO_PREGUNTAS_GQUEST[indicePreguntaActualGQ];
+    const botones = document.querySelectorAll('.quiz-option');
+    const botonSeleccionado = Array.from(botones).find(b => b.getAttribute('data-option') === letra);
+    const botonCorrecto = Array.from(botones).find(b => b.getAttribute('data-option') === pregunta.correcta);
+    if (letra === pregunta.correcta) {
+        botonSeleccionado.classList.add('correct');
+        xpGanadaEnSesionGQ += (pregunta.nivel * 50);
+        setTimeout(() => {
+            indicePreguntaActualGQ++;
+            cargarPreguntaGQ(indicePreguntaActualGQ);
+        }, 1200);
+    } else {
+        botonSeleccionado.classList.add('wrong');
+        if (botonCorrecto) botonCorrecto.classList.add('correct');
+        setTimeout(() => {
+            procesarRespuestaIncorrectaGQ();
+        }, 1500);
+    }
+}
+
+function usarComodin5050() {
+    const btn = document.getElementById('comodin-50');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const pregunta = BANCO_PREGUNTAS_GQUEST[indicePreguntaActualGQ];
+    const opcionesIncorrectas = Object.keys(pregunta.opciones).filter(key => key !== pregunta.correcta);
+    const descartes = opcionesIncorrectas.sort(() => 0.5 - Math.random()).slice(0, 2);
+    document.querySelectorAll('.quiz-option').forEach(opt => {
+        if (descartes.includes(opt.getAttribute('data-option'))) {
+            opt.style.display = 'none';
+        }
+    });
+}
+
+function usarComodinTiempo() {
+    const btn = document.getElementById('comodin-tiempo');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    tiempoRestanteGQ += 15;
+    document.getElementById('game-timer').innerText = tiempoRestanteGQ;
+}
+
+function usarComodinPublico() {
+    const btn = document.getElementById('comodin-publico');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const pregunta = BANCO_PREGUNTAS_GQUEST[indicePreguntaActualGQ];
+    showToast(`La congregación opina que la opción correcta es la: ${pregunta.correcta}`, 'info');
+}
+
+async function finalizarJuegoExitosoGQ() {
+    showToast(`🎉 ¡Completaste la Arena G-QUEST! +${xpGanadaEnSesionGQ} XP`, 'success');
+    if (currentUser) {
+        const { data: prog } = await supabaseClient
+            .from('progreso_usuario')
+            .select('xp')
+            .eq('user_id', currentUser.id)
+            .single();
+        const nuevaXp = (prog?.xp || 0) + xpGanadaEnSesionGQ;
+        await supabaseClient
+            .from('progreso_usuario')
+            .update({ xp: nuevaXp })
+            .eq('user_id', currentUser.id);
+        document.getElementById('user-total-xp').innerText = nuevaXp;
+        cargarRankingSemanalGQuest();
+    }
+    regresarAlHubGQ();
+}
+
+function procesarRespuestaIncorrectaGQ() {
+    showToast("❌ Respuesta incorrecta o tiempo agotado. Fin del juego. ¡Sigue estudiando!", 'error');
+    regresarAlHubGQ();
+}
+
+function regresarAlHubGQ() {
+    if (intervaloTimerGQ) clearInterval(intervaloTimerGQ);
+    document.getElementById('gquest-game-screen').classList.add('hidden');
+    document.getElementById('gquest-duelo-menu').classList.add('hidden');
+    document.getElementById('gquest-main-hub').classList.remove('hidden');
+    cargarDatosUsuarioGQuest();
+    cargarRankingSemanalGQuest();
+}
+
+// Duelos
+function abrirMenuDuelo() {
+    document.getElementById('gquest-main-hub').classList.add('hidden');
+    document.getElementById('gquest-duelo-menu').classList.remove('hidden');
+}
+
+function crearSalaDuelo() {
+    codigoSalaActivaGQ = "GP-" + Math.floor(1000 + Math.random() * 9000);
+    document.getElementById('sala-code').innerText = codigoSalaActivaGQ;
+    document.getElementById('codigo-sala-generado').classList.remove('hidden');
+    document.getElementById('duelo-status-msg').innerText = "Esperando que tu contrincante se una...";
+    if (canalDueloRealtimeGQ) supabaseClient.removeChannel(canalDueloRealtimeGQ);
+    canalDueloRealtimeGQ = supabaseClient.channel(`sala:${codigoSalaActivaGQ}`)
+    .on('broadcast', { event: 'jugador_unido' }, (payload) => {
+        document.getElementById('duelo-status-msg').innerText = "¡Contrincante conectado! Iniciando duelo...";
+        setTimeout(() => {
+            iniciarQuizIndividual();
+        }, 1500);
+    })
+    .subscribe();
+}
+
+async function unirseASalaDuelo() {
+    const codigoInput = document.getElementById('input-codigo-sala').value.trim().toUpperCase();
+    if (!codigoInput) return;
+    codigoSalaActivaGQ = codigoInput;
+    if (canalDueloRealtimeGQ) supabaseClient.removeChannel(canalDueloRealtimeGQ);
+    canalDueloRealtimeGQ = supabaseClient.channel(`sala:${codigoSalaActivaGQ}`).subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+            canalDueloRealtimeGQ.send({
+                type: 'broadcast',
+                event: 'jugador_unido',
+                payload: { jugador: currentUser?.email }
+            });
+            document.getElementById('duelo-status-msg').innerText = "¡Conectado con éxito! Cargando Arena...";
+            setTimeout(() => {
+                iniciarQuizIndividual();
+            }, 1000);
+        }
+    });
+}
+
+// Exponer funciones globalmente
+window.iniciarQuizIndividual = iniciarQuizIndividual;
+window.abrirMenuDuelo = abrirMenuDuelo;
+window.crearSalaDuelo = crearSalaDuelo;
+window.unirseASalaDuelo = unirseASalaDuelo;
+window.seleccionarRespuesta = seleccionarRespuesta;
+window.usarComodin5050 = usarComodin5050;
+window.usarComodinTiempo = usarComodinTiempo;
+window.usarComodinPublico = usarComodinPublico;
+window.regresarAlHub = regresarAlHubGQ;
+window.renderGQuestHub = renderGQuestHub;
+    
     
 // ==================== INICIALIZACIÓN DE LA APP (CORREGIDA + GOOGLE IGLESIA + SPLASH SCREEN) ====================
 let appInicializada = false;
@@ -16777,7 +17548,6 @@ window.asignarIglesiaYContinuar = async () => {
     setTimeout(() => checkAndShowBirthday(), 1000);
 };
 
-// ========== FUNCIÓN PRINCIPAL DE INICIO DE SESIÓN ==========
 // ========== FUNCIÓN PRINCIPAL DE INICIO DE SESIÓN ==========
 const iniciarSesionCompleta = async (session) => {
     if (appInicializada) return;
