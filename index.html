@@ -3418,56 +3418,104 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
     border: 1px solid #333;
 }
 
-/* Ranking Semanal */
+/* ========== RANKING SEMANAL - ESTILO PREMIUM ========== */
 .gquest-ranking-section {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
-    border-radius: 16px;
-    padding: 16px;
+    background: linear-gradient(145deg, #1e2a2a, #162020);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    border: 1px solid rgba(46, 125, 50, 0.2);
 }
+
 .ranking-title-wrapper {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    color: #ffd700;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #2e7d32;
 }
+
+.ranking-title-wrapper i {
+    font-size: 1.4rem;
+    color: #66bb6a;
+    filter: drop-shadow(0 0 4px #2e7d32);
+}
+
 .ranking-title-wrapper h5 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #e0f2e9;
+    letter-spacing: 1px;
     margin: 0;
-    font-size: 0.9rem;
-    color: #ffffff;
-    font-weight: 700;
 }
+
 .ranking-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
+
+/* Estilo base de cada fila del ranking */
 .ranking-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 14px;
-    background: #222222;
-    border-radius: 10px;
+    padding: 12px 18px;
+    background: rgba(25, 35, 30, 0.7);
+    backdrop-filter: blur(4px);
+    border-radius: 14px;
     font-size: 0.85rem;
+    transition: all 0.25s ease;
+    border: 1px solid rgba(70, 100, 70, 0.3);
 }
+
+.ranking-item:hover {
+    transform: translateX(5px);
+    background: rgba(35, 55, 45, 0.9);
+    border-color: #4caf50;
+}
+
+/* TOP 3 con degradado especial y borde elegante */
 .ranking-item.top-3 {
-    border-left: 3px solid #ffd700;
-    background: linear-gradient(90deg, rgba(255, 215, 0, 0.05) 0%, #222222 100%);
+    background: linear-gradient(95deg, #1e3a2f 0%, #0f2a1f 100%);
+    border-left: 5px solid #4caf50;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
 }
+
+/* Posición (1°, 2°, 3°) */
 .rank-position {
     font-weight: 800;
-    color: #ffd700;
-    width: 24px;
+    width: 40px;
+    font-size: 1rem;
+    color: #b9f6ca;
+    text-shadow: 0 0 2px #1b5e20;
 }
+
+/* Nombre del usuario */
 .rank-name {
     font-weight: 600;
     flex-grow: 1;
+    margin-left: 15px;
+    color: #f0fdf4;
 }
+
+/* XP del usuario */
 .rank-xp {
-    font-weight: 700;
-    color: #5ea1ff;
+    font-weight: 800;
+    color: #a5d6a7;
+    background: rgba(0,0,0,0.2);
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+/* Para que los primeros puestos tengan XP más brillante */
+.ranking-item.top-3 .rank-xp {
+    color: #c8e6c9;
+    background: rgba(76, 175, 80, 0.2);
+    font-weight: 800;
 }
 
 /* INTERFAZ MILLONARIO DE JUEGO */
