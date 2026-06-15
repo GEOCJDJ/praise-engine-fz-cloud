@@ -3640,7 +3640,16 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
     cursor: pointer;
     font-weight: 600;
     font-size: 0.85rem;
-}        
+}  
+.gquest-container {
+    background: var(--bg-app);
+    color: var(--text-main);
+}
+.gquest-header, .gquest-mode-card, .gquest-ranking-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+        
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -17425,19 +17434,6 @@ window.iniciarQuizIndividual = async function() {
     document.getElementById('gquest-game-screen').classList.remove('hidden');
     cargarPreguntaGQ(0);
 };
-
-// ========== RENDER HUB PRINCIPAL ==========
-async function renderGQuestHub() {
-    const container = document.getElementById('av-tab-gquest');
-    if (!container) return;
-    const html = `...`; // (el mismo HTML que ya tenías, no cambia)
-    container.innerHTML = html;
-    // Cargar preguntas desde Supabase
-    await cargarPreguntasDesdeSupabase();
-    // Cargar datos del usuario y ranking
-    await cargarDatosUsuarioGQuest();
-    cargarRankingSemanalGQuest();
-}
 
 // ========== CARGAR DATOS DEL USUARIO (con nivel máximo) ==========
 async function cargarDatosUsuarioGQuest() {
