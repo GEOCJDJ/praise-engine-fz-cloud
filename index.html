@@ -17060,7 +17060,8 @@ function puedeEditarListas() {
     if (isEquipoAdmin && equipoAdminData && equipoAdminData.nombre === 'Alabanza') return true;
     return false;
 }
-// ========== G-QUEST HUB: GAMIFICACIÓN Y JUEGOS ==========
+// ========== G-QUEST HUB: GAMIFICACIÓN Y JUEGOS (VERSIÓN SUPABASE) ==========
+
 // Variables globales
 let preguntasPorNivel = {};      // { nivel: [pregunta1, pregunta2, ...] }
 let nivelesDisponibles = [];      // [1,2,3,...]
@@ -17068,17 +17069,257 @@ let preguntasPartida = [];         // [{ nivel, pregunta, opciones, correcta, id
 let indicePreguntaActualGQ = 0;
 let tiempoRestanteGQ = 15;         // 15 segundos por pregunta
 let intervaloTimerGQ = null;
-let xpGanadaEnSesionGQ = 0;        // XP que se va a sumar al final (solo la nueva)
-let nivelMaximoAlcanzadoEnPartida = 0;  // hasta qué nivel llegó en esta partida
-let nivelMaximoHistorico = 0;          // desde la BD
+let xpGanadaEnSesionGQ = 0;        // (ya no se usa directamente, pero se mantiene por compatibilidad)
+let nivelMaximoAlcanzadoEnPartida = 0;
+let nivelMaximoHistorico = 0;
 let canalDueloRealtimeGQ = null;
 let codigoSalaActivaGQ = null;
 
-// Función principal que pinta el hub dentro de la pestaña
-function renderGQuestHub() {
+// ========== CARGAR PREGUNTAS DESDE SUPABASE ==========
+async function cargarPreguntasDesdeSupabase() {
+    if (!currentUser) return false;
+    const { data, error } = await supabaseClient
+        .from('preguntas_gquest')
+        .select('id, nivel, pregunta, opcion_a, opcion_b, opcion_c, opcion_d, correcta')
+        .eq('activa', true);
+    if (error) {
+        console.error('Error cargando preguntas:', error);
+        showToast('Error al cargar preguntas', 'error');
+        return false;
+    }
+    // Agrupar por nivel
+    preguntasPorNivel = {};
+    data.forEach(p => {
+        const nivel = p.nivel;
+        if (!preguntasPorNivel[nivel]) preguntasPorNivel[nivel] = [];
+        preguntasPorNivel[nivel].push({
+            id: p.id,
+            nivel: p.nivel,
+            pregunta: p.pregunta,
+            opciones: {
+                A: p.opcion_a,
+                B: p.opcion_b,
+                C: p.opcion_c,
+                D: p.opcion_d
+            },
+            correcta: p.correcta
+        });
+    });
+    nivelesDisponibles = Object.keys(preguntasPorNivel).map(Number).sort((a,b) => a-b);
+    console.log(`Preguntas cargadas: ${data.length} en ${nivelesDisponibles.length} niveles`);
+    return true;
+}
+
+// ========== SELECCIONAR UNA PREGUNTA ALEATORIA POR NIVEL ==========
+function seleccionarPreguntaAleatoriaPorNivel(nivel) {
+    const preguntasDelNivel = preguntasPorNivel[nivel];
+    if (!preguntasDelNivel || preguntasDelNivel.length === 0) return null;
+    const indice = Math.floor(Math.random() * preguntasDelNivel.length);
+    return { ...preguntasDelNivel[indice] };
+}
+
+// ========== CONSTRUIR PARTIDA CON PREGUNTAS ALEATORIAS (UNA POR NIVEL) ==========
+function construirPartida() {
+    const partida = [];
+    for (const nivel of nivelesDisponibles) {
+        const pregunta = seleccionarPreguntaAleatoriaPorNivel(nivel);
+        if (pregunta) partida.push(pregunta);
+    }
+    return partida;
+}
+
+// ========== OBTENER NIVEL MÁXIMO HISTÓRICO DEL USUARIO ==========
+async function obtenerNivelMaximoHistorico() {
+    if (!currentUser) return 0;
+    const { data, error } = await supabaseClient
+        .from('progreso_usuario')
+        .select('nivel_maximo')
+        .eq('user_id', currentUser.id)
+        .single();
+    if (error && error.code !== 'PGRST116') console.error(error);
+    return data?.nivel_maximo || 0;
+}
+
+// ========== ACTUALIZAR NIVEL MÁXIMO Y XP EN LA BD ==========
+async function actualizarProgresoUsuario(nuevoNivelMaximo, xpNueva) {
+    if (!currentUser) return { nuevaXpTotal: 0, nuevoMaximo: 0 };
+    const { data: prog } = await supabaseClient
+        .from('progreso_usuario')
+        .select('xp, nivel_maximo')
+        .eq('user_id', currentUser.id)
+        .single();
+    const xpActual = prog?.xp || 0;
+    const nuevaXpTotal = xpActual + xpNueva;
+    const nuevoMaximo = Math.max(prog?.nivel_maximo || 0, nuevoNivelMaximo);
+    await supabaseClient
+        .from('progreso_usuario')
+        .update({ xp: nuevaXpTotal, nivel_maximo: nuevoMaximo })
+        .eq('user_id', currentUser.id);
+    return { nuevaXpTotal, nuevoMaximo };
+}
+
+// ========== CALCULAR XP POR NIVEL ==========
+function calcularXPporNivel(nivel) {
+    return nivel <= 10 ? 10 : 20;
+}
+
+// ========== CALCULAR XP ACUMULADA POR NIVELES NUEVOS ==========
+function calcularXPNueva(maxAnterior, nivelAlcanzado) {
+    if (nivelAlcanzado <= maxAnterior) return 0;
+    let total = 0;
+    for (let n = maxAnterior + 1; n <= nivelAlcanzado; n++) {
+        total += calcularXPporNivel(n);
+    }
+    return total;
+}
+
+// ========== FINALIZAR JUEGO (ÉXITO) ==========
+async function finalizarJuegoExitosoGQ() {
+    const xpNueva = calcularXPNueva(nivelMaximoHistorico, nivelMaximoAlcanzadoEnPartida);
+    if (xpNueva > 0) {
+        const { nuevaXpTotal, nuevoMaximo } = await actualizarProgresoUsuario(nivelMaximoAlcanzadoEnPartida, xpNueva);
+        showToast(`🎉 ¡Completaste hasta el nivel ${nivelMaximoAlcanzadoEnPartida}! +${xpNueva} XP`, 'success');
+        document.getElementById('user-total-xp').innerText = nuevaXpTotal;
+        cargarRankingSemanalGQuest();
+    } else {
+        showToast(`😅 Ya habías alcanzado el nivel ${nivelMaximoAlcanzadoEnPartida} antes. No ganaste XP adicional. ¡Sigue practicando!`, 'info');
+    }
+    regresarAlHubGQ();
+}
+
+// ========== PROCESAR RESPUESTA INCORRECTA O TIEMPO AGOTADO ==========
+async function procesarRespuestaIncorrectaGQ() {
+    const nivelAlcanzado = indicePreguntaActualGQ; // porque indice arranca en 0
+    const xpNueva = calcularXPNueva(nivelMaximoHistorico, nivelAlcanzado);
+    if (xpNueva > 0) {
+        const { nuevaXpTotal } = await actualizarProgresoUsuario(nivelAlcanzado, xpNueva);
+        showToast(`❌ Fallaste en el nivel ${nivelAlcanzado+1}. Ganaste ${xpNueva} XP por los niveles superados.`, 'warning');
+        document.getElementById('user-total-xp').innerText = nuevaXpTotal;
+        cargarRankingSemanalGQuest();
+    } else {
+        showToast(`❌ Fallaste en el nivel ${nivelAlcanzado+1}. No ganaste XP (ya habías superado ese nivel antes).`, 'error');
+    }
+    regresarAlHubGQ();
+}
+
+// ========== CARGAR PREGUNTA ACTUAL ==========
+function cargarPreguntaGQ(indice) {
+    if (indice >= preguntasPartida.length) {
+        nivelMaximoAlcanzadoEnPartida = preguntasPartida.length;
+        finalizarJuegoExitosoGQ();
+        return;
+    }
+    const item = preguntasPartida[indice];
+    document.getElementById('game-current-level-txt').innerText = `NIVEL ${item.nivel}`;
+    document.getElementById('game-question-text').innerText = item.pregunta;
+    const xpEstaPregunta = calcularXPporNivel(item.nivel);
+    document.getElementById('game-pending-xp').innerText = `+${xpEstaPregunta} XP`;
+    document.getElementById('opt-text-A').innerText = item.opciones.A;
+    document.getElementById('opt-text-B').innerText = item.opciones.B;
+    document.getElementById('opt-text-C').innerText = item.opciones.C;
+    document.getElementById('opt-text-D').innerText = item.opciones.D;
+    
+    document.querySelectorAll('.quiz-option').forEach(btn => {
+        btn.classList.remove('correct', 'wrong');
+        btn.style.display = 'flex';
+    });
+    
+    tiempoRestanteGQ = 15;
+    document.getElementById('game-timer').innerText = tiempoRestanteGQ;
+    document.getElementById('game-timer').style.borderColor = '#ff5e5e';
+    if (intervaloTimerGQ) clearInterval(intervaloTimerGQ);
+    intervaloTimerGQ = setInterval(() => {
+        tiempoRestanteGQ--;
+        document.getElementById('game-timer').innerText = tiempoRestanteGQ;
+        if (tiempoRestanteGQ <= 0) {
+            clearInterval(intervaloTimerGQ);
+            procesarRespuestaIncorrectaGQ();
+        }
+    }, 1000);
+}
+
+// ========== SELECCIONAR RESPUESTA ==========
+async function seleccionarRespuesta(letra) {
+    clearInterval(intervaloTimerGQ);
+    const pregunta = preguntasPartida[indicePreguntaActualGQ];
+    const botones = document.querySelectorAll('.quiz-option');
+    const botonSeleccionado = Array.from(botones).find(b => b.getAttribute('data-option') === letra);
+    const botonCorrecto = Array.from(botones).find(b => b.getAttribute('data-option') === pregunta.correcta);
+    if (letra === pregunta.correcta) {
+        botonSeleccionado.classList.add('correct');
+        setTimeout(() => {
+            indicePreguntaActualGQ++;
+            nivelMaximoAlcanzadoEnPartida = indicePreguntaActualGQ;
+            cargarPreguntaGQ(indicePreguntaActualGQ);
+        }, 1200);
+    } else {
+        botonSeleccionado.classList.add('wrong');
+        if (botonCorrecto) botonCorrecto.classList.add('correct');
+        setTimeout(() => {
+            procesarRespuestaIncorrectaGQ();
+        }, 1500);
+    }
+}
+
+// ========== COMODINES ==========
+function usarComodin5050() {
+    const btn = document.getElementById('comodin-50');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const pregunta = preguntasPartida[indicePreguntaActualGQ];
+    const opcionesIncorrectas = Object.keys(pregunta.opciones).filter(key => key !== pregunta.correcta);
+    const descartes = opcionesIncorrectas.sort(() => 0.5 - Math.random()).slice(0, 2);
+    document.querySelectorAll('.quiz-option').forEach(opt => {
+        if (descartes.includes(opt.getAttribute('data-option'))) {
+            opt.style.display = 'none';
+        }
+    });
+}
+
+function usarComodinTiempo() {
+    const btn = document.getElementById('comodin-tiempo');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    tiempoRestanteGQ += 15;
+    document.getElementById('game-timer').innerText = tiempoRestanteGQ;
+}
+
+function usarComodinPublico() {
+    const btn = document.getElementById('comodin-publico');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const pregunta = preguntasPartida[indicePreguntaActualGQ];
+    showToast(`La congregación opina que la opción correcta es la: ${pregunta.correcta}`, 'info');
+}
+
+// ========== INICIAR JUEGO INDIVIDUAL ==========
+window.iniciarQuizIndividual = async function() {
+    if (!preguntasPorNivel || Object.keys(preguntasPorNivel).length === 0) {
+        showToast('Cargando preguntas, espera un momento...', 'warning');
+        await cargarPreguntasDesdeSupabase();
+        if (Object.keys(preguntasPorNivel).length === 0) {
+            showToast('No hay preguntas disponibles. Contacta al administrador.', 'error');
+            return;
+        }
+    }
+    nivelMaximoHistorico = await obtenerNivelMaximoHistorico();
+    preguntasPartida = construirPartida();
+    if (preguntasPartida.length === 0) {
+        showToast('No se pudo preparar la partida. Faltan preguntas.', 'error');
+        return;
+    }
+    indicePreguntaActualGQ = 0;
+    nivelMaximoAlcanzadoEnPartida = 0;
+    document.querySelectorAll('.btn-comodin').forEach(btn => btn.disabled = false);
+    document.getElementById('gquest-main-hub').classList.add('hidden');
+    document.getElementById('gquest-game-screen').classList.remove('hidden');
+    cargarPreguntaGQ(0);
+};
+
+// ========== RENDER HUB PRINCIPAL ==========
+async function renderGQuestHub() {
     const container = document.getElementById('av-tab-gquest');
     if (!container) return;
-
     const html = `
         <div class="gquest-container">
             <div id="gquest-main-hub" class="gquest-panel">
@@ -17145,9 +17386,9 @@ function renderGQuestHub() {
 
             <div id="gquest-game-screen" class="gquest-panel hidden">
                 <div class="game-header">
-                    <span class="game-level-indicator" id="game-current-level-txt">PREGUNTA 1/10</span>
-                    <div class="game-timer-circle" id="game-timer">30</div>
-                    <span class="game-xp-indicator" id="game-pending-xp">+100 XP</span>
+                    <span class="game-level-indicator" id="game-current-level-txt">NIVEL 1</span>
+                    <div class="game-timer-circle" id="game-timer">15</div>
+                    <span class="game-xp-indicator" id="game-pending-xp">+10 XP</span>
                 </div>
 
                 <div class="game-question-area">
@@ -17178,262 +17419,13 @@ function renderGQuestHub() {
         </div>
     `;
     container.innerHTML = html;
-
+    
+    // Cargar preguntas desde Supabase
+    await cargarPreguntasDesdeSupabase();
     // Cargar datos del usuario y ranking
-    cargarDatosUsuarioGQuest();
+    await cargarDatosUsuarioGQuest();
     cargarRankingSemanalGQuest();
 }
-
-
-
-// ========== CARGAR PREGUNTAS DESDE SUPABASE ==========
-async function cargarPreguntasDesdeSupabase() {
-    if (!currentUser) return false;
-    const { data, error } = await supabaseClient
-        .from('preguntas_gquest')
-        .select('id, nivel, pregunta, opcion_a, opcion_b, opcion_c, opcion_d, correcta')
-        .eq('activa', true);
-    if (error) {
-        console.error('Error cargando preguntas:', error);
-        showToast('Error al cargar preguntas', 'error');
-        return false;
-    }
-    // Agrupar por nivel
-    preguntasPorNivel = {};
-    data.forEach(p => {
-        const nivel = p.nivel;
-        if (!preguntasPorNivel[nivel]) preguntasPorNivel[nivel] = [];
-        preguntasPorNivel[nivel].push({
-            id: p.id,
-            nivel: p.nivel,
-            pregunta: p.pregunta,
-            opciones: {
-                A: p.opcion_a,
-                B: p.opcion_b,
-                C: p.opcion_c,
-                D: p.opcion_d
-            },
-            correcta: p.correcta
-        });
-    });
-    // Obtener niveles disponibles ordenados
-    nivelesDisponibles = Object.keys(preguntasPorNivel).map(Number).sort((a,b) => a-b);
-    console.log(`Preguntas cargadas: ${data.length} en ${nivelesDisponibles.length} niveles`);
-    return true;
-}
-
-// ========== SELECCIONAR UNA PREGUNTA ALEATORIA POR NIVEL ==========
-function seleccionarPreguntaAleatoriaPorNivel(nivel) {
-    const preguntasDelNivel = preguntasPorNivel[nivel];
-    if (!preguntasDelNivel || preguntasDelNivel.length === 0) return null;
-    const indice = Math.floor(Math.random() * preguntasDelNivel.length);
-    return { ...preguntasDelNivel[indice] };
-}
-
-// ========== CONSTRUIR PARTIDA CON PREGUNTAS ALEATORIAS (UNA POR NIVEL) ==========
-function construirPartida() {
-    const partida = [];
-    for (const nivel of nivelesDisponibles) {
-        const pregunta = seleccionarPreguntaAleatoriaPorNivel(nivel);
-        if (pregunta) partida.push(pregunta);
-    }
-    return partida;
-}
-
-// ========== OBTENER NIVEL MÁXIMO HISTÓRICO DEL USUARIO ==========
-async function obtenerNivelMaximoHistorico() {
-    if (!currentUser) return 0;
-    const { data, error } = await supabaseClient
-        .from('progreso_usuario')
-        .select('nivel_maximo')
-        .eq('user_id', currentUser.id)
-        .single();
-    if (error && error.code !== 'PGRST116') console.error(error);
-    return data?.nivel_maximo || 0;
-}
-
-// ========== ACTUALIZAR NIVEL MÁXIMO Y XP EN LA BD ==========
-async function actualizarProgresoUsuario(nuevoNivelMaximo, xpNueva) {
-    if (!currentUser) return;
-    const { data: prog } = await supabaseClient
-        .from('progreso_usuario')
-        .select('xp, nivel_maximo')
-        .eq('user_id', currentUser.id)
-        .single();
-    const xpActual = prog?.xp || 0;
-    const nuevaXpTotal = xpActual + xpNueva;
-    const nuevoMaximo = Math.max(prog?.nivel_maximo || 0, nuevoNivelMaximo);
-    await supabaseClient
-        .from('progreso_usuario')
-        .update({ xp: nuevaXpTotal, nivel_maximo: nuevoMaximo })
-        .eq('user_id', currentUser.id);
-    return { nuevaXpTotal, nuevoMaximo };
-}
-
-// ========== CALCULAR XP POR NIVEL ==========
-function calcularXPporNivel(nivel) {
-    return nivel <= 10 ? 10 : 20;
-}
-
-// ========== CALCULAR XP ACUMULADA POR NIVELES NUEVOS ==========
-function calcularXPNueva(maxAnterior, nivelAlcanzado) {
-    if (nivelAlcanzado <= maxAnterior) return 0;
-    let total = 0;
-    for (let n = maxAnterior + 1; n <= nivelAlcanzado; n++) {
-        total += calcularXPporNivel(n);
-    }
-    return total;
-}
-
-// ========== FINALIZAR PARTIDA (CALCULAR XP Y ACTUALIZAR BD) ==========
-async function finalizarJuegoExitosoGQ() {
-    // Calcular XP solo por los niveles que no había alcanzado antes
-    const xpNueva = calcularXPNueva(nivelMaximoHistorico, nivelMaximoAlcanzadoEnPartida);
-    if (xpNueva > 0) {
-        const { nuevaXpTotal, nuevoMaximo } = await actualizarProgresoUsuario(nivelMaximoAlcanzadoEnPartida, xpNueva);
-        showToast(`🎉 ¡Completaste hasta el nivel ${nivelMaximoAlcanzadoEnPartida}! +${xpNueva} XP`, 'success');
-        document.getElementById('user-total-xp').innerText = nuevaXpTotal;
-        cargarRankingSemanalGQuest();
-    } else {
-        showToast(`😅 Ya habías alcanzado el nivel ${nivelMaximoAlcanzadoEnPartida} antes. No ganaste XP adicional. ¡Sigue practicando!`, 'info');
-    }
-    regresarAlHubGQ();
-}
-
-function procesarRespuestaIncorrectaGQ() {
-    // Si falló, el nivel alcanzado es el índice actual (preguntas acertadas)
-    const nivelAlcanzado = indicePreguntaActualGQ; // porque indice arranca en 0
-    const xpNueva = calcularXPNueva(nivelMaximoHistorico, nivelAlcanzado);
-    if (xpNueva > 0) {
-        actualizarProgresoUsuario(nivelAlcanzado, xpNueva).then(({ nuevaXpTotal }) => {
-            showToast(`❌ Fallaste en el nivel ${nivelAlcanzado+1}. Ganaste ${xpNueva} XP por los niveles superados.`, 'warning');
-            document.getElementById('user-total-xp').innerText = nuevaXpTotal;
-            cargarRankingSemanalGQuest();
-        });
-    } else {
-        showToast(`❌ Fallaste en el nivel ${nivelAlcanzado+1}. No ganaste XP (ya habías superado ese nivel antes).`, 'error');
-    }
-    regresarAlHubGQ();
-}
-
-// ========== CARGAR PREGUNTA ACTUAL ==========
-function cargarPreguntaGQ(indice) {
-    if (indice >= preguntasPartida.length) {
-        // Completaste todos los niveles
-        nivelMaximoAlcanzadoEnPartida = preguntasPartida.length;
-        finalizarJuegoExitosoGQ();
-        return;
-    }
-    const item = preguntasPartida[indice];
-    document.getElementById('game-current-level-txt').innerText = `NIVEL ${item.nivel}`;
-    document.getElementById('game-question-text').innerText = item.pregunta;
-    const xpEstaPregunta = calcularXPporNivel(item.nivel);
-    document.getElementById('game-pending-xp').innerText = `+${xpEstaPregunta} XP`;
-    document.getElementById('opt-text-A').innerText = item.opciones.A;
-    document.getElementById('opt-text-B').innerText = item.opciones.B;
-    document.getElementById('opt-text-C').innerText = item.opciones.C;
-    document.getElementById('opt-text-D').innerText = item.opciones.D;
-    
-    document.querySelectorAll('.quiz-option').forEach(btn => {
-        btn.classList.remove('correct', 'wrong');
-        btn.style.display = 'flex';
-    });
-    
-    tiempoRestanteGQ = 15;
-    document.getElementById('game-timer').innerText = tiempoRestanteGQ;
-    document.getElementById('game-timer').style.borderColor = '#ff5e5e';
-    if (intervaloTimerGQ) clearInterval(intervaloTimerGQ);
-    intervaloTimerGQ = setInterval(() => {
-        tiempoRestanteGQ--;
-        document.getElementById('game-timer').innerText = tiempoRestanteGQ;
-        if (tiempoRestanteGQ <= 0) {
-            clearInterval(intervaloTimerGQ);
-            procesarRespuestaIncorrectaGQ();
-        }
-    }, 1000);
-}
-
-// ========== SELECCIONAR RESPUESTA ==========
-async function seleccionarRespuesta(letra) {
-    clearInterval(intervaloTimerGQ);
-    const pregunta = preguntasPartida[indicePreguntaActualGQ];
-    const botones = document.querySelectorAll('.quiz-option');
-    const botonSeleccionado = Array.from(botones).find(b => b.getAttribute('data-option') === letra);
-    const botonCorrecto = Array.from(botones).find(b => b.getAttribute('data-option') === pregunta.correcta);
-    if (letra === pregunta.correcta) {
-        botonSeleccionado.classList.add('correct');
-        // No sumamos XP aquí, la acumulamos al final (o al fallar)
-        setTimeout(() => {
-            indicePreguntaActualGQ++;
-            // Actualizamos nivel máximo alcanzado en esta partida
-            nivelMaximoAlcanzadoEnPartida = indicePreguntaActualGQ;
-            cargarPreguntaGQ(indicePreguntaActualGQ);
-        }, 1200);
-    } else {
-        botonSeleccionado.classList.add('wrong');
-        if (botonCorrecto) botonCorrecto.classList.add('correct');
-        setTimeout(() => {
-            procesarRespuestaIncorrectaGQ();
-        }, 1500);
-    }
-}
-
-// ========== COMODINES (sin cambios, pero usan nivel actual) ==========
-function usarComodin5050() {
-    const btn = document.getElementById('comodin-50');
-    if (btn.disabled) return;
-    btn.disabled = true;
-    const pregunta = preguntasPartida[indicePreguntaActualGQ];
-    const opcionesIncorrectas = Object.keys(pregunta.opciones).filter(key => key !== pregunta.correcta);
-    const descartes = opcionesIncorrectas.sort(() => 0.5 - Math.random()).slice(0, 2);
-    document.querySelectorAll('.quiz-option').forEach(opt => {
-        if (descartes.includes(opt.getAttribute('data-option'))) {
-            opt.style.display = 'none';
-        }
-    });
-}
-
-function usarComodinTiempo() {
-    const btn = document.getElementById('comodin-tiempo');
-    if (btn.disabled) return;
-    btn.disabled = true;
-    tiempoRestanteGQ += 15;
-    document.getElementById('game-timer').innerText = tiempoRestanteGQ;
-}
-
-function usarComodinPublico() {
-    const btn = document.getElementById('comodin-publico');
-    if (btn.disabled) return;
-    btn.disabled = true;
-    const pregunta = preguntasPartida[indicePreguntaActualGQ];
-    showToast(`La congregación opina que la opción correcta es la: ${pregunta.correcta}`, 'info');
-}
-
-// ========== INICIAR JUEGO INDIVIDUAL ==========
-window.iniciarQuizIndividual = async function() {
-    if (!preguntasPorNivel || Object.keys(preguntasPorNivel).length === 0) {
-        showToast('Cargando preguntas, espera un momento...', 'warning');
-        await cargarPreguntasDesdeSupabase();
-        if (Object.keys(preguntasPorNivel).length === 0) {
-            showToast('No hay preguntas disponibles. Contacta al administrador.', 'error');
-            return;
-        }
-    }
-    // Obtener nivel máximo histórico del usuario
-    nivelMaximoHistorico = await obtenerNivelMaximoHistorico();
-    // Construir partida con una pregunta por nivel
-    preguntasPartida = construirPartida();
-    if (preguntasPartida.length === 0) {
-        showToast('No se pudo preparar la partida. Faltan preguntas.', 'error');
-        return;
-    }
-    indicePreguntaActualGQ = 0;
-    nivelMaximoAlcanzadoEnPartida = 0;
-    document.querySelectorAll('.btn-comodin').forEach(btn => btn.disabled = false);
-    document.getElementById('gquest-main-hub').classList.add('hidden');
-    document.getElementById('gquest-game-screen').classList.remove('hidden');
-    cargarPreguntaGQ(0);
-};
 
 // ========== CARGAR DATOS DEL USUARIO (con nivel máximo) ==========
 async function cargarDatosUsuarioGQuest() {
@@ -17511,7 +17503,7 @@ function regresarAlHubGQ() {
     cargarRankingSemanalGQuest();
 }
 
-// ========== DUELOS (sin cambios en la lógica principal) ==========
+// ========== DUELOS ==========
 function abrirMenuDuelo() {
     document.getElementById('gquest-main-hub').classList.add('hidden');
     document.getElementById('gquest-duelo-menu').classList.remove('hidden');
