@@ -3697,6 +3697,95 @@ body.dark #gpraise-aula-shield .bg-blue-50 {
     background: var(--surface);
     border: 1px solid var(--border);
 }
+ /* =========================================
+   FIX PARA FLATPICKR EN GESTIÓN DE TURNOS
+   ========================================= */
+
+/* El contenedor del calendario debe ocupar todo el ancho */
+#shiftCalendarContainer {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Ajustar el calendario de flatpickr */
+.flatpickr-calendar.inline {
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Los días deben distribuirse uniformemente */
+.flatpickr-days {
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+.dayContainer {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 4px !important;
+    width: 100% !important;
+    padding: 0 !important;
+    min-width: auto !important;
+    max-width: 100% !important;
+}
+
+/* Cada día */
+.flatpickr-day {
+    max-width: 100% !important;
+    width: 100% !important;
+    aspect-ratio: 1 / 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.85rem !important;
+    border-radius: 50% !important;
+    background: var(--surface, #1a1a1a) !important;
+    border: 1px solid var(--border, #2a2a2a) !important;
+    color: var(--text-main, #eee) !important;
+}
+
+/* Días de otros meses (opacos) */
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+    opacity: 0.4 !important;
+}
+
+/* Día seleccionado o con turno (se pinta con JS, pero mejoramos estilo) */
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: #5ea1ff !important;
+    color: white !important;
+    border-color: #5ea1ff !important;
+}
+
+/* Día con turno (marcado en azul) - asumimos que se usa style directo, pero esto ayuda */
+.flatpickr-day[style*="background-color: #5ea1ff;"] {
+    background: #5ea1ff !important;
+    color: white !important;
+    border-color: #5ea1ff !important;
+}
+
+/* Cabecera del mes */
+.flatpickr-current-month {
+    font-size: 1.1rem !important;
+    padding: 8px 0 !important;
+}
+.flatpickr-weekdays {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 4px !important;
+    margin-bottom: 6px !important;
+}
+.flatpickr-weekday {
+    text-align: center !important;
+    font-weight: 700 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-muted, #888) !important;
+}
         
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
